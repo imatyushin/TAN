@@ -112,15 +112,7 @@ set(
   ../../../src/TrueAudioNext/resource.h
   )
 
-# create library
-add_library(
-  TrueAudioNext
-  SHARED
-  ${SOURCE_LIB}
-  ${HEADER_LIB}
-  )
-
-# cl kernels compilation
+# cl kernels for compilation
 set(
   Tan_CL_Directories
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/convolution"
@@ -153,6 +145,29 @@ set(
   "CLKernel_VectorComplexMultiply.h"
   "CLKernel_VectorComplexDivision.h"
   "CLKernel_Converter.h"
+  )
+
+markGenerated(
+  Tan_CL_Directories
+  Tan_CL_Output
+  OutHeaders
+  )
+
+#append generated headers
+list(LENGTH OutHeaders OutHeadersCount)
+math(EXPR OutHeaders_MaxIndex ${OutHeadersCount}-1)
+
+foreach(FileIndex RANGE ${OutHeaders_MaxIndex})
+  list(GET OutHeaders ${FileIndex} OutFile)
+  list(APPEND HEADER_LIB ${OutFile})
+endforeach()
+
+# create library
+add_library(
+  TrueAudioNext
+  SHARED
+  ${SOURCE_LIB}
+  ${HEADER_LIB}
   )
 
 generateCLKernel(

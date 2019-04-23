@@ -30,6 +30,11 @@ add_subdirectory(../../samples/proj/cmake/Ambisonic2ndOrderEncoder cmake-Ambison
 add_subdirectory(../../samples/proj/cmake/AmbisonicVRDecoder cmake-AmbisonicVRDecoder-bin)
 add_subdirectory(../../samples/proj/cmake/CLKernelPreprocessor cmake-CLKernelPreprocessor-bin)
 add_subdirectory(../../samples/proj/cmake/GPUUtilities cmake-GPUUtilities-bin)
+#add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
+add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
+add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bin)
+add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
+add_subdirectory(../../samples/proj/cmake/TrueAudioVR cmake-TrueAudioVR-bin)
 
 add_subdirectory(../../TanLibrary/proj/cmake/Graal cmake-Graal-bin)
 add_subdirectory(../../TanLibrary/proj/cmake/clFFT cmake-clFFT-bin)

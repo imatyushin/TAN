@@ -52,6 +52,26 @@ add_compile_definitions(CLFFT_EXPORTS)
 # library name
 project(Graal)
 
+# sources
+set(
+  SOURCE_LIB
+  ../../../src/common/OCLHelper.cpp
+  ../../../src/Graal/amdFHT.cpp
+  ../../../src/Graal/GraalConv.cpp
+  ../../../src/Graal/GraalConvOCL.cpp
+  ../../../src/Graal/GraalConv_clFFT.cpp
+)
+
+set(
+  HEADER_LIB
+  ../../../src/common/OCLHelper.h
+  ../../../src/Graal/amdFHT.h
+  ../../../src/Graal/GraalConv.hpp
+  ../../../src/Graal/GraalConvOCL.hpp
+  ../../../src/Graal/GraalConv_clFFT.hpp
+  ../../../src/Graal/GraalInternal.h
+  )
+
 # cl kernels compilation
 set(
   Graal_CL_Directories
@@ -78,45 +98,18 @@ set(
   "OclKernels/amdFIR_kernels.h"
   )
 
-# sources
-set(
-  SOURCE_LIB
-  ../../../src/common/OCLHelper.cpp
-  ../../../src/Graal/amdFHT.cpp
-  ../../../src/Graal/GraalConv.cpp
-  ../../../src/Graal/GraalConvOCL.cpp
-  ../../../src/Graal/GraalConv_clFFT.cpp
-)
-
-set(
-  HEADER_LIB
-  ../../../src/common/OCLHelper.h
-  ../../../src/Graal/amdFHT.h
-  ../../../src/Graal/GraalConv.hpp
-  ../../../src/Graal/GraalConvOCL.hpp
-  ../../../src/Graal/GraalConv_clFFT.hpp
-  ../../../src/Graal/GraalInternal.h
-  #../../../src/Graal/OclKernels/amdFFT_conv_kernels.cl.h  #<ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-  #../../../src/Graal/OclKernels/amdFIR_kernels.cl.h       #<ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-  #../../../src/Graal/OclKernels/GraalFHT.cl.h             #<ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-  #../../../src/Graal/OclKernels/GraalUtil.cl.h            #<ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-  )
-
 markGenerated(
   Graal_CL_Directories
   Graal_CL_Output
   OutHeaders
   )
 
+#append generated headers
 list(LENGTH OutHeaders OutHeadersCount)
-#message("OUT headers(${OutHeadersCount}): ${OutHeaders}")
-
 math(EXPR OutHeaders_MaxIndex ${OutHeadersCount}-1)
 
 foreach(FileIndex RANGE ${OutHeaders_MaxIndex})
   list(GET OutHeaders ${FileIndex} OutFile)
-  #message("append(${FileIndex}): ${OutFile}")
-
   list(APPEND HEADER_LIB ${OutFile})
 endforeach()
 
@@ -127,7 +120,6 @@ add_library(
   STATIC
   ${SOURCE_LIB}
   ${HEADER_LIB}
-  #${Graal_CL_Output}
   )
 
 generateCLKernel(

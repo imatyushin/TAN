@@ -11,7 +11,7 @@ function(markGenerated InputDirectories OutputNames OutHeaders)
     list(GET ${OutputNames} ${CL_FILE_INDEX} CL_OUTPUT)
 
     set(GeneratedFileName ${CL_DIRECTORY}/${CL_OUTPUT})
-    message("process: ${GeneratedFileName}")
+    #message("process: ${GeneratedFileName}")
 
     set_source_files_properties(
       ${GeneratedFileName}
@@ -36,7 +36,7 @@ function(generateCLKernel OutputTarget InputDirectories InputFiles OutputNames)
     list(GET ${InputDirectories} ${CL_FILE_INDEX} CL_DIRECTORY)
     list(GET ${InputFiles} ${CL_FILE_INDEX} CL_FILE)
     list(GET ${OutputNames} ${CL_FILE_INDEX} CL_OUTPUT)
-    message("create commands for ${CL_DIRECTORY} -> ${CL_FILE} -> ${CL_OUTPUT}")
+    #message("create commands to compile ${CL_DIRECTORY}/${CL_FILE} to ${CL_OUTPUT}")
 
     set(TARGET_NAME ${CL_FILE})
 
@@ -52,7 +52,7 @@ function(generateCLKernel OutputTarget InputDirectories InputFiles OutputNames)
         COMMAND
         CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
         COMMENT
-        "COMMAND Compile ${CL_DIRECTORY} -> ${CL_FILE} -> ${CL_OUTPUT}"
+        "COMMAND Compile ${CL_DIRECTORY}/${CL_FILE} to ${CL_OUTPUT}"
         VERBATIM
         )
 
@@ -65,7 +65,58 @@ function(generateCLKernel OutputTarget InputDirectories InputFiles OutputNames)
         ${CL_OUTPUT}
         #COMMAND CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
         COMMENT
-        "TARGET Compile ${CL_DIRECTORY} -> ${CL_FILE} -> ${CL_OUTPUT}"
+        "TARGET ${CL_DIRECTORY}/${CL_FILE}"
+        #BYPRODUCTS ${CL_FILE}
+        )
+
+    endif()
+
+    add_dependencies(${TARGET_NAME} CLKernelPreprocessor)
+    add_dependencies(${OutputTarget} ${TARGET_NAME})
+
+  endforeach()
+
+endfunction()
+
+function(generateCLKernelHeader OutputTarget InputDirectories InputFiles OutputNames)
+
+  list(LENGTH ${InputFiles} CL_FilesCount)
+  math(EXPR CL_Files_MaxIndex ${CL_FilesCount}-1)
+
+  foreach(CL_FILE_INDEX RANGE ${CL_Files_MaxIndex})
+    list(GET ${InputDirectories} ${CL_FILE_INDEX} CL_DIRECTORY)
+    list(GET ${InputFiles} ${CL_FILE_INDEX} CL_FILE)
+    list(GET ${OutputNames} ${CL_FILE_INDEX} CL_OUTPUT)
+    #message("create commands to convert file ${CL_DIRECTORY}/${CL_FILE} to ${CL_OUTPUT}")
+
+    set(TARGET_NAME ${CL_FILE})
+
+    if(NOT TARGET ${TARGET_NAME})
+
+      add_custom_command(
+        OUTPUT
+        ${CL_OUTPUT}
+        WORKING_DIRECTORY
+        ${CL_DIRECTORY}
+        DEPENDS
+        ${CL_FILE}
+        COMMAND
+        #CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
+        "${TAN_ROOT}/thirdparty/file_to_header/file_to_header" ${CL_FILE} ${CL_OUTPUT}
+        COMMENT
+        "Building binary resource header (${CL_OUTPUT}) for  ${CL_DIRECTORY}/${CL_FILE}..."
+        VERBATIM
+        )
+
+      add_custom_target(
+        ${TARGET_NAME}
+
+        WORKING_DIRECTORY
+        ${CL_DIRECTORY}
+        DEPENDS
+        ${CL_OUTPUT}
+        COMMENT
+        "TARGET ${CL_FILE}"
         #BYPRODUCTS ${CL_FILE}
         )
 
