@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -33,7 +33,7 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 project(TrueAudioVR DESCRIPTION "TrueAudioVR")
 
 #
-add_compile_definitions(TAN_SDK_EXPORTS)
+ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
 #if(COMPILER_MSVC)
   ADD_DEFINITIONS(-DUNICODE)
@@ -46,7 +46,7 @@ include_directories(../../../..)
 # sources
 set(
   SOURCE_LIB
-  ../../../../../AMF/public/common/Windows/ThreadWindows.cpp
+  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
   ../../../src/TrueAudioVR/dllmain.cpp
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
@@ -54,25 +54,25 @@ set(
 
 set(
   HEADER_LIB
-  ../../../../../AMF/public/common/TraceAdapter.h
-  ../../../../../AMF/public/include/core/AudioBuffer.h
-  ../../../../../AMF/public/include/core/Buffer.h
-  ../../../../../AMF/public/include/core/Compute.h
-  ../../../../../AMF/public/include/core/ComputeFactory.h
-  ../../../../../AMF/public/include/core/Context.h
-  ../../../../../AMF/public/include/core/Data.h
-  ../../../../../AMF/public/include/core/Debug.h
-  ../../../../../AMF/public/include/core/Factory.h
-  ../../../../../AMF/public/include/core/Interface.h
-  ../../../../../AMF/public/include/core/Plane.h
-  ../../../../../AMF/public/include/core/Platform.h
-  ../../../../../AMF/public/include/core/PropertyStorage.h
-  ../../../../../AMF/public/include/core/PropertyStorageEx.h
-  ../../../../../AMF/public/include/core/Result.h
-  ../../../../../AMF/public/include/core/Surface.h
-  ../../../../../AMF/public/include/core/Trace.h
-  ../../../../../AMF/public/include/core/Variant.h
-  ../../../../../AMF/public/include/core/Version.h
+  ../../../../../amf/public/common/TraceAdapter.h
+  ../../../../../amf/public/include/core/AudioBuffer.h
+  ../../../../../amf/public/include/core/Buffer.h
+  ../../../../../amf/public/include/core/Compute.h
+  ../../../../../amf/public/include/core/ComputeFactory.h
+  ../../../../../amf/public/include/core/Context.h
+  ../../../../../amf/public/include/core/Data.h
+  ../../../../../amf/public/include/core/Debug.h
+  ../../../../../amf/public/include/core/Factory.h
+  ../../../../../amf/public/include/core/Interface.h
+  ../../../../../amf/public/include/core/Plane.h
+  ../../../../../amf/public/include/core/Platform.h
+  ../../../../../amf/public/include/core/PropertyStorage.h
+  ../../../../../amf/public/include/core/PropertyStorageEx.h
+  ../../../../../amf/public/include/core/Result.h
+  ../../../../../amf/public/include/core/Surface.h
+  ../../../../../amf/public/include/core/Trace.h
+  ../../../../../amf/public/include/core/Variant.h
+  ../../../../../amf/public/include/core/Version.h
   ../../../src/TrueAudioVR/cpucaps.h
   ../../../src/TrueAudioVR/Header.h
   ../../../src/TrueAudioVR/resource.h

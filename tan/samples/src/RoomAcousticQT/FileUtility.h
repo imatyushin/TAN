@@ -11,7 +11,7 @@ struct FileVersion
 FileVersion getFileVersion(std::string& filepath);
 std::string getFileVersionString(std::string& filepath);
 std::string getFileNameWithExtension(std::string& filepath);
-std::string getFileNameWithoutExtension(std::string& filepath);
+std::string getFileNameWithoutExtension(const std::string& filepath);
 std::string getCurrentDirectory();
 inline bool checkFileExist(const std::string& filename)
 {

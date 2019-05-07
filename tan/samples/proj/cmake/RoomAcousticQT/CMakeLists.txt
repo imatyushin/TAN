@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -54,7 +54,7 @@ include_directories(../../../src/RoomAcousticQT/QTObject)
 
 #
 #if(COMPILER_MSVC)
-  #add_compile_definitions(RTQ_ENABLED)
+  #ADD_DEFINITIONS(-DRTQ_ENABLED)
   #WIN32
   #WIN64
   #QT_DLL
@@ -73,16 +73,16 @@ set(
   SOURCE_EXE
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
-  ../../../../../AMF/public/common/AMFFactory.cpp
-  ../../../../../AMF/public/common/AMFSTL.cpp
-  ../../../../../AMF/public/common/DataStreamFactory.cpp
-  ../../../../../AMF/public/common/DataStreamFile.cpp
-  ../../../../../AMF/public/common/DataStreamMemory.cpp
-  ../../../../../AMF/public/common/IOCapsImpl.cpp
-  ../../../../../AMF/public/common/PropertyStorageExImpl.cpp
-  ../../../../../AMF/public/common/Thread.cpp
-  ../../../../../AMF/public/common/TraceAdapter.cpp
-  ../../../../../AMF/public/common/Windows/ThreadWindows.cpp
+  ../../../../../amf/public/common/AMFFactory.cpp
+  ../../../../../amf/public/common/AMFSTL.cpp
+  ../../../../../amf/public/common/DataStreamFactory.cpp
+  ../../../../../amf/public/common/DataStreamFile.cpp
+  ../../../../../amf/public/common/DataStreamMemory.cpp
+  ../../../../../amf/public/common/IOCapsImpl.cpp
+  ../../../../../amf/public/common/PropertyStorageExImpl.cpp
+  ../../../../../amf/public/common/Thread.cpp
+  ../../../../../amf/public/common/TraceAdapter.cpp
+  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
   ../../../src/common/fifo.cpp
   ../../../src/common/GpuUtils.cpp
@@ -102,37 +102,37 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../../AMF/public/common/AMFFactory.h
-  ../../../../../AMF/public/common/AMFSTL.h
-  ../../../../../AMF/public/common/ByteArray.h
-  ../../../../../AMF/public/common/DataStream.h
-  ../../../../../AMF/public/common/DataStreamFile.h
-  ../../../../../AMF/public/common/DataStreamMemory.h
-  ../../../../../AMF/public/common/InterfaceImpl.h
-  ../../../../../AMF/public/common/IOCapsImpl.h
-  ../../../../../AMF/public/common/ObservableImpl.h
-  ../../../../../AMF/public/common/PropertyStorageExImpl.h
-  ../../../../../AMF/public/common/PropertyStorageImpl.h
-  ../../../../../AMF/public/common/Thread.h
-  ../../../../../AMF/public/common/TraceAdapter.h
-  ../../../../../AMF/public/include/core/AudioBuffer.h
-  ../../../../../AMF/public/include/core/Buffer.h
-  ../../../../../AMF/public/include/core/Compute.h
-  ../../../../../AMF/public/include/core/ComputeFactory.h
-  ../../../../../AMF/public/include/core/Context.h
-  ../../../../../AMF/public/include/core/Data.h
-  ../../../../../AMF/public/include/core/Debug.h
-  ../../../../../AMF/public/include/core/Factory.h
-  ../../../../../AMF/public/include/core/Interface.h
-  ../../../../../AMF/public/include/core/Plane.h
-  ../../../../../AMF/public/include/core/Platform.h
-  ../../../../../AMF/public/include/core/PropertyStorage.h
-  ../../../../../AMF/public/include/core/PropertyStorageEx.h
-  ../../../../../AMF/public/include/core/Result.h
-  ../../../../../AMF/public/include/core/Surface.h
-  ../../../../../AMF/public/include/core/Trace.h
-  ../../../../../AMF/public/include/core/Variant.h
-  ../../../../../AMF/public/include/core/Version.h
+  ../../../../../amf/public/common/AMFFactory.h
+  ../../../../../amf/public/common/AMFSTL.h
+  ../../../../../amf/public/common/ByteArray.h
+  ../../../../../amf/public/common/DataStream.h
+  ../../../../../amf/public/common/DataStreamFile.h
+  ../../../../../amf/public/common/DataStreamMemory.h
+  ../../../../../amf/public/common/InterfaceImpl.h
+  ../../../../../amf/public/common/IOCapsImpl.h
+  ../../../../../amf/public/common/ObservableImpl.h
+  ../../../../../amf/public/common/PropertyStorageExImpl.h
+  ../../../../../amf/public/common/PropertyStorageImpl.h
+  ../../../../../amf/public/common/Thread.h
+  ../../../../../amf/public/common/TraceAdapter.h
+  ../../../../../amf/public/include/core/AudioBuffer.h
+  ../../../../../amf/public/include/core/Buffer.h
+  ../../../../../amf/public/include/core/Compute.h
+  ../../../../../amf/public/include/core/ComputeFactory.h
+  ../../../../../amf/public/include/core/Context.h
+  ../../../../../amf/public/include/core/Data.h
+  ../../../../../amf/public/include/core/Debug.h
+  ../../../../../amf/public/include/core/Factory.h
+  ../../../../../amf/public/include/core/Interface.h
+  ../../../../../amf/public/include/core/Plane.h
+  ../../../../../amf/public/include/core/Platform.h
+  ../../../../../amf/public/include/core/PropertyStorage.h
+  ../../../../../amf/public/include/core/PropertyStorageEx.h
+  ../../../../../amf/public/include/core/Result.h
+  ../../../../../amf/public/include/core/Surface.h
+  ../../../../../amf/public/include/core/Trace.h
+  ../../../../../amf/public/include/core/Variant.h
+  ../../../../../amf/public/include/core/Version.h
   ../../../src/common/fifo.h
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h

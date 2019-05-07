@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -33,11 +33,11 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 project(TrueAudioNext VERSION 1.0.0 DESCRIPTION "TAN")
 
 #
-add_compile_definitions(LEGACY_COPYING=1)
-add_compile_definitions(CONVOLUTION_EXPORTS)
-add_compile_definitions(TRUEAUDIONEXT_EXPORTS)
-add_compile_definitions(TAN_SDK_EXPORTS)
-#add_compile_definitions(_M_X64)
+ADD_DEFINITIONS(-DLEGACY_COPYING=1)
+ADD_DEFINITIONS(-DCONVOLUTION_EXPORTS)
+ADD_DEFINITIONS(-DTRUEAUDIONEXT_EXPORTS)
+ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
+#ADD_DEFINITIONS(-D_M_X64)
 
 #if(COMPILER_MSVC)
   ADD_DEFINITIONS(-DUNICODE)

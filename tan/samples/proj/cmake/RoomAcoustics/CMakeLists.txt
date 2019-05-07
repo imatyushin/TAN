@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 if(WIN32)
   if(MSVC)
@@ -44,7 +44,7 @@ if(WIN32)
 
     #
     #if(COMPILER_MSVC)
-      add_compile_definitions(RTQ_ENABLED)
+      ADD_DEFINITIONS(-DRTQ_ENABLED)
       #ADD_DEFINITIONS(-DUNICODE)
       #ADD_DEFINITIONS(-D_UNICODE)
       set(CMAKE_MFC_FLAG 1)
@@ -85,8 +85,8 @@ if(WIN32)
       #resources
       ../../../src/RoomAcoustics/RoomAcoustics.rc
 
-      ../../../../../AMF/public/common/AMFFactory.cpp
-      ../../../../../AMF/public/common/Windows/ThreadWindows.cpp
+      ../../../../../amf/public/common/AMFFactory.cpp
+      ../../../../../amf/public/common/Windows/ThreadWindows.cpp
       ../../../src/common/fifo.cpp
       ../../../src/common/GpuUtils.cpp
       ../../../src/common/SimpleVRaudio.cpp
@@ -103,24 +103,24 @@ if(WIN32)
 
     set(
       HEADER_EXE
-      ../../../../../AMF/public/include/core/AudioBuffer.h
-      ../../../../../AMF/public/include/core/Buffer.h
-      ../../../../../AMF/public/include/core/Compute.h
-      ../../../../../AMF/public/include/core/ComputeFactory.h
-      ../../../../../AMF/public/include/core/Context.h
-      ../../../../../AMF/public/include/core/Data.h
-      ../../../../../AMF/public/include/core/Debug.h
-      ../../../../../AMF/public/include/core/Factory.h
-      ../../../../../AMF/public/include/core/Interface.h
-      ../../../../../AMF/public/include/core/Plane.h
-      ../../../../../AMF/public/include/core/Platform.h
-      ../../../../../AMF/public/include/core/PropertyStorage.h
-      ../../../../../AMF/public/include/core/PropertyStorageEx.h
-      ../../../../../AMF/public/include/core/Result.h
-      ../../../../../AMF/public/include/core/Surface.h
-      ../../../../../AMF/public/include/core/Trace.h
-      ../../../../../AMF/public/include/core/Variant.h
-      ../../../../../AMF/public/include/core/Version.h
+      ../../../../../amf/public/include/core/AudioBuffer.h
+      ../../../../../amf/public/include/core/Buffer.h
+      ../../../../../amf/public/include/core/Compute.h
+      ../../../../../amf/public/include/core/ComputeFactory.h
+      ../../../../../amf/public/include/core/Context.h
+      ../../../../../amf/public/include/core/Data.h
+      ../../../../../amf/public/include/core/Debug.h
+      ../../../../../amf/public/include/core/Factory.h
+      ../../../../../amf/public/include/core/Interface.h
+      ../../../../../amf/public/include/core/Plane.h
+      ../../../../../amf/public/include/core/Platform.h
+      ../../../../../amf/public/include/core/PropertyStorage.h
+      ../../../../../amf/public/include/core/PropertyStorageEx.h
+      ../../../../../amf/public/include/core/Result.h
+      ../../../../../amf/public/include/core/Surface.h
+      ../../../../../amf/public/include/core/Trace.h
+      ../../../../../amf/public/include/core/Variant.h
+      ../../../../../amf/public/include/core/Version.h
       ../../../../tanlibrary/include/TrueAudioNext.h
       ../../../src/common/cpucaps.h
       ../../../src/common/fifo.h

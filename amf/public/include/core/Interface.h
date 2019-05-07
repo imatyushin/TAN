@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef __AMFInterface_h__
-#define __AMFInterface_h__
+#ifndef AMF_Interface_h
+#define AMF_Interface_h
 #pragma once
 
 #include "Result.h"
@@ -42,7 +42,7 @@ namespace amf
 #endif
 #if defined(__cplusplus)
     #define AMF_DECLARE_IID(_data1, _data2, _data3, _data41, _data42, _data43, _data44, _data45, _data46, _data47, _data48) \
-        AMF_INLINE static const amf::AMFGuid IID() \
+        static AMF_INLINE const amf::AMFGuid IID() \
         { \
             amf::AMFGuid uid = {_data1, _data2, _data3, _data41, _data42, _data43, _data44, _data45, _data46, _data47, _data48}; \
             return uid; \
@@ -90,7 +90,7 @@ namespace amf
     // template for AMF smart pointer
     //------------------------------------------------------------------------
 #if defined(__cplusplus)
-    template<typename _Interf>
+    template<class _Interf>
     class AMFInterfacePtr_T
     {
     private:
@@ -124,7 +124,7 @@ namespace amf
             InternalAcquire();
         }
 
-        template<typename _OtherInterf>
+        template<class _OtherInterf>
         explicit AMFInterfacePtr_T(const AMFInterfacePtr_T<_OtherInterf>& cp) : m_pInterf(NULL)
         {
             void* pInterf = NULL;
@@ -135,7 +135,7 @@ namespace amf
             m_pInterf = static_cast<_Interf*>(pInterf);
         }
 
-        template<typename _OtherInterf>
+        template<class _OtherInterf>
         explicit AMFInterfacePtr_T(_OtherInterf* cp) : m_pInterf(NULL)
         {
             void* pInterf = NULL;
@@ -255,4 +255,4 @@ namespace amf
 }
 #endif
 
-#endif //#ifndef __AMFInterface_h__
+#endif //#ifndef AMF_Interface_h

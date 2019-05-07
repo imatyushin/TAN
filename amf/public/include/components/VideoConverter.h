@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,8 @@
 //-------------------------------------------------------------------------------------------------
 // AMFFVideoConverter interface declaration
 //-------------------------------------------------------------------------------------------------
-#ifndef __AMFVideoConverter_h__
-#define __AMFVideoConverter_h__
+#ifndef AMF_VideoConverter_h
+#define AMF_VideoConverter_h
 #pragma once
 
 #include "Component.h"
@@ -71,17 +71,18 @@ enum AMF_VIDEO_CONVERTER_COLOR_PROFILE_ENUM
 #define AMF_VIDEO_CONVERTER_FILL_COLOR          L"FillColor"                // AMFColor 
 
 
-#define AMF_VIDEO_CONVERTER_SCALE               L"ScaleType"
+#define AMF_VIDEO_CONVERTER_SCALE                       L"ScaleType"            // amf_int64(AMF_VIDEO_CONVERTER_SCALE_ENUM); default = AMF_VIDEO_CONVERTER_SCALE_BILINEAR
 
-#define AMF_VIDEO_CONVERTER_GAMMA_MODE          L"GammaMode"
-#define AMF_VIDEO_CONVERTER_GAMMA_VALUE         L"GammaValue"
-#define AMF_VIDEO_CONVERTER_PQ_NORM_FACTOR      L"PqNormFactor"
-
-#define AMF_VIDEO_CONVERTER_FORCE_OUTPUT_SURFACE_SIZE   L"ForceOutputSurfaceSize"   // bool (default=false) Force output size from output surface 
+#define AMF_VIDEO_CONVERTER_FORCE_OUTPUT_SURFACE_SIZE L"ForceOutputSurfaceSize" // bool (default=false) Force output size from output surface 
 
 
-#define AMF_VIDEO_CONVERTER_COLOR_PROFILE       L"ColorProfile"
+#define AMF_VIDEO_CONVERTER_COLOR_PROFILE               L"ColorProfile"         // amf_int64(AMF_VIDEO_CONVERTER_COLOR_PROFILE_ENUM); default = AMF_VIDEO_CONVERTER_COLOR_PROFILE_UNKNOWN - mean AUTO
 
-#define AMF_VIDEO_CONVERTER_LINEAR_RGB            L"LinearRGB"                // bool (default=false) Convert to/from linear RGB instead of sRGB
+#define AMF_VIDEO_CONVERTER_LINEAR_RGB                  L"LinearRGB"             // bool (default=false) Convert to/from linear RGB instead of sRGB using AMF_VIDEO_DECODER_COLOR_TRANSFER_CHARACTERISTIC or by default AMF_VIDEO_CONVERTER_TRANSFER_CHARACTERISTIC
+#define AMF_VIDEO_CONVERTER_TRANSFER_CHARACTERISTIC     L"ColorTransferChar"     // amf_int64(AMF_COLOR_TRANSFER_CHARACTERISTIC_ENUM); default = AMF_COLOR_TRANSFER_CHARACTERISTIC_UNDEFINED, ISO/IEC 23001-8_2013 § 7.2 See VideoDecoderUVD.h for enum 
+#define AMF_VIDEO_CONVERTER_DISPLAY_HDR_METADATA        L"DisplayHDRMetadata"   // AMFBuffer containing AMFHDRMetadata; default NULL
+#define AMF_VIDEO_CONVERTER_USE_DECODER_HDR_METADATA    L"UseDecoderHDRMetadata" // bool (default=true) uses decoder metadata AMF_VIDEO_DECODER_HDR_METADATA in color conversion
 
-#endif //#ifndef __AMFVideoConverter_h__
+
+
+#endif //#ifndef AMF_VideoConverter_h

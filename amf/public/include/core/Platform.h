@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,14 +30,14 @@
 // THE SOFTWARE.
 //
 
-#ifndef __AMFPlatform_h__
-#define __AMFPlatform_h__
+#ifndef AMF_Platform_h
+#define AMF_Platform_h
 #pragma once
 
 //----------------------------------------------------------------------------------------------
 // export declaration
 //----------------------------------------------------------------------------------------------
-#ifdef _WIN32
+#if defined(_WIN32)
     #if defined(AMF_CORE_STATIC)
         #define AMF_CORE_LINK
     #else
@@ -47,7 +47,13 @@
             #define AMF_CORE_LINK __declspec(dllimport)
         #endif
     #endif
-#else // #ifdef _WIN32
+#elif defined(__linux)        
+        #if defined(AMF_CORE_EXPORTS)
+            #define AMF_CORE_LINK __attribute__((visibility("default")))
+        #else
+            #define AMF_CORE_LINK
+        #endif
+#else 
     #define AMF_CORE_LINK
 #endif // #ifdef _WIN32
 
@@ -68,6 +74,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #if defined(_WIN32)
 
@@ -78,8 +85,13 @@
     #define AMF_STD_CALL            __stdcall
     #define AMF_CDECL_CALL          __cdecl
     #define AMF_FAST_CALL           __fastcall
+#if defined(__GNUC__) || defined(__clang__)
+    #define AMF_INLINE              inline
+    #define AMF_FORCEINLINE         inline
+#else
     #define AMF_INLINE              __inline
     #define AMF_FORCEINLINE         __forceinline
+#endif
     #define AMF_NO_VTABLE           __declspec(novtable)
 
     #define AMFPRId64   "I64d"
@@ -96,8 +108,13 @@
     #define AMF_STD_CALL
     #define AMF_CDECL_CALL
     #define AMF_FAST_CALL
+#if defined(__GNUC__) || defined(__clang__)
+    #define AMF_INLINE              inline
+    #define AMF_FORCEINLINE         inline
+#else
     #define AMF_INLINE              __inline__
     #define AMF_FORCEINLINE         __inline__
+#endif
     #define AMF_NO_VTABLE           
 
     #if !defined(AMFPRId64)
@@ -116,7 +133,7 @@
 
 #if defined(_MSC_VER)
 #define AMF_WEAK __declspec( selectany ) 
-#elif defined (__GCC__) || defined(__clang__)//GCC or CLANG
+#elif defined (__GNUC__) || defined (__GCC__) || defined(__clang__)//GCC or CLANG
 #define AMF_WEAK __attribute__((weak))
 #endif
 
@@ -145,7 +162,7 @@ typedef     void                amf_void;
 #if defined(__cplusplus)
 typedef     bool                amf_bool;
 #else
-typedef     amf_uint16          amf_bool;
+typedef     amf_uint8           amf_bool;
 #define     true                1 
 #define     false               0 
 #endif
@@ -156,6 +173,8 @@ typedef     unsigned long       amf_ulong;
 typedef     unsigned int        amf_uint; 
 
 typedef     amf_int64           amf_pts;     // in 100 nanosecs
+
+typedef amf_uint32              amf_flags;
 
 #define AMF_SECOND          10000000L    // 1 second in 100 nanoseconds
 
@@ -187,7 +206,7 @@ typedef struct AMFRect
 #endif
 } AMFRect;
 
-AMF_INLINE struct AMFRect AMFConstructRect(amf_int32 left, amf_int32 top, amf_int32 right, amf_int32 bottom)
+static AMF_INLINE struct AMFRect AMFConstructRect(amf_int32 left, amf_int32 top, amf_int32 right, amf_int32 bottom)
 {
     struct AMFRect object = {left, top, right, bottom};
     return object;
@@ -206,7 +225,7 @@ typedef struct AMFSize
 #endif
 } AMFSize;
 
-AMF_INLINE struct AMFSize AMFConstructSize(amf_int32 width, amf_int32 height)
+static AMF_INLINE struct AMFSize AMFConstructSize(amf_int32 width, amf_int32 height)
 {
     struct AMFSize object = {width, height};
     return object;
@@ -225,7 +244,7 @@ typedef struct AMFPoint
 #endif
 } AMFPoint;
 
-AMF_INLINE struct AMFPoint AMFConstructPoint(amf_int32 x, amf_int32 y)
+static AMF_INLINE struct AMFPoint AMFConstructPoint(amf_int32 x, amf_int32 y)
 {
     struct AMFPoint object = {x, y};
     return object;
@@ -244,7 +263,7 @@ typedef struct AMFRate
 #endif
 } AMFRate;
 
-AMF_INLINE struct AMFRate AMFConstructRate(amf_uint32 num, amf_uint32 den)
+static AMF_INLINE struct AMFRate AMFConstructRate(amf_uint32 num, amf_uint32 den)
 {
     struct AMFRate object = {num, den};
     return object;
@@ -263,7 +282,7 @@ typedef struct AMFRatio
 #endif
 } AMFRatio;
 
-AMF_INLINE struct AMFRatio AMFConstructRatio(amf_uint32 num, amf_uint32 den)
+static AMF_INLINE struct AMFRatio AMFConstructRatio(amf_uint32 num, amf_uint32 den)
 {
     struct AMFRatio object = {num, den};
     return object;
@@ -306,7 +325,7 @@ typedef struct AMFColor
 #pragma pack(pop)
 
 
-AMF_INLINE struct AMFColor AMFConstructColor(amf_uint8 r, amf_uint8 g, amf_uint8 b, amf_uint8 a)
+static AMF_INLINE struct AMFColor AMFConstructColor(amf_uint8 r, amf_uint8 g, amf_uint8 b, amf_uint8 a)
 {
     struct AMFColor object;
     object.r = r;
@@ -324,11 +343,11 @@ AMF_INLINE struct AMFColor AMFConstructColor(amf_uint8 r, amf_uint8 g, amf_uint8
     {
     #endif
         // allocator
-        AMF_INLINE void* AMF_CDECL_CALL amf_variant_alloc(amf_size count)
+        static AMF_INLINE void* AMF_CDECL_CALL amf_variant_alloc(amf_size count)
         {
             return CoTaskMemAlloc(count);
         }
-        AMF_INLINE void AMF_CDECL_CALL amf_variant_free(void* ptr)
+        static AMF_INLINE void AMF_CDECL_CALL amf_variant_free(void* ptr)
         {
             CoTaskMemFree(ptr);
         }
@@ -343,11 +362,11 @@ AMF_INLINE struct AMFColor AMFConstructColor(amf_uint8 r, amf_uint8 g, amf_uint8
     {
     #endif
         // allocator
-        AMF_INLINE void* AMF_CDECL_CALL amf_variant_alloc(amf_size count)
+        static AMF_INLINE void* AMF_CDECL_CALL amf_variant_alloc(amf_size count)
         {
             return malloc(count);
         }
-        AMF_INLINE void AMF_CDECL_CALL amf_variant_free(void* ptr)
+        static AMF_INLINE void AMF_CDECL_CALL amf_variant_free(void* ptr)
         {
             free(ptr);
         }
@@ -411,12 +430,12 @@ namespace amf
     } AMFGuid;
 
 #if defined(__cplusplus)
-    AMF_INLINE bool AMFCompareGUIDs(const AMFGuid& guid1, const AMFGuid& guid2)
+    static AMF_INLINE bool AMFCompareGUIDs(const AMFGuid& guid1, const AMFGuid& guid2)
     {
         return guid1 == guid2;
     }
 #else
-    AMF_INLINE amf_bool AMFCompareGUIDs(const struct AMFGuid guid1, const struct AMFGuid guid2)
+    static AMF_INLINE amf_bool AMFCompareGUIDs(const struct AMFGuid guid1, const struct AMFGuid guid2)
     {
         return memcmp(&guid1, &guid2, sizeof(guid1)) == 0;
     }
@@ -425,4 +444,4 @@ namespace amf
 }
 #endif
 
-#endif //#ifndef __AMFPlatform_h__
+#endif //#ifndef AMF_Platform_h

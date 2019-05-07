@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -31,8 +31,8 @@ project(GPUUtilities DESCRIPTION "GPUUtilities")
 
 #
 #if(COMPILER_MSVC)
-  add_compile_definitions(_USRDLL)
-  add_compile_definitions(GPUUTILITIES_EXPORTS)
+  ADD_DEFINITIONS(-D_USRDLL)
+  ADD_DEFINITIONS(-DGPUUTILITIES_EXPORTS)
   ADD_DEFINITIONS(-DUNICODE)
   ADD_DEFINITIONS(-D_UNICODE)
 #endif()
@@ -40,12 +40,12 @@ project(GPUUtilities DESCRIPTION "GPUUtilities")
 # sources
 set(
   SOURCE_LIB
-  ../../../../../AMF/public/common/AMFFactory.cpp
-  ../../../../../AMF/public/common/AMFSTL.cpp
-  ../../../../../AMF/public/common/PropertyStorageExImpl.cpp
-  ../../../../../AMF/public/common/Thread.cpp
-  ../../../../../AMF/public/common/TraceAdapter.cpp
-  ../../../../../AMF/public/common/Windows/ThreadWindows.cpp
+  ../../../../../amf/public/common/AMFFactory.cpp
+  ../../../../../amf/public/common/AMFSTL.cpp
+  ../../../../../amf/public/common/PropertyStorageExImpl.cpp
+  ../../../../../amf/public/common/Thread.cpp
+  ../../../../../amf/public/common/TraceAdapter.cpp
+  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
   ../../../src/ADL/ADLquery.cpp
   ../../../src/GPUUtilities/dllmain.cpp
   ../../../src/GPUUtilities/GPUUtilities.cpp
@@ -53,30 +53,30 @@ set(
 
 set(
   HEADER_LIB
-  ../../../../../AMF/public/common/AMFSTL.h
-  ../../../../../AMF/public/common/InterfaceImpl.h
-  ../../../../../AMF/public/common/ObservableImpl.h
-  ../../../../../AMF/public/common/PropertyStorageExImpl.h
-  ../../../../../AMF/public/common/PropertyStorageImpl.h
-  ../../../../../AMF/public/common/TraceAdapter.h
-  ../../../../../AMF/public/include/core/AudioBuffer.h
-  ../../../../../AMF/public/include/core/Buffer.h
-  ../../../../../AMF/public/include/core/Compute.h
-  ../../../../../AMF/public/include/core/ComputeFactory.h
-  ../../../../../AMF/public/include/core/Context.h
-  ../../../../../AMF/public/include/core/Data.h
-  ../../../../../AMF/public/include/core/Debug.h
-  ../../../../../AMF/public/include/core/Factory.h
-  ../../../../../AMF/public/include/core/Interface.h
-  ../../../../../AMF/public/include/core/Plane.h
-  ../../../../../AMF/public/include/core/Platform.h
-  ../../../../../AMF/public/include/core/PropertyStorage.h
-  ../../../../../AMF/public/include/core/PropertyStorageEx.h
-  ../../../../../AMF/public/include/core/Result.h
-  ../../../../../AMF/public/include/core/Surface.h
-  ../../../../../AMF/public/include/core/Trace.h
-  ../../../../../AMF/public/include/core/Variant.h
-  ../../../../../AMF/public/include/core/Version.h
+  ../../../../../amf/public/common/AMFSTL.h
+  ../../../../../amf/public/common/InterfaceImpl.h
+  ../../../../../amf/public/common/ObservableImpl.h
+  ../../../../../amf/public/common/PropertyStorageExImpl.h
+  ../../../../../amf/public/common/PropertyStorageImpl.h
+  ../../../../../amf/public/common/TraceAdapter.h
+  ../../../../../amf/public/include/core/AudioBuffer.h
+  ../../../../../amf/public/include/core/Buffer.h
+  ../../../../../amf/public/include/core/Compute.h
+  ../../../../../amf/public/include/core/ComputeFactory.h
+  ../../../../../amf/public/include/core/Context.h
+  ../../../../../amf/public/include/core/Data.h
+  ../../../../../amf/public/include/core/Debug.h
+  ../../../../../amf/public/include/core/Factory.h
+  ../../../../../amf/public/include/core/Interface.h
+  ../../../../../amf/public/include/core/Plane.h
+  ../../../../../amf/public/include/core/Platform.h
+  ../../../../../amf/public/include/core/PropertyStorage.h
+  ../../../../../amf/public/include/core/PropertyStorageEx.h
+  ../../../../../amf/public/include/core/Result.h
+  ../../../../../amf/public/include/core/Surface.h
+  ../../../../../amf/public/include/core/Trace.h
+  ../../../../../amf/public/include/core/Variant.h
+  ../../../../../amf/public/include/core/Version.h
   ../../../src/ADL/ADLQuery.h
   ../../../src/GPUUtilities/GpuUtilities.h
   ../../../src/GPUUtilities/stdafx.h

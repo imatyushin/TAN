@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef __AMFPropertyStorageEx_h__
-#define __AMFPropertyStorageEx_h__
+#ifndef AMF_PropertyStorageEx_h
+#define AMF_PropertyStorageEx_h
 #pragma once
 
 #include "PropertyStorage.h"
@@ -194,4 +194,4 @@ namespace amf
 #endif
 
 
-#endif //#ifndef __AMFPropertyStorageEx_h__
+#endif //#ifndef AMF_PropertyStorageEx_h

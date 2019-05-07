@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+
+#include "../Thread.h"
+
 
 #if defined (__linux)
 
@@ -64,19 +68,25 @@
 #include <sys/types.h>
 #include <semaphore.h>
 #include <pthread.h>
-#include "public/common/Thread.h"
-#include "runtime/include/core/FileSystem.h"
+
+#include "../AMFSTL.h"
 
 using namespace amf;
 
+extern "C" void AMF_STD_CALL amf_debug_trace(const wchar_t* text);
 
 
 void perror(const char* errorModule)
 {
     char buf[128];
+#if defined(__ANDROID__)
     strerror_r(errno, buf, sizeof(buf));
-
     fprintf(stderr, "%s: %s", buf, errorModule);
+#else
+    char* err = strerror_r(errno, buf, sizeof(buf));
+    fprintf(stderr, "%s: %s", err, errorModule);
+#endif
+
     exit(1);
 }
 
@@ -239,25 +249,32 @@ static bool AMF_STD_CALL amf_wait_for_event_int(amf_handle hevent, unsigned long
     }
     else
     {
-        if(timeout == AMF_INFINITE)
+        if(event->m_triggered)
         {
-            err = pthread_cond_wait(&event->m_cond, &event->m_mutex);
+            ret = true;
         }
         else
         {
-            start_time += timeout;
-            timespec abstime;
-            abstime.tv_sec = (time_t)(start_time / 1000); // timeout is in millisec
-            abstime.tv_nsec = (time_t)((start_time - (amf_uint64)(abstime.tv_sec) * 1000) * 1000000); // the rest to nanosec
-            err = pthread_cond_timedwait(&event->m_cond, &event->m_mutex, &abstime);
+            if (timeout == AMF_INFINITE) {
+                err = pthread_cond_wait(&event->m_cond, &event->m_mutex);
+            } else {
+                start_time += timeout;
+                timespec abstime;
+                abstime.tv_sec = (time_t) (start_time / 1000); // timeout is in millisec
+                abstime.tv_nsec = (time_t) ((start_time - (amf_uint64) (abstime.tv_sec) * 1000) *
+                                            1000000); // the rest to nanosec
+                err = pthread_cond_timedwait(&event->m_cond, &event->m_mutex, &abstime);
+            }
+
+            if (bTimeoutErr) {
+                ret = (err == 0);
+            } else {
+                ret = (err == 0 || err == ETIMEDOUT);
+            }
         }
-        if(bTimeoutErr)
+        if(ret == true)
         {
-            ret = (err == 0);
-        }
-        else
-        {
-            ret = (err == 0 || err == ETIMEDOUT);
+            event->m_triggered = false;
         }
     }
     pthread_mutex_unlock(&event->m_mutex);
@@ -365,15 +382,15 @@ bool AMF_STD_CALL amf_release_mutex(amf_handle hmutex)
 }
 
 //----------------------------------------------------------------------------------------
-amf_handle AMF_STD_CALL amf_create_semaphore(amf_long iInitCount, amf_long iMaxCount, const wchar_t* pName)
+amf_handle AMF_STD_CALL amf_create_semaphore(amf_long iInitCount, amf_long iMaxCount, const wchar_t* /*pName*/)
 {
-    if(iMaxCount == 0)
+    if(iMaxCount == 0 || iInitCount > iMaxCount)
     {
         return NULL;
     }
 
     sem_t* semaphore = new sem_t;
-    if(sem_init(semaphore, iInitCount, iMaxCount) != 0)
+    if(sem_init(semaphore, 0, iInitCount) != 0)
     {
         delete semaphore;
         return NULL;
@@ -478,318 +495,21 @@ void AMF_STD_CALL amf_sleep(amf_ulong msDelay)
     usleep(msDelay * 1000);
 #endif
 }
-//----------------------------------------------------------------------------------------
-// file system
-//----------------------------------------------------------------------------------------
-static std::locale loc;
-static const std::collate<wchar_t>& col = std::use_facet<std::collate<wchar_t> >(loc);
-static bool sort_predicate(const amf_file_item_descriptor& elem1, const amf_file_item_descriptor& elem2)
-{
-    if(((elem1.attrib & AMF_A_SUBDIR) == AMF_A_SUBDIR) && ((elem2.attrib & AMF_A_SUBDIR) != AMF_A_SUBDIR))
-    {
-        return true;
-    }
-    if(((elem1.attrib & AMF_A_SUBDIR) != AMF_A_SUBDIR) && ((elem2.attrib & AMF_A_SUBDIR) == AMF_A_SUBDIR))
-    {
-        return false;
-    }
-    return col.compare(elem1.name, elem1.name + wcslen(elem1.name), elem2.name, elem2.name + wcslen(elem2.name)) < 0;
-}
-//----------------------------------------------------------------------------------------
-bool AMF_STD_CALL amf::amf_enumerate_directory(const amf_wstring& directory, amf_vector<amf_file_item_descriptor>& content)   // supports wildcards
-{
-    content.clear();
-
-    // remove mask
-    amf_wstring dir = directory;
-    amf_wstring::size_type pos = dir.rfind(PATH_SEPARATOR_WCHAR);
-    if(pos == amf_wstring::npos)
-    {
-        pos = 0;
-    }
-    amf_wstring mask = dir.substr(pos + 1);
-    dir = dir.substr(0, pos);
-
-    amf_string mbdirectory = amf_from_unicode_to_multibyte(dir);
-    DIR* d = opendir(mbdirectory.c_str());
-    struct dirent* data;
-    if(d)
-    {
-        while((data = readdir(d)) != NULL)
-        {
-            if(data->d_name[0] == '.')
-            {
-                continue;     // skip "." and ".." and all hidden files - starting with .
-            }
-            amf_string path = mbdirectory + "/";
-            path += data->d_name;
-            struct stat st;
-
-            stat(path.c_str(), &st);
-
-            if(( (st.st_mode & S_IFREG) != S_IFREG) && ( (st.st_mode & S_IFLNK) != S_IFLNK) && ( (st.st_mode & S_IFDIR) != S_IFDIR) )
-            {
-                continue;
-            }
-
-            amf_file_item_descriptor item;
-
-            item.attrib = 0;
-            if((st.st_mode & S_IFDIR) == S_IFDIR)
-            {
-                item.attrib |= AMF_A_SUBDIR;
-            }
-            const amf_wstring wname = amf_from_multibyte_to_unicode(data->d_name);
-
-            const amf_string mbMask = amf_from_unicode_to_multibyte(mask);
-            const bool doesntMatch = fnmatch(mbMask.c_str(), data->d_name, 0);
-            if(doesntMatch)
-            {
-                continue;
-            }
-
-            item.time_create = st.st_ctime;
-            item.time_access = st.st_atime;
-            item.time_write = st.st_mtime;
-
-            item.size = st.st_size;
-            wcsncpy(item.name, wname.c_str(), amf_countof(item.name));
-            content.push_back(item);
-        }
-        closedir(d);
-    }
-
-    std::sort(content.begin(), content.end(), sort_predicate);
-
-    return true;
-}
-//----------------------------------------------------------------------------------------
-bool AMF_STD_CALL amf::amf_make_dir(const amf_wstring& path)
-{
-    amf_wstring::size_type pos = 0;
-    for(;; )
-    {
-        pos = path.find(PATH_SEPARATOR_WCHAR, pos + 1);
-        if(pos == 0)
-        {
-            continue;
-        }
-        amf_wstring temp_path = path.substr(0, pos);
-        amf_string mb_dir = amf_from_unicode_to_multibyte(temp_path);
-        mkdir(mb_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-        if(pos == amf_wstring::npos)
-        {
-            break;
-        }
-        if(pos == path.length() - 1)
-        {
-            break;
-        }
-    }
-    return true;
-}
-//------------------------------------------------------------------------------
-bool AMF_STD_CALL amf::amf_delete_file(const amf_wstring& path)
-{
-    amf_string mb_path = amf_from_unicode_to_multibyte(path);
-    return remove(mb_path.c_str()) == 0;
-}
-//----------------------------------------------------------------------------------------
-AMF_CORE_LINK bool AMF_STD_CALL amf::amf_delete_dir(const amf_wstring& path, bool with_content)
-{
-    if(path.length() == 0)
-    {
-        return false;
-    }
-    // enumerate and recursively delete
-
-    if(with_content)
-    {
-        amf_wstring temp_path = path;
-        if(temp_path[temp_path.length() - 1] != PATH_SEPARATOR_WCHAR)
-        {
-            temp_path += PATH_SEPARATOR_WSTR;
-        }
-
-        amf_vector<amf_file_item_descriptor> content;
-        amf_enumerate_directory(temp_path + L"*", content);
-        for(amf_vector<amf_file_item_descriptor>::iterator it = content.begin(); it != content.end(); it++)
-        {
-            amf_wstring name = it->name;
-            if((name == L".") || (name == L".."))
-            {
-                continue;
-            }
-            if((it->attrib & AMF_A_SUBDIR) == AMF_A_SUBDIR)
-            {
-                if(!amf_delete_dir(temp_path + name, true))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if(!amf_delete_file(temp_path + name))
-                {
-                    return false;
-                }
-            }
-        }
-    }
-    return rmdir(amf_from_unicode_to_multibyte(path).c_str()) == 0;
-}
-//------------------------------------------------------------------------------
-amf_wstring AMF_STD_CALL amf::amf_get_process_path()
-{
-    char path[AMF_MAX_PATH];
-    ssize_t len = readlink("/proc/self/exe", path, AMF_MAX_PATH);
-    return len == -1 ? amf_wstring() : amf_from_multibyte_to_unicode(amf_string(path, path + len));
-}
-
-amf_wstring AMF_STD_CALL amf::amf_get_process_folder()
-{
-    //FIXME
-    return L"";
-}
-
-bool AMF_STD_CALL amf::amf_get_application_data_path(wchar_t* path, amf_size buflen)
-{
-    char* homeDir = getenv("HOME");
-    if(0 == homeDir)
-    {
-        return false;
-    }
-    const amf_wstring sHomeDir = amf_from_multibyte_to_unicode(amf_string(homeDir));
-    const amf_wstring sDir = sHomeDir + PATH_SEPARATOR_WSTR + L".AMD" + PATH_SEPARATOR_WSTR + L"cl.cache";
-    if(sDir.length() >= buflen)
-    {
-        return false;
-    }
-    wcscpy(path, sDir.c_str());
-    return true;
-}
-
-//------------------------------------------------------------------------------
-bool AMF_STD_CALL amf::amf_path_is_absolute(const wchar_t* path)
-{
-    return path != NULL && *path == PATH_SEPARATOR_WCHAR;
-}
-
-bool AMF_STD_CALL amf::amf_get_relative_path_to(
-        const wchar_t* path_from_dir,
-        const wchar_t* path_to,
-        wchar_t* relative_path)
-{
-    const amf_string pathFrom = amf_from_unicode_to_multibyte(path_from_dir);
-    const amf_string pathTo = amf_from_unicode_to_multibyte(path_to);
-    char absolutePathFrom[PATH_MAX];
-    char absolutePathTo[PATH_MAX];
-    if(0 == realpath(pathFrom.c_str(), absolutePathFrom))
-    {
-        return false;
-    }
-    if(0 == realpath(pathTo.c_str(), absolutePathTo))
-    {
-        return false;
-    }
-    char* pPathFrom = absolutePathFrom;
-    char* pPathTo = absolutePathTo;
-
-    while(0 != *pPathFrom && 0 != *pPathTo && *pPathTo == *pPathFrom)
-    {
-        ++pPathFrom;
-        ++pPathTo;
-    }
-
-    int subLevelCount = 0;
-    if(!((*pPathFrom == 0) && (*pPathTo == PATH_SEPARATOR_WCHAR)))
-    {
-        ++subLevelCount;
-        while(*pPathFrom != 0)
-        {
-            if(*pPathFrom == PATH_SEPARATOR_WCHAR)
-            {
-                ++subLevelCount;
-            }
-            ++pPathFrom;
-        }
-    }
-
-    while(*pPathTo != PATH_SEPARATOR_WCHAR)
-    {
-        --pPathTo;
-    }
-    ++pPathTo;
-
-    amf_string result;
-    for(int i = 0; i < subLevelCount; ++i)
-    {
-        result.append("../");
-    }
-    result.append(pPathTo);
-
-    amf_wstring wResult = amf_from_multibyte_to_unicode(result);
-    if(wResult.length() > AMF_MAX_PATH - 1)
-    {
-        return false;
-    }
-
-    wcsncpy(relative_path, wResult.c_str(), AMF_MAX_PATH);
-    return true;
-}
-//------------------------------------------------------------------------------
-AMF_CORE_LINK amf_wstring AMF_STD_CALL amf::amf_get_current_path()
-{
-    char cwd[AMF_MAX_PATH];
-    if(getcwd(cwd, sizeof(cwd)) != NULL)
-    {
-        return amf_from_multibyte_to_unicode(cwd);
-    }
-    return amf_wstring();
-}
-//------------------------------------------------------------------------------
-AMF_CORE_LINK void AMF_STD_CALL amf_path_fix_os_slashes(wchar_t* path)
-{
-    while(*path)
-    {
-        if(*path == L'\\')
-        {
-            *path = PATH_SEPARATOR_WCHAR;
-        }
-        path++;
-    }
-}
-//------------------------------------------------------------------------------
-AMF_CORE_LINK bool AMF_STD_CALL amf_get_canonic_path(const wchar_t* path, wchar_t* canonic_path)
-{
-    const amf_string pathStr = amf_from_unicode_to_multibyte(path);
-    char canonicPath[AMF_MAX_PATH] = {};
-    if(0 == realpath(pathStr.c_str(), canonicPath))
-    {
-        return false;
-    }
-    amf_string result(canonicPath);
-    amf_wstring wResult = amf_from_multibyte_to_unicode(result);
-    if(wResult.length() > AMF_MAX_PATH - 1)
-    {
-        return false;
-    }
-    wcsncpy(canonic_path, wResult.c_str(), AMF_MAX_PATH);
-    return true;
-}
-
-//------------------------------------------------------------------------------
-FILE* amf_file_open(const wchar_t* filename, const wchar_t* mode)
-{
-    amf_string sUtfName = amf_from_unicode_to_multibyte(filename);
-    amf_string sUtfAttributes = amf_from_unicode_to_multibyte(mode);
-    return fopen(sUtfName.c_str(), sUtfAttributes.c_str());
-}
 
 //----------------------------------------------------------------------------------------
 // memory
 //----------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+void AMF_STD_CALL amf_debug_trace(const wchar_t* text)
+{
+#if defined(__ANDROID__)
+    const char* str = amf_from_unicode_to_multibyte(text).c_str();
+    __android_log_write(ANDROID_LOG_DEBUG, "AMF_TRACE", str);
+#else
+    fprintf(stderr, "%ls", text);
+#endif
+}
+
 void* AMF_STD_CALL amf_virtual_alloc(size_t size)
 {
     void* mem = NULL;
@@ -827,12 +547,6 @@ void AMF_STD_CALL amf_aligned_free(void* ptr)
 //----------------------------------------------------------------------------------------
 // clock and time
 //----------------------------------------------------------------------------------------
-amf_time AMF_STD_CALL amf_get_current_utc_time()
-{
-    amf_time current_time;
-    return time(&current_time);
-}
-//----------------------------------------------------------------------------------------
 double AMF_STD_CALL amf_clock()
 {
     //MM: clock() Win32 - returns time from beginning of the program
@@ -853,45 +567,14 @@ amf_int64 AMF_STD_CALL get_time_in_seconds_with_fraction()
     return ntp_time;
 }
 //----------------------------------------------------------------------------------------
-AMF_CORE_LINK amf_pts AMF_STD_CALL amf_high_precision_clock()
+amf_pts AMF_STD_CALL amf_high_precision_clock()
 {
     timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return ts.tv_sec * 10000000LL + ts.tv_nsec / 100.; //to nanosec
 }
-//----------------------------------------------------------------------------------------
-void AMF_STD_CALL amf_debug_trace(const wchar_t* text)
-{
-#if defined(__ANDROID__)
-    const char* str = amf_from_unicode_to_multibyte(text).c_str();
-    __android_log_write(ANDROID_LOG_DEBUG, "AMF_TRACE", str);
-#else
-    fprintf(stderr, "%ls", text);
-#endif
-}
 //-------------------------------------------------------------------------------------------------
-bool AMF_STD_CALL amf::amf_file_stat(const amf_wstring& path, amf_stat* data)
-{
-    const amf_string mbPath = amf_from_unicode_to_multibyte(path);
-    return stat(mbPath.c_str(), data) == 0;
-}
-//-------------------------------------------------------------------------------------------------
-AMF_CORE_LINK bool AMF_STD_CALL amf::amf_dir_exists(const amf_wstring& path)
-{
-    // truncate latest slash or backslash if it exists
-    const amf_wstring& tmp = path.find_last_of(L"\\/") == (path.size() - 1) ?
-        path.substr(0, path.size() - 1) : path;
-
-    amf_stat status;
-    if( amf_file_stat(tmp.c_str(), &status) )
-    {
-        return (status.st_mode & S_IFDIR) != 0;
-    }
-    return false;
-}
-
-//-------------------------------------------------------------------------------------------------
-AMF_CORE_LINK amf_handle AMF_STD_CALL amf_load_library(const wchar_t* filename)
+amf_handle AMF_STD_CALL amf_load_library(const wchar_t* filename)
 {
     void *ret = dlopen(amf_from_unicode_to_multibyte(filename).c_str(), RTLD_NOW | RTLD_GLOBAL);
     if(ret ==0 )
@@ -902,30 +585,20 @@ AMF_CORE_LINK amf_handle AMF_STD_CALL amf_load_library(const wchar_t* filename)
     return ret;
 }
 
-AMF_CORE_LINK void* AMF_STD_CALL amf_get_proc_address(amf_handle module, const char* procName)
+void* AMF_STD_CALL amf_get_proc_address(amf_handle module, const char* procName)
 {
     return dlsym(module, procName);
 }
 //-------------------------------------------------------------------------------------------------
-AMF_CORE_LINK int AMF_STD_CALL amf_free_library(amf_handle module)
+int AMF_STD_CALL amf_free_library(amf_handle module)
 {
     return dlclose(module) == 0;
 }
-AMF_CORE_LINK void AMF_STD_CALL amf_increase_timer_precision()
+void AMF_STD_CALL amf_increase_timer_precision()
 {
 }
-AMF_CORE_LINK void AMF_STD_CALL amf_restore_timer_precision()
+void AMF_STD_CALL amf_restore_timer_precision()
 {
-}
-
-
-AMF_CORE_LINK OSVersion amf_get_os_version()
-{
-#if defined(__ANDROID__)
-    return OSVER_ANDROID;
-#else
-    return OSVER_LINUX;
-#endif
 }
 //--------------------------------------------------------------------------------
 // the end

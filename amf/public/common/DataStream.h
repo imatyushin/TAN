@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,8 +36,8 @@
  * @brief AMFDataStream declaration
  ***************************************************************************************************
  */
-#ifndef __AMFDataStream_h__
-#define __AMFDataStream_h__
+#ifndef AMF_DataStream_h
+#define AMF_DataStream_h
 #pragma once
 
 #include "../include/core/Interface.h"
@@ -106,4 +106,4 @@ namespace amf
     
 } //namespace amf
 
-#endif // __AMFDataStream_h__
+#endif // AMF_DataStream_h

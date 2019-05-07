@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#ifndef AMF_ByteArray_h
+#define AMF_ByteArray_h
+
 
 #pragma once
 #include "../include/core/Platform.h"
@@ -105,3 +109,4 @@ public:
     amf_uint8 *GetData() const { return m_pData; }
     amf_size GetSize() const { return m_iSize; }
 };
+#endif // AMF_ByteArray_h

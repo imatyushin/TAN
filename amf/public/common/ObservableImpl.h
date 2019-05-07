@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,8 +36,8 @@
  * @brief AMFObservableImpl common template declaration
  ***************************************************************************************************
  */
-#ifndef _OBSERVABLEIMPL_H_
-#define _OBSERVABLEIMPL_H_
+#ifndef AMF_ObservableImpl_h
+#define AMF_ObservableImpl_h
 #pragma once
 
 #include "Thread.h"
@@ -136,4 +136,4 @@ namespace amf
         AMFCriticalSection m_sc;
     };
 }
-#endif //_OBSERVABLEIMPL_H_
+#endif //AMF_ObservableImpl_h

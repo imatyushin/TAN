@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,8 @@
 // interface declaration;  Ambisonic to Stereo Renderer
 //-------------------------------------------------------------------------------------------------
 
-#ifndef __AMFAmbisonic2SRendererHW__h__
-#define __AMFAmbisonic2SRendererHW__h__
+#ifndef AMF_Ambisonic2SRenderer_h
+#define AMF_Ambisonic2SRenderer_h
 #pragma once
 
 #include "public/include/components/Component.h"
@@ -76,4 +76,4 @@ extern "C"
 {
     AMF_RESULT AMF_CDECL_CALL AMFCreateComponentAmbisonic(amf::AMFContext* pContext, void* reserved, amf::AMFComponent** ppComponent);
 }
-#endif //#ifndef __AMFAmbisonic2SRendererHW__h__
+#endif //#ifndef AMF_Ambisonic2SRenderer_h

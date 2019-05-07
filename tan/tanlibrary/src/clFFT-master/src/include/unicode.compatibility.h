@@ -38,21 +38,25 @@
 	static std::ostream&	terr	= std::cerr;
 #endif
 
-//	These macros help linux cope with the conventions of windows tchar.h file
+//	These macros help linux code with the conventions of windows tchar.h file
 #if defined( _WIN32 )
 	#include <tchar.h>
 	#include <windows.h>
 #else
 	#if defined( __GNUC__ )
-		typedef char TCHAR;
-		typedef char _TCHAR;
-		#define _tmain main
 
-		#if defined( UNICODE )
+		#if defined(UNICODE)
+			#define _TCHAR wchar_t
 			#define _T(x)	L ## x
-		#else
+			#define _tmain wmain
+		#else		
+			#define _TCHAR char
 			#define _T(x)	x
+			#define _tmain main
 		#endif
+
+		#define TCHAR _TCHAR;
+		
 	#endif
 #endif
 

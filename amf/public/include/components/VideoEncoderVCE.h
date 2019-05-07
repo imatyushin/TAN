@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,8 @@
 // AMFVideoEncoderHW_AVC interface declaration
 //-------------------------------------------------------------------------------------------------
 
-#ifndef __AMFVideoEncoderHW_AVC_h__
-#define __AMFVideoEncoderHW_AVC_h__
+#ifndef AMF_VideoEncoderVCE_h
+#define AMF_VideoEncoderVCE_h
 #pragma once
 
 #include "Component.h"
@@ -53,9 +53,12 @@ enum AMF_VIDEO_ENCODER_USAGE_ENUM
 
 enum AMF_VIDEO_ENCODER_PROFILE_ENUM
 {
+    AMF_VIDEO_ENCODER_PROFILE_UNKNOWN = 0,
     AMF_VIDEO_ENCODER_PROFILE_BASELINE = 66,
     AMF_VIDEO_ENCODER_PROFILE_MAIN = 77,
-    AMF_VIDEO_ENCODER_PROFILE_HIGH = 100
+    AMF_VIDEO_ENCODER_PROFILE_HIGH = 100,
+    AMF_VIDEO_ENCODER_PROFILE_CONSTRAINED_BASELINE = 256,
+    AMF_VIDEO_ENCODER_PROFILE_CONSTRAINED_HIGH = 257
 };
 
 enum AMF_VIDEO_ENCODER_SCANTYPE_ENUM
@@ -66,6 +69,7 @@ enum AMF_VIDEO_ENCODER_SCANTYPE_ENUM
 
 enum AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD_ENUM
 {
+    AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD_UNKNOWN = -1,
     AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD_CONSTANT_QP = 0,
     AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD_CBR,
     AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD_PEAK_CONSTRAINED_VBR,
@@ -219,4 +223,4 @@ enum AMF_VIDEO_ENCODER_CODING_ENUM
 #define AMF_VIDEO_ENCODER_CAP_FIXED_SLICE_MODE                  L"FixedSliceMode"           // bool  is fixed slice mode supported
 #define AMF_VIDEO_ENCODER_CAP_NUM_OF_HW_INSTANCES               L"NumOfHwInstances"         // amf_int64 number of HW encoder instances
 
-#endif //#ifndef __AMFVideoEncoderHW_AVC_h__
+#endif //#ifndef AMF_VideoEncoderVCE_h

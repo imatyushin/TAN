@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -34,8 +34,8 @@ include_directories(../../../../../tan)
 
 #
 #if(COMPILER_MSVC)
-  add_compile_definitions(_CONSOLE)
-  add_compile_definitions(_LIB)
+  ADD_DEFINITIONS(-D_CONSOLE)
+  ADD_DEFINITIONS(-D_LIB)
   ADD_DEFINITIONS(-DUNICODE)
   ADD_DEFINITIONS(-D_UNICODE)
 #endif()

@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef __AMFThread_h__
-#define __AMFThread_h__
+#ifndef AMF_Thread_h
+#define AMF_Thread_h
 #pragma once
 
 #include <cassert>
@@ -91,6 +91,8 @@ extern "C"
     amf_handle  AMF_CDECL_CALL amf_load_library(const wchar_t* filename);
     void*       AMF_CDECL_CALL amf_get_proc_address(amf_handle module, const char* procName);
     int         AMF_CDECL_CALL amf_free_library(amf_handle module);
+
+    amf_uint32 AMF_STD_CALL get_current_thread_id();
 
 #if !defined(METRO_APP)
     // virtual memory
@@ -670,4 +672,4 @@ namespace amf
     };
     //----------------------------------------------------------------
 } // namespace amf
-#endif // __AMFThread_h__
+#endif // AMF_Thread_h

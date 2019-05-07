@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,11 @@
 // THE SOFTWARE.
 //
 ///-------------------------------------------------------------------------
-///  @file   Trace.h
+///  @file   TraceAdapter.h
 ///  @brief  AMFTrace interface
 ///-------------------------------------------------------------------------
+#ifndef AMF_TraceAdapter_h
+#define AMF_TraceAdapter_h
 #pragma once
 
 #include "../include/core/Debug.h"
@@ -782,3 +784,4 @@ extern "C"
     AMF_MEMORY_TYPE AMF_STD_CALL AMFGetMemoryTypeByName(const wchar_t* name);
 } //extern "C"
 } // namespace amf
+#endif // AMF_TraceAdapter_h

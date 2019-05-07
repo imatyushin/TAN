@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef __AMFPlane_h__
-#define __AMFPlane_h__
+#ifndef AMF_Plane_h
+#define AMF_Plane_h
 #pragma once
 
 #include "Interface.h"
@@ -109,4 +109,4 @@ namespace amf
 } // namespace amf
 #endif
 
-#endif //#ifndef __AMFPlane_h__
+#endif //#ifndef AMF_Plane_h

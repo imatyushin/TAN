@@ -24,6 +24,10 @@
 #include <memory.h>
 #include "wav.h"
 
+#ifdef __unix
+#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),  (mode)))==NULL
+#endif
+
 void SetupWaveHeader(RiffWave *fhd,
 	long sampleRate,
 	int bitsPerSample,

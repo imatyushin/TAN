@@ -9,7 +9,7 @@
 // 
 // MIT license 
 // 
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef __AMFTrace_h__
-#define __AMFTrace_h__
+#ifndef AMF_Trace_h
+#define AMF_Trace_h
 #pragma once
 
 #include "Platform.h"
@@ -180,4 +180,4 @@ namespace amf
 #endif
 
 
-#endif // __AMFTrace_h__
+#endif // AMF_Trace_h

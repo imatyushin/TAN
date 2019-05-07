@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.0)
+﻿cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,8 +42,8 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 include_directories(../../../../../amf)
 include_directories(../../../..)
 
-add_compile_definitions(TAN_SDK_EXPORTS)
-add_compile_definitions(CLFFT_EXPORTS)
+ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
+ADD_DEFINITIONS(-DCLFFT_EXPORTS)
 #if(COMPILER_MSVC)
   ADD_DEFINITIONS(-DUNICODE)
   ADD_DEFINITIONS(-D_UNICODE)

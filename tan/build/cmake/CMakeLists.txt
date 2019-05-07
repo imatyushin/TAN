@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -36,9 +36,9 @@ add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bi
 add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 add_subdirectory(../../samples/proj/cmake/TrueAudioVR cmake-TrueAudioVR-bin)
 
-add_subdirectory(../../TanLibrary/proj/cmake/Graal cmake-Graal-bin)
-add_subdirectory(../../TanLibrary/proj/cmake/clFFT cmake-clFFT-bin)
-add_subdirectory(../../TanLibrary/proj/cmake/TAN cmake-TAN-bin)
+add_subdirectory(../../tanlibrary/proj/cmake/Graal cmake-Graal-bin)
+add_subdirectory(../../tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
+add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
 
 add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
 add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
