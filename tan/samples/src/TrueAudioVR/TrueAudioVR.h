@@ -25,7 +25,7 @@
 #include "tanlibrary/include/TrueAudioNext.h"       //TAN
 using namespace amf;
 
-#include <cl/cl.h>
+#include <CL/cl.h>
 
 #ifndef AMD_TA_VR
 #define AMD_TA_VR

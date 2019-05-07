@@ -37,7 +37,7 @@ inline void* LoadSharedLibrary( std::string unixPrefix, std::string libraryName,
 	//	HMODULE is actually the load address; function returns NULL if it cannot find the shared library
 	HMODULE fileHandle	= ::LoadLibraryExA( libraryName.c_str( ), NULL, NULL );
 #elif defined(__linux__)
-        tstring linuxName = unixPrefix;
+    std::string linuxName = unixPrefix;
 	linuxName += libraryName += ".so";
 	void* fileHandle = ::dlopen( linuxName.c_str( ), RTLD_NOW );
 	if( !quiet && !fileHandle )

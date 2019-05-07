@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <io.h>
-#include <cl/cl.h>
+#include <CL/cl.h>
 
 #include "public/include/core/Variant.h"        //AMF
 #include "public/include/core/Context.h"        //AMF

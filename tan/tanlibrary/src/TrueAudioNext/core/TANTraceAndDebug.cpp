@@ -22,6 +22,8 @@
 
 #include "TANTraceAndDebug.h"
 
+#include <cwchar>
+
 #pragma warning(disable: 4251)
 #pragma warning(disable: 4996)
 
@@ -34,13 +36,15 @@ amf::AMFTrace* amf::GetTANTracer()
 
 void                TANTrace::TraceW(const wchar_t* src_path, amf_int32 line, amf_int32 level, const wchar_t* scope, amf_int32 countArgs, const wchar_t* format, ...)
 {
-    fwprintf_s(stderr, format);
-    return;
+    //todo: think about, check security reasons, may be use std::cerr?
+    //fwprintf_s(stderr, format);
+    std::fwprintf(stderr, format);
 }
 void                TANTrace::Trace(const wchar_t* src_path, amf_int32 line, amf_int32 level, const wchar_t* scope, const wchar_t* message, va_list* pArglist)
 {
-    fwprintf_s(stderr, message);
-    return;
+    //todo: look above
+    //fwprintf_s(stderr, message);
+    std::fwprintf(stderr, message);
 }
 
 amf_int32           TANTrace::SetGlobalLevel(amf_int32 level)                           { return 0; }

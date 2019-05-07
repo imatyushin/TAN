@@ -1,5 +1,5 @@
 /**********************************************************************
-Copyright ©2015 Advanced Micro Devices, Inc. All rights reserved.
+Copyright ï¿½2015 Advanced Micro Devices, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -58,6 +58,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <linux/limits.h>
 #include <unistd.h>
 #endif
+
+#include "public/common/TraceAdapter.h"
 
 /******************************************************************************
 * Defined macros                                                              *
@@ -688,6 +690,10 @@ static std::string getSdkVerStr()
               graalVerStr.build,
               graalVerStr.revision);
 #else
+
+    //todo: where is sdkVerStr defined?
+    #define sdkVerStr graalVerStr 
+
     sprintf(str, "AMD-APP-SDK-v%d.%d.%d%s%s (%d.%d)",
             sdkVerStr.major,
             sdkVerStr.minor,

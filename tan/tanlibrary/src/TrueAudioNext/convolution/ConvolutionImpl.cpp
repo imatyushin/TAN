@@ -18,20 +18,24 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-#include "cl/cl.h"
+#include "CL/cl.h"
 #include "ConvolutionImpl.h"
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
 #include "../../common/OCLHelper.h"
 
 #include <tuple>
-#include "../fft\FFTImpl.h"
+#include "../fft/FFTImpl.h"
 
 //#include "Crossfading.cl.h"
 #include "CLKernel_Crossfading.h"
 #include "CLKernel_TimeDomainConvolution.h"
 
 #define AMF_FACILITY L"TANConvolutionImpl"
+
+#ifndef MAX_PATH
+#define MAX_PATH 254
+#endif
 
 using namespace amf;
 
@@ -769,7 +773,11 @@ AMF_RESULT  TANConvolutionImpl::Init(
     AMF_RETURN_IF_FALSE(!doProcessingOnGpu || __popcnt64(bufferSizeInSamples) == 1, AMF_INVALID_ARG,
                         L"bufferSizeInSamples must be power of 2");
 #else
+    #if defined (_MSC_VER)
     AMF_RETURN_IF_FALSE(!doProcessingOnGpu || __popcnt(bufferSizeInSamples) == 1, AMF_INVALID_ARG,
+    #else
+    AMF_RETURN_IF_FALSE(!doProcessingOnGpu || __builtin_popcountll(bufferSizeInSamples) == 1, AMF_INVALID_ARG,    
+    #endif
         L"bufferSizeInSamples must be power of 2");
 #endif
     AMF_RETURN_IF_FALSE(!m_initialized, AMF_ALREADY_INITIALIZED, L"Already initialized");
@@ -1327,9 +1335,10 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
 
 void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 {
-    m_updThreadHandle = GetCurrentThread();
-    int tId = GetThreadId(m_updThreadHandle);
-    tId = GetCurrentThreadId();
+    //todo: legacy debug code?
+    //m_updThreadHandle = GetCurrentThread();
+    //int tId = GetThreadId(m_updThreadHandle);
+    //tId = GetCurrentThreadId();
 
 
     do {
@@ -1414,10 +1423,13 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 
                 // Copy data to the new slot, as this channel can be still processed (user doesn't
                 // pass Stop flag to Process() method) and we may start doing cross-fading.
-                RETURN_IF_FAILED(ret = graalConv->copyResponses(m_copyArgs.updatesCnt,
-                                                                (uint*)m_copyArgs.prevVersions,
-                                                                (uint*)m_copyArgs.versions,
-                                                                (uint*)m_copyArgs.channels), true);
+                ret = graalConv->copyResponses(
+                    m_copyArgs.updatesCnt,
+                    (uint*)m_copyArgs.prevVersions,
+                    (uint*)m_copyArgs.versions,
+                    (uint*)m_copyArgs.channels
+                    );
+                RETURN_IF_FAILED(ret);
             }
             break;
 
@@ -1495,8 +1507,11 @@ amf_size TANConvolutionImpl::ovlAddProcess(
             m_OutSamples[iChan][2 * k + 1] = 0.0;
         }
         // zero pad:
-        ZeroMemory(&m_OutSamples[iChan][2 * nSamples],
-                   2 * (m_length - nSamples) * sizeof(m_OutSamples[0][0]));
+        std::memset(
+            &m_OutSamples[iChan][2 * nSamples],
+            0,
+            2 * (m_length - nSamples) * sizeof(m_OutSamples[0][0])
+            );
     }
 
     AMF_RETURN_IF_FAILED(m_pTanFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, m_log2len, m_iChannels,
@@ -1601,7 +1616,20 @@ void TANConvolutionImpl::ovlTimeDomain(
        // build Time Domain kernel if necessary:
         if (m_TimeDomainKernel == nullptr){
             char dllPath[MAX_PATH + 1];
+
+#ifdef __WIN32
             GetModuleFileNameA(NULL, dllPath, MAX_PATH);
+#else
+            //todo: verify
+            ssize_t contentSize = readlink("/proc/self/exe", dllPath, MAX_PATH);
+            if(contentSize != -1)
+            {
+                dllPath[contentSize] = '\0';
+            }
+
+            //todo: macosx version!
+#endif
+            
             char *pslash = strrchr(dllPath, '\\');
             if (pslash){
                 *pslash = '\0';

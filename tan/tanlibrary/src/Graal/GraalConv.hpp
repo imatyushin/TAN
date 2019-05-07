@@ -46,8 +46,8 @@
 #  include "public/include/core/Compute.h"
 #  include "public/include/core/Context.h"
 
-#  include "public/common/TraceAdapter.h"
-#  define AMF_FACILITY L"GraalConv"
+//#  include "public/common/TraceAdapter.h"
+//#  define AMF_FACILITY L"GraalConv"
 
 
 typedef unsigned int uint;
@@ -76,8 +76,10 @@ double mach_absolute_time()
 #include <sys/resource.h>
 typedef  long long int __int64;
 
-
 #endif // !WIN32
+
+#  include "public/common/TraceAdapter.h"
+#  define AMF_FACILITY L"GraalConv"
 
 #include "GraalConvOCL.hpp"
 

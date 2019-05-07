@@ -29,10 +29,10 @@
 #include "public/common/AMFFactory.h"           //AMF
 
 
-#include "tanlibrary/src/clFFT-master/src/include/clfft.h"
+#include "tanlibrary/src/clFFT-master/src/include/clFFT.h"
 
 typedef unsigned int uint;
-#include "tanlibrary/src/Graal/graalConv.hpp"
+#include "tanlibrary/src/Graal/GraalConv.hpp"
 
 #ifndef MAKE_FULL_VERSION
 #define MAKE_FULL_VERSION(VERSION_MAJOR, VERSION_MINOR, VERSION_RELEASE, VERSION_BUILD_NUM)    ( (amf_uint64(VERSION_MAJOR) << 48ull) | (amf_uint64(VERSION_MINOR) << 32ull) | (amf_uint64(VERSION_RELEASE) << 16ull)  | amf_uint64(VERSION_BUILD_NUM))
@@ -50,7 +50,7 @@ typedef unsigned int uint;
 #define GET_BUILD_VERSION(x)      ((x >>  0ull) & 0xFFFF)
 #endif
 
-BOOL g_AMFFactoryInitialized = FALSE;
+bool g_AMFFactoryInitialized = false;
 
 using namespace amf;
 
@@ -103,7 +103,7 @@ TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANCreateContext(
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANSetCacheFolder(const wchar_t* path)
 {
-    if (FALSE == g_AMFFactoryInitialized)
+    if (!g_AMFFactoryInitialized)
     {
         wprintf(L"AMF Factory NOT initialized");
         return AMF_NOT_INITIALIZED;
@@ -116,7 +116,7 @@ TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANSetCacheFolder(const wchar_t* p
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK const wchar_t*    AMF_CDECL_CALL TANGetCacheFolder()
 {
-    if (FALSE == g_AMFFactoryInitialized)
+    if (!g_AMFFactoryInitialized)
     {
         wprintf(L"AMF Factory NOT initialized");
         return NULL;

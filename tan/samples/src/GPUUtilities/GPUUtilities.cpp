@@ -32,12 +32,12 @@
 //#include <gl/gl.h>
 //#include <gl/GLU.h>
 
-#include <cl/cl.h>
+#include <CL/cl.h>
 #include <cl/cl_ext.h>
 #include <cl/cl_gl.h>
 
 #include "gpuutilities.h"
-#include "../../../../amf/public/include/core/context.h"
+#include "../../../../amf/public/include/core/Context.h"
 #include "../../../../amf/public/common/AMFFactory.h"
 #include "../ADL/ADLQuery.h"
 

@@ -29,7 +29,7 @@
 #include "OclKernels/CLKernel_GraalFHT.h"
 
 #include <malloc.h>
-#include "public/common/thread.h"
+#include "public/common/Thread.h"
 #include "public/common/AMFFactory.h"           //AMF
 #include "../common/OCLHelper.h"
 
@@ -455,7 +455,7 @@ AMF_RESULT CGraalConv::copyResponses(
         ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(int), &channelsCnt);//channelCount
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: 0")
 
-        size_t l_wk[3] = { size_t(min(aligned_conv_sz_, 256)), 1, 1 };
+        size_t l_wk[3] = { size_t(std::min(aligned_conv_sz_, 256)), 1, 1 };
         size_t g_wk[3] = { size_t(aligned_conv_sz_), channelsCnt, 1 }; //divide by 4 as we process a vec4
         ////////AMF_RETURN_IF_FAILED(m_copyWithPaddingKernel->Enqueue((size_t)1, NULL, g_wk, l_wk), L"Enqueue() failed");
         ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLGeneralQueue(), m_copyWithPaddingKernel, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
@@ -1091,7 +1091,8 @@ CGraalConv:: updateConvIntnl(
     uint data_channel_stride = aligned_conv_sz_;
 
 
-    size_t l_wk[3] = { min(aligned_processing_sz_ >> 1, size_t(256)), (size_t)1, (size_t)1 };
+                                //todo: verify meaning and sign
+    size_t l_wk[3] = { std::min(size_t(aligned_processing_sz_ >> 1), size_t(256)), (size_t)1, (size_t)1 };
 
     size_t g_wk[3] = {1,1,1};
 
@@ -1515,7 +1516,7 @@ CGraalConv::processHead1(
 
 
     // direct ransform
-    size_t l_wk[3] = { (size_t)min(aligned_processing_sz_ / 2, 256), (size_t)1, (size_t)1 };
+    size_t l_wk[3] = { (size_t)std::min(aligned_processing_sz_ / 2, 256), (size_t)1, (size_t)1 };
     size_t g_wk[3] = { 1, 1, 1 };
     g_wk[0] = l_wk[0];
     g_wk[1] = _n_channels;
@@ -1703,7 +1704,7 @@ CGraalConv::processPush(
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: input_index" )
 
     // direct ransform
-    size_t l_wk[3] = { size_t(min(aligned_processing_sz_ / 2, 256)), size_t(1), size_t(1) };
+    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), size_t(1), size_t(1) };
     size_t g_wk[3] = {1,1,1};
     g_wk[0] = l_wk[0];
     g_wk[1] = _n_channels;
@@ -1880,7 +1881,7 @@ CGraalConv::processAccum(int _n_channels,
         ret |= clSetKernelArg(headAccumKernel, n_arg++, sizeof(int), &STR_bin_shift);
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: STR_bin_shift" )
 
-        size_t l_wk[3] = { size_t(min(aligned_processing_sz_ / 2, 256)), size_t(1), size_t(1) };
+        size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), size_t(1), size_t(1) };
         size_t g_wk[3] = { 1, 1, 1 };
         g_wk[0] = aligned_processing_sz_ / 2;
         g_wk[1] = headRun;
@@ -2004,7 +2005,7 @@ CGraalConv::processAccum(int _n_channels,
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: total_n_bins" )
 
             tailRun = (total_n_bins + n_accum_blocks_ - 1) / n_accum_blocks_;
-            size_t l_wk[3] = {size_t(min(aligned_processing_sz_, 256)),1,1};
+            size_t l_wk[3] = {size_t(std::min(aligned_processing_sz_, 256)),1,1};
             size_t g_wk[3] = {1,1,1};
 
             g_wk[0] = aligned_processing_sz_;
@@ -2178,7 +2179,7 @@ CGraalConv::processPull(
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: _advance_time" )
 
 
-    size_t l_wk[3] = { size_t(min(aligned_processing_sz_ / 2, 256)), 1, 1 };
+    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), 1, 1 };
     size_t g_wk[3] = { 1, 1, 1 };
 
     g_wk[0] = l_wk[0];
@@ -2283,7 +2284,7 @@ CGraalConv::updateConvOCL(	 void* _stg_buf,  void *_transf_buf, int _conv_len, c
     CABuf<float> & sincos = *(CABuf<float> *)sincos_;
     CABuf<short> & bit_reverse = *(CABuf<short> * )bit_reverse_;
 
-    size_t l_wk[3] = { size_t(min(aligned_processing_sz_ / 2, 256)), 1, 1 };
+    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), 1, 1 };
 
     size_t g_wk[3] = {1,1,1};
 
@@ -2440,10 +2441,10 @@ CGraalConv::sincUpload( void )
 void
 CGraalConv::selectOptions(std::string & _kernel_file, std::string & _comp_options)
 {
-    int group_sz = min(aligned_processing_sz_ / 2, 256);
+    int group_sz = std::min(aligned_processing_sz_ / 2, 256);
     int log2_group_sz = static_cast<int>(ceil(log2((double)group_sz)));
-    _comp_options = std::string("-cl-fp32-correctly-rounded-divide-sqrt ") + std::string("-D _K0_GROUP_SZ=") + std::to_string((_Longlong)group_sz) + std::string(" -D _K0_LOG2_GROUP_SZ=") + std::to_string((_Longlong)log2_group_sz) +
-        std::string(" -D _K0_LOG2_N=") + std::to_string((_Longlong)(processing_log2_ + 1)) + std::string(" -D _K0_N=") + std::to_string((_Longlong)aligned_processing_sz_);
+    _comp_options = std::string("-cl-fp32-correctly-rounded-divide-sqrt ") + std::string("-D _K0_GROUP_SZ=") + std::to_string((long long)group_sz) + std::string(" -D _K0_LOG2_GROUP_SZ=") + std::to_string((long long)log2_group_sz) +
+        std::string(" -D _K0_LOG2_N=") + std::to_string((long long)(processing_log2_ + 1)) + std::string(" -D _K0_N=") + std::to_string((long long)aligned_processing_sz_);
  
 }
 int

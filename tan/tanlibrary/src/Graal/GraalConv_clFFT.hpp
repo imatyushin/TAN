@@ -29,18 +29,21 @@
 #include "GraalConv.hpp"
 #include "GraalConvOCL.hpp"
 #include <string>
-//#include <mutex>  // not available in VS2010
+#include <mutex>  // not available in VS2010
 
 namespace graal
 {
 
+/*//todo: implement with std::mutex
 class RecursiveBenaphore
 {
 private:
-    LONG m_counter;
-    DWORD m_owner;
-    DWORD m_recursion;
-    HANDLE m_semaphore;
+    long m_counter;
+    unsigned long m_owner;
+    unsigned long m_recursion;
+    //HANDLE m_semaphore;
+    std::mutex m_mutex;
+
  
 public:
     RecursiveBenaphore::RecursiveBenaphore()
@@ -83,7 +86,7 @@ public:
         }
         //--- We are now outside the Lock ---
     }
-};
+};*/
 
 class CGraalConv_clFFT : public CGraalConv
 {
@@ -302,16 +305,16 @@ class CGraalConv_clFFT : public CGraalConv
     int flush(amf_uint channelId, const bool synchronous = true) override;
 
 private:
-    int	CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate );
+    int	setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate );
 
-    int	CGraalConv_clFFT::setupCLFFT();
+    int	setupCLFFT();
 
     //for debugging, these print portions of the buffer to stdout
-    void CGraalConv_clFFT::printBlock(CABuf<float>* buf, std::string name = "", int blockLength = 1024, int offset = 0, int count = 5);
-    void CGraalConv_clFFT::printAllBlocks(CABuf<float>* buf, std::string name = "", int blockLength = 1024, int blockCount = 5, int count = 5);
+    void printBlock(CABuf<float>* buf, std::string name = "", int blockLength = 1024, int offset = 0, int count = 5);
+    void printAllBlocks(CABuf<float>* buf, std::string name = "", int blockLength = 1024, int blockCount = 5, int count = 5);
     //These functions are to write the buffers out to a file that can be imported by octave (an open source matlab clone)
-    void CGraalConv_clFFT::writeComplexToOctaveFile(CABuf<float>* buf, std::string filename, int blockLength);
-    void CGraalConv_clFFT::writeToOctaveFile(CABuf<float>* buf, std::string filename, int blockLength);
+    void writeComplexToOctaveFile(CABuf<float>* buf, std::string filename, int blockLength);
+    void writeToOctaveFile(CABuf<float>* buf, std::string filename, int blockLength);
 
     void incRoundCounter(int set, int ch)
     {
@@ -380,7 +383,8 @@ private:
     clfftPlanHandle clfftPlanBackAllChannels;
 
     //std::recursive_mutex processLock; // Not available in VS2010.
-    RecursiveBenaphore processLock;
+    //RecursiveBenaphore processLock;
+    std::recursive_mutex processLock;
 };
 
 };

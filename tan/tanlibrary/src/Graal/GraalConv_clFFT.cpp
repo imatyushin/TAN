@@ -32,10 +32,18 @@
 
 #include "../common/OCLHelper.h"
 
-#include "OclKernels\CLKernel_amdFFT_conv_kernels.h"
+#include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
 
 #ifndef AMF_RETURN_IF_FALSE
 #define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
+#endif
+
+//	Creating a portable defintion of countof
+//  This excludes mingw compilers; mingw32 does not have _countof
+#if defined( _MSC_VER )
+	#define countOf _countof
+#else
+	#define countOf( arr ) ( sizeof( arr ) / sizeof( arr[ 0 ] ) )
 #endif
 
 const int debug = 0;
@@ -412,13 +420,13 @@ CGraalConv_clFFT::setupCLFFT()
     };
     cl_command_queue prcContextArr[1] = { commandqueue_Convolution };
 
-    status = clfftBakePlan(clfftPlanFwdIR, _countof(updContextArr), updContextArr, NULL, NULL);
+    status = clfftBakePlan(clfftPlanFwdIR, countOf(updContextArr), updContextArr, NULL, NULL);
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
 
-    status = clfftBakePlan(clfftPlanFwdAllChannels, _countof(prcContextArr), prcContextArr, NULL, NULL);
+    status = clfftBakePlan(clfftPlanFwdAllChannels, countOf(prcContextArr), prcContextArr, NULL, NULL);
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
 
-    status = clfftBakePlan(clfftPlanBackAllChannels, _countof(prcContextArr), prcContextArr, NULL, NULL);
+    status = clfftBakePlan(clfftPlanBackAllChannels, countOf(prcContextArr), prcContextArr, NULL, NULL);
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
 #else
     status = clfftBakePlan(clfftPlanFwdIR, 1, &clientQ_, NULL, NULL);
@@ -640,7 +648,7 @@ int CGraalConv_clFFT::updateConvHostPtrs(
     bool synchronous   // synchronous call	
     )
 { 
-    processLock.Lock();
+    processLock.lock();
 
     // first copy IR from system to GPU [clIRInputBuf]
     uploadConvHostPtrs(n_channels, uploadIDs, convIDs, conv_ptrs, conv_lens, false);
@@ -656,7 +664,7 @@ int CGraalConv_clFFT::updateConvHostPtrs(
     updateConv(n_channels, uploadIDs, convIDs, &ocl_mems[0], conv_lens, synchronous);
 
     
-    processLock.Unlock();
+    processLock.unlock();
     return 0;
 }
 
@@ -670,7 +678,7 @@ int CGraalConv_clFFT::updateConv(
     bool synchronous   // synchronous call	
     )
 {
-    processLock.Lock();
+    processLock.lock();
 
     std::vector<cl_mem> ocl_mems;
     for (int n = 0; n < n_channels; n++)
@@ -682,7 +690,7 @@ int CGraalConv_clFFT::updateConv(
 
     updateConv(n_channels, uploadIDs, convIDs, &ocl_mems[0], conv_lens, synchronous);
 
-    processLock.Unlock();
+    processLock.unlock();
     return 0;
 }
 
@@ -696,7 +704,7 @@ int CGraalConv_clFFT::updateConv(
     bool synchronous   // synchronoius call	
     )
 { 
-    processLock.Lock();
+    processLock.lock();
 
     cl_int ret = CL_SUCCESS;
     clfftStatus fftstatus = CLFFT_SUCCESS;
@@ -752,7 +760,7 @@ int CGraalConv_clFFT::updateConv(
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: padLength" )
 
 
-        size_t l_wk[3] = { size_t(min(block_sz_, 256)), 1, 1 };
+        size_t l_wk[3] = { size_t(std::min(block_sz_, 256)), 1, 1 };
         size_t g_wk[3] = { inputBufSize / 1, 1, 1 }; //divide by 4 as we process a vec4
         if (!use_hermitian) {
             g_wk[0] = num_blocks_ * double_block_sz_;
@@ -795,7 +803,7 @@ int CGraalConv_clFFT::updateConv(
         cl_mem inBuf = clIRBlocksBuf[ch][set]->getCLMem();
         fftstatus = clfftEnqueueTransform(clfftPlanFwdIR,
             CLFFT_FORWARD,
-            _countof(updQueueArr), /*num queues and out events*/
+            countOf(updQueueArr), /*num queues and out events*/
             updQueueArr, /*command queue*/
             0, /*num wait events*/
             NULL, /*wait events*/
@@ -813,7 +821,7 @@ int CGraalConv_clFFT::updateConv(
         clFinish(m_commandqueue_Update);
     }
 
-    processLock.Unlock();
+    processLock.unlock();
 
     return 0;
 }
@@ -873,7 +881,7 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
         ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(int), 0);
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: 0" )
 
-        size_t l_wk[3] = { size_t(min(max_conv_sz_freq_, 256)), 1, 1 };
+        size_t l_wk[3] = { size_t(std::min(max_conv_sz_freq_, 256)), 1, 1 };
         size_t g_wk[3] = { size_t(max_conv_sz_freq_), 1, 1 }; //divide by 4 as we process a vec4
         ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLGeneralQueue(), m_copyWithPaddingKernel, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"copyResponses clEnqueueNDRangeKernel failed: " )
@@ -901,12 +909,12 @@ int CGraalConv_clFFT::process(
     int crossfade_state 
     )
 {
-    processLock.Lock();
+    processLock.lock();
     
     clfftStatus fftstatus;
     int inputset = 0;//for the roundCounter as the input is not set dependent
     int n_arg;
-    size_t l_wk[3] = { size_t(min(block_sz_, 256)), 1, 1 };
+    size_t l_wk[3] = { size_t(std::min(block_sz_, 256)), 1, 1 };
     size_t g_wk[3] = { 1, 1, 1 };
 
     int inspectCh = 1;
@@ -1147,7 +1155,7 @@ int CGraalConv_clFFT::process(
     }
     clOutputBaseBuf->unmap();
 
-    processLock.Unlock();
+    processLock.unlock();
 
     return 0;
 }

@@ -28,7 +28,7 @@
 #include "public/common/PropertyStorageImpl.h"  //AMF
 #include "public/include/core/Context.h"        //AMF
 
-#include <cl/cl.h>
+#include <CL/cl.h>
 
 namespace amf
 {

@@ -37,12 +37,9 @@ ADD_DEFINITIONS(-DLEGACY_COPYING=1)
 ADD_DEFINITIONS(-DCONVOLUTION_EXPORTS)
 ADD_DEFINITIONS(-DTRUEAUDIONEXT_EXPORTS)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
-#ADD_DEFINITIONS(-D_M_X64)
-
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+#ADD_DEFINITIONS(-D_M_X64) is it needed?
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
@@ -62,13 +59,18 @@ set(
   ../../../src/TrueAudioNext/convolution/ConvolutionImpl.cpp
   ../../../src/TrueAudioNext/core/TANContextImpl.cpp
   ../../../src/TrueAudioNext/core/TANTraceAndDebug.cpp
-  ../../../src/TrueAudioNext/core/windows/dll.cpp
   ../../../src/TrueAudioNext/fft/FFTImpl.cpp
   ../../../src/TrueAudioNext/filter/FilterImpl.cpp
   ../../../src/TrueAudioNext/IIRfilter/IIRfilterImpl.cpp
   ../../../src/TrueAudioNext/math/MathImpl.cpp
   ../../../src/TrueAudioNext/mixer/MixerImpl.cpp
   )
+
+if(WIN32)
+  list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/windows/dll.cpp)  
+else()
+  list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/linux/dll.cpp)
+endif()
 
 set(
   HEADER_LIB

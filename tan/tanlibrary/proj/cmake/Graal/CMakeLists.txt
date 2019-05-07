@@ -16,6 +16,9 @@ else()
   link_directories(${OpenCL_LIBRARY})
 endif()
 
+message("OpenCL_INCLUDE_DIRS: ${OpenCL_INCLUDE_DIRS}")
+message("OpenCL_LIBRARY: ${OpenCL_LIBRARY}")
+
 # cl kernel preprocessor
 include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
 
@@ -44,10 +47,8 @@ include_directories(../../../..)
 
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DCLFFT_EXPORTS)
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 # library name
 project(Graal)

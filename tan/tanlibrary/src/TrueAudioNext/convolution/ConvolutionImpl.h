@@ -276,8 +276,9 @@ namespace amf
         };
         UpdateThread m_updThread;
 
+        //todo: legacy debug code?
         // HACK Windows specific
-        HANDLE m_updThreadHandle;
+        //HANDLE m_updThreadHandle;
 
         void UpdateThreadProc(AMFThread *pThread);
 
@@ -353,17 +354,17 @@ namespace amf
                 lens = new int[channelCnt];
                 responses = new float*[channelCnt];
                 negateCnt = new int[channelCnt];
-                ZeroMemory(negateCnt, sizeof(int) * channelCnt);
+                std::memset(negateCnt, 0, sizeof(int) * channelCnt);
                 Clear(channelCnt);
             }
 
             void Clear(amf_uint32 channelCnt)
             {
-                ZeroMemory(versions, sizeof(int) * channelCnt);
-                ZeroMemory(prevVersions, sizeof(int) * channelCnt);
-                ZeroMemory(channels, sizeof(int) * channelCnt);
-                ZeroMemory(lens, sizeof(int) * channelCnt);
-                ZeroMemory(responses, sizeof(float*) * channelCnt);
+                std::memset(versions, 0, sizeof(int) * channelCnt);
+                std::memset(prevVersions, 0, sizeof(int) * channelCnt);
+                std::memset(channels, 0, sizeof(int) * channelCnt);
+                std::memset(lens, 0, sizeof(int) * channelCnt);
+                std::memset(responses, 0, sizeof(float*) * channelCnt);
                 updatesCnt = 0;
             }
 

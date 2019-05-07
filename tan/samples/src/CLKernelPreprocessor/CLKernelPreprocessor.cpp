@@ -193,7 +193,7 @@ int main(int argc, char* argv[])
 	}
 
 	outputStream
-	    << "const std::string " << fileNameWide << "_Str = " << concatenateSource << std::endl
+	    << "const std::string " << fileNameWide << "_Str = " << concatenateSource << ";" << std::endl
 		<< "static const char* " << fileNameWide << " = &" << fileNameWide << "_Str[0u];" << std::endl
 		<< "const size_t " << fileNameWide << "Count = " << fileNameWide << "_Str.size();" << std::endl
 		;

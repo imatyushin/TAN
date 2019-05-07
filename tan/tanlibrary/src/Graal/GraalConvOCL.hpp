@@ -36,7 +36,7 @@
 #  include "tanlibrary/include/TrueAudioNext.h" //TAN
 
 #  include "public/include/core/Compute.h"      //AMF
-#  include "public/include/core/context.h"      //AMF
+#  include "public/include/core/Context.h"      //AMF
 #  include "public/common/AMFFactory.h"         //AMF
 
 /**
@@ -714,10 +714,10 @@ template<typename T>
 class CASubBuf : public CABuf<T>
 {
 public:
-    CASubBuf(CABuf<T> & _base) : CABuf(_base), m_base(_base)
+    CASubBuf(CABuf<T> & _base) : CABuf< T >(_base), m_base(_base)
     {
         base_buf_ = _base.getCLMem();
-        sys_ptr_ = nullptr;
+        CABuf< T >::sys_ptr_ = nullptr;
 
         assert(base_buf_);
 
@@ -739,7 +739,7 @@ public:
         sub_buf.origin = _offset* sizeof(T);
         sub_buf.size = _sz * sizeof(T);
 
-        buf_ = clCreateSubBuffer (	base_buf_,
+        CABuf< T >::buf_ = clCreateSubBuffer (	base_buf_,
                                     _flags,
                                     CL_BUFFER_CREATE_TYPE_REGION,
                                     &sub_buf,
@@ -755,9 +755,9 @@ public:
             return ret;
         }
 
-        len_ = _sz;
-        cl_own_ = true;
-        flags_ = _flags;
+        CABuf< T >::len_ = _sz;
+        CABuf< T >::cl_own_ = true;
+        CABuf< T >::flags_ = _flags;
     
         return(ret);
     }
@@ -769,14 +769,15 @@ public:
 
     T * & getSysMem(void) override
     {
-        if (!sys_ptr_)
+        if (!CABuf< T >::sys_ptr_)
         {
-            sys_ptr_ = m_base.getSysMem();
-            AMF_RETURN_IF_FALSE(sys_ptr_, sys_ptr_, L"Internal error: subbuffer's parent failed to allocate system memory");
-            sys_ptr_ += m_offset;
+            CABuf< T >::sys_ptr_ = m_base.getSysMem();
+                                                     //todo: investigate retcode usage
+            AMF_RETURN_IF_FALSE(CABuf< T >::sys_ptr_ != nullptr, CABuf< T >::sys_ptr_, L"Internal error: subbuffer's parent failed to allocate system memory");
+            CABuf< T >::sys_ptr_ += m_offset;
         }
 
-        return sys_ptr_;
+        return CABuf< T >::sys_ptr_;
     }
 protected:
     cl_mem base_buf_;

@@ -25,7 +25,78 @@
 #include <bitset>
 #include <array>
 #include <string>
+
+//todo: investigate
+#if defined(__WIN32)
 #include <intrin.h>
+#else
+#include <cpuid.h>
+#include <stdint.h>
+#endif
+
+struct CpuIDHelper
+{
+    /*uint32_t Registers[4];
+
+    explicit CpuIDHelper(unsigned value)
+    {
+
+#ifdef _WIN32
+        __cpuid((int *)Registers, (int)value);
+#else
+
+        asm volatile
+        (
+            "cpuid":
+            "=a" (Registers[0]),
+            "=b" (Registers[1]),
+            "=c" (Registers[2]),
+            "=d" (Registers[3]):
+            "a" (value),
+            "c" (0) // ECX is set to zero for CPUID function 4
+        );
+
+#endif
+  	}
+
+    const uint32_t& GetEAX() const { return Registers[0]; }
+    const uint32_t&	GetEBX() const { return Registers[1]; }
+    const uint32_t&	GetECX() const { return Registers[2]; }
+    const uint32_t&	GetEDX() const { return Registers[3]; }*/
+
+    static void     GetCpuID
+    (
+        int32_t     registers[4], //out
+        int32_t     functionID,
+        int32_t     subfunctionID   = 0
+    )
+    {
+#ifdef _WIN32
+        if(!subfunctionID)
+        {
+            __cpuid((int *)registers, (int)functionID);
+        }
+        else
+        {
+            __cpuidex(int *)registers, (int)functionID, subfunctionID);
+        }
+
+#else
+
+        asm volatile
+        (
+            "cpuid":
+            "=a" (registers[0]),
+            "=b" (registers[1]),
+            "=c" (registers[2]),
+            "=d" (registers[3]):
+            "a" (functionID),
+            "c" (subfunctionID)
+        );
+
+#endif
+	}
+};
 
 class InstructionSet
 {
@@ -118,12 +189,16 @@ private:
 
 			// Calling __cpuid with 0x0 as the function_id argument
 			// gets the number of the highest valid function ID.
-			__cpuid(cpui.data(), 0);
+			//todo: verify
+			//__cpuid(cpui.data(), 0);
+			CpuIDHelper::GetCpuID(cpui.data(), 0);
 			nIds_ = cpui[0];
 
 			for (int i = 0; i <= nIds_; ++i)
 			{
-				__cpuidex(cpui.data(), i, 0);
+				//todo: verify
+				//__cpuidex(cpui.data(), i, 0);
+				CpuIDHelper::GetCpuID(cpui.data(), i, 0); //todo: why ex?
 				data_.push_back(cpui);
 			}
 
@@ -159,7 +234,9 @@ private:
 
 			// Calling __cpuid with 0x80000000 as the function_id argument
 			// gets the number of the highest valid extended ID.
-			__cpuid(cpui.data(), 0x80000000);
+			//__cpuid(cpui.data(), 0x80000000);
+			//todo: verify
+			CpuIDHelper::GetCpuID(cpui.data(), 0x80000000);
 			nExIds_ = cpui[0];
 
 			char brand[0x40];
@@ -167,7 +244,9 @@ private:
 
 			for (int i = 0x80000000; i <= nExIds_; ++i)
 			{
-				__cpuidex(cpui.data(), i, 0);
+				//__cpuidex(cpui.data(), i, 0);
+				//todo: verify
+				CpuIDHelper::GetCpuID(cpui.data(), i, 0);
 				extdata_.push_back(cpui);
 			}
 

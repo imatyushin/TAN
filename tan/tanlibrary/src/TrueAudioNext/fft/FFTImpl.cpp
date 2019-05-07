@@ -27,7 +27,7 @@
 #include "FFTImpl.h"
 #include "../core/TANContextImpl.h"     //TAN
 
-#include "tanlibrary/src/clFFT-master/src/include/clfft.h"
+#include "tanlibrary/src/clFFT-master/src/include/clFFT.h"
 #include <memory>
 
 #define AMF_FACILITY L"TANFFTImpl"

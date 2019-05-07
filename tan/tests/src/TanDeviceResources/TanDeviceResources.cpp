@@ -27,9 +27,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <io.h>
-#include <cl/cl.h>
+#include <CL/cl.h>
 #include "../../../samples/src/gpuutilities/gpuutilities.h"
-//#include "../../../../amf/public/include/core/context.h"
+//#include "../../../../amf/public/include/core/Context.h"
 //#include "../../../../amf/public/common/AMFFactory.h"
 
 

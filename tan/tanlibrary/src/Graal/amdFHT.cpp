@@ -257,15 +257,15 @@ static FHT_FUNC sFHT_routines[16] = {
 };
 static void* sFHT_dirinv[16][2] = {
 
-	{FHT16RevIn2, FHTMAD16RevEnd},
-	{FHT32RevIn2, FHTMAD32RevEnd},
-	{FHT64RevIn2, FHTMAD64RevEnd},
-	{FHT128RevIn2, FHTMAD128RevEnd},
-	{FHT256RevIn2, FHTMAD256RevEnd},
-	{FHT512RevIn2, FHTMAD512RevEnd},
-	{FHT1024RevIn2, FHTMAD1024RevEnd},
-	{FHT2048RevIn2, FHTMAD2048RevEnd},
-	{FHT4096RevIn2, FHTMAD4096RevEnd},
+	{(void *)FHT16RevIn2, 	(void *)FHTMAD16RevEnd},
+	{(void *)FHT32RevIn2,   (void *)FHTMAD32RevEnd},
+	{(void *)FHT64RevIn2,   (void *)FHTMAD64RevEnd},
+	{(void *)FHT128RevIn2,  (void *)FHTMAD128RevEnd},
+	{(void *)FHT256RevIn2,  (void *)FHTMAD256RevEnd},
+	{(void *)FHT512RevIn2,  (void *)FHTMAD512RevEnd},
+	{(void *)FHT1024RevIn2, (void *)FHTMAD1024RevEnd},
+	{(void *)FHT2048RevIn2, (void *)FHTMAD2048RevEnd},
+	{(void *)FHT4096RevIn2, (void *)FHTMAD4096RevEnd},
 
 };
 
