@@ -26,17 +26,16 @@ function(markGenerated InputDirectories OutputNames OutHeaders)
 
 endfunction()
 
-function(generateCLKernel OutputTarget InputDirectories InputFiles OutputNames)
+function(generateCLKernelHeader OutputTarget InputDirectories InputFiles OutputNames)
 
   list(LENGTH ${InputFiles} CL_FilesCount)
   math(EXPR CL_Files_MaxIndex ${CL_FilesCount}-1)
-  #message("COUNT ${CL_FilesCount} ${CL_Files_MaxIndex}")
 
   foreach(CL_FILE_INDEX RANGE ${CL_Files_MaxIndex})
     list(GET ${InputDirectories} ${CL_FILE_INDEX} CL_DIRECTORY)
     list(GET ${InputFiles} ${CL_FILE_INDEX} CL_FILE)
     list(GET ${OutputNames} ${CL_FILE_INDEX} CL_OUTPUT)
-    #message("create commands to compile ${CL_DIRECTORY}/${CL_FILE} to ${CL_OUTPUT}")
+    #message("create commands to convert file ${CL_DIRECTORY}/${CL_FILE} to ${CL_OUTPUT}")
 
     set(TARGET_NAME ${CL_FILE})
 
@@ -50,9 +49,11 @@ function(generateCLKernel OutputTarget InputDirectories InputFiles OutputNames)
         DEPENDS
         ${CL_FILE}
         COMMAND
-        CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
+        #CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
+        FileToHeader ${CL_FILE} ${CL_OUTPUT}
+        #"${TAN_ROOT}/thirdparty/file_to_header/file_to_header" ${CL_FILE} ${CL_OUTPUT}
         COMMENT
-        "COMMAND Compile ${CL_DIRECTORY}/${CL_FILE} to ${CL_OUTPUT}"
+        "Building binary resource header (${CL_OUTPUT}) for  ${CL_DIRECTORY}/${CL_FILE}..."
         VERBATIM
         )
 
@@ -63,15 +64,14 @@ function(generateCLKernel OutputTarget InputDirectories InputFiles OutputNames)
         ${CL_DIRECTORY}
         DEPENDS
         ${CL_OUTPUT}
-        #COMMAND CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
         COMMENT
-        "TARGET ${CL_DIRECTORY}/${CL_FILE}"
+        "TARGET ${CL_FILE}"
         #BYPRODUCTS ${CL_FILE}
         )
 
     endif()
 
-    add_dependencies(${TARGET_NAME} CLKernelPreprocessor)
+    add_dependencies(${TARGET_NAME} FileToHeader)
     add_dependencies(${OutputTarget} ${TARGET_NAME})
 
   endforeach()
