@@ -29,6 +29,7 @@ add_subdirectory(../../samples/proj/cmake/Ambisonic1stOrderEncoder cmake-Ambison
 add_subdirectory(../../samples/proj/cmake/Ambisonic2ndOrderEncoder cmake-Ambisonic2ndOrderEncoder-bin)
 add_subdirectory(../../samples/proj/cmake/AmbisonicVRDecoder cmake-AmbisonicVRDecoder-bin)
 add_subdirectory(../../samples/proj/cmake/CLKernelPreprocessor cmake-CLKernelPreprocessor-bin)
+add_subdirectory(../../samples/proj/cmake/FileToHeader cmake-FileToHeader-bin)
 add_subdirectory(../../samples/proj/cmake/GPUUtilities cmake-GPUUtilities-bin)
 #add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
 add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)

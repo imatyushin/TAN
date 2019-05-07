@@ -26,19 +26,16 @@ else()
   link_directories(${OpenCL_LIBRARY})
 endif()
 
-# cl kernel preprocessor
-include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
+# cl kernel to hex header
+include(../../../../samples/proj/cmake/FileToHeader/FileToHeader.cmake)
 
 # name
 project(TrueAudioVR DESCRIPTION "TrueAudioVR")
 
 #
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
-
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
