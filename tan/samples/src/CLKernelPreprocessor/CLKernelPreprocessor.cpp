@@ -8,6 +8,8 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <clocale>
+#include <cctype>
 
 #define MAX_SIZE_STRING  16384
 #define MAX_BLOCK_CHUNK  12000
@@ -193,7 +195,7 @@ int main(int argc, char* argv[])
 	}
 
 	outputStream
-	    << "const std::string " << fileNameWide << "_Str = " << concatenateSource << std::endl
+	    << "const std::string " << fileNameWide << "_Str = " << concatenateSource << ";" << std::endl
 		<< "static const char* " << fileNameWide << " = &" << fileNameWide << "_Str[0u];" << std::endl
 		<< "const size_t " << fileNameWide << "Count = " << fileNameWide << "_Str.size();" << std::endl
 		;

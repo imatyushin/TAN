@@ -986,8 +986,8 @@ int Audio3D::updateProc(){
             }
 
         } while (ret == AMF_INPUT_FULL && running && !stop);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_BUSY);
-
+        //todo: investigate about AMF_BUSY
+        RETURN_IF_FALSE(ret == AMF_OK /*|| ret == AMF_BUSY*/);
 
         updated = true;
         //Sleep(20);
