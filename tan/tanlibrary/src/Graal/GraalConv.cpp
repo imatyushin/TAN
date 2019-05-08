@@ -32,8 +32,14 @@
 #include "public/common/Thread.h"
 #include "public/common/AMFFactory.h"           //AMF
 #include "../common/OCLHelper.h"
+#include <algorithm>
 
 #include <CL/cl_ext.h>
+
+//to allow std::min usage
+#ifdef min
+#undef min
+#endif
 
 #ifndef AMF_RETURN_IF_FALSE
 #define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)

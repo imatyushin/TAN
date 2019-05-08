@@ -28,6 +28,7 @@
 #include "../include/convenienceFunctions.h"
 #include "action.h"
 #include "fft_binary_lookup.h"
+#include <algorithm>
 
 using std::vector;
 

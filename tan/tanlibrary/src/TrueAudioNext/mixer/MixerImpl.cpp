@@ -29,7 +29,7 @@
 #include "CLKernel_Mixer.h"
 #define AMF_FACILITY L"TANMixerImpl"
 
-#ifndef __WIN32
+#ifndef _WIN32
 #include <immintrin.h>
 #endif
 

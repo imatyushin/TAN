@@ -29,10 +29,16 @@
 #include <fstream>
 #include <string>
 #include <math.h>
+#include <algorithm>
 
 #include "../common/OCLHelper.h"
 
 #include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
+
+//to allow std::min usage
+#ifdef min
+#undef min
+#endif
 
 #ifndef AMF_RETURN_IF_FALSE
 #define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)

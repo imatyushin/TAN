@@ -95,7 +95,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::wifstream clKernelStream(kernelFileFullName);
+    std::basic_ifstream<unsigned char, std::char_traits<unsigned char> > clKernelStream(
+        kernelFileFullName,
+        std::ios::binary
+        );
 
 	if(clKernelStream.fail())
 	{
@@ -124,10 +127,8 @@ int main(int argc, char* argv[])
 
 	std::cout << "Outputing: " << outputFileName << std::endl;
 
-	std::wstring clKernelSource(
-		(std::istreambuf_iterator<wchar_t>(clKernelStream)),
-		std::istreambuf_iterator<wchar_t>()
-		);
+    // copies all data into buffer
+    std::vector<unsigned char> clKernelSource(std::istreambuf_iterator<unsigned char>(clKernelStream), {});
 
 	outputStream
 	    << L"#pragma once" << std::endl

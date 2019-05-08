@@ -27,7 +27,7 @@
 #include <string>
 
 //todo: investigate
-#if defined(__WIN32)
+#if defined(_WIN32)
 #include <intrin.h>
 #else
 #include <cpuid.h>
@@ -78,9 +78,8 @@ struct CpuIDHelper
         }
         else
         {
-            __cpuidex(int *)registers, (int)functionID, subfunctionID);
+            __cpuidex((int *)registers, (int)functionID, subfunctionID);
         }
-
 #else
 
         asm volatile

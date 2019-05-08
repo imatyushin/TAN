@@ -1617,7 +1617,7 @@ void TANConvolutionImpl::ovlTimeDomain(
         if (m_TimeDomainKernel == nullptr){
             char dllPath[MAX_PATH + 1];
 
-#ifdef __WIN32
+#ifdef _WIN32
             GetModuleFileNameA(NULL, dllPath, MAX_PATH);
 #else
             //todo: verify
