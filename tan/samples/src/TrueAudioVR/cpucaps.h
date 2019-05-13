@@ -25,7 +25,13 @@
 #include <bitset>
 #include <array>
 #include <string>
+
+#if defined(_WIN32)
 #include <intrin.h>
+#else
+#include <cpuid.h>
+#include <stdint.h>
+#endif
 
 class InstructionSet
 {

@@ -129,8 +129,8 @@ int main(int argc, char* argv[])
 
 	std::cout << "Outputing: " << outputFileName << std::endl;
 
-	// copies all data into buffer, not optimal implementation (dynamic resizes)
-	// unsigned char version does not work under linux/gcc, todo: why? seems like a gcc bug
+	// copies all data into buffer, not optimal implementation (dynamic resizes will happened)
+	// unsigned char version does not work under linux/gcc, todo: why? seems like a gcc/stl bug
     std::vector</*unsigned*/ char> clKernelSource(
 		(std::istreambuf_iterator</*unsigned*/ char, std::char_traits</*unsigned*/ char>>(clKernelStream)),
 		std::istreambuf_iterator</*unsigned*/ char, std::char_traits</*unsigned*/ char>>()
