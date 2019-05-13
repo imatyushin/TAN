@@ -277,7 +277,7 @@ TrueAudioVRimpl::~TrueAudioVRimpl(){
 }
 
 
-__declspec(dllexport) AMF_RESULT __cdecl CreateAmdTrueAudioVR(
+TAN_SDK_LINK AMF_RESULT __cdecl CreateAmdTrueAudioVR(
     AmdTrueAudioVR **taVR, 
     TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength
     )
@@ -469,7 +469,7 @@ void TrueAudioVRimpl::applyHRTFoptCPU(HeadModel * pHead, float scale, float *res
 }
 
 
-__declspec(dllexport) float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections)
+TAN_SDK_LINK float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections)
 {
     double S = 340; // speed of sound m/s
     double dbL = float(DAMPTODB(room.mFront.damp) + DAMPTODB(room.mBack.damp)) / 2;

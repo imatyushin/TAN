@@ -80,3 +80,5 @@ add_library(
   ${SOURCE_LIB}
   ${HEADER_LIB}
   )
+
+set_property(TARGET clFFT-master PROPERTY POSITION_INDEPENDENT_CODE ON)

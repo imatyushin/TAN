@@ -184,16 +184,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
             register __m256 *out, *in;
             out = (__m256 *)&ppBufferOutput[k];
             in = (__m256 *)&ppBufferInput[idx][k];
-            //*out = (idx == 0) ? *in : _mm256_add_ps(*out, *in);
-            //todo: check correctness
-            if(!idx)
-            {
-                *out = *in;
-            }
-            else
-            {
-                *out = _mm256_add_ps(*out, *in);
-            }
+            *out = (idx == 0) ? *in : _mm256_add_ps(*out, *in);
 
             k += 8;
             n -= 8;

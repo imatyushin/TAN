@@ -67,6 +67,8 @@ std::wstring toWideString(const std::string & inputString)
 	return buffer.data();
 }
 
+#include <typeinfo>
+
 int main(int argc, char* argv[])
 {
 	if (argc > 3)
@@ -95,9 +97,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-    std::basic_ifstream<unsigned char, std::char_traits<unsigned char> > clKernelStream(
+    std::basic_ifstream</*unsigned*/ char, std::char_traits</*unsigned*/ char> > clKernelStream(
         kernelFileFullName,
-        std::ios::binary
+        std::ios::in | std::ios::binary
         );
 
 	if(clKernelStream.fail())
@@ -127,8 +129,12 @@ int main(int argc, char* argv[])
 
 	std::cout << "Outputing: " << outputFileName << std::endl;
 
-    // copies all data into buffer
-    std::vector<unsigned char> clKernelSource(std::istreambuf_iterator<unsigned char>(clKernelStream), {});
+	// copies all data into buffer, not optimal implementation (dynamic resizes)
+	// unsigned char version does not work under linux/gcc, todo: why? seems like a gcc bug
+    std::vector</*unsigned*/ char> clKernelSource(
+		(std::istreambuf_iterator</*unsigned*/ char, std::char_traits</*unsigned*/ char>>(clKernelStream)),
+		std::istreambuf_iterator</*unsigned*/ char, std::char_traits</*unsigned*/ char>>()
+		);
 
 	outputStream
 	    << L"#pragma once" << std::endl

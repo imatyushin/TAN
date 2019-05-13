@@ -36,6 +36,7 @@ project(TrueAudioVR DESCRIPTION "TrueAudioVR")
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
+ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
@@ -44,10 +45,13 @@ include_directories(../../../..)
 set(
   SOURCE_LIB
   ../../../../../amf/public/common/Windows/ThreadWindows.cpp
-  ../../../src/TrueAudioVR/dllmain.cpp
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
   )
+
+if(WIN32)
+  list(APPEND SOURCE_LIB ../../../src/TrueAudioVR/dllmain.cpp)
+endif()
 
 set(
   HEADER_LIB

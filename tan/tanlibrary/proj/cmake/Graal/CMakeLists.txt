@@ -131,3 +131,6 @@ generateCLKernel(
   )
 
 add_dependencies(Graal CLKernelPreprocessor)
+
+#set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)

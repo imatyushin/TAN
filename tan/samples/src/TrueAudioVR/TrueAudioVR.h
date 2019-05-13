@@ -111,7 +111,7 @@ struct Door {
     float r2brX, r2brY, r2brZ; //  bottom right corner
 };
 
-class __declspec(dllexport) AmdTrueAudioVR 
+class TAN_SDK_LINK AmdTrueAudioVR 
 {
 public:
     enum VRExecutionMode
@@ -192,10 +192,10 @@ public:
 extern "C"
 {
 
-    __declspec(dllexport) AMF_RESULT __cdecl  CreateAmdTrueAudioVR(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue,
+    TAN_SDK_LINK AMF_RESULT __cdecl  CreateAmdTrueAudioVR(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue,
                                                                  float samplesPerSecond, int convolutionLength);
 
-    __declspec(dllexport) float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections);
+    TAN_SDK_LINK float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections);
 
 
 }

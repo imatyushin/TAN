@@ -52,14 +52,14 @@ typedef struct _TanDeviceCapabilities {
 // TAN objects creation functions.
 extern "C"
 {
-    __declspec(dllexport) int __cdecl  listGpuDeviceNames(char *devNames[], unsigned int count);
-    __declspec(dllexport) int __cdecl  listCpuDeviceNames(char *devNames[], unsigned int count);
-    __declspec(dllexport) int __cdecl  listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDeviceType);
+    TAN_SDK_LINK int __cdecl  listGpuDeviceNames(char *devNames[], unsigned int count);
+    TAN_SDK_LINK int __cdecl  listCpuDeviceNames(char *devNames[], unsigned int count);
+    TAN_SDK_LINK int __cdecl  listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDeviceType);
 
-    __declspec(dllexport) int __cdecl getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
+    TAN_SDK_LINK int __cdecl getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
 
-    __declspec(dllexport) cl_command_queue __cdecl createQueue(cl_context context, cl_device_id device, int flag = 0, int cu_ = 0);
+    TAN_SDK_LINK cl_command_queue __cdecl createQueue(cl_context context, cl_device_id device, int flag = 0, int cu_ = 0);
 
-    __declspec(dllexport) int __cdecl  listTanDevicesAndCaps(TanDeviceCapabilities **deviceList, int *count);
+    TAN_SDK_LINK int __cdecl  listTanDevicesAndCaps(TanDeviceCapabilities **deviceList, int *count);
 
 }

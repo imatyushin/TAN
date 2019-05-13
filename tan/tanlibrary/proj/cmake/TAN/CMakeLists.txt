@@ -40,6 +40,7 @@ ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 #ADD_DEFINITIONS(-D_M_X64) is it needed?
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
+ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
@@ -198,3 +199,8 @@ set_target_properties(
   PUBLIC_HEADER
   ../../../include/TrueAudioNext.h
   )
+
+#to allow _mm256_add_ps support
+target_compile_options(TrueAudioNext PUBLIC -mavx2)
+#-msse3
+#-Wpsabi
