@@ -202,5 +202,6 @@ set_target_properties(
 
 #to allow _mm256_add_ps support
 target_compile_options(TrueAudioNext PUBLIC -mavx2)
-#-msse3
-#-Wpsabi
+target_compile_options(TrueAudioNext PUBLIC -mfma)
+target_compile_options(TrueAudioNext PUBLIC -msse4.2)
+target_compile_options(TrueAudioNext PUBLIC -Wpsabi)

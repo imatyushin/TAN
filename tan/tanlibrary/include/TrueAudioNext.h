@@ -50,13 +50,17 @@
 
 //define export declaration
 #ifdef _WIN32
-        #if defined(TAN_SDK_EXPORTS)
-            #define TAN_SDK_LINK __declspec(dllexport)
-        #else
-            #define TAN_SDK_LINK __declspec(dllimport)
-        #endif
+    #if defined(TAN_SDK_EXPORTS)
+        #define TAN_SDK_LINK __declspec(dllexport)
+    #else
+        #define TAN_SDK_LINK __declspec(dllimport)
+    #endif
+
+    #define TAN_CDECL_CALL __cdecl
 #else // #ifdef _WIN32
     #define TAN_SDK_LINK
+
+    #define TAN_CDECL_CALL
 #endif // #ifdef _WIN32
 
 

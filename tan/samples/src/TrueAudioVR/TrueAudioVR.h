@@ -20,10 +20,14 @@
 // THE SOFTWARE.
 //
 
+#pragma once
+
 #include <stdio.h>
 
 #include "tanlibrary/include/TrueAudioNext.h"       //TAN
 using namespace amf;
+
+#include "public/include/core/Result.h"
 
 #include <CL/cl.h>
 
@@ -191,13 +195,16 @@ public:
 // TAN objects creation functions.
 extern "C"
 {
-
-    TAN_SDK_LINK AMF_RESULT __cdecl  CreateAmdTrueAudioVR(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue,
-                                                                 float samplesPerSecond, int convolutionLength);
+    TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR(
+        AmdTrueAudioVR **taVR,
+        TANContextPtr pContext,
+        TANFFTPtr pFft,
+        cl_command_queue cmdQueue,
+        float samplesPerSecond,
+        int convolutionLength
+        );
 
     TAN_SDK_LINK float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections);
-
-
 }
 
 #endif // #ifndef AMD_TA_VR

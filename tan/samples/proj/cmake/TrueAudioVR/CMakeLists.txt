@@ -117,3 +117,8 @@ generateCLKernelHeader(
 
 # linking
 target_link_libraries(TrueAudioVR ${OpenCL_LIBRARY})
+
+target_compile_options(TrueAudioVR PUBLIC -mavx2)
+target_compile_options(TrueAudioVR PUBLIC -mfma)
+target_compile_options(TrueAudioVR PUBLIC -msse4.2)
+target_compile_options(TrueAudioVR PUBLIC -Wpsabi)

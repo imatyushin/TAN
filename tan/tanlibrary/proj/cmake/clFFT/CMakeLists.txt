@@ -82,3 +82,8 @@ add_library(
   )
 
 set_property(TARGET clFFT-master PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_compile_options(clFFT-master PUBLIC -mavx2)
+target_compile_options(clFFT-master PUBLIC -mfma)
+target_compile_options(clFFT-master PUBLIC -msse4.2)
+target_compile_options(clFFT-master PUBLIC -Wpsabi)

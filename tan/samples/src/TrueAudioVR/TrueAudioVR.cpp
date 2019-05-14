@@ -26,7 +26,7 @@
 #include "stdafx.h"
 #include <omp.h>
 #include "cpucaps.h"
-#include "trueaudiovr.h"
+#include "TrueAudioVR.h"
 
 #include <immintrin.h>
 
@@ -35,6 +35,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <cmath>
 
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool AmdTrueAudioVR::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
@@ -254,7 +255,7 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     m_responseLength(0),
     m_pLPF(NULL),
     m_pHPF(NULL),
-    m_clInitialized(FALSE),
+    m_clInitialized(false),
     m_pContext(pContext),
     m_pFft(pFft),
     m_executionMode(CPU)
@@ -277,10 +278,15 @@ TrueAudioVRimpl::~TrueAudioVRimpl(){
 }
 
 
-TAN_SDK_LINK AMF_RESULT __cdecl CreateAmdTrueAudioVR(
+TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
+(
     AmdTrueAudioVR **taVR, 
-    TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength
-    )
+    TANContextPtr pContext,
+    TANFFTPtr pFft,
+    cl_command_queue cmdQueue,
+    float samplesPerSecond,
+    int convolutionLength
+)
 {
     *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(pContext, pFft, cmdQueue, samplesPerSecond, convolutionLength);
 
@@ -666,7 +672,7 @@ void TrueAudioVRimpl::generateRoomResponse(RoomDefinition room, MonoSource sound
         if (!m_clInitialized)
         {
             InitializeCL(ears, 2 * nW, 2 * nH, 2 * nL, responseLength);
-            m_clInitialized = TRUE;
+            m_clInitialized = true;
         }
     }
 
