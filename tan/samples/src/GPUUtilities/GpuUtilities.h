@@ -19,8 +19,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #pragma once
+
+//define export declaration
+#ifdef _WIN32
+
+#define GPUUTILITIES_EXPORT __declspec(dllexport)
+#define GPUUTILITIES_CDECL_CALL __cdecl
+
+#else
+
+#define GPUUTILITIES_EXPORT __declspec(dllexport)
+#define GPUUTILITIES_CDECL_CALL __cdecl
+
+#endif
+
 typedef int(__cdecl *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
 typedef int(__cdecl *listCpuDeviceNamesType)(char *devNames[], unsigned int count);
 typedef int(__cdecl *getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice);
@@ -52,14 +65,13 @@ typedef struct _TanDeviceCapabilities {
 // TAN objects creation functions.
 extern "C"
 {
-    TAN_SDK_LINK int __cdecl  listGpuDeviceNames(char *devNames[], unsigned int count);
-    TAN_SDK_LINK int __cdecl  listCpuDeviceNames(char *devNames[], unsigned int count);
-    TAN_SDK_LINK int __cdecl  listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDeviceType);
+    GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL listGpuDeviceNames(char *devNames[], unsigned int count);
+    GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL listCpuDeviceNames(char *devNames[], unsigned int count);
+    GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDeviceType);
 
-    TAN_SDK_LINK int __cdecl getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
+    GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
 
-    TAN_SDK_LINK cl_command_queue __cdecl createQueue(cl_context context, cl_device_id device, int flag = 0, int cu_ = 0);
+    GPUUTILITIES_EXPORT cl_command_queue GPUUTILITIES_CDECL_CALL createQueue(cl_context context, cl_device_id device, int flag = 0, int cu_ = 0);
 
-    TAN_SDK_LINK int __cdecl  listTanDevicesAndCaps(TanDeviceCapabilities **deviceList, int *count);
-
+    GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL  listTanDevicesAndCaps(TanDeviceCapabilities **deviceList, int *count);
 }

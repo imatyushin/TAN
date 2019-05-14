@@ -68,7 +68,7 @@ set(
   )
 
 if(WIN32)
-  list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/windows/dll.cpp)  
+  list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/windows/dll.cpp)
 else()
   list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/linux/dll.cpp)
 endif()
@@ -200,8 +200,10 @@ set_target_properties(
   ../../../include/TrueAudioNext.h
   )
 
+if(!WIN32)
 #to allow _mm256_add_ps support
 target_compile_options(TrueAudioNext PUBLIC -mavx2)
 target_compile_options(TrueAudioNext PUBLIC -mfma)
 target_compile_options(TrueAudioNext PUBLIC -msse4.2)
 target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
+endif()
