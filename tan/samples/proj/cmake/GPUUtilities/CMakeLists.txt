@@ -13,6 +13,9 @@ endif (POLICY CMP0048)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+#set(CMAKE_C_STANDARD 11)
+#set(CMAKE_C_STANDARD_REQUIRED ON)
+
 set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
@@ -35,6 +38,7 @@ ADD_DEFINITIONS(-DGPUUTILITIES_EXPORTS)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
+ADD_DEFINITIONS(-DLINUX)
 
 # sources
 set(
@@ -46,9 +50,12 @@ set(
   ../../../../../amf/public/common/TraceAdapter.cpp
   ../../../../../amf/public/common/Windows/ThreadWindows.cpp
   ../../../src/ADL/ADLquery.cpp
-  ../../../src/GPUUtilities/dllmain.cpp
   ../../../src/GPUUtilities/GPUUtilities.cpp
   )
+
+if(WIN32)
+  list(APPEND SOURCE_LIB ../../../src/GPUUtilities/dllmain.cpp)
+endif()
 
 set(
   HEADER_LIB

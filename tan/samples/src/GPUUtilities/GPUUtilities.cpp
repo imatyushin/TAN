@@ -28,19 +28,27 @@
 #include "stdafx.h"
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
 #include <io.h>
+#endif
+
 //#include <gl/gl.h>
 //#include <gl/GLU.h>
 
 #include <CL/cl.h>
-#include <cl/cl_ext.h>
-#include <cl/cl_gl.h>
+#include <CL/cl_ext.h>
+#include <CL/cl_gl.h>
 
-#include "gpuutilities.h"
+#include "GpuUtilities.h"
 #include "../../../../amf/public/include/core/Context.h"
 #include "../../../../amf/public/common/AMFFactory.h"
 #include "../ADL/ADLQuery.h"
 
+#ifndef _WIN32
+#define sscanf_s sscanf
+#define sprintf_s sprintf
+#endif
 
 /* To Do: Check for GPU device not used by display....
 
@@ -365,12 +373,10 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
         const cl_queue_properties cprops[] = {
             CL_QUEUE_PROPERTIES,
             0,
-            static_cast<cl_queue_properties>
-            (unsigned long long(flag)),
-            static_cast<cl_queue_properties>
-            (unsigned long long(var)),
-            static_cast<cl_queue_properties>
-            (unsigned long long(0)) };
+            static_cast<cl_queue_properties>(std::uint64_t(flag)),
+            static_cast<cl_queue_properties>(std::uint64_t(var)),
+            static_cast<cl_queue_properties>(std::uint64_t(0))
+            };
         // OpenCL 2.0
         cmdQueue = clCreateCommandQueueWithProperties(context, device, cprops, &error);
     }

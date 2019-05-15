@@ -21,6 +21,8 @@
 //
 #pragma once
 
+#include <cstdint>
+
 //define export declaration
 #ifdef _WIN32
 
@@ -29,15 +31,15 @@
 
 #else
 
-#define GPUUTILITIES_EXPORT __declspec(dllexport)
-#define GPUUTILITIES_CDECL_CALL __cdecl
+#define GPUUTILITIES_EXPORT
+#define GPUUTILITIES_CDECL_CALL
 
 #endif
 
-typedef int(__cdecl *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
-typedef int(__cdecl *listCpuDeviceNamesType)(char *devNames[], unsigned int count);
-typedef int(__cdecl *getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice);
-typedef cl_command_queue(__cdecl *createQueueType)(cl_context context, cl_device_id device, int flag, int cu_);
+typedef int(GPUUTILITIES_CDECL_CALL *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
+typedef int(GPUUTILITIES_CDECL_CALL *listCpuDeviceNamesType)(char *devNames[], unsigned int count);
+typedef int(GPUUTILITIES_CDECL_CALL *getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice);
+typedef cl_command_queue(GPUUTILITIES_CDECL_CALL *createQueueType)(cl_context context, cl_device_id device, int flag, int cu_);
 
 typedef struct _TanDeviceCapabilities {
     cl_device_id devId;                     // OpenCL device ID
@@ -52,12 +54,12 @@ typedef struct _TanDeviceCapabilities {
     int totalComputeUnits;                  // Total number of compute units in this device
     int maxReservableComputeUnits;          // Maximum reservable compute units <= 20% of Total
     int reserveComputeUnitsGranularity;     // granualarity of Cu reservation: typically 4
-    unsigned __int64 maxMemory;             // Maximum memory allocation on device
-    unsigned __int64 memoryBandwidth;       // Memory Bandwidth
+    std::uint64_t maxMemory;             // Maximum memory allocation on device
+    std::uint64_t memoryBandwidth;       // Memory Bandwidth
     // extended
-    unsigned __int64 localMemSize;          // Local Memory size
+    std::uint64_t localMemSize;          // Local Memory size
 
-    int reserved[1024 - sizeof(__int64)];
+    int reserved[1024 - sizeof(std::int64_t)];
 } TanDeviceCapabilities;
 
 

@@ -200,7 +200,7 @@ set_target_properties(
   ../../../include/TrueAudioNext.h
   )
 
-if(!WIN32)
+if(NOT WIN32)
 #to allow _mm256_add_ps support
 target_compile_options(TrueAudioNext PUBLIC -mavx2)
 target_compile_options(TrueAudioNext PUBLIC -mfma)

@@ -22,7 +22,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
 #include <io.h>
+#endif
 #include <CL/cl.h>
 
 #include "public/include/core/Variant.h"        //AMF
@@ -89,6 +91,7 @@ int listGpuDeviceNames(char *devNames[], unsigned int count) {
     }
     else  //USE OpenCL wrapper
     {
+        #ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
         typedef int(__cdecl *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
         listGpuDeviceNamesType listGpuDeviceNames = nullptr;
@@ -110,6 +113,9 @@ int listGpuDeviceNames(char *devNames[], unsigned int count) {
         {
             MessageBoxA( NULL, "NOT FOUND GPUUtilities.dll", "GPUUtils...", MB_ICONERROR );
         }
+        #else
+        foundCount = listGpuDeviceNames(devNames, count);
+        #endif
     }
 
     return foundCount;

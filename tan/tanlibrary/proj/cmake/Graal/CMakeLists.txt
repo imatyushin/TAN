@@ -135,7 +135,7 @@ add_dependencies(Graal CLKernelPreprocessor)
 #set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-if(!WIN32)
+if(NOT WIN32)
 target_compile_options(Graal PUBLIC -mavx2)
 target_compile_options(Graal PUBLIC -mfma)
 target_compile_options(Graal PUBLIC -msse4.2)

@@ -7,7 +7,7 @@
 
 
 #if defined (LINUX)
-#include "../include/adl_sdk.h"
+#include "include/adl_sdk.h"
 #include <dlfcn.h>	//dyopen, dlsym, dlclose
 #include <errno.h> // fopen_s
 #include <stdlib.h>	

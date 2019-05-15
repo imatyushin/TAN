@@ -185,6 +185,7 @@ add_executable(
 
 target_link_libraries(RoomAcousticsQT TrueAudioNext)
 target_link_libraries(RoomAcousticsQT TrueAudioVR)
+target_link_libraries(RoomAcousticsQT GPUUtilities)
 target_link_libraries(RoomAcousticsQT ${OpenCL_LIBRARY})
 target_link_libraries(RoomAcousticsQT Qt5::Widgets)
 
