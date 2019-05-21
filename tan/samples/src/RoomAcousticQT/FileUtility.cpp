@@ -2,9 +2,10 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <unistd.h>
 #endif
 
-#include <unistd.h>
 #include <cstring>
 
 FileVersion getFileVersion(const std::string& filepath)
@@ -77,13 +78,14 @@ std::string getFileNameWithoutExtension(const std::string& filepath)
 
 std::string getCurrentDirectory()
 {
-	/*char currendir[MAX_PATH];
-	GetCurrentDirectory(MAX_PATH, currendir);
-	return std::string(currendir);*/
-
-	//todo: implement more cirrect way
+#ifdef _WIN32
+    char currentDirectory[MAX_PATH] = { 0 };
+    GetCurrentDirectory(MAX_PATH, currentDirectory);
+#else
+	//todo: implement more correct way
 	char currentDirectory[256] = {0};
 	getcwd(currentDirectory, 256);
+#endif
 	
 	return currentDirectory;
 }

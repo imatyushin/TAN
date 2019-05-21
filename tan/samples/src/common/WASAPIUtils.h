@@ -55,7 +55,7 @@ public:
     bool initializedRender;
     bool initializedCapture;
 
-    int32_t QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer);
+    QueueErrors QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer);
     int32_t Record( unsigned char *pOutputBuffer, unsigned int size);
     int32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
 

@@ -77,6 +77,8 @@ set(
 
   ../../../src/common/WASAPIUtils.cpp
   ../../../src/common/wav.cpp
+  ../../../src/common/GpuUtils.cpp
+
   ../../../src/ReverbMixer/ReverbMixer.cpp
   ../../../src/ReverbMixer/ReverbProcessor.cpp
 

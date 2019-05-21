@@ -49,7 +49,7 @@ amf::TAN_CONVOLUTION_METHOD Audio3D::m_convMethod = amf::TAN_CONVOLUTION_METHOD_
 #ifndef ERROR_MESSAGE
 
 #ifdef _WIN32
-#define ERROR_MESSAGE(message) ::MessageBoxA(0, #x, "Error", MB_OK)
+#define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
 #else
 #define ERROR_MESSAGE(message) std::cerr << "Error: " << message << std::endl
 #endif

@@ -210,7 +210,7 @@ void WASAPIUtils::wasapiRelease()
 	initializedCapture = false;
 }
 
-int32_t WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
+QueueErrors WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
 {
     STREAMINFO          streaminfo;
 
@@ -222,13 +222,19 @@ int32_t WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char *
 
     if (!ReadWaveFile(inFile, &samplesPerSec, &bitsPerSample, &nChannels, pNsamples, &pOutBuffer, &pSamples)){
         strncat_s(inFile, MAX_PATH, " >>>>ERROR: failed to load!", MAX_PATH - strlen(inFile));
-        FAILONERROR(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), "Failed to read wave file %s");
+        //FAILONERROR(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), "Failed to read wave file %s");
+        return QueueErrors::FileNotFound;
     }
 
     if (nChannels != 2 || bitsPerSample != 16) {
         free(pOutBuffer);
         pOutBuffer = (unsigned char *)calloc(*pNsamples, 2 * sizeof(short));
-        if (!pOutBuffer) return -1;
+        if (!pOutBuffer)
+        {
+            //return -1;
+            //todo: return not enoght memory
+            return QueueErrors::FileNotFound;
+        }
         
         short *pSBuf = (short *)pOutBuffer;
         for (int i = 0; i < *pNsamples; i++)
@@ -252,7 +258,7 @@ int32_t WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char *
     streaminfo.NumOfChannels = 2;
     streaminfo.SamplesPerSec = samplesPerSec;// 48000;
     int result = wasapiInit( &streaminfo,  &bufferSize, &frameSize, AUDCLNT_SHAREMODE_SHARED);
-    return result;
+    return SUCCEEDED(result) ? QueueErrors::OK : QueueErrors::FileNotFound;
 }
 
 /**
@@ -376,7 +382,7 @@ bool WASAPIUtils::PlayQueuedStreamChunk(bool init, long sampleCount, unsigned ch
 
     done = true;
     if (size > 0){
-        bytesPlayed = wasapiPlay( pData, size, false);
+        bytesPlayed = Play( pData, size, false);
         pData += bytesPlayed;
         size -= bytesPlayed;
         done = false;

@@ -121,8 +121,11 @@ if(WIN32)
       ../../../../../amf/public/include/core/Trace.h
       ../../../../../amf/public/include/core/Variant.h
       ../../../../../amf/public/include/core/Version.h
+
       ../../../../tanlibrary/include/TrueAudioNext.h
-      ../../../src/common/cpucaps.h
+
+      ../../../../tanlibrary/src/common/cpucaps.h
+
       ../../../src/common/fifo.h
       ../../../src/common/GpuUtils.h
       ../../../src/common/maxlimits.h

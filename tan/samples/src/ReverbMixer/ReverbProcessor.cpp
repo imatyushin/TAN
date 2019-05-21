@@ -1,14 +1,19 @@
 #define MAX_RESPONSE_LENGTH 131072
 #define FILTER_SAMPLE_RATE 48000
-#include <AclAPI.h>
-#include <process.h>
+
 #include "ReverbProcessor.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
-#include "CL/cl.h"
 #include "samples/src/common/wav.h"
+#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "samples/src/common/GpuUtils.h"
+
+#include "CL/cl.h"
+
 #include <algorithm>
 #include <chrono>
 #include <thread>
+
+#include <AclAPI.h>
+#include <process.h>
 
 #define AMF_RETURN_IF_FAILED(x,y) \
 { \
@@ -511,7 +516,7 @@ int ReverbProcessor::playerPlayInternal()
 		unsigned char *pData;
 		pData = (unsigned char *)pOut;
 		while (bytes2Play > 0) {
-			bytesPlayed = m_WASAPIPlayer.wasapiPlay(pData, bytes2Play, false);
+			bytesPlayed = m_WASAPIPlayer.Play(pData, bytes2Play, false);
 			bytes2Play -= bytesPlayed;
 			pData += bytesPlayed;
 			std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -535,7 +540,7 @@ AMF_RESULT ReverbProcessor::recorderStartInternel()
 	RtlSecureZeroMemory(tempBuffer, tempBufferSize);
 	while (m_bIsRecording)
 	{
-		recordedBytes = m_WASAPIRecorder.wasapiRecord(tempBuffer, tempBufferSize);
+		recordedBytes = m_WASAPIRecorder.Record(tempBuffer, tempBufferSize);
 		STD_RETURN_IF_FALSE(fwrite(tempBuffer, 1, recordedBytes, m_pDiskBuffer) == recordedBytes, "Failed to write to disk", AMF_FAIL);
 		m_iNumOfValidBytesInDiskBuffer += recordedBytes;
 		std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -549,10 +554,11 @@ int ReverbProcessor::loadWAVFile(char* FilePath)
 		delete m_pInputRawBuffer;
 	HRESULT res;
 	res = CoInitialize(NULL);
-	res = m_WASAPIPlayer.QueueWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
+    QueueErrors queueErrors = m_WASAPIPlayer.QueueWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
 	m_iInputSizeInFloatPerChannel = m_iInputSizeInBytesPerChannel / sizeof(float);
-	if (res == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
-		return res;
+	if (QueueErrors::FileNotFound == queueErrors) {
+		//todo: reimplement
+        return E_FAIL;
 	}
 	return 0;
 }
