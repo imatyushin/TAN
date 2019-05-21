@@ -53,7 +53,7 @@
 *         
 *******************************************************************************
 */
-int listGpuDeviceNames(char *devNames[], unsigned int count) {
+int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
 
     int foundCount = 0;
 
@@ -136,7 +136,7 @@ int listGpuDeviceNames(char *devNames[], unsigned int count) {
 *
 *******************************************************************************
 */
-int listCpuDeviceNames(char *devNames[], unsigned int count) {
+int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
 
     int foundCount = 0;
     AMF_RESULT res = g_AMFFactory.Init();   // initialize AMF

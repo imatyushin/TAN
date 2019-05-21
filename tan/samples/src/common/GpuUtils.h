@@ -20,8 +20,9 @@
 // THE SOFTWARE.
 //
 #include <CL/cl.h>
-int listGpuDeviceNames(char *devNames[], unsigned int count);
-int listCpuDeviceNames(char *devNames[], unsigned int count);
+
+int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count);
+int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count);
 
 bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
 bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);

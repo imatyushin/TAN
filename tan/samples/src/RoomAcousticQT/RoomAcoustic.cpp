@@ -280,7 +280,7 @@ void RoomAcoustic::initializeDevice()
 		m_cpDeviceName[i] = new char[MAX_PATH + 2];
 		memset(m_cpDeviceName[i], 0, (MAX_PATH + 2));
 	}
-	m_iDeviceCount = listGpuDeviceNames(m_cpDeviceName, MAX_DEVICES);
+	m_iDeviceCount = listGpuDeviceNamesWrapper(m_cpDeviceName, MAX_DEVICES);
 }
 
 bool RoomAcoustic::parseElement(char* start, char* end, element* elem)

@@ -305,8 +305,8 @@ BOOL CTALibVRDemoApp::InitInstance()
         dlg.deviceCPUNames[i][0] = '\0';
     }
     SetDllDirectory(dllPath); 
-    int nGPUDevices = listGpuDeviceNames(dlg.deviceGPUNames, MAX_DEVICES);
-    int nCPUDevices = listCpuDeviceNames(dlg.deviceCPUNames, MAX_DEVICES);
+    int nGPUDevices = listGpuDeviceNamesWrapper(dlg.deviceGPUNames, MAX_DEVICES);
+    int nCPUDevices = listCpuDeviceNamesWrapper(dlg.deviceCPUNames, MAX_DEVICES);
     SetDllDirectory(NULL);
 
     dlg.LoadParameters(configPath);

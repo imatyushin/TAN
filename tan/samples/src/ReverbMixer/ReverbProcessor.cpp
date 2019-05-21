@@ -481,7 +481,7 @@ AMF_RESULT ReverbProcessor::processFilter()
 
 int ReverbProcessor::getDeviceNames(char*** _deviceName, int count)
 {
-	return listGpuDeviceNames(*_deviceName, count);
+	return listGpuDeviceNamesWrapper(*_deviceName, count);
 }
 
 int ReverbProcessor::playerPlayInternal()
