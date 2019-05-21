@@ -30,6 +30,9 @@
 #include "../common/gpuutils.h"
 //#include "..\common\fifo.h"
 
+#include <chrono>
+#include <thread>
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -116,7 +119,7 @@ void _cdecl CTALibVRDemoApp::updatePositionsThreadProc(void * p)
         }
         me->updatePositions();
         //Sleep(50);
-        Sleep(30);
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }
     //RoomWin::updating = false;
 }
@@ -131,42 +134,50 @@ void _cdecl CTALibVRDemoApp::updatePositionsThreadProc(void * p)
 }
 
 
-void GetFileVersionAndDate( WCHAR *logMessage, char *version){
-    time_t dt = time(NULL);
-    struct tm *lt = localtime(&dt);
-    DWORD size;
-    DWORD dummy;
-    WCHAR filename[1024];
+void GetFileVersionAndDate(wchar_t *logMessage, char *version)
+{
+#ifdef _WIN32
+	time_t dt = time(NULL);
+	struct tm *lt = localtime(&dt);
+	DWORD size;
+	DWORD dummy;
+	WCHAR filename[1024];
+	unsigned int len;
+	//filename = 0x00000075cfd2e470 L"C:\\lomo\\zli2_TAN_Mark1\\TAN_amir\\build\\solution\\..\\..\\bin\\vs2013x64Debug\\RoomAcousticsFull64.exe"
+	//filename = 0x0000009340dce720 L"C:\\lomo\\zli2_TAN_Mark1\\TAN_amir\\build\\solution\\..\\..\\bin\\vs2013x64Debug\\RoomAccousticNew64.exe"
+	GetModuleFileNameW(NULL, filename, sizeof(filename) / sizeof(filename[0]));
+	size = GetFileVersionInfoSizeW(filename, &dummy);
+	DWORD a = GetLastError();
+	WCHAR * buffer = new WCHAR[size];
+	WCHAR *ver = NULL, *pStr;
+	WCHAR *pSrch = L"FileVersion";
+	if (buffer == NULL){ return; }
+	if (GetFileVersionInfoW(filename, 0, size, (void*)buffer)){
+		pStr = buffer;
+		while (pStr < buffer + size){
+			if (wcsncmp(pStr, pSrch, 10) == 0){
+				ver = pStr + wcslen(pStr) + 2;
+				break;
+			}
+			else {
+				pStr++;
+			}
+		}
+	}
 
-    GetModuleFileNameW(NULL, filename, sizeof(filename) / sizeof(filename[0]));
-    size = GetFileVersionInfoSizeW(filename, &dummy);
-    WCHAR * buffer = new WCHAR[size];
-    WCHAR *ver = NULL, *pStr;
-    WCHAR *pSrch = L"FileVersion";
-    if (buffer == NULL){ return ; }
-    if (GetFileVersionInfoW(filename, 0, size, (void*)buffer)){
-        pStr = buffer;
-        while (pStr < buffer + size){
-            if (wcsncmp(pStr, pSrch, 10) == 0){
-                ver = pStr + wcslen(pStr) + 2;
-                break;
-            }
-            else {
-                pStr++;
-            }
-        }
-    }
-    
-    
+	wsprintfW(logMessage, L"**** %s v%s on %4d/%02d/%02d %02d:%02d:%02d ****\n", filename, ver,
+		2000 + (lt->tm_year % 100), 1 + lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
 
-    wsprintfW(logMessage, L"**** %s v%s on %4d/%02d/%02d %02d:%02d:%02d ****\n", filename, ver,
-            2000 + (lt->tm_year % 100), 1 + lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
-
-    size_t lv = wcslen(ver);
-    for (int i = 0; i < lv; i++){
-        version[i] = char(ver[i]);
-    }
-    delete buffer;
+	int lv = wcslen(ver);
+	for (int i = 0; i < lv; i++){
+		version[i] = char(ver[i]);
+	}
+	delete []buffer;
+#else
+    //todo: implement
+	std::swprintf(logMessage, 256, L"Error! Not implemented");
+	std::snprintf(version, 256, "Error! Not implemented");
+#endif
 }
 
 // CTALibVRDemoApp initialization
@@ -456,7 +467,7 @@ BOOL CTALibVRDemoApp::InitInstance()
 
             pMyWindow->Close();
             delete pMyWindow;
-            Sleep(100);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         }
         else if (nResponse == IDCANCEL)

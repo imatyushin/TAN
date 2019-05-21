@@ -1,3 +1,5 @@
+#ifdef _WIN32
+
 #include "RegisterBrowser.h"
 #include <stdio.h>
 #include <tchar.h>
@@ -236,3 +238,5 @@ bool WindowsRegister::hasSubKey(std::string subkey)
 	}
 	return false;
 }
+
+#endif

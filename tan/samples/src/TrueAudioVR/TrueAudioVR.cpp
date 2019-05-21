@@ -25,7 +25,7 @@
 
 #include "stdafx.h"
 #include <omp.h>
-#include "cpucaps.h"
+#include "../../../tanlibrary/src/common/cpucaps.h"
 #include "TrueAudioVR.h"
 
 #include <immintrin.h>

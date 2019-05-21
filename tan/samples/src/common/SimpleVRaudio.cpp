@@ -21,27 +21,46 @@
 //
 
 #include <time.h>
-#include <process.h>
-#include <AclAPI.h>
+//#include <process.h>
+//#include <AclAPI.h>
 #include <stdio.h>
-#include "CL/CL.h"
-#include "simpleVRaudio.h"
-#include "gpuutils.h"
+#include "CL/cl.h"
+#include "SimpleVRaudio.h"
+#include "GpuUtils.h"
 #include "wav.h"
-#include "cpucaps.h"
-#include <immintrin.h>
+#include "../../../tanlibrary/src/common/cpucaps.h"
+#include "../TrueAudioVR/TrueAudioVR.h"
 
+#include <immintrin.h>
+#include <cmath>
+#include <cstring>
+#include <chrono>
+
+#if defined( _MSC_VER )
+	#define countOf _countof
+#else
+	#define countOf( arr ) ( sizeof( arr ) / sizeof( arr[ 0 ] ) )
+#endif
 
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool Audio3D::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 amf::TAN_CONVOLUTION_METHOD Audio3D::m_convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 
+#ifndef ERROR_MESSAGE
+
+#ifdef _WIN32
+#define ERROR_MESSAGE(message) ::MessageBoxA(0, #x, "Error", MB_OK)
+#else
+#define ERROR_MESSAGE(message) std::cerr << "Error: " << message << std::endl
+#endif
+
+#endif
 
 #define RETURN_IF_FAILED(x) \
 { \
     AMF_RESULT tmp = (x); \
     if (tmp != AMF_OK) { \
-        ::MessageBoxA(0, #x, "Error", MB_OK); \
+        ERROR_MESSAGE(int(x)); \
         return -1; \
     } \
 }
@@ -50,7 +69,7 @@ amf::TAN_CONVOLUTION_METHOD Audio3D::m_convMethod = amf::TAN_CONVOLUTION_METHOD_
 { \
     bool tmp = (x); \
     if (!tmp) { \
-        ::MessageBoxA(0, #x, "Error", MB_OK); \
+        ERROR_MESSAGE(int(x)); \
         return -1; \
     } \
 }
@@ -67,12 +86,12 @@ transRotMtx::transRotMtx(){
 
 void transRotMtx::setAngles(float yaw, float pitch, float roll)
 {
-    float sinY = sin(yaw * (float)PI / 180);
-    float cosY = cos(yaw * (float)PI / 180);
-    float sinP = sin(pitch * (float)PI / 180);
-    float cosP = cos(pitch * (float)PI / 180);
-    float sinR = sin(roll * (float)PI / 180);
-    float cosR = cos(roll * (float)PI / 180);
+    float sinY = std::sin(yaw * (float)PI / 180);
+    float cosY = std::cos(yaw * (float)PI / 180);
+    float sinP = std::sin(pitch * (float)PI / 180);
+    float cosP = std::cos(pitch * (float)PI / 180);
+    float sinR = std::sin(roll * (float)PI / 180);
+    float cosR = std::cos(roll * (float)PI / 180);
 
     m[0][0] = cosR*cosY - sinR*sinP*sinY;
     m[0][1] = -sinR*cosP;
@@ -114,25 +133,25 @@ unsigned Audio3D::updateThreadProc(void * ptr)
     return pAudio3D->updateProc();
 }
 
-Audio3D::Audio3D() :
-m_pTAVR(nullptr),
-pProcessed(nullptr),
-m_hProcessThread(nullptr),
-m_hUpdateThread(nullptr),
-running(false),
-stop(false),
-m_headingOffset(0.),
-m_headingCCW(true)
-
+Audio3D::Audio3D():
+    m_pTAVR(nullptr),
+    pProcessed(nullptr),
+    //m_hProcessThread(nullptr),
+    //m_hUpdateThread(nullptr),
+    mProcessThread(true),
+    running(false),
+    stop(false),
+    m_headingOffset(0.),
+    m_headingCCW(true)
 {
     responseBuffer = NULL;
-    ZeroMemory(nSamples, sizeof(nSamples));
-    ZeroMemory(pBuffers, sizeof(pBuffers));
-    ZeroMemory(responses, sizeof(responses));
-    ZeroMemory(inputFloatBufs, sizeof(inputFloatBufs));
-    ZeroMemory(outputFloatBufs, sizeof(outputFloatBufs));
-    ZeroMemory(outputMixFloatBufs, sizeof(outputMixFloatBufs));
-    ZeroMemory(m_samplePos, sizeof(m_samplePos));
+    std::memset(nSamples, 0, sizeof(nSamples));
+    std::memset(pBuffers, 0, sizeof(pBuffers));
+    std::memset(responses, 0, sizeof(responses));
+    std::memset(inputFloatBufs, 0, sizeof(inputFloatBufs));
+    std::memset(outputFloatBufs, 0, sizeof(outputFloatBufs));
+    std::memset(outputMixFloatBufs, 0, sizeof(outputMixFloatBufs));
+    std::memset(m_samplePos, 0, sizeof(m_samplePos));
 
     for (int i = 0; i < MAX_SOURCES * 2; i++){
         oclResponses[i] = NULL;
@@ -162,7 +181,7 @@ int Audio3D::finit(){
         m_pTAVR = nullptr;
     }
 
-    for (amf_uint id = 0; id < _countof(pBuffers); id++)
+    for (amf_uint id = 0; id < countOf(pBuffers); id++)
     {
         SAFE_DELETE_ARR(pBuffers[id]);
     }
@@ -317,10 +336,13 @@ int Audio3D::init(
     ears.yaw = 0.0;
 
     //To Do skip missing files / handle error?
-    for (int idx = 0; idx < nFiles; idx++){
-        HRESULT res = Player.QueueWaveFile(inFiles[idx], &nSamples[idx], &pBuffers[idx]);
-        if (res == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)) {
-            return res;
+    for (int idx = 0; idx < nFiles; idx++)
+    {
+        QueueErrors queueError = mPlayer->QueueWaveFile(inFiles[idx], &nSamples[idx], &pBuffers[idx]);
+
+        if(QueueErrors::FileNotFound == queueError)
+        {
+            return int(queueError);
         }
     }
 
@@ -535,13 +557,15 @@ int Audio3D::init(
     }
 
 
-    //AmdTrueAudioVR *TrueAudioVR
+    #ifdef _WIN32
     HMODULE TanVrDll;
     TanVrDll = LoadLibraryA("TrueAudioVR.dll");
     typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
     CREATEVR CreateAmdTrueAudioVR = nullptr;
 
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+    #endif
+
     CreateAmdTrueAudioVR(&m_pTAVR, m_spTANContext2, m_spFft, cmdQueue3, 48000, m_fftLen);
 
     if (useGPU_IRGen){
@@ -670,17 +694,20 @@ int Audio3D::Run()
 {
     stop = false;
     // start main processing thread:
-    m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
-    RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
+    //m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
+    //RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
+    mProcessThread = std::thread(processThreadProc, this);
 
     // wait for processing thread to start:
-    while (!running) {
-        Sleep(100);
+    while (!running)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     // start update processing thread:
-    m_hUpdateThread = (HANDLE)_beginthreadex(0, 10000000, updateThreadProc, this, 0, 0);
-    RETURN_IF_FALSE(m_hUpdateThread != (HANDLE)-1);
+    //m_hUpdateThread = (HANDLE)_beginthreadex(0, 10000000, updateThreadProc, this, 0, 0);
+    //RETURN_IF_FALSE(m_hUpdateThread != (HANDLE)-1);
+    mUpdateThread = std::thread(updateThreadProc, this);
 
     updateParams = true;
     return 0;
@@ -689,14 +716,18 @@ int Audio3D::Run()
 int Audio3D::Stop()
 {
     stop = true;
-    WaitForSingleObject(m_hProcessThread, INFINITE);
-    WaitForSingleObject(m_hUpdateThread, INFINITE);
 
-    CloseHandle(m_hProcessThread);
-    CloseHandle(m_hUpdateThread);
+    //WaitForSingleObject(m_hProcessThread, INFINITE);
+    //WaitForSingleObject(m_hUpdateThread, INFINITE);
 
-    m_hProcessThread = nullptr;
-    m_hUpdateThread = nullptr;
+    //CloseHandle(m_hProcessThread);
+    //CloseHandle(m_hUpdateThread);
+
+    //m_hProcessThread = nullptr;
+    //m_hUpdateThread = nullptr;
+
+    mProcessThread.WaitCloseInfinite();
+    mUpdateThread.WaitCloseInfinite();
 
     return 0;
 }
@@ -855,15 +886,17 @@ int Audio3D::processProc()
     memset(pOut, 0, FILTER_SAMPLE_RATE * sizeof(short) * 2);
 
     // upgrade our windows process and thread priorities:
-    SetSecurityInfo(GetCurrentProcess(), SE_WINDOW_OBJECT, PROCESS_SET_INFORMATION, 0, 0, 0, 0);
-    SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+    //SetSecurityInfo(GetCurrentProcess(), SE_WINDOW_OBJECT, PROCESS_SET_INFORMATION, 0, 0, 0, 0);
+    //SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+    //SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+    //already set in the thread's wrapper class
 
     unsigned char *pProc = pProcessed;
     running = true;
 
-    while (!updated){
-        Sleep(5);
+    while(!updated)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     while (!stop) { 
@@ -873,10 +906,10 @@ int Audio3D::processProc()
             int nRec;
             while ((nRec = recFifo.fifoLength()) < m_bufSize){
                 // get some more:
-                nRec = Player.wasapiRecord((unsigned char *)pRec, m_bufSize - nRec);
+                nRec = mPlayer->Record((unsigned char *)pRec, m_bufSize - nRec);
                 recFifo.store((char *)pRec, nRec);
                 //Sleep(5);
-                Sleep(2);
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
 
             recFifo.retrieve((char *)pRec, m_bufSize);
@@ -890,17 +923,17 @@ int Audio3D::processProc()
             process(pOut, pWaves, m_bufSize);
         }
 
-        Sleep(0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(0));
         int bytes2Play = m_bufSize;
         unsigned char *pData;
         pData = (unsigned char *)pOut;
         memcpy(pProc, pData, m_bufSize);
 
         while (bytes2Play > 0) {
-            bytesPlayed = Player.wasapiPlay(pData, bytes2Play, false);
+            bytesPlayed = mPlayer->Play(pData, bytes2Play, false);
             bytes2Play -= bytesPlayed;
             pData += bytesPlayed;
-            Sleep(2);
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         bytesPlayed = m_bufSize;
 
@@ -921,9 +954,9 @@ int Audio3D::processProc()
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
         }
 
-        Sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    Sleep(100);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 
     if (!WriteWaveFileS("RoomAcousticsRun.wav", FILTER_SAMPLE_RATE, 2, 16, nSamples[0], (short *)(pProcessed))){
@@ -946,7 +979,7 @@ int Audio3D::setSrc1Options(bool useMicSource, bool trackHeadPos){
     return 0;
 }
 
-__int64 Audio3D::getCurrentPosition(int streamIdx)
+int64_t Audio3D::getCurrentPosition(int streamIdx)
 {
     return m_samplePos[streamIdx];
 }
@@ -955,8 +988,9 @@ __int64 Audio3D::getCurrentPosition(int streamIdx)
 int Audio3D::updateProc(){
 
     while (running && !stop) {
-        while (!updateParams  && running && !stop){
-            Sleep(10);
+        while (!updateParams  && running && !stop)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         if (src1TrackHeadPos) {

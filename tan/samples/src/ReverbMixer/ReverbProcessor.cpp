@@ -6,8 +6,10 @@
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 #include "CL/cl.h"
 #include "samples/src/common/wav.h"
-#include <thread>
 #include <algorithm>
+#include <chrono>
+#include <thread>
+
 #define AMF_RETURN_IF_FAILED(x,y) \
 { \
     AMF_RESULT tmp = (x); \
@@ -504,7 +506,7 @@ int ReverbProcessor::playerPlayInternal()
 
 	while (m_bIsPlaying) {
 		processInput(pWaves, pOut, chunkSizeInBytes);
-		Sleep(0);
+		std::this_thread::sleep_for(std::chrono::milliseconds(0));
 		int bytes2Play = chunkSizeInBytes;
 		unsigned char *pData;
 		pData = (unsigned char *)pOut;
@@ -512,7 +514,7 @@ int ReverbProcessor::playerPlayInternal()
 			bytesPlayed = m_WASAPIPlayer.wasapiPlay(pData, bytes2Play, false);
 			bytes2Play -= bytesPlayed;
 			pData += bytesPlayed;
-			Sleep(2);
+			std::this_thread::sleep_for(std::chrono::milliseconds(2));
 		}
 		bytesPlayed = chunkSizeInBytes;
 		pWaves += bytesPlayed / m_iNumOfChannels;
@@ -536,7 +538,7 @@ AMF_RESULT ReverbProcessor::recorderStartInternel()
 		recordedBytes = m_WASAPIRecorder.wasapiRecord(tempBuffer, tempBufferSize);
 		STD_RETURN_IF_FALSE(fwrite(tempBuffer, 1, recordedBytes, m_pDiskBuffer) == recordedBytes, "Failed to write to disk", AMF_FAIL);
 		m_iNumOfValidBytesInDiskBuffer += recordedBytes;
-		Sleep(2);
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 	}
 	return AMF_OK;
 }

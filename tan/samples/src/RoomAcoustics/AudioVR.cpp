@@ -20,19 +20,33 @@
 // THE SOFTWARE.
 //
 
+#include "audiovr.h"
+#include "gpuutils.h"
 #include <time.h>
 #include <process.h>
 #include <AclAPI.h>
 #include <stdio.h>
 #include "CL/OpenCL.h"
-#include "audiovr.h"
-#include "gpuutils.h"
+#include <cstring>
+
+#include <chrono>
+#include <thread>
+
+#ifndef ERROR_MESSAGE
+
+#ifdef _WIN32
+#define ERROR_MESSAGE(message) ::MessageBoxA(0, #x, "Error", MB_OK)
+#else
+#define ERROR_MESSAGE(message) std::cerr << "Error: " << message << std::endl
+#endif
+
+#endif
 
 #define RETURN_IF_FAILED(x) \
 { \
     AMF_RESULT tmp = (x); \
     if (tmp != AMF_OK) { \
-        ::MessageBoxA(0, #x, "Error", MB_OK); \
+        ERROR_MESSAGE(int(x)); \
         return -1; \
     } \
 }
@@ -41,7 +55,7 @@
 { \
     bool tmp = (x); \
     if (!tmp) { \
-        ::MessageBoxA(0, #x, "Error", MB_OK); \
+        ERROR_MESSAGE(int(x)); \
         return -1; \
     } \
 }
@@ -118,11 +132,11 @@ m_headingCCW(true)
 
 {
 	responseBuffer = NULL;
-    ZeroMemory(nSamples, sizeof(nSamples));
-    ZeroMemory(pBuffers, sizeof(pBuffers));
-    ZeroMemory(responses, sizeof(responses));
-    ZeroMemory(inputFloatBufs, sizeof(inputFloatBufs));
-    ZeroMemory(outputFloatBufs, sizeof(outputFloatBufs));
+    std::memset(nSamples, 0, sizeof(nSamples));
+    std::memset(pBuffers, 0, sizeof(pBuffers));
+    std::memset(responses, 0, sizeof(responses));
+    std::memset(inputFloatBufs, 0, sizeof(inputFloatBufs));
+    std::memset(outputFloatBufs, 0, sizeof(outputFloatBufs));
 }
 
 Audio3D::~Audio3D()
@@ -145,7 +159,7 @@ int Audio3D::finit(){
         m_pTAVR = nullptr;
     }
 
-    for (amf_uint id = 0; id < _countof(pBuffers); id++)
+    for (amf_uint id = 0; id < countOf(pBuffers); id++)
     {
         SAFE_DELETE_ARR(pBuffers[id]);
     }
@@ -401,8 +415,9 @@ int Audio3D::Run()
     RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
 
     // wait for processing thread to start:
-    while (!running) {
-        Sleep(100);
+    while (!running)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     // start update processing thread:
@@ -512,7 +527,7 @@ int Audio3D::processProc()
                 nRec = Player.wasapiRecord((unsigned char *)pRec, m_bufSize - nRec);
                 recFifo.store((char *)pRec, nRec);
                 //Sleep(5);
-                Sleep(2);
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
 
             recFifo.retrieve((char *)pRec, m_bufSize);
@@ -526,7 +541,7 @@ int Audio3D::processProc()
             process(pOut, pWaves, m_bufSize);
         }
 
-        Sleep(0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(0));
         int bytes2Play = m_bufSize;
         unsigned char *pData;
         pData = (unsigned char *)pOut;
@@ -535,7 +550,7 @@ int Audio3D::processProc()
             bytes2Play -= bytesPlayed;
             pData += bytesPlayed;
             //m_samplePos += bytesPlayed/4;
-            Sleep(2);
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         bytesPlayed = m_bufSize;
 
@@ -553,9 +568,9 @@ int Audio3D::processProc()
         //if (pProc - pProcessed > nSP * 4)
         //    pProc = pProcessed;
 
-        Sleep(10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    Sleep(100);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 
     if (!WriteWaveFileS("RoomAcousticsRun.wav", FILTER_SAMPLE_RATE, 2, 16, nSamples[0], (short *)(pProcessed))){
@@ -578,7 +593,7 @@ int Audio3D::setSrc1Options(bool useMicSource, bool trackHeadPos){
     return 0;
 }
 
-__int64 Audio3D::getCurrentPosition()
+int64_t Audio3D::getCurrentPosition()
 {
     return m_samplePos;
 }
@@ -607,7 +622,7 @@ int Audio3D::updateProc(){
         } while (ret == AMF_INPUT_FULL && running && !stop);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_INPUT_FULL);
 
-        Sleep(20);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     return 0;

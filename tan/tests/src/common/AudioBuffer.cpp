@@ -1,9 +1,12 @@
 #include "AudioBuffer.h"
 #include "assert.h"
-#include <iostream>
-#include "common.h"
 #include "wav.h"
+#include "common.h"
+
+#include <iostream>
 #include <algorithm>
+#include <cstring>
+
 #define M_PI       3.14159265358979323846
 const size_t c_fltToShrCoversionEpsilon = size_t(((1.f - -1.f) / FLT_EPSILON) /
 	(SHRT_MAX - SHRT_MIN) + 0.5f);
@@ -22,7 +25,7 @@ Audiobuffer::Audiobuffer(eBufferType _type, amf_uint _size, amf_uint _step, amf_
 		for (amf_uint i = 0; i < _nchannel; i++)
 		{
 			ptr[i] = new float[_size];
-			ZeroMemory(ptr[i], sizeof(float)*_size);
+			std::memset(ptr[i], 0, sizeof(float)*_size);
 			m_iOffset[i] = 0;
 		}
 		m_pBuffer = (void**)ptr;
@@ -33,7 +36,7 @@ Audiobuffer::Audiobuffer(eBufferType _type, amf_uint _size, amf_uint _step, amf_
 		for (amf_uint i = 0; i < _nchannel; i++)
 		{
 			ptr[i] = new short[_size];
-			ZeroMemory(ptr[i], sizeof(short)*_size);
+			std::memset(ptr[i], 0, sizeof(short)*_size);
 			m_iOffset[i] = 0;
 		}
 		m_pBuffer = (void**)ptr;
@@ -111,7 +114,7 @@ AMF_RESULT Audiobuffer::emptybuffer()
 		float** buffer = (float**)m_pBuffer;
 		for (amf_uint i = 0; i < m_iNumOfChannel; i++)
 		{
-			ZeroMemory(buffer[i], sizeof(float)*m_iSize);
+			std::memset(buffer[i], 0, sizeof(float)*m_iSize);
 		}
 		break;
 	}
@@ -120,7 +123,7 @@ AMF_RESULT Audiobuffer::emptybuffer()
 		short** buffer = (short**)m_pBuffer;
 		for (amf_uint i = 0; i < m_iNumOfChannel; i++)
 		{
-			ZeroMemory(buffer[i], sizeof(short)*m_iSize);
+			std::memset(buffer[i], 0, sizeof(short)*m_iSize);
 		}
 		break;
 	}

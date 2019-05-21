@@ -44,13 +44,15 @@ include_directories(../../../..)
 # sources
 set(
   SOURCE_LIB
-  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
   )
 
 if(WIN32)
   list(APPEND SOURCE_LIB ../../../src/TrueAudioVR/dllmain.cpp)
+  list(APPEND SOURCE_LIB ../../../../../amf/public/common/Windows/ThreadWindows.cpp)
+else()
+  list(APPEND SOURCE_LIB ../../../../../amf/public/common/Linux/ThreadLinux.cpp)
 endif()
 
 set(
@@ -74,13 +76,14 @@ set(
   ../../../../../amf/public/include/core/Trace.h
   ../../../../../amf/public/include/core/Variant.h
   ../../../../../amf/public/include/core/Version.h
-  ../../../src/TrueAudioVR/cpucaps.h
   ../../../src/TrueAudioVR/Header.h
   ../../../src/TrueAudioVR/resource.h
   ../../../src/TrueAudioVR/resource1.h
   ../../../src/TrueAudioVR/stdafx.h
   ../../../src/TrueAudioVR/targetver.h
   ../../../src/TrueAudioVR/TrueAudioVR.h
+
+  ../../../../tanlibrary/src/common/cpucaps.h
   )
 
 # create library

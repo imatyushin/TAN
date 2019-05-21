@@ -1,9 +1,19 @@
 #include "FileUtility.h"
+
+#ifdef _WIN32
 #include <Windows.h>
-FileVersion getFileVersion(std::string& filepath)
+#endif
+
+#include <unistd.h>
+#include <cstring>
+
+FileVersion getFileVersion(const std::string& filepath)
 {
 	FileVersion ret;
-	DWORD verHandle = NULL;
+	std::memset(&ret, 0, sizeof(FileVersion));
+	
+	//todo: port it
+	/*DWORD verHandle = NULL;
 	DWORD versioninfosize = GetFileVersionInfoSize(filepath.c_str(), &verHandle);
 	char* verData = new char[versioninfosize];
 	if(GetFileVersionInfo(filepath.c_str(),verHandle,versioninfosize,verData))
@@ -24,11 +34,11 @@ FileVersion getFileVersion(std::string& filepath)
 				}
 			}
 		}
-	}
+	}*/
 	return ret;
 }
 
-std::string getFileVersionString(std::string& filepath)
+std::string getFileVersionString(const std::string& filepath)
 {
 	FileVersion ret = getFileVersion(filepath);
 	return std::to_string(ret.m_MajorVersion) + '.' +
@@ -37,7 +47,7 @@ std::string getFileVersionString(std::string& filepath)
 		std::to_string(ret.m_RevisionVersion);
 }
 
-std::string getFileNameWithExtension(std::string& filepath)
+std::string getFileNameWithExtension(const std::string& filepath)
 {
 	char sep = '/';
 #ifdef _WIN32
@@ -50,7 +60,7 @@ std::string getFileNameWithExtension(std::string& filepath)
 	return("");
 }
 
-std::string getFileNameWithoutExtension(std::string& filepath)
+std::string getFileNameWithoutExtension(const std::string& filepath)
 {
 	char sep = '/';
 	char dot = '.';
@@ -67,7 +77,13 @@ std::string getFileNameWithoutExtension(std::string& filepath)
 
 std::string getCurrentDirectory()
 {
-	char currendir[MAX_PATH];
+	/*char currendir[MAX_PATH];
 	GetCurrentDirectory(MAX_PATH, currendir);
-	return std::string(currendir);
+	return std::string(currendir);*/
+
+	//todo: implement more cirrect way
+	char currentDirectory[256] = {0};
+	getcwd(currentDirectory, 256);
+	
+	return currentDirectory;
 }

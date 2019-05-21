@@ -32,6 +32,8 @@
 //#include "..\TrueAudioVR\trueaudiovr.h"
 //#include "AMDTrueAudioLib.h"
 
+#include <cstring>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -522,7 +524,7 @@ void CRoomAcousticsDlg::OnBnClickedButtonopen()
       _tprintf(_T("Path to folder where files were selected:  %s\r\n\r\n"), start );
       p++;
       if(*p == NULL){
-          strncpy_s(waveFileNames[sourceIdx], MAX_PATH, start, MAX_PATH);
+          std::strncpy(waveFileNames[sourceIdx], start, MAX_PATH);
 		  SetDlgItemText(IDC_EDITFILE, waveFileNames[sourceIdx]);
       }
 
@@ -1978,7 +1980,7 @@ void CRoomAcousticsDlg::OnBnClickedButtonopen2()
         _tprintf(_T("Path to folder where files were selected:  %s\r\n\r\n"), start);
         p++;
         if (*p == NULL){
-			strncpy_s(waveFileNames[sourceIdx], MAX_PATH, start, MAX_PATH);
+			std::strncpy(waveFileNames[sourceIdx], start, MAX_PATH);
             SetDlgItemText(IDC_EDITFILE, waveFileNames[sourceIdx]);
         }
 

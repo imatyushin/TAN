@@ -1,14 +1,26 @@
 #include "RoomAcoustic.h"
-#include "AclAPI.h"
-#include "io.h"
-#include <time.h>
-#include <string>
-#include <vector>
-#include <Shlwapi.h>
 #include "samples/src/common/GpuUtils.h"
 #include "samples/src//TrueAudioVR/TrueAudioVR.h"
-#include <direct.h>
+#include "../common/common.h"
 
+#include <time.h>
+
+#include <string>
+#include <vector>
+#include <cstring>
+
+#ifdef _WIN32
+#include <io.h>
+#include <direct.h>
+#include "AclAPI.h"
+#include <Shlwapi.h>
+#else
+#include <unistd.h>
+#endif
+
+#ifndef MAX_PATH
+#define MAX_PATH 254
+#endif
 
 RoomAcoustic::RoomAcoustic()
 {
@@ -73,7 +85,9 @@ void RoomAcoustic::stop()
 	m_pAudioEngine->Stop();
 }
 
-void GetFileVersionAndDate(WCHAR *logMessage, char *version){
+void GetFileVersionAndDate(wchar_t *logMessage, char *version)
+{
+#ifdef _WIN32
 	time_t dt = time(NULL);
 	struct tm *lt = localtime(&dt);
 	DWORD size;
@@ -102,8 +116,6 @@ void GetFileVersionAndDate(WCHAR *logMessage, char *version){
 		}
 	}
 
-
-
 	wsprintfW(logMessage, L"**** %s v%s on %4d/%02d/%02d %02d:%02d:%02d ****\n", filename, ver,
 		2000 + (lt->tm_year % 100), 1 + lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
 
@@ -112,15 +124,53 @@ void GetFileVersionAndDate(WCHAR *logMessage, char *version){
 		version[i] = char(ver[i]);
 	}
 	delete []buffer;
+#else
+    //todo: implement
+	std::swprintf(logMessage, 256, L"Error! Not implemented");
+	std::snprintf(version, 256, "Error! Not implemented");
+#endif
 }
 
+static std::string getPath()
+{
+#ifdef _WIN32
+    char buffer[MAX_PATH];
+#ifdef UNICODE
+    if(!GetModuleFileNameA(NULL, (LPSTR)buffer, sizeof(buffer)))
+    {
+        throw std::string("GetModuleFileName() failed!");
+    }
+#else
+    if(!GetModuleFileName(NULL, buffer, sizeof(buffer)))
+    {
+        throw std::string("GetModuleFileName() failed!");
+    }
+#endif
+    std::string str(buffer);
+    /* '\' == 92 */
+    int last = (int)str.find_last_of((char)92);
+#else
+    char buffer[MAX_PATH + 1];
+    ssize_t len;
+    if((len = readlink("/proc/self/exe",buffer, sizeof(buffer) - 1)) == -1)
+    {
+        throw std::string("readlink() failed!");
+    }
+    buffer[len] = '\0';
+    std::string str(buffer);
+    /* '/' == 47 */
+    int last = (int)str.find_last_of((char)47);
+#endif
+    return str.substr(0, last + 1);
+}
 
 void RoomAcoustic::initializeEnvironment()
 {
 	this->m_cpConfigFilePath = new char[MAX_PATH + 1];
 	this->m_cpTANDLLPath = new char[MAX_PATH + 1];
 	this->m_cpLogPath = new char[MAX_PATH + 1];
-	GetModuleFileNameA(NULL, this->m_cpTANDLLPath, MAX_PATH);
+	//GetModuleFileNameA(NULL, this->m_cpTANDLLPath, MAX_PATH);
+	std::strncpy(this->m_cpTANDLLPath, getPath().c_str(), MAX_PATH);
 	char *pslash = strrchr(this->m_cpTANDLLPath, '\\');
 	char exename[80] = "\0";
 	if (pslash){
@@ -134,8 +184,14 @@ void RoomAcoustic::initializeEnvironment()
 
 	//strncpy(dllPath, "c:\\TANSDK\\testapp",80); //hack
 	strncpy(this->m_cpConfigFilePath, this->m_cpTANDLLPath, MAX_PATH);
+	
 	// Change current working directory to executable directory
+#ifdef _WIN32
 	_chdir(this->m_cpConfigFilePath);
+#else
+	chdir(this->m_cpConfigFilePath);
+#endif
+	
 	strncpy(this->m_cpLogPath, this->m_cpTANDLLPath, MAX_PATH);
 
 	strncat(this->m_cpConfigFilePath, "\\default.xml", MAX_PATH);
@@ -147,8 +203,8 @@ void RoomAcoustic::initializeEnvironment()
 	FILE *fpLog = NULL;
 	errno_t err = 0;
 	errno = 0;
-	// Redirect stdout and stderr to a log file. 
-
+	
+	// Redirect stdout and stderr to a log file.
 	if (fopen_s(&fpLog, this->m_cpLogPath, "a+") == 0) {
 		dup2(fileno(fpLog), fileno(stdout));
 		dup2(fileno(fpLog), fileno(stderr));
@@ -158,7 +214,7 @@ void RoomAcoustic::initializeEnvironment()
 	//	dup2(fileno(fpLog), fileno(stderr));
 	//}
 
-	WCHAR logDateVerStamp[MAX_PATH * 2];
+	wchar_t logDateVerStamp[MAX_PATH * 2];
 	char version[40];
 	memset(version, 0, sizeof(version));
 	GetFileVersionAndDate(logDateVerStamp, version);
@@ -423,8 +479,8 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 			_position += std::to_string(i+1);
 			src[0].name = new char[MAX_PATH];
 			src[1].name = new char[MAX_PATH];
-			strncpy_s(src[0].name, MAX_PATH, _stream.c_str(), MAX_PATH);
-			strncpy_s(src[1].name, MAX_PATH, _position.c_str(), MAX_PATH);
+			std::strncpy(src[0].name, _stream.c_str(), MAX_PATH);
+			std::strncpy(src[1].name, _position.c_str(), MAX_PATH);
 			src[0].nAttribs = 2;
 			src[1].nAttribs = 3;
 			src[0].attriblist = streamAttribs;
@@ -437,7 +493,7 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 		std::string _Source = "Source";
 		_Source += std::to_string(i+1);
 		
-		strncpy_s(RAelementList[i].name, MAX_PATH, _Source.c_str(), MAX_PATH);
+		std::strncpy(RAelementList[i].name, _Source.c_str(), MAX_PATH);
 		RAelementList[i].nAttribs = 0;
 		RAelementList[i].attriblist = NULL;
 		
@@ -639,10 +695,10 @@ void RoomAcoustic::saveConfiguraiton(char* xmlfilename)
 
 int RoomAcoustic::addSoundSource(char* sourcename)
 {
-	char* extention = PathFindExtension(sourcename);
-	if (strcmp(extention, ".wav"))
+	auto fileExtension = getFileExtension(sourcename);
+
+	if(!compareIgnoreCase(fileExtension, "wav"))
 	{
-		// Not a supported format, return
 		return false;
 	}
 	else

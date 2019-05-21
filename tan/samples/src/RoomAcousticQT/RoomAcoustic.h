@@ -1,7 +1,10 @@
 #pragma once
-#include <samples/src/common/simplevraudio.h>
-#define MAX_DEVICES 10
+
+#include "../common/SimpleVRaudio.h"
 #include <string>
+
+#define MAX_DEVICES 10
+
 struct attribute {
 	char *name;
 	void *value;

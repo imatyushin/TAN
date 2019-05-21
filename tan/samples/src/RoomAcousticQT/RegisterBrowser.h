@@ -1,9 +1,13 @@
 #pragma once
+
+#ifdef _WIN32
+
 #include <Windows.h>
 #include <string>
 #include <list>
 #define MAX_KEY_LENGTH 255
 #define MAX_VALUE_NAME 16383
+
 class WindowsRegister
 {
 public:
@@ -32,3 +36,5 @@ private:
 	FILETIME m_iLastWriteTime;
 	HKEY m_RegisterKey;
 };
+
+#endif

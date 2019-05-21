@@ -19,9 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #include <stdio.h>
 #include <string.h>
+#include <cstring>
+
 #ifdef _WIN32
 #include <io.h>
 #endif
@@ -37,6 +38,8 @@
 #else
 #define AMFQUEPROPERTY L"None"
 #endif
+
+#include "../GPUUtilities/GpuUtilities.h"
 
 /**
 *******************************************************************************
@@ -78,7 +81,7 @@ int listGpuDeviceNames(char *devNames[], unsigned int count) {
                         res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &pName);
                         if (AMF_OK == res)
                         {
-                            lstrcpyA(devNames[i], pName.stringValue);
+                            std::strcpy(devNames[i], pName.stringValue);
                             foundCount++;
                         }
                     }
@@ -165,7 +168,7 @@ int listCpuDeviceNames(char *devNames[], unsigned int count) {
                         res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &pName);
                         if (AMF_OK == res)
                         {
-                            lstrcpyA(devNames[i], pName.stringValue);
+                            std::strcpy(devNames[i], pName.stringValue);
                             foundCount++;
                         }
                     }
@@ -177,6 +180,7 @@ int listCpuDeviceNames(char *devNames[], unsigned int count) {
         g_AMFFactory.Terminate();
     } else
     {
+        #ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
         typedef int(__cdecl *listCpuDeviceNamesType)(char *devNames[], unsigned int count);
         listCpuDeviceNamesType listCpuDeviceNames = nullptr;
@@ -198,6 +202,9 @@ int listCpuDeviceNames(char *devNames[], unsigned int count) {
         {
             MessageBoxA(NULL, "NOT FOUND GPUUtilities.dll", "GPUUtils...", MB_ICONERROR);
         }
+        #else
+        foundCount = listCpuDeviceNames(devNames, count);
+        #endif
     }
 
     return foundCount;
@@ -353,6 +360,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
 
 bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *context, cl_device_type clDeviceType){
 
+    #ifdef _WIN32
     HMODULE GPUUtilitiesDll = NULL;
     GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
     if (NULL == GPUUtilitiesDll)
@@ -363,6 +371,7 @@ bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *conte
     getDeviceAndContext = (getDeviceAndContextType)GetProcAddress(GPUUtilitiesDll, "getDeviceAndContext");
     if (NULL == getDeviceAndContext)
         return false;
+    #endif
 
     cl_context clContext = NULL;
     cl_device_id clDevice = NULL;
@@ -407,6 +416,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
 {
     bool AllIsOK = true;
 
+    #ifdef _WIN32
     HMODULE GPUUtilitiesDll = NULL;
     GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
     if (NULL == GPUUtilitiesDll)
@@ -423,6 +433,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
     createQueue = (createQueueType)GetProcAddress(GPUUtilitiesDll, "createQueue");
     if (NULL == createQueue)
         return false;
+    #endif
 
     cl_context clContext = NULL;
     cl_device_id clDevice = NULL;

@@ -21,11 +21,18 @@
 //
 
 #include "fifo.h"
-#include "wasapiutils.h"
 #include "tanlibrary/include/TrueAudioNext.h"       //TAN
-#include "../TrueAudioVR/trueaudiovr.h"
+#include "../TrueAudioVR/TrueAudioVR.h"
 #include "maxlimits.h"
+#include "threads.h"
+#include "IWavPlayer.h"
+
+#include <memory>
+
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#endif
 
 // rotation, translation matrix
 class transRotMtx{
@@ -51,10 +58,12 @@ public:
 private:
     static bool useIntrinsics;
     static const int IR_UPDATE_MODE = 1; // 0: Non-Blocking 1: Blocking
-    static unsigned _stdcall processThreadProc(void *ptr);
-    static unsigned _stdcall updateThreadProc(void *ptr);
-    HANDLE m_hProcessThread;
-    HANDLE m_hUpdateThread;
+    static unsigned processThreadProc(void *ptr);
+    static unsigned updateThreadProc(void *ptr);
+    //HANDLE m_hProcessThread;
+    //HANDLE m_hUpdateThread;
+    PrioritizedThread mProcessThread;
+    PrioritizedThread mUpdateThread;
 
     int process(short *pOut, short *pChan[MAX_SOURCES], int sampleCount);
 
@@ -63,8 +72,10 @@ private:
     bool stop = false;
     bool updateParams = true;
     bool m_useOCLOutputPipeline;
+    
     // Microsoft WASAPI based audio player:
-    WASAPIUtils Player;
+    //WASAPIUtils Player;
+    std::unique_ptr<IWavPlayer> mPlayer;
 
 	int m_nFiles;
     long nSamples[MAX_SOURCES];
@@ -102,7 +113,7 @@ private:
 	cl_mem outputShortBuf;
 
 	// current position in each stream:
-	__int64 m_samplePos[MAX_SOURCES];
+	int64_t m_samplePos[MAX_SOURCES];
 
 	// fft length must be power of 2
 	// 65536/48000 = reverb time of 1.37 seconds
@@ -163,7 +174,7 @@ public:
     int Stop();
 
 	// get's the current playback position in a stream:
-    __int64 getCurrentPosition(int stream);
+    int64_t getCurrentPosition(int stream);
 
 	// update the head (listener) position: 
     int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);

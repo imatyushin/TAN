@@ -70,7 +70,7 @@ typedef struct _wav_header {
 
 
 
-__int64 ReverbOCLGetRunCounter(amdOCLRvrb rvrb);
+int64_t ReverbOCLGetRunCounter(amdOCLRvrb rvrb);
 
 
 //////////////////////////////////////////////////////////////////////////

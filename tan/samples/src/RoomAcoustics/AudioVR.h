@@ -93,7 +93,7 @@ private:
 
     int m_fftLen = 65536; // 2048;//  8192;
     int m_bufSize = 2048 * 4;//4096 * 4; 
-    __int64 m_samplePos;
+    int64_t m_samplePos;
 
 	// World To Room coordinate transform:
 	transRotMtx m_mtxWorldToRoomCoords;
@@ -116,7 +116,7 @@ public:
 
     int Run();
     int Stop();
-    __int64 getCurrentPosition();
+    int64_t getCurrentPosition();
 
     int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);
     int updateSourcePosition(int srcNumber, float x, float y, float z);

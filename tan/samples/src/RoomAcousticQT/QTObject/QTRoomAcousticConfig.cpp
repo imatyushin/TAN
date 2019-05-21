@@ -1,12 +1,19 @@
 #include "QTRoomAcousticConfig.h"
 #include "QTExportResponse.h"
-#include <iostream>
+#include "../RegisterBrowser.h"
+#include "../FileUtility.h"
+
 #include <QFileDialog>
 #include <QString>
 #include <QTableWidgetItem>
 #include <QList>
-#include "..\RegisterBrowser.h"
-#include "..\FileUtility.h"
+
+#include <iostream>
+#include <cstring>
+
+#ifndef MAX_PATH
+#define MAX_PATH 254
+#endif
 
 RoomAcousticQT::RoomAcousticQT(QWidget *parent)
 	: QMainWindow(parent)
@@ -38,7 +45,7 @@ void RoomAcousticQT::Init()
 {
 	m_RoomAcousticGraphic->clear();
 	char* filenamecpy = new char[MAX_PATH];
-	strncpy_s(filenamecpy, MAX_PATH, "default.xml", MAX_PATH);
+	std::strncpy(filenamecpy, "default.xml", MAX_PATH);
 	m_RoomAcousticInstance.loadConfiguration(filenamecpy);
 	updateAllFields();
 	updateRoomGraphic();
@@ -332,8 +339,11 @@ void RoomAcousticQT::printConfiguration()
 
 }
 
+//todo: ask Geoff how to retrive version infoxmation under linux
+//may be lspci?
 std::string RoomAcousticQT::getDriverVersion()
 {
+#ifdef _WIN32
 	WindowsRegister newreg(HKEY_LOCAL_MACHINE, "SYSTEM\\ControlSet001\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}");
 	WindowsRegister* subkeys = newreg.getSubKeys();
 	for (int i = 0; i < newreg.getNumOfSubKeys(); i++)
@@ -347,7 +357,9 @@ std::string RoomAcousticQT::getDriverVersion()
 				return version;
 			}
 		}
-	}
+	}	
+#endif
+
 	return "";
 }
 
@@ -498,7 +510,7 @@ void RoomAcousticQT::on_actionLoad_Config_File_triggered()
 	if (fileName[0] != '\0')
 	{
 		char* filenamecpy = new char[MAX_PATH];
-		strncpy_s(filenamecpy, MAX_PATH, fileName.c_str(), MAX_PATH);
+		std::strncpy(filenamecpy, fileName.c_str(), MAX_PATH);
 		m_RoomAcousticInstance.loadConfiguration(filenamecpy);
 		updateAllFields();
 		updateRoomGraphic();
@@ -513,7 +525,7 @@ void RoomAcousticQT::on_actionSave_Config_File_triggered()
 	std::string fileName = QFileDialog::getSaveFileName(this,
 		tr("Save Configuration File"), m_RoomAcousticInstance.m_cpTANDLLPath, tr("Configuration File (*.xml)")).toStdString();
 	char* filenamecpy = new char[MAX_PATH];
-	strncpy_s(filenamecpy, MAX_PATH, fileName.c_str(), MAX_PATH);
+	std::strncpy(filenamecpy, fileName.c_str(), MAX_PATH);
 	updateAllFieldsToInstance();
 	m_RoomAcousticInstance.saveConfiguraiton(filenamecpy);
 	delete[]filenamecpy;
@@ -548,7 +560,7 @@ void RoomAcousticQT::on_RemoveSoundSourceButton_clicked()
 		// Remove sound source from instance
 		m_RoomAcousticInstance.removeSoundSource(selected_source->row());
 		// Remove sound source from ConfigUi
-		selected_source->setText('\0');
+		selected_source->setText("\0");
 		removeSoundsourceGraphics(selected_source->row());
 	}
 	updateSoundsourceNames();
@@ -1185,7 +1197,7 @@ void RoomAcousticQT::on_AddSoundSourceButton_clicked()
 		{
 			std::string filename = fileNames[i].toStdString();
 			char* filenamecpy = new char[MAX_PATH];
-			strncpy_s(filenamecpy, MAX_PATH, filename.c_str(), MAX_PATH);
+			std::strncpy(filenamecpy, filename.c_str(), MAX_PATH);
 			int index = m_RoomAcousticInstance.addSoundSource(filenamecpy);
 			addSoundsourceGraphics(index);
 			delete[]filenamecpy;
@@ -1199,7 +1211,7 @@ void RoomAcousticQT::on_AddSoundSourceButton_clicked()
 			QTableWidgetItem* item = selected_sources.first();
 			std::string filename = fileNames[i].toStdString();
 			char* filenamecpy = new char[MAX_PATH];
-			strncpy_s(filenamecpy, MAX_PATH, filename.c_str(), MAX_PATH);
+			std::strncpy(filenamecpy, filename.c_str(), MAX_PATH);
 			m_RoomAcousticInstance.replaceSoundSource(filenamecpy, item->row());
 			addSoundsourceGraphics(item->row());
 			delete[]filenamecpy;

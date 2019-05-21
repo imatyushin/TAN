@@ -56,8 +56,8 @@ static
 double mach_absolute_time()
 {
     double ret = 0;
-    __int64 frec;
-    __int64 clocks;
+    int64_t frec;
+    int64_t clocks;
     QueryPerformanceFrequency((LARGE_INTEGER *)&frec);
     QueryPerformanceCounter((LARGE_INTEGER *)&clocks);
     ret = (double)clocks * 1000. / (double)frec;
@@ -74,7 +74,7 @@ double mach_absolute_time()
 #include <stdbool.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-typedef  long long int __int64;
+//typedef  long long int __int 64;
 
 #endif // !WIN32
 
@@ -733,7 +733,7 @@ private:
 protected:
     cl_kernel m_copyWithPaddingKernel;
 
-    __int64 round_counter_;
+    int64_t round_counter_;
 
     std::vector<void*> host_input_staging_;
 // combined state buffer channel/version/roound counter by number of stages

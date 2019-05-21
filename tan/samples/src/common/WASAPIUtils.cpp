@@ -210,7 +210,7 @@ void WASAPIUtils::wasapiRelease()
 	initializedCapture = false;
 }
 
-int WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
+int32_t WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
 {
     STREAMINFO          streaminfo;
 
@@ -269,7 +269,7 @@ int WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppO
  *
  *******************************************************************************
  */
-INT WASAPIUtils::wasapiPlay(unsigned char *pOutputBuffer, unsigned int size, bool mute)
+int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
 {
     if (audioClient == NULL || renderClient==NULL)
         return 0;
@@ -321,7 +321,7 @@ INT WASAPIUtils::wasapiPlay(unsigned char *pOutputBuffer, unsigned int size, boo
 *
 *******************************************************************************
 */
-INT WASAPIUtils::wasapiRecord( unsigned char *pOutputBuffer, unsigned int size)
+int32_t WASAPIUtils::Record( unsigned char *pOutputBuffer, unsigned int size)
 {
     if (captureClient == NULL)
         return 0;

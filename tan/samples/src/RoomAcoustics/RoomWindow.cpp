@@ -24,6 +24,11 @@
 #include "RoomWindow.h"
 #include "resource.h"
 
+#include <chrono>
+#include <thread>
+
+#include <string.h>
+
 int RoomWin::nWnds;
 HWND RoomWin::hWndList[MAXWINDOWS];
 RoomWin * RoomWin::pWndList[MAXWINDOWS];
@@ -82,7 +87,7 @@ RoomWin::RoomWin(int width, int height, char *title)
     RegisterClassEx(&wndclass);
     int err = GetLastError();
     memset(windowTitle,0,sizeof(windowTitle));
-    strncpy_s(windowTitle, title, (sizeof(windowTitle) / sizeof(windowTitle[0]))-1  );
+    std::strncpy(windowTitle, title, (sizeof(windowTitle) / sizeof(windowTitle[0]))-1);
     wTitleLen = (int) strlen(windowTitle);
 
     hwndMain = CreateWindowEx( 
@@ -247,8 +252,10 @@ bool RoomWin::Update()
 			RoomWin::running = false;
             return true;
         }
-        if (bRet == 0){
-            Sleep(5);
+
+        if (bRet == 0)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
     return false;

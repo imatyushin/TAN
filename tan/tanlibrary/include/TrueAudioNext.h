@@ -43,10 +43,10 @@
 #define TAN_VERSION_RELEASE        2
 #define TAN_VERSION_BUILD          4
 
-#define TAN_FULL_VERSION ( (unsigned __int64(TAN_VERSION_MAJOR) << 48ull) |   \
-                           (unsigned __int64(TAN_VERSION_MINOR) << 32ull) |   \
-                           (unsigned __int64(TAN_VERSION_RELEASE) << 16ull) | \
-                            unsigned __int64(TAN_VERSION_BUILD))
+#define TAN_FULL_VERSION ( (uint64_t(TAN_VERSION_MAJOR) << 48ull) |   \
+                           (uint64_t(TAN_VERSION_MINOR) << 32ull) |   \
+                           (uint64_t(TAN_VERSION_RELEASE) << 16ull) | \
+                            uint64_t(TAN_VERSION_BUILD))
 
 //define export declaration
 #ifdef _WIN32

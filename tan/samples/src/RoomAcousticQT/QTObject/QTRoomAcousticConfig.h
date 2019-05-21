@@ -9,7 +9,7 @@
 #else
 #include "ui_RoomAcousticConfig_NoRTQ.h"
 #endif // RTQ_ENABLED
-#include "..\RoomAcoustic.h"
+#include "../RoomAcoustic.h"
 #include "QTRoomAcousticGraphic.h"
 
 class RoomAcousticQT : public QMainWindow

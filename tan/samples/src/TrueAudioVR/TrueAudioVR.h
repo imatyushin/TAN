@@ -30,6 +30,7 @@ using namespace amf;
 #include "public/include/core/Result.h"
 
 #include <CL/cl.h>
+#include <cmath>
 
 #ifndef AMD_TA_VR
 #define AMD_TA_VR
@@ -43,7 +44,7 @@ using namespace amf;
 #define SPEED_OF_SOUND 343.0 // m/s
 #define FILTER_SAMPLE_RATE 48000
 
-#define DBTODAMP(dB) powf(10.0,float(-dB/20.0))
+#define DBTODAMP(dB) std::pow(10.0,float(-dB/20.0))
 #define DAMPTODB(d) float(-20.0*log10(d))
 
 //flags for generateRoomResponse

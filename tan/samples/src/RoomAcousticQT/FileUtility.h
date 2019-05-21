@@ -8,9 +8,9 @@ struct FileVersion
 	int m_BuildVersion = 0;
 	int m_RevisionVersion = 0;
 };
-FileVersion getFileVersion(std::string& filepath);
-std::string getFileVersionString(std::string& filepath);
-std::string getFileNameWithExtension(std::string& filepath);
+FileVersion getFileVersion(const std::string& filepath);
+std::string getFileVersionString(const std::string& filepath);
+std::string getFileNameWithExtension(const std::string& filepath);
 std::string getFileNameWithoutExtension(const std::string& filepath);
 std::string getCurrentDirectory();
 inline bool checkFileExist(const std::string& filename)

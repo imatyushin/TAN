@@ -1,19 +1,20 @@
 // TALibVRTest.cpp : Defines the entry point for the console application.
 //
-
 #include "stdafx.h"
-#include <memory.h>
-#include <process.h>
-#include <math.h>
-
-#include <vector>
-#include <omp.h>
 
 #include "tanlibrary/include/TrueAudioNext.h"
 #include "samples/src/common/wav.h"
 #include "samples/src/TrueAudioVR/TrueAudioVR.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
+
+#include <memory.h>
+#include <process.h>
+#include <math.h>
+#include <omp.h>
+
+#include <vector>
 #include <iostream>
+#include <cstring>
 
 struct attribute {
     char *name;
@@ -454,13 +455,12 @@ void mangleFileName(
 {
     if (strchr(baseFileName, '.'))
     {
-
-        strncpy_s(resFileName, resFileNameLen, baseFileName, strchr(baseFileName, '.') - baseFileName);
+        std::strncpy(resFileName, /*resFileNameLen,*/ baseFileName, strchr(baseFileName, '.') - baseFileName);
         strcat_s(resFileName, resFileNameLen, suffix);
         strcat_s(resFileName, resFileNameLen, strchr(baseFileName, '.'));
     }
     else {
-        strncpy_s(resFileName, resFileNameLen, baseFileName, strlen(baseFileName) + 1);
+        std::strncpy(resFileName, /*resFileNameLen,*/ baseFileName, strlen(baseFileName) + 1);
         strcat_s(resFileName, resFileNameLen, suffix);
     }
 }

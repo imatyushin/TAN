@@ -66,7 +66,8 @@
 
 		inline size_t AtomicAdd( volatile size_t* value, size_t op )
 		{
-			return _InterlockedExchangeAdd64( reinterpret_cast< volatile __int64* >( value ), op );
+			                                                //todo: verify, __int 64 was here
+			return _InterlockedExchangeAdd64( reinterpret_cast< volatile int64_t* >( value ), op );
 		}
 	#else
 		inline void BSF( unsigned long* index, size_t& mask )
