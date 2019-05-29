@@ -140,4 +140,5 @@ target_compile_options(Graal PUBLIC -mavx2)
 target_compile_options(Graal PUBLIC -mfma)
 target_compile_options(Graal PUBLIC -msse4.2)
 target_compile_options(Graal PUBLIC -Wpsabi)
+target_compile_options(Graal PUBLIC -g) #todo: to Debug only
 endif()

@@ -3,7 +3,7 @@
 #include "stdafx.h"
 
 #include "tanlibrary/include/TrueAudioNext.h"
-#include "samples/src/common/wav.h"
+#include "wav.h"
 #include "samples/src/TrueAudioVR/TrueAudioVR.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 
@@ -40,7 +40,7 @@ struct element {
 	#define CL_QUEUE_REAL_TIME_COMPUTE_UNITS_AMD        0x404f
 #endif
 cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
-{ 
+{
     cl_command_queue cmdQueue = NULL;
     cl_context context;
     cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU;
@@ -140,7 +140,7 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
             clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 100, deviceName, NULL);
             fprintf(stdout, "   GPU device %s\n", deviceName);
         }
-    }  
+    }
 
     // create the OpenCL context on a GPU device
     context = clCreateContextFromType(cps, clDeviceType, NULL, NULL, &status);
@@ -447,9 +447,9 @@ bool responsesMatch(float ** responseDiff, int length, float delta)
 #define RETURN_IF_FALSE(x) { if (!(x)) return -1; }
 
 void mangleFileName(
-    char *resFileName, 
-    size_t resFileNameLen, 
-    const char *baseFileName, 
+    char *resFileName,
+    size_t resFileNameLen,
+    const char *baseFileName,
     const char *suffix
 )
 {
@@ -527,7 +527,7 @@ int main(int argc, char* argv[])
 		cl_device_id cl_device_id1;
 		cl_uint status = getDeviceAndContext(0, &cl_context1, &cl_device_id1);
 		cl_command_queue command_queue1 = createQueue(cl_context1, cl_device_id1);
-		
+
 		RETURN_IF_FALSE(!!command_queue1);
 		RETURN_IF_FAILED(pContext->InitOpenCL(command_queue1, command_queue1));
 	}
@@ -570,7 +570,7 @@ int main(int argc, char* argv[])
 	char outName[255];
 	char outNameGPU[255];
 	char outNameCPU[255];
-	
+
 	RETURN_IF_FAILED(pFft->Init());
 	// Open TrueAudioVR DLL:
 	AmdTrueAudioVR *taVR = NULL;
@@ -603,7 +603,7 @@ int main(int argc, char* argv[])
 	//{
 	//	std::cout << "Left: " << pfResponseL[i] << std::endl;
 	//	std::cout << "Right: " << pfResponseR[i] << std::endl;
-	
+
 
     if (test)
     {
@@ -611,7 +611,7 @@ int main(int argc, char* argv[])
         mangleFileName(outNameGPU, sizeof(outNameGPU), outFileName, "GPU");
 
 		TANContextPtr pContext2;
-		
+
 		cl_context cl_context2;
 		cl_device_id cl_device_id2;
 		status = getDeviceAndContext(0, &cl_context2, &cl_device_id2);
@@ -627,7 +627,7 @@ int main(int argc, char* argv[])
 
 		pfResponseLT = (float *)clCreateBuffer(pContext2->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
 		pfResponseRT = (float *)clCreateBuffer(pContext2->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
-		
+
 		pfResponsesT[0] = new float[convolutionLength];
 		pfResponsesT[1] = new float[convolutionLength];
 
@@ -696,7 +696,7 @@ int main(int argc, char* argv[])
 	}
     pfResponseL = pfResponseR = NULL;
     pfResponseLT = pfResponseRT = NULL;
-    
+
     return 0;
 }
 

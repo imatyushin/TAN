@@ -57,8 +57,8 @@ enum class QueueErrors
 /*Structure which hold elements required for wasapi playback */
 struct IWavPlayer
 {
-    virtual ~IWavPlayer() {};//wasapiRelease();
-    virtual QueueErrors QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer) = 0;
-    virtual int32_t Record( unsigned char *pOutputBuffer, unsigned int size) = 0;
+    virtual ~IWavPlayer() {};
+    virtual QueueErrors QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer) = 0;
+    virtual int32_t Record(unsigned char *pOutputBuffer, unsigned int size) = 0;
     virtual int32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute) = 0;
 };

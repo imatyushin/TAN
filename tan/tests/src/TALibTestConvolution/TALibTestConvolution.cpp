@@ -18,7 +18,7 @@
 #include "tanlibrary/include/TrueAudioNext.h"
 using namespace amf;
 
-#include "samples/src/common/wav.h"
+#include "wav.h"
 #include "samples/src/common/utilities.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 const UINT c_modesCnt = 2;

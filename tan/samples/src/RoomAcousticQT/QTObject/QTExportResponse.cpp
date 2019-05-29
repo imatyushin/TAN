@@ -1,6 +1,7 @@
 #include "QTExportResponse.h"
+#include "wav.h"
+
 #include <QFileDialog>
-#include <samples/src/common/wav.h>
 
 void QTExportResponse::browseOutputFile()
 {
@@ -46,7 +47,7 @@ void QTExportResponse::generateResponse()
 	}
 	m_pRoomAcoustic->getAMDTrueAudioVR()->generateRoomResponse(targetRoomdef, targetSource, targetListener, m_UIExportResponse.SB_SampleRate->currentText().toInt(), m_UIExportResponse.SB_ResponseLength->value(), deinterleaved_IR_32bit[0], deinterleaved_IR_32bit[1], 0, 50);
 
-	
+
 	if (m_UIExportResponse.SB_SampleSize->currentText().toInt() == 16)
 	{
 		size_t interleave_counter = 0;

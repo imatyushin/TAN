@@ -1,72 +1,18 @@
-// CLKernelPreprocessor.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
-#include <string>
-#include <cstring>
+#include "FileUtility.h"
+#include "StringUtility.h"
+
+//#include <string>
+//#include <cstring>
 #include <fstream>
-#include <vector>
-#include <sstream>
+//#include <vector>
+//#include <sstream>
 #include <iostream>
-#include <clocale>
-#include <cctype>
+//#include <clocale>
+//#include <cctype>
 
 #define MAX_SIZE_STRING  16384
 #define MAX_BLOCK_CHUNK  12000
-
-std::string getFileName(const std::string & path)
-{
-   auto lastSeparatorPosition = path.rfind(
-#ifdef _WIN32
-	   '\\'
-#else
-	   '/'
-#endif
-	   ,
-	   path.length()
-	   );
-
-   if(std::string::npos != lastSeparatorPosition)
-   {
-      return path.substr(
-		  lastSeparatorPosition + 1,
-		  std::string::npos
-		  );
-   }
-
-   return path;
-}
-
-bool compareIgnoreCase(const std::string & first, const std::string & second)
-{
-	if(first.size() != second.size())
-	{
-        return false;
-	}
-
-	for(auto firstChar = first.begin(), secondChar = second.begin(); firstChar != first.end(); ++firstChar, ++secondChar)
-	{
-		if(std::tolower(*firstChar) != std::tolower(*secondChar))
-		{
-			return false;
-		}
-	}
-
-    return true;
-}
-
-std::wstring toWideString(const std::string & inputString)
-{
-	std::mbstate_t state = std::mbstate_t();
-
-	const char *input(inputString.c_str());
-
-    std::size_t length = std::mbsrtowcs(nullptr, &input, 0, &state) + 1;
-    std::vector<wchar_t> buffer(length);
-    std::mbsrtowcs(buffer.data(), &input, buffer.size(), &state);
-
-	return buffer.data();
-}
 
 int main(int argc, char* argv[])
 {
@@ -105,7 +51,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	auto fileName = getFileName(kernelFileFullName);
+	auto fileName = getFileNameWithExtension(kernelFileFullName);
 	fileName.resize(fileName.length() - 3); //skip extension
 
 	std::string outputFileName(

@@ -1,7 +1,8 @@
 #include "QTRoomAcousticConfig.h"
 #include "QTExportResponse.h"
-#include "../RegisterBrowser.h"
-#include "../FileUtility.h"
+
+#include "RegisterBrowser.h"
+#include "FileUtility.h"
 
 #include <QFileDialog>
 #include <QString>
@@ -137,11 +138,13 @@ void RoomAcousticQT::updateSoundsourceNames()
 			item = new QTableWidgetItem();
 			ConfigUi.SourcesTable->setItem(i, 0, item);
 		}
-		if (m_RoomAcousticInstance.m_cpWavFileNames[i][0] != '\0')
+
+		if (m_RoomAcousticInstance.mWavFileNames[i].length())
 		{
 			// Check the file existance before assign it into the cell
-			std::string name_temp(m_RoomAcousticInstance.m_cpWavFileNames[i]);
+			std::string name_temp(m_RoomAcousticInstance.mWavFileNames[i]);
 			std::string display_name = name_temp;
+
 			if (!checkFileExist(name_temp))
 			{
 				display_name += " <Invalid>";
@@ -304,7 +307,10 @@ void RoomAcousticQT::printConfiguration()
 	qInfo("Number of wav files: %d", m_RoomAcousticInstance.m_iNumOfWavFile);
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		qInfo("Source %d: Name: %s, Position: (%f,%f,%f)", i,m_RoomAcousticInstance.m_cpWavFileNames[i],
+		qInfo(
+			"Source %d: Name: %s, Position: (%f,%f,%f)",
+			i,
+			m_RoomAcousticInstance.mWavFileNames[i].c_str(),
 			m_RoomAcousticInstance.m_SoundSources[i].speakerX, m_RoomAcousticInstance.m_SoundSources[i].speakerY,
 			m_RoomAcousticInstance.m_SoundSources[i].speakerZ);
 	}
@@ -365,9 +371,13 @@ std::string RoomAcousticQT::getDriverVersion()
 
 std::string RoomAcousticQT::getTANVersion()
 {
+#ifdef _WIN32
 	std::string current_dir = getCurrentDirectory();
-	std::string dll_dir = current_dir + "\\tanrt64.dll";
+	std::string dll_dir = current_dir + getDirectorySeparator() + "tanrt64.dll";
 	return getFileVersionString(dll_dir);
+#else
+	return "Error: not implemented!";
+#endif
 }
 
 void RoomAcousticQT::setHeadSpinTimeInterval(float interval)
@@ -392,7 +402,7 @@ void RoomAcousticQT::updateRoomGraphic()
 
 void RoomAcousticQT::updateSoundSourceGraphics(int index)
 {
-	if (m_RoomAcousticInstance.m_cpWavFileNames[index][0] != '\0')
+	if (m_RoomAcousticInstance.mWavFileNames[index].length())
 	{
 		m_RoomAcousticGraphic->update_sound_source_position(index,
 			m_RoomAcousticInstance.m_SoundSources[index].speakerX,
@@ -405,7 +415,7 @@ void RoomAcousticQT::initSoundSourceGraphic()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (m_RoomAcousticInstance.m_cpWavFileNames[i][0] != '\0')
+		if (m_RoomAcousticInstance.mWavFileNames[i].length())
 		{
 			addSoundsourceGraphics(i);
 		}
@@ -421,7 +431,7 @@ void RoomAcousticQT::updateAllSoundSourceGraphics()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (m_RoomAcousticInstance.m_cpWavFileNames[i][0] != '\0')
+		if (m_RoomAcousticInstance.mWavFileNames[i].length())
 		{
 			m_RoomAcousticGraphic->update_sound_source_position(i,
 				m_RoomAcousticInstance.m_SoundSources[i].speakerX,
@@ -505,8 +515,12 @@ void RoomAcousticQT::updateTrackedHeadSource()
 void RoomAcousticQT::on_actionLoad_Config_File_triggered()
 {
 	m_RoomAcousticGraphic->clear();
-	std::string fileName = QFileDialog::getOpenFileName(this,
-		tr("Open Configuration File"), m_RoomAcousticInstance.m_cpTANDLLPath, tr("Configuration File (*.xml)")).toStdString();
+	std::string fileName = QFileDialog::getOpenFileName(
+		this,
+		tr("Open Configuration File"),
+		m_RoomAcousticInstance.mTANDLLPath.c_str(),
+		tr("Configuration File (*.xml)")
+		).toStdString();
 	if (fileName[0] != '\0')
 	{
 		char* filenamecpy = new char[MAX_PATH];
@@ -522,8 +536,12 @@ void RoomAcousticQT::on_actionLoad_Config_File_triggered()
 /*QT Slots: Triggered when saving configuration file action clicked*/
 void RoomAcousticQT::on_actionSave_Config_File_triggered()
 {
-	std::string fileName = QFileDialog::getSaveFileName(this,
-		tr("Save Configuration File"), m_RoomAcousticInstance.m_cpTANDLLPath, tr("Configuration File (*.xml)")).toStdString();
+	std::string fileName = QFileDialog::getSaveFileName(
+		this,
+		tr("Save Configuration File"),
+		m_RoomAcousticInstance.mTANDLLPath.c_str(),
+		tr("Configuration File (*.xml)")
+		).toStdString();
 	char* filenamecpy = new char[MAX_PATH];
 	std::strncpy(filenamecpy, fileName.c_str(), MAX_PATH);
 	updateAllFieldsToInstance();
@@ -606,8 +624,9 @@ void RoomAcousticQT::on_CB_SoundSourceEnable_stateChanged(int stage)
 		if (!stage)
 		{
 			// Current sound source is disabled
-			std::string new_name = m_RoomAcousticInstance.m_cpWavFileNames[m_iCurrentSelectedSource];
+			std::string new_name = m_RoomAcousticInstance.mWavFileNames[m_iCurrentSelectedSource];
 			new_name += " <Disabled>";
+
 			m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource] = 0;
 			QTableWidgetItem* item = ConfigUi.SourcesTable->item(m_iCurrentSelectedSource, 0);
 			item->setText(QString::fromStdString(new_name));
@@ -615,7 +634,8 @@ void RoomAcousticQT::on_CB_SoundSourceEnable_stateChanged(int stage)
 		else
 		{
 			// Current sound source is enabled
-			std::string new_name = m_RoomAcousticInstance.m_cpWavFileNames[m_iCurrentSelectedSource];
+			std::string new_name = m_RoomAcousticInstance.mWavFileNames[m_iCurrentSelectedSource];
+
 			m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource] = 1;
 			QTableWidgetItem* item = ConfigUi.SourcesTable->item(m_iCurrentSelectedSource, 0);
 			item->setText(QString::fromStdString(new_name));
@@ -1187,8 +1207,12 @@ void RoomAcousticQT::update_convMethod_GPU()
 
 void RoomAcousticQT::on_AddSoundSourceButton_clicked()
 {
-	QStringList fileNames = QFileDialog::getOpenFileNames(this,
-		tr("Open Source File"), m_RoomAcousticInstance.m_cpTANDLLPath, tr("WAV File (*.wav)"));
+	QStringList fileNames = QFileDialog::getOpenFileNames(
+		this,
+		tr("Open Source File"),
+		m_RoomAcousticInstance.mTANDLLPath.c_str(),
+		tr("WAV File (*.wav)")
+		);
 	QList<QTableWidgetItem*> selected_sources = ConfigUi.SourcesTable->selectedItems();
 	// Try to add sound source without selecting empty slots
 	if (selected_sources.isEmpty())

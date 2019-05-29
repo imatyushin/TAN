@@ -41,7 +41,8 @@ project(Ambisonic1stOrderDecoder DESCRIPTION "Ambisonic1stOrderDecoder")
 set(
   SOURCE_EXE
   ../../../src/Ambisonic1stOrderDecoder/Ambisonic1stOrderDecoder.cpp
-  ../../../src/common/wav.cpp
+
+  ../../../../common/wav.cpp
   )
 
 set(

@@ -36,7 +36,7 @@
 
 /*Structure which hold elements required for wasapi playback */
 class WASAPIUtils:
-  IWavPlayer
+  public IWavPlayer
 {
 public:
     WASAPIUtils();
@@ -55,8 +55,8 @@ public:
     bool initializedRender;
     bool initializedCapture;
 
-    QueueErrors QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer);
-    int32_t Record( unsigned char *pOutputBuffer, unsigned int size);
+    QueueErrors QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer);
+    int32_t Record(unsigned char *pOutputBuffer, unsigned int size);
     int32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
 
     int wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *frameSize, AUDCLNT_SHAREMODE sharMode, bool capture = false);

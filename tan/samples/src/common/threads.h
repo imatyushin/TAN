@@ -53,6 +53,8 @@ public:
 
     PrioritizedThread& operator=(std::thread&& other) noexcept
     {
+        std::cout << "Assign thread..." << std::endl;
+
         swap(other);
 
 #ifdef _WIN32
@@ -83,7 +85,7 @@ public:
     virtual void WaitCloseInfinite()
     {
         std::cout << "Wait thread finish..." << std::endl;
-        
+
         while(joinable())
         {
            std::this_thread::sleep_for(std::chrono::milliseconds(1000));

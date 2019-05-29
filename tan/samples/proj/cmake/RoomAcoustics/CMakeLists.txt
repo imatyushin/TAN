@@ -41,16 +41,10 @@ if(WIN32)
     include_directories(../../../../../amf)
     include_directories(../../../../../tan)
     include_directories(../../../src/common)
+    include_directories(../../../../common)
 
-    #
-    #if(COMPILER_MSVC)
-      ADD_DEFINITIONS(-DRTQ_ENABLED)
-      #ADD_DEFINITIONS(-DUNICODE)
-      #ADD_DEFINITIONS(-D_UNICODE)
-      set(CMAKE_MFC_FLAG 1)
-      #add_definitions(-D_AFXDLL)
-      #add_definitions(-D_DLL)
-    #endif()
+    ADD_DEFINITIONS(-DRTQ_ENABLED)
+    set(CMAKE_MFC_FLAG 1)
 
     macro(replace_flags var these those)
       if("${${var}}" MATCHES "${these}")
@@ -87,11 +81,14 @@ if(WIN32)
 
       ../../../../../amf/public/common/AMFFactory.cpp
       ../../../../../amf/public/common/Windows/ThreadWindows.cpp
+
       ../../../src/common/fifo.cpp
       ../../../src/common/GpuUtils.cpp
       ../../../src/common/SimpleVRaudio.cpp
       ../../../src/common/WASAPIUtils.cpp
-      ../../../src/common/wav.cpp
+
+      ../../../../common/wav.cpp
+
       ../../../src/RoomAcoustics/RoomAcoustics.cpp
       ../../../src/RoomAcoustics/RoomAcousticsDlg.cpp
       ../../../src/RoomAcoustics/RoomWindow.cpp
@@ -124,14 +121,14 @@ if(WIN32)
 
       ../../../../tanlibrary/include/TrueAudioNext.h
 
-      ../../../../tanlibrary/src/common/cpucaps.h
+      ../../../../common/cpucaps.h
+      ../../../../common/wav.h
 
       ../../../src/common/fifo.h
       ../../../src/common/GpuUtils.h
       ../../../src/common/maxlimits.h
       ../../../src/common/SimpleVRaudio.h
       ../../../src/common/WASAPIUtils.h
-      ../../../src/common/wav.h
       ../../../src/RoomAcoustics/Resource.h
       ../../../src/RoomAcoustics/RoomAcoustics.h
       ../../../src/RoomAcoustics/RoomAcousticsDlg.h

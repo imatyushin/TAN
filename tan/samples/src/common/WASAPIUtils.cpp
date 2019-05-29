@@ -72,7 +72,7 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
     INT bitsPerSample = streaminfo->bitsPerSample;
 
     REFERENCE_TIME bufferDuration = (BUFFER_SIZE_8K);//(SIXTH_SEC_BUFFER_SIZE); //(MS100_BUFFER_SIZE); // (ONE_SEC_BUFFER_SIZE);
- 
+
     WAVEFORMATEXTENSIBLE mixFormat;
 
     /* PCM audio */
@@ -99,7 +99,7 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
     mixFormat.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
     mixFormat.Samples.wValidBitsPerSample = 16;
 
-    /* Let's see if this is supported */ 
+    /* Let's see if this is supported */
     WAVEFORMATEX* format = NULL;
     format = (WAVEFORMATEX*) &mixFormat;
 
@@ -210,7 +210,7 @@ void WASAPIUtils::wasapiRelease()
 	initializedCapture = false;
 }
 
-QueueErrors WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
+QueueErrors WASAPIUtils::QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
 {
     STREAMINFO          streaminfo;
 
@@ -235,7 +235,7 @@ QueueErrors WASAPIUtils::QueueWaveFile(char *inFile,long *pNsamples, unsigned ch
             //todo: return not enoght memory
             return QueueErrors::FileNotFound;
         }
-        
+
         short *pSBuf = (short *)pOutBuffer;
         for (int i = 0; i < *pNsamples; i++)
         {
@@ -309,7 +309,7 @@ int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
         startedRender = TRUE;
         audioClient->Start();
     }
-    
+
     return  (frames*frameSize);
 }
 
@@ -318,8 +318,8 @@ int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
 * @fn wasapiRecord
 * @brief Play output using Wasapi Application
 *
-* @param[in/out]     : Points to structure 
-*                  
+* @param[in/out]     : Points to structure
+*
 *
 * @return INT
 *         0   for success

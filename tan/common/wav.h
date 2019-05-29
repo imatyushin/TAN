@@ -89,9 +89,9 @@
 	    WaveHeader wave;
 	} RiffWave;
 
-	bool ReadWaveFile(char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples);
-	bool WriteWaveFileF(char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples);
-	bool WriteWaveFileS(char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples);
+	bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples);
+	bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples);
+	bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples);
 
 #pragma pack(pop)
 

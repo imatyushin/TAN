@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#pragma once
 
 #include "fifo.h"
 #include "tanlibrary/include/TrueAudioNext.h"       //TAN
@@ -28,6 +29,7 @@
 #include "IWavPlayer.h"
 
 #include <memory>
+#include <string>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -46,7 +48,8 @@ public:
 };
 
 // Simple VR audio engine using True Audio Next GPU acceleration
-class  Audio3D {
+class  Audio3D
+{
 public:
     int processProc();
     int updateProc();
@@ -72,16 +75,14 @@ private:
     bool stop = false;
     bool updateParams = true;
     bool m_useOCLOutputPipeline;
-    
-    // Microsoft WASAPI based audio player:
-    //WASAPIUtils Player;
+
     std::unique_ptr<IWavPlayer> mPlayer;
 
 	int m_nFiles;
     long nSamples[MAX_SOURCES];
 	unsigned char *pBuffers[MAX_SOURCES];
     unsigned char *pProcessed;
-  
+
 	TANContextPtr m_spTANContext1;
 	TANContextPtr m_spTANContext2;
 	TANConvolutionPtr m_spConvolution;
@@ -90,9 +91,8 @@ private:
 	TANFFTPtr m_spFft;
 	AmdTrueAudioVR *m_pTAVR = NULL;
 
-
     RoomDefinition room;
-    MonoSource sources[MAX_SOURCES];  
+    MonoSource sources[MAX_SOURCES];
 	StereoListener ears;
 
     int src1EnableMic = 0;
@@ -122,7 +122,6 @@ private:
 	// buffer length 4096 / 48000 = 85 ms update rate:
 	int m_bufSize = 4096 * 4; // default buffer length
 
-
 	// World To Room coordinate transform:
 	transRotMtx m_mtxWorldToRoomCoords;
 	float m_headingOffset;
@@ -132,7 +131,6 @@ private:
     cl_command_queue cmdQueue1 = NULL;
     cl_command_queue cmdQueue2 = NULL;
     cl_command_queue cmdQueue3 = NULL;
-
 
 public:
     /*
@@ -145,20 +143,35 @@ public:
 
     static amf::TAN_CONVOLUTION_METHOD m_convMethod;// = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 
-    int init(char * dllPath, RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize,
-        bool useGPU_Conv = true, int devIdx_Conv=0, 
+    int init(
+        const std::string & dllPath,
+        RoomDefinition      roomDef,
+        int                 nFiles,
+        const std::string   inFiles[MAX_SOURCES],
+        int                 fftLen,
+        int                 bufSize,
+        bool                useGPU_Conv = true,
+        int                 devIdx_Conv=0,
 #ifdef RTQ_ENABLED
-		bool useHPr_Conv = false, bool useRTQ_Conv = false, int cuRes_Conv = 0,
+		bool                useHPr_Conv = false,
+        bool                useRTQ_Conv = false,
+        int                 cuRes_Conv = 0,
 #endif // RTQ_ENABLED
-        bool useGPU_IRGen = true, int devIdx_IRGen=0,  
+        bool                useGPU_IRGen = true,
+        int                 devIdx_IRGen = 0,
 #ifdef RTQ_ENABLED
-		bool useHPr_IRGen = false, bool useRTQ_IRGen = false, int cuRes_IRGen = 0,
+		bool                useHPr_IRGen = false,
+        bool                useRTQ_IRGen = false,
+        int                 cuRes_IRGen = 0,
 #endif
-        amf::TAN_CONVOLUTION_METHOD &convMethod = m_convMethod, //amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
-       bool useCPU_Conv = false, bool useCPU_IRGen = false);
+        amf::TAN_CONVOLUTION_METHOD &
+                            convMethod = m_convMethod, //amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
+        bool                useCPU_Conv = false,
+        bool                useCPU_IRGen = false
+        );
 
 	// Set transform to translate game coordinates to room audio coordinates:
-	int setWorldToRoomCoordTransform(float translationX, float translationY, float translationZ, 
+	int setWorldToRoomCoordTransform(float translationX, float translationY, float translationZ,
 									 float rotationY, float headingOffset, bool headingCCW);
 
 	// Source 1 can optionally be captured audio from default microphone:
@@ -167,7 +180,7 @@ public:
 	// finalize, deallocate resources, close files, etc.
 	int finit();
 
-	// start audio engine: 
+	// start audio engine:
     int Run();
 
 	// Stop audio engine:
@@ -176,7 +189,7 @@ public:
 	// get's the current playback position in a stream:
     int64_t getCurrentPosition(int stream);
 
-	// update the head (listener) position: 
+	// update the head (listener) position:
     int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);
 
 	//update a source position:

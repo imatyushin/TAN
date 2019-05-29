@@ -24,10 +24,8 @@ project(clFFT-master)
 
 include_directories(../../../src/clFFT-master/src/include)
 
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 # sources
 set(
@@ -88,4 +86,5 @@ target_compile_options(clFFT-master PUBLIC -mavx2)
 target_compile_options(clFFT-master PUBLIC -mfma)
 target_compile_options(clFFT-master PUBLIC -msse4.2)
 target_compile_options(clFFT-master PUBLIC -Wpsabi)
+target_compile_options(clFFT-master PUBLIC -g) #todo: to Debug only
 endif()

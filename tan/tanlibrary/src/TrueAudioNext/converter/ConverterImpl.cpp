@@ -22,7 +22,7 @@
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
 #include "../../common/OCLHelper.h"
-#include "../../common/cpucaps.h"
+#include "cpucaps.h"
 
 #include <math.h>
 
@@ -36,7 +36,7 @@ using namespace amf;
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool TANConverterImpl::useSSE2 = InstructionSet::SSE2();
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] = 
+static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 {
 #if AMF_BUILD_OPENCL
     {AMF_MEMORY_OPENCL,     L"OpenCL"},
@@ -46,7 +46,7 @@ static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 };
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConverter(
-    amf::TANContext* pContext, 
+    amf::TANContext* pContext,
     amf::TANConverter** ppComponent
     )
 {
@@ -108,12 +108,12 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 
     // Given some command queue, retrieve the cl_context...
     m_pCommandQueueCl = m_pContextTAN->GetOpenCLGeneralQueue();
-    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context), 
+    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context),
         &m_pContextCl, NULL);
         AMF_RETURN_IF_CL_FAILED(ret,  L"Cannot retrieve cl_context from cl_command_queue.");
 
     // ...and cl_device from it
-    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_DEVICE, sizeof(cl_device_id), 
+    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_DEVICE, sizeof(cl_device_id),
         &m_pDeviceCl, NULL);
     AMF_RETURN_IF_CL_FAILED(ret, L"Cannot retrieve cl_device_id from cl_command_queue.");
 
@@ -140,7 +140,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToShort"); return AMF_FAIL; }
 	OCLKenel_Err = GetOclKernel(m_clkShort2Float, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "shortToFloat", Converter, ConverterCount, "shortToFloat", "");
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToFloat"); return AMF_FAIL; }
-    
+
 	return res;
 }
 //-------------------------------------------------------------------------------------------------
@@ -181,8 +181,8 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
-    short* inputBuffer, 
-    amf_size inputStep, 
+    short* inputBuffer,
+    amf_size inputStep,
     amf_size numOfSamplesToProcess,
     float* outputBuffer,
     amf_size outputStep,
@@ -213,15 +213,15 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
-    short** inputBuffers, 
+    short** inputBuffers,
     amf_size inputStep,
 
     amf_size numOfSamplesToProcess,
 
-    float** outputBuffers, 
+    float** outputBuffers,
     amf_size outputStep,
 
-    float conversionGain, 
+    float conversionGain,
     int count
     )
 {
@@ -250,16 +250,16 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
-    float* inputBuffer, 
+    float* inputBuffer,
     amf_size inputStep,
 
     amf_size numOfSamplesToProcess,
 
-    short* outputBuffer, 
-    amf_size outputStep, 
+    short* outputBuffer,
+    amf_size outputStep,
 
-    float conversionGain, 
-    bool* outputClipped 
+    float conversionGain,
+    bool* outputClipped
 )
 {
     AMF_RETURN_IF_FALSE(inputBuffer != NULL, AMF_INVALID_ARG, L"inputBuffer == NULL");
@@ -379,15 +379,15 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
-    float** inputBuffers, 
+    float** inputBuffers,
     amf_size inputStep,
 
     amf_size numOfSamplesToProcess,
 
-    short** outputBuffers, 
+    short** outputBuffers,
     amf_size outputStep,
 
-    float conversionGain, 
+    float conversionGain,
     int count,
     bool* outputClipped)
 {
@@ -401,15 +401,15 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     AMF_RESULT ret = AMF_OK;
     bool clipResult = false;
 
- 
+
     // Process an arbitrary number of conversions; record clipping
     for (int i = 0; i < count; i++)
     {
         bool clip = false;
         ret = Convert(
-            inputBuffers[i], inputStep, 
+            inputBuffers[i], inputStep,
             numOfSamplesToProcess,
-            outputBuffers[i], outputStep, 
+            outputBuffers[i], outputStep,
             conversionGain, (outputClipped != NULL) ? &clip : NULL);
         clipResult = clipResult || clip;
 
@@ -477,7 +477,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     // Set the kernel argument for the AMF device and continue to use OpenCL functions
 
     cl_uint index = 0;
-    
+
     amf_int32 overflowBufferOut = 0;
 
     if (canOverflow && outputClipped != NULL)
@@ -566,7 +566,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     cl_mem* inputBuffers,
 	amf_size inputStep,
     amf_size* inputOffsets,
-    
+
     TAN_SAMPLE_TYPE inputType,
 
     cl_mem* outputBuffers,

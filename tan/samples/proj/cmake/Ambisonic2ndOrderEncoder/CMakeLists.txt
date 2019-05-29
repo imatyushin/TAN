@@ -41,12 +41,13 @@ project(Ambisonic2ndOrderEncoder DESCRIPTION "Ambisonic2ndOrderEncoder")
 set(
   SOURCE_EXE
   ../../../src/Ambisonic2ndOrderEncoder/Ambisonic2ndOrderEncoder.cpp
-  ../../../src/common/wav.cpp
+
+  ../../../../common/wav.cpp
   )
 
 set(
   HEADER_EXE
-  ../../../src/common/wav.h
+  ../../../../common/wav.h
   )
 
 # create binary

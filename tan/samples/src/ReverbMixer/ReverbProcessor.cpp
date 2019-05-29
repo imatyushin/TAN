@@ -2,9 +2,9 @@
 #define FILTER_SAMPLE_RATE 48000
 
 #include "ReverbProcessor.h"
-#include "samples/src/common/wav.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 #include "samples/src/common/GpuUtils.h"
+#include "wav.h"
 
 #include "CL/cl.h"
 
@@ -96,7 +96,7 @@ AMF_RESULT ReverbProcessor::init(eOperationMode mode, int deviceIDx, size_t fftL
 	m_iNumOfChannels = numOfChannel;
 	adjustInternalFilterBuffer(fftLengthInSamples, numOfChannel);
 	// Insert one all pass filter into the system so that when no filter passed in, system will still function well
-	
+
 	for (int i = 0; i < m_vFDFilterList.size(); i++)
 	{
 		if (m_vFDFilterList[i] != nullptr)
@@ -186,7 +186,7 @@ void ReverbProcessor::playerStop()
 		delete m_threadProcessing;
 		m_threadProcessing = nullptr;
 	}
-		
+
 }
 
 int ReverbProcessor::addFilterFD(float** filter, AMF_RESULT* AMFErr)
@@ -309,7 +309,7 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 
 		if(m_iNumOfChannels != channelcount)
 		{
-			// need to remap the buffer to support 
+			// need to remap the buffer to support
 			float** outputFD = new float*[m_iNumOfChannels];
 			for (size_t i = 0; i < m_iNumOfChannels; i++)
 			{
@@ -356,7 +356,7 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 			delete[]output_float_temp;
 			delete[]bufferTD;
 			return addFilterFD(bufferFD, AMFErr);
-		}	
+		}
 	}
 	return -1;
 }
@@ -495,10 +495,10 @@ int ReverbProcessor::playerPlayInternal()
 	short *pOut;
 	short *pWaves;
 	short *pWaveStarts;
-	
+
 	pWaveStarts= pWaves= (short *)(m_pInputRawBuffer);
 	int totalNumOfBytes = m_iInputSizeInBytesPerChannel* m_iNumOfChannels; // stereo short samples
-	
+
 	pOut = new short[FILTER_SAMPLE_RATE];
 	memset(pOut, 0, FILTER_SAMPLE_RATE * sizeof(short));
 
@@ -608,7 +608,7 @@ void ReverbProcessor::adjustInternalFilterBuffer(size_t sizeInComplex, size_t nu
 		deallocateBuffer(m_pInternalProcessedFilterTDBuffer, m_iNumOfFilterBufferChannels);
 		deallocateBuffer(m_pInternalProcessedFilterFDBuffer, m_iNumOfFilterBufferChannels);
 		deallocateBuffer(m_pALLPassBuffer, m_iNumOfFilterBufferChannels);
-		
+
 
 		m_pInternalProcessedFilterFDBuffer = new float*[numOfChannels];
 		m_pInternalProcessedFilterTDBuffer = new float*[numOfChannels];
@@ -643,7 +643,7 @@ void ReverbProcessor::adjustInternalInputBuffer(size_t sizeInFloat, size_t numOf
 		deallocateBuffer(m_pfConvolutionInputBufferFloat, m_iNumOfConvBufferChannels);
 		deallocateBuffer(m_pfConvolutionOutputBuffer, m_iNumOfConvBufferChannels);
 		m_pInternalInOutBufferSizeInfloat = sizeInFloat;
-		
+
 		m_pfConvolutionInputBufferFloat = new float*[numOfChannels];
 		m_pfConvolutionOutputBuffer = new float*[numOfChannels];
 
@@ -780,12 +780,12 @@ AMF_RESULT ReverbProcessor::generate10BandEQFilterFD(float in[10], int sampleRat
 	}
 	printf("\n");
 	if (in == NULL) return AMF_FAIL;
-	if (sampleRate == 0 || numOfChannel == 0) return AMF_FAIL;	
+	if (sampleRate == 0 || numOfChannel == 0) return AMF_FAIL;
 	size_t sizeInfloats = 1 << (sizeInComplexLog2 + 1);
 	float* FilterTD = new float[sizeInfloats];
 	memset(FilterTD, 0, sizeInfloats*sizeof(float));
 	AMF_RETURN_IF_FAILED(m_pTANFilter->generate10BandEQ(sizeInComplexLog2, sampleRate, FilterTD, in), "generate10BandEQ() Failed");
-	
+
 	float** FilterTDC = new float*[numOfChannel];
 	float** FilterFD = new float*[numOfChannel];
 	for (int i = 0; i < numOfChannel; i++)

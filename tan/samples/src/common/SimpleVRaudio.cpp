@@ -28,8 +28,9 @@
 #include "SimpleVRaudio.h"
 #include "GpuUtils.h"
 #include "wav.h"
-#include "../../../tanlibrary/src/common/cpucaps.h"
 #include "../TrueAudioVR/TrueAudioVR.h"
+#include "../common/PulsePlayer.h"
+#include "cpucaps.h"
 
 #include <immintrin.h>
 #include <cmath>
@@ -142,7 +143,14 @@ Audio3D::Audio3D():
     running(false),
     stop(false),
     m_headingOffset(0.),
-    m_headingCCW(true)
+    m_headingCCW(true),
+    mPlayer(
+#ifdef _WIN32
+        new WASAPIUtils()
+#else
+        new PulsePlayer()
+#endif
+    )
 {
     responseBuffer = NULL;
     std::memset(nSamples, 0, sizeof(nSamples));
@@ -171,7 +179,7 @@ Audio3D::Audio3D():
 Audio3D::~Audio3D()
 {
     finit();
-   
+
 }
 
 int Audio3D::finit(){
@@ -202,7 +210,7 @@ int Audio3D::finit(){
         clReleaseMemObject(outputCLBufs[i]);
         outputCLBufs[i] = NULL;
     }
-    
+
     if (outputMainCLbuf != NULL)
     {
         clReleaseMemObject(outputMainCLbuf);
@@ -245,26 +253,35 @@ int Audio3D::finit(){
     return 0;
 }
 
-//int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize, 
+//int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize,
 //                    bool useGPU_Conv)
 
 int Audio3D::init(
-	char *dllPath, 
-	RoomDefinition roomDef, 
-	int nFiles, 
-	char **inFiles, 
-	int fftLen, 
-	int bufSize,
-    bool useGPU_Conv, int devIdx_Conv, 
+	const std::string & dllPath,
+	RoomDefinition      roomDef,
+	int                 nFiles,
+	const std::string   inFiles[MAX_SOURCES],
+	int                 fftLen,
+	int                 bufSize,
+    bool                useGPU_Conv,
+    int                 devIdx_Conv,
 #ifdef RTQ_ENABLED
-	bool useHPr_Conv,bool useRTQ_Conv, int cuRes_Conv,
+	bool                useHPr_Conv,
+    bool                useRTQ_Conv,
+    int                 cuRes_Conv,
 #endif // RTQ_ENABLED
-    bool useGPU_IRGen, int devIdx_IRGen, 
+    bool                useGPU_IRGen,
+    int                 devIdx_IRGen,
 #ifdef RTQ_ENABLED
-	bool useHPr_IRGen, bool useRTQ_IRGen, int cuRes_IRGen,
+	bool                useHPr_IRGen,
+    bool                useRTQ_IRGen,
+    int                 cuRes_IRGen,
 #endif // RTQ_ENABLED
-    amf::TAN_CONVOLUTION_METHOD &convMethod,
-    bool useCPU_Conv, bool useCPU_IRGen)
+    amf::TAN_CONVOLUTION_METHOD &
+                        convMethod,
+    bool                useCPU_Conv,
+    bool                useCPU_IRGen
+    )
 {
     finit();
     // shouldn't need this, they are radio buttons:
@@ -320,7 +337,7 @@ int Audio3D::init(
     memset(&room, 0, sizeof(room));
 
     room = roomDef;
- 
+
     for (int idx = 0; idx < nFiles; idx++) {
         sources[idx].speakerX = 0.0;
         sources[idx].speakerY = 0.0;
@@ -338,7 +355,7 @@ int Audio3D::init(
     //To Do skip missing files / handle error?
     for (int idx = 0; idx < nFiles; idx++)
     {
-        QueueErrors queueError = mPlayer->QueueWaveFile(inFiles[idx], &nSamples[idx], &pBuffers[idx]);
+        QueueErrors queueError = mPlayer->QueueWaveFile(inFiles[idx].c_str(), &nSamples[idx], &pBuffers[idx]);
 
         if(QueueErrors::FileNotFound == queueError)
         {
@@ -356,7 +373,7 @@ int Audio3D::init(
     }
     pProcessed = new unsigned char[nSP * 4];
 
- 
+
     //// Allocate RT-Queues
     //cl_command_queue cmdQueue1 = NULL;
     //cl_command_queue cmdQueue2 = NULL;
@@ -375,14 +392,14 @@ int Audio3D::init(
 #ifdef RTQ_ENABLED
 #define QUEUE_MEDIUM_PRIORITY                   0x00010000
 
-#define QUEUE_REAL_TIME_COMPUTE_UNITS           0x00020000  
+#define QUEUE_REAL_TIME_COMPUTE_UNITS           0x00020000
         if (useHPr_Conv){
             flagsQ1 = QUEUE_MEDIUM_PRIORITY;
         }
 
   else if (useRTQ_Conv){
             flagsQ1 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_Conv;
-        }  
+        }
 
 	    if (useHPr_IRGen){
             flagsQ2 = QUEUE_MEDIUM_PRIORITY;
@@ -399,7 +416,7 @@ int Audio3D::init(
         {
             cmdQueue3 = cmdQueue2;
         }
-    } 
+    }
 
     if (useCPU_Conv)
     {
@@ -424,7 +441,7 @@ int Audio3D::init(
         if (useGPU_IRGen)
         {
             CreateGpuCommandQueues(devIdx_IRGen, 0, &cmdQueue3, 0, NULL);
-        } 
+        }
         else if (useCPU_IRGen)
         {
             CreateCpuCommandQueues(devIdx_IRGen, 0, &cmdQueue3, 0, NULL);
@@ -490,7 +507,7 @@ int Audio3D::init(
             for (int i = 0; i < nFiles * 2; i++){
                 oclResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, m_fftLen * sizeof(float), NULL, &status);
             }
-            //HACK out for test 
+            //HACK out for test
             m_useClMemBufs = true;
         }
         // Initialize CL output buffers,
@@ -541,7 +558,7 @@ int Audio3D::init(
                     printf("Could not create OpenCL buffer\n");
                     return AMF_FAIL;
                 };
-                
+
                 if (clErr != CL_SUCCESS)
                 {
 
@@ -549,7 +566,7 @@ int Audio3D::init(
                     return AMF_FAIL;
                 };
             }
-            // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples 
+            // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
             // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
             outputShortBuf = clCreateBuffer(
                 m_spTANContext1->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufSize, nullptr, &clErr);
@@ -578,7 +595,7 @@ int Audio3D::init(
     char title[100];
     sprintf(title, "Room: %5.1lfm W x %5.1lfm L x %5.1lfm H", room.width, room.length, room.height);
 
- 
+
     // head model:
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 
@@ -663,7 +680,7 @@ int Audio3D::updateRoomDamping(float _left, float _right, float _top, float _but
 	room.mRight.damp = _right;
 	room.mFront.damp = _front;
 	room.mBack.damp = _back;
-	
+
 	updateParams = true;
 	return 0;
 }
@@ -736,7 +753,7 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
 {
     int sampleCount = sampleCountBytes / (sizeof(short) * 2);
 
-    
+
     // Read from the files
     for (int idx = 0; idx < m_nFiles; idx++) {
         for (int chan = 0; chan < 2; chan++){
@@ -751,7 +768,7 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
 
 
 
-    if (m_useOCLOutputPipeline) 
+    if (m_useOCLOutputPipeline)
     {   // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
@@ -769,11 +786,11 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
 
         ret = m_spMixer->Mix(outputCLBufRight, outputMixCLBufs[1]);
         RETURN_IF_FALSE(ret == AMF_OK);
-        ret = m_spConverter->Convert(outputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT, 
+        ret = m_spConverter->Convert(outputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
             outputShortBuf, 2, 0, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED); 
+        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-        ret = m_spConverter->Convert(outputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT, 
+        ret = m_spConverter->Convert(outputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
             outputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
@@ -824,7 +841,7 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
 
     // ToDo:  use limiter...
 
- 
+
     for (int idx = 2; idx < 2 * m_nFiles; idx += 2) {
         int k = 0;
         int n = sampleCount;
@@ -847,7 +864,7 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
             n--;
         }
     }
-    
+
 
     AMF_RESULT ret = m_spConverter->Convert(outputFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
     RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
@@ -863,10 +880,10 @@ int Audio3D::processProc()
 {
     int bytesPlayed;
     int bytesRecorded;
- 
+
     short *pRec, *pOut;
     short *pWaves[MAX_SOURCES];
-    short *pWaveStarts[MAX_SOURCES]; 
+    short *pWaveStarts[MAX_SOURCES];
     int sizes[MAX_SOURCES];
 
     int nSP = 0;
@@ -899,7 +916,7 @@ int Audio3D::processProc()
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
-    while (!stop) { 
+    while (!stop) {
 
         if (src1EnableMic) {
             bytesRecorded = 0;
@@ -1041,7 +1058,7 @@ int Audio3D::exportImpulseResponse(int srcNumber, char * fileName)
     float *rightResponse = responses[1];
     short *sSamples = new short[2 * convolutionLength];
      memset(sSamples, 0, 2 * convolutionLength*sizeof(short));
-        
+
     (void)m_spConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
 
     (void)m_spConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);

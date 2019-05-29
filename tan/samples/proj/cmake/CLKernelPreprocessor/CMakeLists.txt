@@ -29,6 +29,8 @@ endif()
 # name
 project(CLKernelPreprocessor DESCRIPTION "CLKernelPreprocessor")
 
+include_directories(../../../../common)
+
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
 ADD_DEFINITIONS(-DUNICODE)
@@ -39,12 +41,18 @@ set(
   SOURCE_EXE
   ../../../src/CLKernelPreprocessor/CLKernelPreprocessor.cpp
   ../../../src/CLKernelPreprocessor/stdafx.cpp
+
+  ../../../../common/FileUtility.cpp
+  ../../../../common/StringUtility.cpp
   )
 
 set(
   HEADER_EXE
   ../../../src/CLKernelPreprocessor/stdafx.h
   ../../../src/CLKernelPreprocessor/targetver.h
+
+  ../../../../common/FileUtility.h
+  ../../../../common/StringUtility.h
   )
 
 # create binary

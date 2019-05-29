@@ -45,8 +45,3 @@
 errno_t fopen_s(FILE **f, const char *name, const char *mode);
 
 #endif
-
-std::string getFileName(const std::string & path);
-std::string getFileExtension(const std::string & fileName);
-bool compareIgnoreCase(const std::string & first, const std::string & second);
-std::wstring toWideString(const std::string & inputString);

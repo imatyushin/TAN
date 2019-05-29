@@ -3,7 +3,7 @@
 #include "stdafx.h"
 
 #include "tanlibrary/include/TrueAudioNext.h"
-#include "samples/src/common/wav.h"
+#include "wav.h"
 #include "samples/src/TrueAudioVR/TrueAudioVR.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 
@@ -197,7 +197,7 @@ void LoadParameters(char * xmlFileName)
     struct attribute src8PosAttribs[3] = { { "X", &srcX[7], 'f' }, { "Y", &srcY[7], 'f' }, { "Z", &srcZ[7], 'f' } };
     struct attribute src9PosAttribs[3] = { { "X", &srcX[8], 'f' }, { "Y", &srcY[8], 'f' }, { "Z", &srcZ[8], 'f' } };
     struct attribute src10PosAttribs[3] = { { "X", &srcX[9], 'f' }, { "Y", &srcY[9], 'f' }, { "Z", &srcZ[9], 'f' } };
- 
+
     struct attribute src1VelAttribs[3] = { { "X", &srcVX[0], 'f' }, { "Y", &srcVY[0], 'f' }, { "Z", &srcVZ[0], 'f' } };
     struct attribute src2VelAttribs[3] = { { "X", &srcVX[1], 'f' }, { "Y", &srcVY[1], 'f' }, { "Z", &srcVZ[1], 'f' } };
     struct attribute src3VelAttribs[3] = { { "X", &srcVX[2], 'f' }, { "Y", &srcVY[2], 'f' }, { "Z", &srcVZ[2], 'f' } };
@@ -404,9 +404,9 @@ bool responsesMatch(float ** responseDiff, int length, float delta)
 #define RETURN_IF_FALSE(x) { if (!(x)) return -1; }
 
 void mangleFileName(
-    char *resFileName, 
-    size_t resFileNameLen, 
-    const char *baseFileName, 
+    char *resFileName,
+    size_t resFileNameLen,
+    const char *baseFileName,
     const char *suffix
 )
 {
@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
     inFileName = argv[2];
 	outFileName = argv[3];
     int maxbounces = 0;
-    bool gpu = false; 
+    bool gpu = false;
 
     if (argc >= 5){
         sscanf(argv[4], "%d", &maxbounces);
@@ -519,18 +519,18 @@ int main(int argc, char* argv[])
 
 	RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext));
     cl_command_queue cmdQueue = NULL;
-    
+
     if (gpu)
 	{
 		cl_context cl_context1;
 		cl_device_id cl_device_id1;
 		cl_uint status = getDeviceAndContext(0, &cl_context1, &cl_device_id1);
         cmdQueue = createQueue(cl_context1, cl_device_id1);
-		
+
         RETURN_IF_FALSE(!!cmdQueue);
         RETURN_IF_FAILED(pContext->InitOpenCL(cmdQueue, cmdQueue));
 	}
-    
+
 
 	RETURN_IF_FAILED(TANCreateFFT(pContext, &pFft));
 
@@ -557,7 +557,7 @@ int main(int argc, char* argv[])
 		memset(pfResponseR, 0, convolutionLength*sizeof(float));
 	}
 
-	
+
 	RETURN_IF_FAILED(pFft->Init());
 	// Open TrueAudioVR DLL:
 	AmdTrueAudioVR *taVR = NULL;
@@ -633,7 +633,7 @@ int main(int argc, char* argv[])
         lastNonZero = 0;
         if (maxbounces > 0){
             taVR->generateRoomResponse(room, src, ears, SamplesPerSec, convolutionLength, pfResponseL, pfResponseR, GENROOM_LIMIT_BOUNCES, maxbounces);
-            //find first and last non zero response values 
+            //find first and last non zero response values
             for (int k = 0; k < convolutionLength; k++){
                 if (pfResponseL[k] != 0.0) {
                     firstNonZero = k;
@@ -671,7 +671,7 @@ int main(int argc, char* argv[])
 
         src.speakerX += dx;
         convCPU->ProcessDirect(pfResponses, pfSamples, ppOut, (amf_size)nSamplesToProcess, (amf_size *)&nSamplesProcessed, &nzFL[0]);
- 
+
         pfSamples[0] += nSamplesProcessed;
         pfSamples[1] += nSamplesProcessed;
         ppOut[0] += nSamplesProcessed;
@@ -699,7 +699,7 @@ int main(int argc, char* argv[])
 		delete pfResponseR;
 	}
     pfResponseL = pfResponseR = NULL;
-    
+
     return 0;
 }
 

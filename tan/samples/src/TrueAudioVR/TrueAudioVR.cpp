@@ -25,7 +25,7 @@
 
 #include "stdafx.h"
 #include <omp.h>
-#include "../../../tanlibrary/src/common/cpucaps.h"
+#include "cpucaps.h"
 #include "TrueAudioVR.h"
 
 #include <immintrin.h>
@@ -237,10 +237,10 @@ public:
 };
 
 TrueAudioVRimpl::TrueAudioVRimpl(
-    TANContextPtr pContext, 
+    TANContextPtr pContext,
     TANFFTPtr pFft,
     cl_command_queue cmdQueue,
-    float samplesPerSecond, 
+    float samplesPerSecond,
     int convolutionLength ) :
     /*m_pfNmae(NULL),
     m_fpLog(NULL),*/
@@ -280,7 +280,7 @@ TrueAudioVRimpl::~TrueAudioVRimpl(){
 
 TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
 (
-    AmdTrueAudioVR **taVR, 
+    AmdTrueAudioVR **taVR,
     TANContextPtr pContext,
     TANFFTPtr pFft,
     cl_command_queue cmdQueue,
@@ -443,8 +443,8 @@ void TrueAudioVRimpl::applyHRTFoptCPU(HeadModel * pHead, float scale, float *res
     lpReg = (__m256 *)pHead->lowPass;
     respReg = (__m256 *)response;
 
-    // unrolled version - a little faster 
-#if SIMPLEHRTF_FFTLEN == 64		
+    // unrolled version - a little faster
+#if SIMPLEHRTF_FFTLEN == 64
     tmpReg = _mm256_fmadd_ps(hfReg, hpReg[0], lpReg[0]);
     respReg[0] = _mm256_fmadd_ps(scaleReg, tmpReg, respReg[0]);
     tmpReg = _mm256_fmadd_ps(hfReg, hpReg[1], lpReg[1]);
@@ -471,7 +471,7 @@ void TrueAudioVRimpl::applyHRTFoptCPU(HeadModel * pHead, float scale, float *res
         lpReg++;
         respReg++;
     } while (--len > 0);
-#endif	
+#endif
 }
 
 
@@ -540,9 +540,9 @@ Rz cos -sin    0   Roll
 but we want to do in Yaw,Pitch,Roll order
 where: cosY = cos(Yaw), cosP= cos(Pitch) cosR = cos(Roll)
 
- cosR -sinR    0      1     0     0       cosY    0  sinY       X 
+ cosR -sinR    0      1     0     0       cosY    0  sinY       X
  sinR  cosR    0   x  0  cosP -sinP   x 	 0    1    0    x   Y
-   0     0     1      0  sinP  cosP		 -sinY    0  cosY		Z  
+   0     0     1      0  sinP  cosP		 -sinY    0  cosY		Z
 
   cosY         0       sinY
  sinPsinY   cosP  -sinPcosY
@@ -557,7 +557,7 @@ where: cosY = cos(Yaw), cosP= cos(Pitch) cosR = cos(Roll)
 
 Xr  =  X*(cosRcosY -sinRsinPsinY) + Y*(-sinRcosP) + Z*(cosRsinY + sinRsinPcosY)
 Yr  =  X*(sinRcosY +cosRsinPsinY) + Y*( cosRcosP) + Z*(sinRsinY - cosRsinPcosY)
-Zr  =  X*(-cosPsinY) + Y*( sinP) + Z*(cosPcosY) 
+Zr  =  X*(-cosPsinY) + Y*( sinP) + Z*(cosPcosY)
 
 **************************************************************************************************/
 /*static inline void rotate(float &X, float &Y, float &Z, float yaw, float pitch, float roll)
@@ -711,7 +711,7 @@ void TrueAudioVRimpl::generateRoomResponse(RoomDefinition room, MonoSource sound
             break;
         }
 
-        // arbitrary cutoff for applying HRTF to echos 
+        // arbitrary cutoff for applying HRTF to echos
         int hrtfResponseLength = 2 * (nSamplesW + nSamplesH + nSamplesL);
 
         if (m_executionMode == VRExecutionMode::GPU)
@@ -811,7 +811,7 @@ void TrueAudioVRimpl::generateDirectResponse(RoomDefinition room, MonoSource sou
             break;
         }
 
-     
+
 
         generateDirectResponseCPU(room, sound, ears.earSpacing, &ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, pFirstNZ, pLastNZ);
 
@@ -827,7 +827,7 @@ void TrueAudioVRimpl::Initialize(StereoListener ears, int nW, int nH, int nL, in
 {
     m_pResponseBuffer = new float[responseLength];
     m_responseLength = responseLength;
-    
+
 }
 
 void TrueAudioVRimpl::InitializeCL(StereoListener ears, int nW, int nH, int nL, int responseLength)
@@ -909,7 +909,7 @@ void TrueAudioVRimpl::InitializeCL(StereoListener ears, int nW, int nH, int nL, 
     m_context = static_cast<cl_context>(m_pContext->GetOpenCLContext());
 #endif
 
-    // Compile kernel  
+    // Compile kernel
     {
         size_t lengths[1] = { GenerateRoomResponseCount };
         const char *text = reinterpret_cast<const char*>(GenerateRoomResponse);
@@ -958,11 +958,11 @@ void TrueAudioVRimpl::InitializeCL(StereoListener ears, int nW, int nH, int nL, 
 
     m_pFloatResponse =  clCreateBuffer(m_context, CL_MEM_READ_WRITE, responseLength * sizeof(float), NULL, &status);
 
-    // zero buffers 
+    // zero buffers
     float fill = 0.0;
     status = clEnqueueFillBuffer(m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
     status = clEnqueueFillBuffer(m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
-   
+
     //void *frMap = clEnqueueMapBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
 
     // TODO: log errors
@@ -1200,8 +1200,8 @@ each of the six walls, source and microphone positions in the room.
 **************************************************************************************************/
 
 void TrueAudioVRimpl::generateRoomResponseCPU(
-    RoomDefinition room, 
-    MonoSource sound, 
+    RoomDefinition room,
+    MonoSource sound,
     float earSpacing,
     HeadModel *pHrtf,
     float* response,
@@ -1211,8 +1211,8 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
     float earVX,
     float earVY,
     float earVZ,
-    int inSampRate, 
-    int responseLength, 
+    int inSampRate,
+    int responseLength,
     int hrtfResponseLength,
     int nW,
     int nH,
@@ -1337,8 +1337,8 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
 
 
 void TrueAudioVRimpl::generateDirectResponseCPU(
-    RoomDefinition room, 
-    MonoSource sound, 
+    RoomDefinition room,
+    MonoSource sound,
     float earSpacing,
     HeadModel *pHrtf,
     float* response,
@@ -1348,7 +1348,7 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
     float earVX,
     float earVY,
     float earVZ,
-    int inSampRate, 
+    int inSampRate,
     int responseLength,
     int *firstNonZero,
     int *lastNonZero
@@ -1420,7 +1420,7 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
 
 
 // ToDo remove for distro
-#ifdef DOORWAY_TRANSFORM 
+#ifdef DOORWAY_TRANSFORM
 void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefinition room2,
     MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags, int maxBounces)
 {
@@ -1451,9 +1451,9 @@ void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefiniti
     generateDoorwayDirectResponse(room1, room2, source, door, ear, inSampRate, responseLength, m_pResponseBuffer, responseLeft, responseRight, 0);
 
     // HRTF stereo:
-    float *hrtfbuf = m_pResponseBuffer; 
+    float *hrtfbuf = m_pResponseBuffer;
 
-    
+
     //rotate head:
     float earDxL = ear.earSpacing / 2;
     float earDyL = 0.0;
@@ -1517,7 +1517,7 @@ void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefiniti
     m_pFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_BACKWARD, log2len, 1, &responseRight, &responseRight);
 
 
-     /* 
+     /*
     MonoSource vSource;
     vSource.speakerX = door.r2cX;
     vSource.speakerY = door.r2cY;
@@ -1537,7 +1537,7 @@ void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefiniti
     m_pFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, log2len, 1, &response2, &response2);
 
     m_pMath->ComplexMultiplication( &response1, &response2, &response2, 1, responseLength);
-   
+
     m_pFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_BACKWARD, log2len, 1, &response2, &response2);
     */
 }
@@ -1545,7 +1545,7 @@ void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefiniti
 
 // source in room1, ear in room2, door in both:
 void  TrueAudioVRimpl::generateDoorwayDirectResponse(RoomDefinition room1, RoomDefinition room2, MonoSource source, Door door, StereoListener ear, int inSampRate,
-    int responseLength, 
+    int responseLength,
     float *responseIn, float *responseLeft, float *responseRight, int flags)
 {
     float maxGain = 1.0;
@@ -1600,7 +1600,7 @@ void  TrueAudioVRimpl::generateDoorwayDirectResponse(RoomDefinition room1, RoomD
         }
     }
 
-    // add in direct path 
+    // add in direct path
     // planar rectangular doorway defined by center and two bottom corners:
 
     //
@@ -1648,7 +1648,7 @@ void  TrueAudioVRimpl::generateDoorwayDirectResponse(RoomDefinition room1, RoomD
     float sz = source.speakerZ;
 
     float scale = 1.0 / (nv * nh);
-    maxGain *= scale; // ??? 
+    maxGain *= scale; // ???
 
     //
     // doorway definition in room 2:
@@ -1748,7 +1748,7 @@ void  TrueAudioVRimpl::generateDoorwayDirectResponse(RoomDefinition room1, RoomD
 
             // add to impulse response:
             int ridxR = 1 + (int)(((d2 + d1) / S) * inSampRate);
-            
+
             if (d2 <= dMin)
                 dr = maxGain;
             else

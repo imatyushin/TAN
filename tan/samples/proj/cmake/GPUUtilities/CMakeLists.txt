@@ -92,6 +92,12 @@ set(
   ../../../src/GPUUtilities/targetver.h
   )
 
+#if(NOT WIN32)
+# list(APPEND SOURCE_EXE ../../../src/common/WASAPIUtils.cpp)
+#else()
+#  list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.cpp)
+#endif()
+
 # create library
 add_library(
   GPUUtilities
@@ -102,3 +108,5 @@ add_library(
 
 # linking
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
+
+target_compile_options(GPUUtilities PUBLIC -g) #todo: to Debug only

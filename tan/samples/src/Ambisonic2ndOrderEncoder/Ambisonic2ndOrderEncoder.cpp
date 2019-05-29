@@ -23,13 +23,11 @@
 
 // Ambisonic2ndOrderEncoder.cpp : Defines the entry point for the console application.
 //
+#include "wav.h"
 
 #include <stdio.h>
 #include <memory.h>
 #include <math.h>
-#include "../common/wav.h"
-
-
 
 int main(int argc, char* argv[])
 {

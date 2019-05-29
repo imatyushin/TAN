@@ -45,13 +45,14 @@ set(
   SOURCE_EXE
   ../../../src/TAlibTestDynamicChannelConvolution/TALibTestDynamicChannelConvolution.cpp
   ../../../../samples/src/common/utilities.c
-  ../../../../samples/src/common/wav.cpp
+
+  ../../../../common/wav.cpp
   )
 
 set(
   HEADER_EXE
   ../../../../samples/src/common/utilities.h
-  ../../../../samples/src/common/wav.h
+  ../../../../common/wav.h
   )
 
 # create binary

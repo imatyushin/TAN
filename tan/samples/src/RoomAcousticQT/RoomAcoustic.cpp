@@ -2,6 +2,7 @@
 #include "samples/src/common/GpuUtils.h"
 #include "samples/src//TrueAudioVR/TrueAudioVR.h"
 #include "../common/common.h"
+#include "FileUtility.h"
 
 #include <time.h>
 
@@ -29,11 +30,7 @@ RoomAcoustic::RoomAcoustic()
 
 RoomAcoustic::~RoomAcoustic()
 {
-	delete m_cpConfigFilePath;
-	delete m_cpLogPath;
-	delete m_cpTANDLLPath;
 }
-
 
 void RoomAcoustic::initialize()
 {
@@ -63,16 +60,23 @@ int RoomAcoustic::start()
 	{
 		Roomdevice--;
 	}
-	int err =  m_pAudioEngine->init(m_cpTANDLLPath, m_RoomDefinition,m_iNumOfWavFileInternal,m_cpWavFileNamesInternal, m_iConvolutionLength,
-		m_iBufferSize, m_iuseGPU4Conv, convolutiondevice, 
+	int err =  m_pAudioEngine->init(
+		mTANDLLPath.c_str(),
+		m_RoomDefinition,
+		m_iNumOfWavFileInternal,
+		mWavFileNamesInternal,
+		m_iConvolutionLength,
+		m_iBufferSize, m_iuseGPU4Conv, convolutiondevice,
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Conv,m_iuseRTQ4Conv, m_iConvolutionCUCount,
 #endif // RTQ_ENABLED
 		m_iuseGPU4Room, Roomdevice,
 #ifdef RTQ_ENABLED
-		m_iuseMPr4Room,m_iuseRTQ4Room, m_iRoomCUCount, 
+		m_iuseMPr4Room,m_iuseRTQ4Room, m_iRoomCUCount,
 #endif
-		m_eConvolutionMethod);
+		m_eConvolutionMethod
+		);
+
 	m_pAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
 	m_pAudioEngine->setSrc1Options(m_isrc1EnableMic, m_isrc1TrackHeadPos);
 	updateAllSoundSourcesPosition();
@@ -94,8 +98,6 @@ void GetFileVersionAndDate(wchar_t *logMessage, char *version)
 	DWORD dummy;
 	WCHAR filename[1024];
 	unsigned int len;
-	//filename = 0x00000075cfd2e470 L"C:\\lomo\\zli2_TAN_Mark1\\TAN_amir\\build\\solution\\..\\..\\bin\\vs2013x64Debug\\RoomAcousticsFull64.exe"
-	//filename = 0x0000009340dce720 L"C:\\lomo\\zli2_TAN_Mark1\\TAN_amir\\build\\solution\\..\\..\\bin\\vs2013x64Debug\\RoomAccousticNew64.exe"
 	GetModuleFileNameW(NULL, filename, sizeof(filename) / sizeof(filename[0]));
 	size = GetFileVersionInfoSizeW(filename, &dummy);
 	DWORD a = GetLastError();
@@ -131,81 +133,28 @@ void GetFileVersionAndDate(wchar_t *logMessage, char *version)
 #endif
 }
 
-static std::string getPath()
-{
-#ifdef _WIN32
-    char buffer[MAX_PATH];
-#ifdef UNICODE
-    if(!GetModuleFileNameA(NULL, (LPSTR)buffer, sizeof(buffer)))
-    {
-        throw std::string("GetModuleFileName() failed!");
-    }
-#else
-    if(!GetModuleFileName(NULL, buffer, sizeof(buffer)))
-    {
-        throw std::string("GetModuleFileName() failed!");
-    }
-#endif
-    std::string str(buffer);
-    /* '\' == 92 */
-    int last = (int)str.find_last_of((char)92);
-#else
-    char buffer[MAX_PATH + 1];
-    ssize_t len;
-    if((len = readlink("/proc/self/exe",buffer, sizeof(buffer) - 1)) == -1)
-    {
-        throw std::string("readlink() failed!");
-    }
-    buffer[len] = '\0';
-    std::string str(buffer);
-    /* '/' == 47 */
-    int last = (int)str.find_last_of((char)47);
-#endif
-    return str.substr(0, last + 1);
-}
-
 void RoomAcoustic::initializeEnvironment()
 {
-	this->m_cpConfigFilePath = new char[MAX_PATH + 1];
-	this->m_cpTANDLLPath = new char[MAX_PATH + 1];
-	this->m_cpLogPath = new char[MAX_PATH + 1];
-	//GetModuleFileNameA(NULL, this->m_cpTANDLLPath, MAX_PATH);
-	std::strncpy(this->m_cpTANDLLPath, getPath().c_str(), MAX_PATH);
-	char *pslash = strrchr(this->m_cpTANDLLPath, '\\');
-	char exename[80] = "\0";
-	if (pslash){
-		strncpy(exename, pslash + 1, 80);
-		*pslash = '\0';
-	}
-	char *pdot = strrchr(exename, '.');
-	if (pdot)
-		*pdot = '\0';
+	auto moduleFileName = getModulePath();
+	auto exeName = getFileNameWithExtension(moduleFileName);
 
+	mTANDLLPath = moduleFileName;
 
-	//strncpy(dllPath, "c:\\TANSDK\\testapp",80); //hack
-	strncpy(this->m_cpConfigFilePath, this->m_cpTANDLLPath, MAX_PATH);
-	
-	// Change current working directory to executable directory
-#ifdef _WIN32
-	_chdir(this->m_cpConfigFilePath);
-#else
-	chdir(this->m_cpConfigFilePath);
-#endif
-	
-	strncpy(this->m_cpLogPath, this->m_cpTANDLLPath, MAX_PATH);
+	setCurrentDirectory(mTANDLLPath);
 
-	strncat(this->m_cpConfigFilePath, "\\default.xml", MAX_PATH);
-	//strncat_s(logPath, "\\TaLibVRDemoLog.log", MAX_PATH);
-	strncat(this->m_cpLogPath, "\\", MAX_PATH);
-	strncat(this->m_cpLogPath, exename, MAX_PATH);
-	strncat(this->m_cpLogPath, ".log", MAX_PATH);
+	mConfigFilePath = mTANDLLPath + getDirectorySeparator() + "default.xml";
+
+	mLogPath = mTANDLLPath + getDirectorySeparator() + exeName + ".log";
 
 	FILE *fpLog = NULL;
 	errno_t err = 0;
 	errno = 0;
-	
+
+	//todo: ivm: uncomment
+	/*
 	// Redirect stdout and stderr to a log file.
-	if (fopen_s(&fpLog, this->m_cpLogPath, "a+") == 0) {
+	if (fopen_s(&fpLog, mLogPath.c_str(), "a+") == 0)
+	{
 		dup2(fileno(fpLog), fileno(stdout));
 		dup2(fileno(fpLog), fileno(stderr));
 	}
@@ -213,16 +162,16 @@ void RoomAcoustic::initializeEnvironment()
 	//	dup2(fileno(fpLog), fileno(stdout));
 	//	dup2(fileno(fpLog), fileno(stderr));
 	//}
+	*/
 
 	wchar_t logDateVerStamp[MAX_PATH * 2];
-	char version[40];
-	memset(version, 0, sizeof(version));
+	char version[40] = {0};
 	GetFileVersionAndDate(logDateVerStamp, version);
+
 	wprintf(logDateVerStamp);
 
 	for (int idx = 0; idx < MAX_SOURCES; idx++){
-		m_cpWavFileNames[idx] = new char[MAX_PATH + 2];
-		m_cpWavFileNames[idx][0] = '\0';
+		mWavFileNames[idx].resize(0);
 	}
 
 	for (int index = 0; index < MAX_SOURCES; ++index)
@@ -252,7 +201,7 @@ void RoomAcoustic::initializeRoom()
 		m_SoundSources[idx].speakerZ = float(m_RoomDefinition.width * 0.05);
 		m_SoundSources[idx].speakerY = 1.75;
 		m_iSoundSourceEnable[idx] = 0;
-		m_cpWavFileNamesInternal[idx] = nullptr;
+		mWavFileNamesInternal[idx].resize(0);
 	}
 
 	for (int i = 0; i < MAX_SOURCES; i++)
@@ -395,15 +344,10 @@ void RoomAcoustic::portInfoToEngine()
 	m_iNumOfWavFileInternal = 0;
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (m_cpWavFileNamesInternal[i] != NULL)
+		mWavFileNamesInternal[soundnameindex].resize(0);
+		if(mWavFileNames[i].length() && m_iSoundSourceEnable[i])
 		{
-			delete[] m_cpWavFileNamesInternal[i];
-			m_cpWavFileNamesInternal[i] = nullptr;
-		}
-		m_cpWavFileNamesInternal[soundnameindex] = new char[MAX_PATH];
-		if (m_cpWavFileNames[i][0] != '\0' && m_iSoundSourceEnable[i])
-		{
-			strcpy(m_cpWavFileNamesInternal[soundnameindex], m_cpWavFileNames[i]);
+			mWavFileNamesInternal[soundnameindex] = mWavFileNames[i];
 			m_iSoundSourceMap[i] = soundnameindex;
 			soundnameindex++;
 			m_iNumOfWavFileInternal++;
@@ -419,7 +363,7 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 	std::vector<attribute*> attributes_list;
 	std::vector<element*> elements_list;
 	for (int i = 0; i < MAX_SOURCES; i++)
-	{	
+	{
 		attribute* srcPosAttribs = new attribute[3];
 		attributes_list.push_back(srcPosAttribs);
 		srcPosAttribs[0].name = "X";
@@ -440,10 +384,11 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 		streamAttribs[0].fmt = 'i';
 
 		streamAttribs[1].name = "file";
-		streamAttribs[1].value = &m_cpWavFileNames[i][0];
+		//todo: verify
+		streamAttribs[1].value = &mWavFileNames[i][0];
 		streamAttribs[1].fmt = 's';
 		element *src = nullptr;
-		
+
 		if (i == 0){
 			src = new element[3];
 			elements_list.push_back(src);
@@ -460,7 +405,7 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 			src1MicAttribs[2].fmt = 'i';
 
 			//attribute src1MicAttribs[3] = { { "enableMic", &m_isrc1EnableMic, 'i' }, { "trackHeadPos", &m_isrc1TrackHeadPos, 'i' }, { "muteDirectPath", &m_isrc1TrackHeadPos, 'i' } };
-			//attribute streamAttribs[1] = { { "file", &m_cpWavFileNames[i][0], 's' } };
+			//attribute streamAttribs[1] = { { "file", &mWavFileNames[i][0], 's' } };
 			src[0] = { "streamS1", 2, streamAttribs, 0, NULL };
 			src[1] = { "microphone", 3, src1MicAttribs, 0, NULL };
 			src[2] = { "positionS1", 3, srcPosAttribs, 0, NULL };
@@ -472,7 +417,7 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 			src = new element[2];
 			elements_list.push_back(src);
 
-				
+
 			std::string _stream = "streamS";
 			std::string _position = "positionS";
 			_stream += std::to_string(i+1);
@@ -492,12 +437,12 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 		}
 		std::string _Source = "Source";
 		_Source += std::to_string(i+1);
-		
+
 		std::strncpy(RAelementList[i].name, _Source.c_str(), MAX_PATH);
 		RAelementList[i].nAttribs = 0;
 		RAelementList[i].attriblist = NULL;
-		
-		
+
+
 	}
 
 	// Initialize Listener Attributes
@@ -562,7 +507,7 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 	RAelementList[MAX_SOURCES].name = "Listener";
 	RAelementList[MAX_SOURCES].nElements = sizeof(head) / sizeof(element);
 	RAelementList[MAX_SOURCES].elemList = head;
-	
+
 	RAelementList[MAX_SOURCES + 1].name = "Room";
 	RAelementList[MAX_SOURCES + 1].nElements = sizeof(roomElems) / sizeof(element);
 	RAelementList[MAX_SOURCES + 1].elemList = roomElems;
@@ -648,7 +593,7 @@ void RoomAcoustic::saveConfiguraiton(char* xmlfilename)
 	fputs("<!-- All dimensions in meters, damping in decibels -->\n", fpSaveFile);
 
 	fputs(" <Source1>\n", fpSaveFile);
-	fprintf(fpSaveFile, " <streamS1  on=\"%d\" file=\"%s\" />\n", m_iSoundSourceEnable[0], m_cpWavFileNames[0]);
+	fprintf(fpSaveFile, " <streamS1  on=\"%d\" file=\"%s\" />\n", m_iSoundSourceEnable[0], mWavFileNames[0].c_str());
 	fprintf(fpSaveFile, "  <microphone enableMic=\"%d\" trackHeadPos=\"%d\" muteDirectPath=\"%d\" />\n",
 		m_isrc1EnableMic, m_isrc1TrackHeadPos, m_isrc1MuteDirectPath);
 	fprintf(fpSaveFile, "  <positionS1 X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", m_SoundSources[0].speakerX, m_SoundSources[0].speakerY, m_SoundSources[0].speakerZ);
@@ -656,7 +601,7 @@ void RoomAcoustic::saveConfiguraiton(char* xmlfilename)
 
 	for (int i = 1; i < MAX_SOURCES; i++) {
 		fprintf(fpSaveFile, " <Source%d>\n", i + 1);
-		fprintf(fpSaveFile, " <streamS%d  on=\"%d\" file=\"%s\" />\n", i + 1, m_iSoundSourceEnable[i], m_cpWavFileNames[i]);
+		fprintf(fpSaveFile, " <streamS%d  on=\"%d\" file=\"%s\" />\n", i + 1, m_iSoundSourceEnable[i], mWavFileNames[i].c_str());
 		fprintf(fpSaveFile, "  <positionS%d X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", i + 1, m_SoundSources[i].speakerX, m_SoundSources[i].speakerY, m_SoundSources[i].speakerZ);
 		fprintf(fpSaveFile, " </Source%d>\n", i + 1);
 	}
@@ -670,7 +615,7 @@ void RoomAcoustic::saveConfiguraiton(char* xmlfilename)
 	fputs(" <Room>\n", fpSaveFile);
 	fprintf(fpSaveFile, "  <dimensions width=\"%f\" height=\"%f\" length=\"%f\" />\n", m_RoomDefinition.width, m_RoomDefinition.height, m_RoomDefinition.length);
 	fprintf(fpSaveFile, "  <damping left=\"%f\" right=\"%f\" front=\"%f\" back=\"%f\" top=\"%f\" bottom=\"%f\"/>\n",
-		DAMPTODB(m_RoomDefinition.mLeft.damp), DAMPTODB(m_RoomDefinition.mRight.damp), DAMPTODB(m_RoomDefinition.mFront.damp), DAMPTODB(m_RoomDefinition.mBack.damp), 
+		DAMPTODB(m_RoomDefinition.mLeft.damp), DAMPTODB(m_RoomDefinition.mRight.damp), DAMPTODB(m_RoomDefinition.mFront.damp), DAMPTODB(m_RoomDefinition.mBack.damp),
 		DAMPTODB(m_RoomDefinition.mTop.damp), DAMPTODB(m_RoomDefinition.mBottom.damp));
 #ifdef RTQ_ENABLED
 	fprintf(fpSaveFile, " <rendering nSources=\"%d\" withGPU=\"%d\" withRTQ=\"%d\" withMPr=\"%d\" withCus=\"%d\"/>\n", m_iNumOfWavFile,
@@ -706,9 +651,9 @@ int RoomAcoustic::addSoundSource(char* sourcename)
 		// Find a empty sound source slots and assign to it.
 		for (int i = 0; i < MAX_SOURCES; i++)
 		{
-			if (m_cpWavFileNames[i][0] == '\0')
+			if(!mWavFileNames[i].length())
 			{
-				m_cpWavFileNames[i] = strdup(sourcename);
+				mWavFileNames[i] = sourcename;
 				m_iNumOfWavFile++;
 				return i;
 			}
@@ -737,8 +682,9 @@ bool RoomAcoustic::replaceSoundSource(char* sourcename, int id)
 			m_isrc1EnableMic = 0;
 			m_isrc1MuteDirectPath = 0;
 		}
-		delete[]m_cpWavFileNames[id];
-		m_cpWavFileNames[id] = strdup(sourcename);
+
+		mWavFileNames[id] = sourcename;
+
 		return true;
 	}
 }
@@ -747,7 +693,7 @@ bool RoomAcoustic::removeSoundSource(const char* sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (!strcmp(sourcename, m_cpWavFileNames[i]))
+		if (!strcmp(sourcename, mWavFileNames[i].c_str()))
 		{
 			removeSoundSource(i);
 		}
@@ -761,7 +707,7 @@ bool RoomAcoustic::removeSoundSource(int id)
 	if (id >= 0 && id < MAX_SOURCES)
 	{
 		// if the sound source exist
-		if (m_cpWavFileNames[id][0] != '\0')
+		if (mWavFileNames[id].length())
 		{
 			m_SoundSources[id].speakerY = 0.0f;
 			m_SoundSources[id].speakerX = 0.0f;
@@ -774,7 +720,7 @@ bool RoomAcoustic::removeSoundSource(int id)
 				m_isrc1MuteDirectPath = 0;
 			}
 			// Clean file name
-			m_cpWavFileNames[id][0] = '\0';
+			mWavFileNames[id].resize(0);
 			m_iNumOfWavFile--;
 		}
 		else
@@ -800,7 +746,7 @@ int RoomAcoustic::findSoundSource(const char* sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (!strcmp(sourcename, m_cpWavFileNames[i]))
+		if (!strcmp(sourcename, mWavFileNames[i].c_str()))
 		{
 			return i;
 		}
@@ -860,7 +806,7 @@ void RoomAcoustic::updateAllSoundSourcesPosition()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (m_cpWavFileNames[i][0] != '\0' && m_iSoundSourceEnable[i] )
+		if (mWavFileNames[i].length() && m_iSoundSourceEnable[i] )
 		{
 			updateSoundSourcePosition(i);
 		}

@@ -49,24 +49,9 @@ link_directories(${Qt5Widgets_LIBRARY})
 include_directories(../../../../../amf)
 include_directories(../../../../../tan)
 include_directories(../../../src/common)
+include_directories(../../../../common)
 
 include_directories(../../../src/RoomAcousticQT/QTObject)
-
-#
-#if(COMPILER_MSVC)
-  #ADD_DEFINITIONS(-DRTQ_ENABLED)
-  #WIN32
-  #WIN64
-  #QT_DLL
-  #QT_CORE_LIB
-  #QT_GUI_LIB
-  #QT_WIDGETS_LIB
-  #ADD_DEFINITIONS(-DUNICODE)
-  #ADD_DEFINITIONS(-D_UNICODE)
-  #set(CMAKE_MFC_FLAG 1)
-  #add_definitions(-D_AFXDLL)
-  #add_definitions(-D_DLL)
-#endif()
 
 # sources
 set(
@@ -89,21 +74,24 @@ set(
   ../../../src/common/GpuUtils.cpp
   ../../../src/common/SimpleVRaudio.cpp
   ../../../src/common/utilities.c
-  ../../../src/common/wav.cpp
-  ../../../src/RoomAcousticQT/FileUtility.cpp
+
+  ../../../../common/FileUtility.cpp
+  ../../../../common/StringUtility.cpp
+  ../../../../common/RegisterBrowser.cpp
+  ../../../../common/wav.cpp
+
   ../../../src/RoomAcousticQT/main.cpp
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp
   ../../../src/RoomAcousticQT/QTObject/QTExportResponse.cpp
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticConfig.cpp
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticGraphic.cpp
-  ../../../src/RoomAcousticQT/RegisterBrowser.cpp
   ../../../src/RoomAcousticQT/RoomAcoustic.cpp
   )
 
 if(WIN32)
-  list(APPEND SOURCE_LIB ../../../src/common/WASAPIUtils.cpp)
+  list(APPEND SOURCE_EXE ../../../src/common/WASAPIUtils.cpp)
 else()
-  list(APPEND SOURCE_LIB ../../../src/common/AlsaPlayer.cpp)
+  list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.cpp)
 endif()
 
 set(
@@ -139,7 +127,7 @@ set(
   ../../../../../amf/public/include/core/Trace.h
   ../../../../../amf/public/include/core/Variant.h
   ../../../../../amf/public/include/core/Version.h
-  
+
   ../../../src/common/common.h
   ../../../src/common/fifo.h
   ../../../src/common/GpuUtils.h
@@ -148,10 +136,13 @@ set(
   ../../../src/common/utilities.h
   ../../../src/common/WasAPI.h
   ../../../src/common/IWavPlayer.h
-  ../../../src/common/wav.h
-  ../../../src/RoomAcousticQT/FileUtility.h
+
+  ../../../../common/FileUtility.h
+  ../../../../common/StringUtility.h
+  ../../../../common/RegisterBrowser.h
+  ../../../../common/wav.h
+
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
-  ../../../src/RoomAcousticQT/RegisterBrowser.h
   ../../../src/RoomAcousticQT/Resources/resource.h
   ../../../src/RoomAcousticQT/RoomAcoustic.h
 )
@@ -205,5 +196,3 @@ find_package(Threads)
 target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
 
 endif()
-
-#/usr/bin/c++     CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/AMFFactory.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/AMFSTL.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/DataStreamFactory.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/DataStreamFile.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/DataStreamMemory.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/IOCapsImpl.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/PropertyStorageExImpl.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/Thread.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/TraceAdapter.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/amf/public/common/Windows/ThreadWindows.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/common/common.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/common/fifo.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/common/GpuUtils.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/common/SimpleVRaudio.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/common/utilities.c.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/common/wav.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/FileUtility.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/main.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/QTObject/QTExportResponse.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/QTObject/QTRoomAcousticConfig.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/QTObject/QTRoomAcousticGraphic.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/RegisterBrowser.cpp.o CMakeFiles/RoomAcousticsQT.dir/home/user/TAN/tan/samples/src/RoomAcousticQT/RoomAcoustic.cpp.o CMakeFiles/RoomAcousticsQT.dir/__/__/__/src/RoomAcousticQT/QTObject/moc_QTRoomAcousticConfig.cpp.o CMakeFiles/RoomAcousticsQT.dir/__/__/__/src/RoomAcousticQT/QTObject/moc_QTRoomAcousticGraphic.cpp.o CMakeFiles/RoomAcousticsQT.dir/__/__/__/src/RoomAcousticQT/QTObject/moc_QTExportResponse.cpp.o CMakeFiles/RoomAcousticsQT.dir/qrc_roomaccousticnew.cpp.o  -o RoomAcousticsQT  -L/opt/rocm/opencl/lib/x86_64/libOpenCL.so -Wl,-rpath,/opt/rocm/opencl/lib/x86_64/libOpenCL.so:/home/user/TAN/tan/build/cmake/linux/cmake-TAN-bin:/home/user/TAN/tan/build/cmake/linux/cmake-TrueAudioVR-bin:/home/user/TAN/tan/build/cmake/linux/cmake-GPUUtilities-bin:/opt/rocm/opencl/lib/x86_64:/opt/Qt/5.6.3/gcc_64/lib ../cmake-TAN-bin/libTrueAudioNext.so ../cmake-TrueAudioVR-bin/libTrueAudioVR.so ../cmake-GPUUtilities-bin/libGPUUtilities.so /opt/rocm/opencl/lib/x86_64/libOpenCL.so /opt/Qt/5.6.3/gcc_64/lib/libQt5Widgets.so.5.6.3 -lpthread ../cmake-Graal-bin/libGraal.a ../cmake-clFFT-bin/libclFFT-master.a /opt/Qt/5.6.3/gcc_64/lib/libQt5Gui.so.5.6.3 /opt/Qt/5.6.3/gcc_64/lib/libQt5Core.so.5.6.3

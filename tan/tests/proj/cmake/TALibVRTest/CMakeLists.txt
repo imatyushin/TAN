@@ -43,14 +43,15 @@ include_directories(../../../../../tan)
 # sources
 set(
   SOURCE_EXE
-  ../../../../samples/src/common/wav.cpp
+  ../../../../common/wav.cpp
+
   ../../../src/TALibVRTest/stdafx.cpp
   ../../../src/TALibVRTest/TALibVRTest.cpp
   )
 
 set(
   HEADER_EXE
-  ../../../../samples/src/common/wav.h
+  ../../../../common/wav.h
   ../../../src/TALibVRTest/stdafx.h
   ../../../src/TALibVRTest/targetver.h
   )

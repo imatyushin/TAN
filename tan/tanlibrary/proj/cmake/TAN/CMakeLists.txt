@@ -32,6 +32,8 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 # name
 project(TrueAudioNext VERSION 1.0.0 DESCRIPTION "TAN")
 
+include_directories(../../../../common)
+
 #
 ADD_DEFINITIONS(-DLEGACY_COPYING=1)
 ADD_DEFINITIONS(-DCONVOLUTION_EXPORTS)
@@ -206,4 +208,5 @@ target_compile_options(TrueAudioNext PUBLIC -mavx2)
 target_compile_options(TrueAudioNext PUBLIC -mfma)
 target_compile_options(TrueAudioNext PUBLIC -msse4.2)
 target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
+target_compile_options(TrueAudioNext PUBLIC -g) #todo: to Debug only
 endif()

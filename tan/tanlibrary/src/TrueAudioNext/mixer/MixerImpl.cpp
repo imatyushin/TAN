@@ -22,7 +22,7 @@
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
 #include "../../common/OCLHelper.h"
-#include "../../common/cpucaps.h"
+#include "cpucaps.h"
 
 #include <math.h>
 
@@ -37,7 +37,7 @@ using namespace amf;
 
 bool TANMixerImpl::useSSE2 = InstructionSet::SSE2();
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] = 
+static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 {
 #if AMF_BUILD_OPENCL
     {AMF_MEMORY_OPENCL,     L"OpenCL"},
@@ -47,7 +47,7 @@ static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 };
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMixer(
-    amf::TANContext* pContext, 
+    amf::TANContext* pContext,
     amf::TANMixer** ppComponent
     )
 {
@@ -76,7 +76,7 @@ TANMixerImpl::~TANMixerImpl(void)
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     amf_size buffer_size,
     int num_channels
-	) 
+	)
 
 {
     AMFLock lock(&m_sect);
@@ -113,12 +113,12 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     // Given some command queue, retrieve the cl_context...
     m_pCommandQueueCl = m_pContextTAN->GetOpenCLGeneralQueue();
-    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context), 
+    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context),
         &m_pContextCl, NULL);
         AMF_RETURN_IF_CL_FAILED(ret,  L"Cannot retrieve cl_context from cl_command_queue.");
 
     // ...and cl_device from it
-    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_DEVICE, sizeof(cl_device_id), 
+    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_DEVICE, sizeof(cl_device_id),
         &m_pDeviceCl, NULL);
     AMF_RETURN_IF_CL_FAILED(ret, L"Cannot retrieve cl_device_id from cl_command_queue.");
 
@@ -163,7 +163,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
     m_pCommandQueueCl = NULL;
     m_pContextAMF = NULL;
     m_pContextTAN = NULL;
-    
+
     return AMF_OK;
 }
 
@@ -175,7 +175,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
 {
 	amf_size numOfSamplesToProcess = m_bufferSize;
 	int numChannels = m_numChannels;
-    for (int idx = 0; idx <numChannels; idx++) 
+    for (int idx = 0; idx <numChannels; idx++)
     {
         int k = 0;
         int n = numOfSamplesToProcess;

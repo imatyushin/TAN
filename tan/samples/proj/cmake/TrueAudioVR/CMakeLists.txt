@@ -40,6 +40,7 @@ ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
+include_directories(../../../../common)
 
 # sources
 set(
@@ -83,7 +84,7 @@ set(
   ../../../src/TrueAudioVR/targetver.h
   ../../../src/TrueAudioVR/TrueAudioVR.h
 
-  ../../../../tanlibrary/src/common/cpucaps.h
+  ../../../../common/cpucaps.h
   )
 
 # create library
@@ -126,4 +127,5 @@ target_compile_options(TrueAudioVR PUBLIC -mavx2)
 target_compile_options(TrueAudioVR PUBLIC -mfma)
 target_compile_options(TrueAudioVR PUBLIC -msse4.2)
 target_compile_options(TrueAudioVR PUBLIC -Wpsabi)
+target_compile_options(TrueAudioVR PUBLIC -g) #todo: to Debug only
 endif()

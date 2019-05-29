@@ -18,7 +18,7 @@
 #include "tanlibrary/include/TrueAudioNext.h"
 using namespace amf;
 
-#include "samples/src/common/wav.h"
+#include "wav.h"
 #include "samples/src/common/utilities.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 const UINT c_modesCnt = 2;
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
             pIn += NSamples;
         }
     }
- 
+
     NSamples *= NReps;
 
 	TANContextPtr taGPU;
@@ -202,9 +202,9 @@ int main(int argc, char* argv[])
                 convCPU->UpdateResponseTD(pfResponse, NResSamples, updFlags, NULL);
                 printf("UPLOAD: %d\n", ns);
             }
-            
+
         }
-		
+
 
 		if (gpu)
 		{

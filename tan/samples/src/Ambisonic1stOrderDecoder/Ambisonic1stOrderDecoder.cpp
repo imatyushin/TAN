@@ -22,13 +22,11 @@
 
 // Ambisonic1stOrderDecoder.cpp : Defines the entry point for the console application.
 //
-
+#include "wav.h"
 
 #include <stdio.h>
 #include <memory.h>
 #include <math.h>
-#include "../common/wav.h"
-
 
 int main(int argc, char* argv[])
 {
@@ -66,7 +64,7 @@ int main(int argc, char* argv[])
         phi[n] *= 3.1415926535 / 180.0;
     }
 
-    //virtual mic 
+    //virtual mic
     //2D:
     // M(a,p) = p sqr(2)W +(1-p)(cos(a)X + sin(a)Y)
     //3D: ???
@@ -77,16 +75,16 @@ int main(int argc, char* argv[])
     // p = 1.0 => Omnidirectional
 
     // The coordinate system used in Ambisonics follows the right hand rule convention with positive X pointing forwards,
-    // positive Y pointing to the left and positive Z pointing upwards. Horizontal angles run anticlockwise 
+    // positive Y pointing to the left and positive Z pointing upwards. Horizontal angles run anticlockwise
     // from due front and vertical angles are positive above the horizontal, negative below.
 
     // standard speaker channel mappingsL
-    //5.1 WAV  FL , FR , FC , LFE, SL , SR  
-    //5.1 AC3  FL , FC , FR , SL , SR , LFE 
-    //5.1 DTS  FC , FL , FR , SL , SR , LFE 
-    //5.1 AAC  FC , FL , FR , SL , SR , LFE 
+    //5.1 WAV  FL , FR , FC , LFE, SL , SR
+    //5.1 AC3  FL , FC , FR , SL , SR , LFE
+    //5.1 DTS  FC , FL , FR , SL , SR , LFE
+    //5.1 AAC  FC , FL , FR , SL , SR , LFE
     //5.1 AIFF  FL , SL , FC , FR , SR , LFE
-    
+
     int SamplesPerSec, BitsPerSample, NChannels;
     long NSamples;
     unsigned char *pSsamples;

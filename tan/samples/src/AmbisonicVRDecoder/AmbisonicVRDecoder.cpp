@@ -21,14 +21,14 @@
 //
 // Ambisonic1stOrderDecoder.cpp : Defines the entry point for the console application.
 //
-
+#include "../../../tanlibrary/include/TrueAudioNext.h"
+#include "../TrueAudioVR/TrueAudioVR.h"
+#include "wav.h"
 
 #include <stdio.h>
 #include <memory.h>
 #include <math.h>
-#include "../common/wav.h"
-#include "../../../tanlibrary/include/TrueAudioNext.h"
-#include "../TrueAudioVR/TrueAudioVR.h"
+
 
 
 enum Ambi2SteroMethod {
@@ -59,10 +59,10 @@ private:
 public:
     Ambi2Stereo(TANContext *pTANContext, Ambi2SteroMethod  method);
     ~Ambi2Stereo();
-    
-    void getResponses(float theta, float phi, 
-                      int channel, 
-                      unsigned int length, 
+
+    void getResponses(float theta, float phi,
+                      int channel,
+                      unsigned int length,
                       float *Wresponse, float *Xresponse, float *Yresponse, float *Zresponse);
 
     int getLength()  { return(responseLength); };
@@ -103,7 +103,7 @@ Ambi2Stereo::vertex Ambi2Stereo::icoVertices[20] = {
 
 void Ambi2Stereo::buildCompositeHRTFs(TANContext *pTANContext)
 {
-    
+
     TANCreateFFT(pTANContext, &pFFT);
 
 
@@ -139,7 +139,7 @@ void Ambi2Stereo::buildCompositeHRTFs(TANContext *pTANContext)
 
    float p = 0.5; // Cardiod
    float W0 = p*sqrt(2.0);
-   
+
    HMODULE TanVrDll;
    TanVrDll = LoadLibraryA("TrueAudioVR.dll");
    typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
@@ -148,7 +148,7 @@ void Ambi2Stereo::buildCompositeHRTFs(TANContext *pTANContext)
 
    AmdTrueAudioVR *tanVR;
    CreateAmdTrueAudioVR(&tanVR, pTANContext, pFFT, NULL, 44100, ICO_HRTF_LEN);
-   
+
     RoomDefinition room;
     MonoSource source;
     StereoListener ear;
@@ -214,10 +214,10 @@ Ambi2Stereo::Ambi2Stereo(TANContext *pTANContext, Ambi2SteroMethod  decodemethod
         RightResponseX = new float[responseLength];
         RightResponseY = new float[responseLength];
         RightResponseZ = new float[responseLength];
- 
+
         break;
     case Ambi2SteroMethod::AMBI2STEREO_AMD_HRTF:
- 
+
         buildCompositeHRTFs(pTANContext );
 
         break;
@@ -252,7 +252,7 @@ Ambi2Stereo::~Ambi2Stereo()
 
 }
 
-    //virtual mic 
+    //virtual mic
     //2D:
     // M(a,p) = p sqr(2)W +(1-p)(cos(a)X + sin(a)Y)
     //3D: ???
@@ -263,7 +263,7 @@ Ambi2Stereo::~Ambi2Stereo()
     // p = 1.0 => Omnidirectional
 
     // The coordinate system used in Ambisonics follows the right hand rule convention with positive X pointing forwards,
-    // positive Y pointing to the left and positive Z pointing upwards. Horizontal angles run anticlockwise 
+    // positive Y pointing to the left and positive Z pointing upwards. Horizontal angles run anticlockwise
     // from due front and vertical angles are positive above the horizontal, negative below.
 
 
@@ -331,13 +331,13 @@ void Ambi2Stereo::getResponses(float thetaHead, float phiHead,
             default:
                 break;
             }
-            
+
             //Wresponse[0] += W0;
             //Xresponse[0] += X0;
             //Yresponse[0] += Y0;
             //Zresponse[0] += Z0;
         }
-        
+
         break;
     default:
         break;
@@ -371,7 +371,7 @@ int main(int argc, char* argv[])
     sscanf(argv[aIdx++], "%f", &hRotationSpeed);
     sscanf(argv[aIdx++], "%f", &vRotationSpeed);
 
-     
+
     int SamplesPerSec, BitsPerSample, NChannels;
     long NSamples;
     unsigned char *pSsamples;
@@ -502,7 +502,7 @@ int main(int argc, char* argv[])
             ambi2S->getResponses(theta, phi, 1, length, rightRespW, rightRespX, rightRespY, rightRespZ);
             updTime = seconds;
             //pConvolution->UpdateResponseTD(Responses, length, nullptr, 0);
-            
+
             for (int k = 0; k < 8; k++){
                 Data[k] += nProcessed;
             }

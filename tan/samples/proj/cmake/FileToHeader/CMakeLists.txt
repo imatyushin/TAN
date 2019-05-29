@@ -17,17 +17,10 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-find_package(OpenCL REQUIRED)
-if(NOT OpenCL_FOUND)
-	message(SEND_ERROR "Failed to find OpenCL")
-	return()
-else()
-	include_directories(${OpenCL_INCLUDE_DIRS})
-  link_directories(${OpenCL_LIBRARY})
-endif()
-
 # name
 project(FileToHeader DESCRIPTION "FileToHeader")
+
+include_directories(../../../../common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -39,12 +32,18 @@ set(
   SOURCE_EXE
   ../../../src/FileToHeader/FileToHeader.cpp
   ../../../src/FileToHeader/stdafx.cpp
+
+  ../../../../common/FileUtility.cpp
+  ../../../../common/StringUtility.cpp
   )
 
 set(
   HEADER_EXE
   ../../../src/FileToHeader/stdafx.h
   ../../../src/FileToHeader/targetver.h
+
+  ../../../../common/FileUtility.h
+  ../../../../common/StringUtility.h
   )
 
 # create binary

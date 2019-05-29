@@ -18,28 +18,26 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-#include "CL/cl.h"
 #include "ConvolutionImpl.h"
 #include "../core/TANContextImpl.h"
-#include "public/common/AMFFactory.h"
 #include "../../common/OCLHelper.h"
-
-#include <tuple>
 #include "../fft/FFTImpl.h"
+#include "FileUtility.h"
+
+#include "public/common/AMFFactory.h"
 
 //#include "Crossfading.cl.h"
 #include "CLKernel_Crossfading.h"
 #include "CLKernel_TimeDomainConvolution.h"
 
-#define AMF_FACILITY L"TANConvolutionImpl"
+#include <CL/cl.h>
+#include <tuple>
 
-#ifndef MAX_PATH
-#define MAX_PATH 254
-#endif
+#define AMF_FACILITY L"TANConvolutionImpl"
 
 using namespace amf;
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] = 
+static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 {
 #if AMF_BUILD_OPENCL
     {AMF_MEMORY_OPENCL,     L"OpenCL"},
@@ -62,7 +60,7 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConvolution(
     )
 {
     AMF_RETURN_IF_INVALID_POINTER(pContext, L"pContext == nullptr");
-    AMF_RETURN_IF_INVALID_POINTER(ppConvolution, 
+    AMF_RETURN_IF_INVALID_POINTER(ppConvolution,
 		L"ppConvolution == nullptr");
 
     TANContextImplPtr contextImpl(pContext);
@@ -71,7 +69,7 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConvolution(
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
-TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN) 
+TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     :m_pContextTAN(pContextTAN)
     ,m_eConvolutionMethod(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED)
     ,m_iLengthInSamples(0)
@@ -154,9 +152,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Init(
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitCpu(
-    TAN_CONVOLUTION_METHOD convolutionMethod, 
+    TAN_CONVOLUTION_METHOD convolutionMethod,
     amf_uint32 responseLengthInSamples,
-    amf_uint32 bufferSizeInSamples, 
+    amf_uint32 bufferSizeInSamples,
     amf_uint32 channels)
 {
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
@@ -173,7 +171,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
 {
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
-    
+
     AMF_RETURN_IF_FALSE(m_pContextTAN->GetOpenCLContext() != NULL, AMF_WRONG_STATE,
         L"Cannot initialize on GPU with a CPU context");
 
@@ -211,11 +209,11 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 
     m_pTanFft.Release();
     m_pUpdateTanFft.Release();
-    m_idxUpdateFilterLatest = -1;// Initially when no IR update has been received m_idxUpdateFilterLatest is -1 
+    m_idxUpdateFilterLatest = -1;// Initially when no IR update has been received m_idxUpdateFilterLatest is -1
     m_idxFilter = 0;
     m_idxPrevFilter = 2;
     m_idxUpdateFilter = 1;
-  
+
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
@@ -254,7 +252,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
 
 
     bool needToUpdateInputBuf = false;
- 
+
     // process
     TANSampleBuffer sampleBuffer;
     sampleBuffer.buffer.clmem = pBuffer;
@@ -274,7 +272,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(numOfSamplesToProcess <= m_iLengthInSamples, AMF_INVALID_ARG,
                         L"Inconsistent with one set in Init() call length passed");
     // Check if blocking falg is used
-    const bool blockUntilReady = 
+    const bool blockUntilReady =
         (operationFlags & TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY);
 
     {
@@ -298,9 +296,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 				AMF_RETURN_IF_FAILED(Flush(m_idxFilter, channelId), L"Flush failed");
 			}
         }
-		
+
 	    //AMF_RETURN_IF_FALSE(actualChannelCnt > 0, AMF_WRONG_STATE, L"No active channels found");
-		
+
     }
 
     AMF_RESULT ret = AMF_OK;
@@ -366,7 +364,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             // copy data to real part (even samples):
                             filter[n][k << 1] = inputBuffers[n][k];
                         }
-                
+
                         m_accumulatedArgs.responses[n] = filter[n];
                         m_accumulatedArgs.lens[n] = static_cast<int>(numOfSamplesToProcess);
                         m_accumulatedArgs.updatesCnt++;
@@ -462,7 +460,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseFD(
     amf_size numOfSamplesToProcess,
     const amf_uint32 flagMasks[],
     const amf_uint32 operationFlags
-)    
+)
 {
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     return AMF_NOT_SUPPORTED;
@@ -534,7 +532,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
     amf_size numOfSamplesToProcess,
     amf_size *pNumOfSamplesProcessed,
     int *nzFirstLast
-    ) 
+    )
 {
 
     return AMF_NOT_SUPPORTED;
@@ -636,7 +634,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     TANSampleBuffer xFadeBuffs[2];
     xFadeBuffs[0] = (pBufferOutput.mType == AMF_MEMORY_HOST) ? pBufferOutput : m_pCLXFadeSubBuf[0];
     xFadeBuffs[1] = (pBufferOutput.mType == AMF_MEMORY_HOST) ? m_pXFadeSamples : m_pCLXFadeSubBuf[1];
-    // Crossfade should never start if there is a pending TD->FD  (m_accumulatedArgs.updatesCnt == 0) 
+    // Crossfade should never start if there is a pending TD->FD  (m_accumulatedArgs.updatesCnt == 0)
     if (m_updateFinishedProcessing.Lock(0) && (m_accumulatedArgs.updatesCnt == 0)) //IR_UPDATE_DETECTED_STATE;
     {
         // new responses available (obtained in the Update() method).
@@ -649,7 +647,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
         if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL)
         {
             // Calculate the current output using the old IR, time advances so that current input frame is stored and is part of the history buffer.
-            // No skip stage is selected, and since the crossfade state is set to one, the crossfade specefic accum buffer (cmad_accum_xf_) is used 
+            // No skip stage is selected, and since the crossfade state is set to one, the crossfade specefic accum buffer (cmad_accum_xf_) is used
             ret = ProcessInternal(m_idxPrevFilter, pBufferInput, pBufferOutput,
                                   numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 0, 1, 0, 1);
             RETURN_IF_FAILED(ret);
@@ -665,7 +663,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
         {
             // for non head-tail case, do the crossfade process now and back to normal operation on the next input buffer
             // last previous conv run, do not advance the internal Graal timer
-            ret = ProcessInternal(m_idxPrevFilter, pBufferInput, xFadeBuffs[0], 
+            ret = ProcessInternal(m_idxPrevFilter, pBufferInput, xFadeBuffs[0],
                                   numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 0, 0);
             RETURN_IF_FAILED(ret);
 
@@ -675,7 +673,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
             RETURN_IF_FAILED(ret);
             AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess));
         }
-    } 
+    }
     else if (m_doHeadTailXfade) //HEAD_TAIL_CROSS_FADE_STATE
     {
         // Only for the head-tail algorithm, crossfade process has started before and will finish when this step is over
@@ -697,8 +695,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     }
     else //REGULAR_PROCESS_STATE;
     {
-        // wakeup update thread. New IR updates are allowed after the conv process completely done with crossfade  
-        
+        // wakeup update thread. New IR updates are allowed after the conv process completely done with crossfade
+
 
         ret = ProcessInternal(m_idxFilter, pBufferInput, pBufferOutput,
                               numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
@@ -776,7 +774,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
     #if defined (_MSC_VER)
     AMF_RETURN_IF_FALSE(!doProcessingOnGpu || __popcnt(bufferSizeInSamples) == 1, AMF_INVALID_ARG,
     #else
-    AMF_RETURN_IF_FALSE(!doProcessingOnGpu || __builtin_popcountll(bufferSizeInSamples) == 1, AMF_INVALID_ARG,    
+    AMF_RETURN_IF_FALSE(!doProcessingOnGpu || __builtin_popcountll(bufferSizeInSamples) == 1, AMF_INVALID_ARG,
     #endif
         L"bufferSizeInSamples must be power of 2");
 #endif
@@ -859,7 +857,7 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
     if (filterStateId == m_idxFilter)
     {
         m_sectProcess.Lock();
-        if (m_eConvolutionMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD && 
+        if (m_eConvolutionMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD &&
         	m_eConvolutionMethod != TAN_CONVOLUTION_METHOD_TIME_DOMAIN) {
             graal::CGraalConv* pGraalConv = (graal::CGraalConv*)m_graal_conv;
             AMF_RETURN_IF_FAILED(pGraalConv->finishProcess(), L"Sync failed");
@@ -873,7 +871,7 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
     }
     else if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_TIME_DOMAIN)
     {
-        
+
         m_tdFilterState[filterStateId]->m_sampHistPos[channelId] = 0;
         memset(m_tdFilterState[filterStateId]->m_SampleHistory[channelId], 0, m_length*sizeof(float));
     }
@@ -953,7 +951,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     //allocate stuff:
     //...
     cl_context context = m_pContextTAN->GetOpenCLContext();
-    
+
 
     // internal pointer arrays used to shuffle buffer order
     // no need to allocate actual data buffers here:
@@ -972,7 +970,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
     m_availableChannels = new bool[m_iChannels];
     m_flushedChannels = new bool[m_iChannels];
-    
+
     for (amf_uint32 i = 0; i < m_iChannels; i++) {
         m_availableChannels[i] = false;
         m_flushedChannels[i] = false;
@@ -1013,7 +1011,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 				m_tdFilterState[i]->m_clTemp = nullptr;
 				m_tdFilterState[i]->m_clSampleHistory = nullptr;
 			}
-			
+
         	m_tdInternalFilterState[i] = new tdFilterState;
 			m_tdInternalFilterState[i]->m_Filter = new float *[m_iChannels];
 			m_tdInternalFilterState[i]->m_SampleHistory = new float*[m_iChannels];
@@ -1048,7 +1046,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             	m_tdInternalFilterState[i]->m_sampHistPos[n] = 0;
 				m_tdInternalFilterState[i]->lastNz[n] = 0;
 				m_tdInternalFilterState[i]->firstNz[n] = 0;
-                if (context != nullptr) 
+                if (context != nullptr)
 				{
 					m_tdInternalFilterState[i]->m_clFilter[n] = nullptr;
 					m_tdInternalFilterState[i]->m_clTemp[n] = nullptr;
@@ -1138,7 +1136,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         AMF_RETURN_IF_FALSE(false, AMF_NOT_SUPPORTED, L"Convolution method not supported");
     }
 
-    if (m_doProcessOnGpu) 
+    if (m_doProcessOnGpu)
     {
         // allocate crossfade buffers on GPU memory
         for (int bufIdx = 0; bufIdx < 2; bufIdx++)
@@ -1246,7 +1244,7 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
             }
         }
     }
-    
+
 
     SAFE_ARR_DELETE(m_availableChannels);
     SAFE_ARR_DELETE(m_flushedChannels);
@@ -1369,7 +1367,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
             {
                 float **filter = ((ovlAddFilterState *)m_tdFilterState[m_idxUpdateFilter])->m_Filter;
 
- 
+
                 // Copy data to the new slot, as this channel can be still processed (user doesn't
                 // pass Stop flag to Process() method) and we may start doing cross-fading.
                 float **const ppOldFilter =
@@ -1629,12 +1627,12 @@ void TANConvolutionImpl::ovlTimeDomain(
 
             //todo: macosx version!
 #endif
-            
+
             char *pslash = strrchr(dllPath, '\\');
             if (pslash){
                 *pslash = '\0';
             }
-			bool OCLERR = 
+			bool OCLERR =
 				GetOclKernel(m_TimeDomainKernel, m_pProcContextAMF, m_pContextTAN->GetOpenCLGeneralQueue(), "TimeDomainConvolution", TimeDomainConvolution_Str, TimeDomainConvolutionCount, "TimeDomainConvolution", "");
 			if (!OCLERR){ printf("Failed to create OCL Kernel"); return;}
         }
@@ -1703,7 +1701,7 @@ void TANConvolutionImpl::ovlTimeDomainCPU(
             out[j] += histBuf[(bufPos + j - k + convlength) % convlength] * resp[k];
         }
     }
-    
+
 }
 
 // GPU implementation
@@ -1762,10 +1760,10 @@ void TANConvolutionImpl::ovlTimeDomainGPU(
 
 
 AMF_RESULT TANConvolutionImpl::ProcessInternal(
-    int idx, 
+    int idx,
     TANSampleBuffer pInputData,
     TANSampleBuffer pOutputData,
-    amf_size nSamples, 
+    amf_size nSamples,
     // Masks of flags from enum
     // TAN_CONVOLUTION_CHANNEL_FLAG.
     const amf_uint32 flagMasks[],
@@ -1776,7 +1774,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     int ocl_crossfade_state
 )
 {
-     
+
     //ToDo handle audio buffers in GPU memory:
     if (pInputData.mType != AMF_MEMORY_HOST){
         return AMF_NOT_IMPLEMENTED;
@@ -1850,8 +1848,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     int n_channels = idxInt;
 	if (!(n_channels > 0)) { return AMF_WRONG_STATE; }
 	//AMF_RETURN_IF_FALSE(n_channels > 0, AMF_WRONG_STATE, L"No active channels found");
-	
-    
+
+
 
     switch (m_eConvolutionMethod) {
     case TAN_CONVOLUTION_METHOD_TIME_DOMAIN:
@@ -1909,7 +1907,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             }
         }
 
-        amf_size numOfSamplesProcessed = 
+        amf_size numOfSamplesProcessed =
             ovlAddProcess(state, m_internalInBufs, m_internalOutBufs, static_cast<int>(nSamples),
             n_channels, ocl_advance_time);
         if (pNumOfSamplesProcessed)
@@ -1939,7 +1937,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         int n_channels = idxInt;
         if (nSamples < m_iBufferSizeInSamples)
         {
-            // This case is only handled for host memory input/output cl_mem input or output will not be padded and will return error 
+            // This case is only handled for host memory input/output cl_mem input or output will not be padded and will return error
             if (pInputData.mType != AMF_MEMORY_HOST || pOutputData.mType != AMF_MEMORY_HOST) {
                 return AMF_NOT_IMPLEMENTED;
             }
@@ -1976,7 +1974,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         }
         else
         {
-            if (pOutputData.mType == AMF_MEMORY_HOST) 
+            if (pOutputData.mType == AMF_MEMORY_HOST)
             {
                 ret = graalConv->process(n_channels,
                     m_s_versions[m_param_buf_idx],
@@ -2002,7 +2000,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     ocl_crossfade_state
                     );
             }
-            
+
             if (ret != GRAAL_SUCCESS)
             {
                 return AMF_UNEXPECTED;

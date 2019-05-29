@@ -71,17 +71,18 @@ typedef struct wasapi
 	UINT init;
 //	UINT play;
 } WASAPISTRUCT;
+
 int wasapiInit(WASAPISTRUCT *wasapi, STREAMINFO *streaminfo, int playBack, UINT *bufferSize, UINT *frameSize, AUDCLNT_SHAREMODE sharMode, BOOL offload, BOOL loopBack);
 INT wasapiPlay(WASAPISTRUCT *wasapi,unsigned char *pOutputBuffer, unsigned int size, bool mute);
 INT wasapiRecord(WASAPISTRUCT *wasapi, unsigned char *pOutputBuffer, unsigned int size);
 void wasapiRelease(WASAPISTRUCT *wasapi, int playBack);
 void wasapiSetMute(BOOL mute);
-int QueueWaveFile(char *inFile, WASAPISTRUCT *pWasapiHandle,long *pNsamples, unsigned char **ppOutBuffer);
+int QueueWaveFile(const char *inFile, WASAPISTRUCT *pWasapiHandle,long *pNsamples, unsigned char **ppOutBuffer);
 int PlayQueuedSamples(WASAPISTRUCT *pWasapiHandle, int nSamples, unsigned char *pOutBuffer);
-int PlayQueuedStreams(int nStreams, WASAPISTRUCT *pWasapiHandles, long *sampleCounts, unsigned char **pOutBuffers, 
+int PlayQueuedStreams(int nStreams, WASAPISTRUCT *pWasapiHandles, long *sampleCounts, unsigned char **pOutBuffers,
 				       WASAPISTRUCT *pWasapiLoopback, long lbSampleCount, unsigned char *lbBuffer);
-int PlayWaveFile(char *inFile, BOOL offload);
-bool PlayQueuedStreamChunk(bool init, int nStreams, WASAPISTRUCT *pWasapiHandles, long *sampleCounts, unsigned char **pOutBuffers, 
+int PlayWaveFile(const char *inFile, BOOL offload);
+bool PlayQueuedStreamChunk(bool init, int nStreams, WASAPISTRUCT *pWasapiHandles, long *sampleCounts, unsigned char **pOutBuffers,
 				       WASAPISTRUCT *pWasapiLoopback, long lbSampleCount, unsigned char *lbBuffer);
 #endif /* _WASAPI_H_ */
 

@@ -44,15 +44,19 @@ include_directories(../../../../../tan)
 set(
   SOURCE_EXE
   ../../../src/AmbisonicVRDecoder/AmbisonicVRDecoder.cpp
+
   ../../../src/common/WASAPIUtils.cpp
-  ../../../src/common/wav.cpp
+
+  ../../../../common/wav.cpp
   )
 
 set(
   HEADER_EXE
   ../../../../tanlibrary/include/TrueAudioNext.h
+
   ../../../src/common/WASAPIUtils.h
-  ../../../src/common/wav.h
+
+  ../../../../common/wav.h
   #stdafx.h
   #targetver.h
   )

@@ -76,8 +76,9 @@ set(
   ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
   ../../../src/common/WASAPIUtils.cpp
-  ../../../src/common/wav.cpp
   ../../../src/common/GpuUtils.cpp
+
+  ../../../../common/wav.cpp
 
   ../../../src/ReverbMixer/ReverbMixer.cpp
   ../../../src/ReverbMixer/ReverbProcessor.cpp
@@ -121,7 +122,8 @@ set(
   ../../../../../amf/public/include/core/Version.h
 
   ../../../src/common/WASAPIUtils.h
-  ../../../src/common/wav.h
+
+  ../../../../common/wav.h
 
   ../../../src/ReverbMixer/ReverbProcessor.h
   #../../../src/ReverbMixer/stdafx.h
