@@ -89,69 +89,24 @@ void RoomAcoustic::stop()
 	m_pAudioEngine->Stop();
 }
 
-void GetFileVersionAndDate(wchar_t *logMessage, char *version)
-{
-#ifdef _WIN32
-	time_t dt = time(NULL);
-	struct tm *lt = localtime(&dt);
-	DWORD size;
-	DWORD dummy;
-	WCHAR filename[1024];
-	unsigned int len;
-	GetModuleFileNameW(NULL, filename, sizeof(filename) / sizeof(filename[0]));
-	size = GetFileVersionInfoSizeW(filename, &dummy);
-	DWORD a = GetLastError();
-	WCHAR * buffer = new WCHAR[size];
-	WCHAR *ver = NULL, *pStr;
-	WCHAR *pSrch = L"FileVersion";
-	if (buffer == NULL){ return; }
-	if (GetFileVersionInfoW(filename, 0, size, (void*)buffer)){
-		pStr = buffer;
-		while (pStr < buffer + size){
-			if (wcsncmp(pStr, pSrch, 10) == 0){
-				ver = pStr + wcslen(pStr) + 2;
-				break;
-			}
-			else {
-				pStr++;
-			}
-		}
-	}
-
-	wsprintfW(logMessage, L"**** %s v%s on %4d/%02d/%02d %02d:%02d:%02d ****\n", filename, ver,
-		2000 + (lt->tm_year % 100), 1 + lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
-
-	int lv = wcslen(ver);
-	for (int i = 0; i < lv; i++){
-		version[i] = char(ver[i]);
-	}
-	delete []buffer;
-#else
-    //todo: implement
-	std::swprintf(logMessage, 256, L"Error! Not implemented");
-	std::snprintf(version, 256, "Error! Not implemented");
-#endif
-}
-
 void RoomAcoustic::initializeEnvironment()
 {
-	auto moduleFileName = getModulePath();
+	auto moduleFileName = getModuleFileName();
+	auto path2Exe = getPath2File(moduleFileName);
 	auto exeName = getFileNameWithExtension(moduleFileName);
 
-	mTANDLLPath = moduleFileName;
+	mTANDLLPath = path2Exe;
+	mConfigFilePath = joinPaths(mTANDLLPath, "default.xml");
+	mLogPath = joinPaths(mTANDLLPath, exeName + ".log");
 
 	setCurrentDirectory(mTANDLLPath);
 
-	mConfigFilePath = mTANDLLPath + getDirectorySeparator() + "default.xml";
-
-	mLogPath = mTANDLLPath + getDirectorySeparator() + exeName + ".log";
-
+	//todo: ivm: uncomment
+	/*
 	FILE *fpLog = NULL;
 	errno_t err = 0;
 	errno = 0;
 
-	//todo: ivm: uncomment
-	/*
 	// Redirect stdout and stderr to a log file.
 	if (fopen_s(&fpLog, mLogPath.c_str(), "a+") == 0)
 	{
@@ -164,13 +119,17 @@ void RoomAcoustic::initializeEnvironment()
 	//}
 	*/
 
-	wchar_t logDateVerStamp[MAX_PATH * 2];
+	//todo: ivm: return
+	/*
+	wchar_t logDateVerStamp[MAX_PATH * 2] = {0};
 	char version[40] = {0};
 	GetFileVersionAndDate(logDateVerStamp, version);
-
 	wprintf(logDateVerStamp);
+	*/
+	std::cout << "Log started" << std::endl;
 
-	for (int idx = 0; idx < MAX_SOURCES; idx++){
+	for (int idx = 0; idx < MAX_SOURCES; idx++)
+	{
 		mWavFileNames[idx].resize(0);
 	}
 
@@ -355,7 +314,7 @@ void RoomAcoustic::portInfoToEngine()
 	}
 }
 
-void RoomAcoustic::loadConfiguration(char* xmlfilename)
+void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 {
 	// Creating internal structre and prepare for xml loading
 	// attribute src1PosAttribs[3] = { { "X", &m_SoundSources->speakerX, 'f' }, { "Y", &srcY[0], 'f' }, { "Z", &srcZ[0], 'f' } };
@@ -524,9 +483,12 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 
 	FILE *fpLoadFile = NULL;
 
-	fopen_s(&fpLoadFile, xmlfilename, "r+");
+	fopen_s(&fpLoadFile, xmlfilename.c_str(), "r+");
 
-	if (fpLoadFile == NULL){
+	if(!fpLoadFile)
+	{
+		std::cerr << "Error: could not open configuration file " << xmlfilename << std::endl;
+
 		return;
 	}
 
@@ -573,15 +535,18 @@ void RoomAcoustic::loadConfiguration(char* xmlfilename)
 }
 
 /* Save Room acoustic configuration in xml file*/
-void RoomAcoustic::saveConfiguraiton(char* xmlfilename)
+void RoomAcoustic::saveConfiguraiton(const std::string& xmlfilename)
 {
 	time_t dt = time(NULL);
 	struct tm *lt = localtime(&dt);
+
 	FILE *fpSaveFile = NULL;
+	fopen_s(&fpSaveFile, xmlfilename.c_str(), "w+");
 
-	fopen_s(&fpSaveFile, xmlfilename, "w+");
+	if(!fpSaveFile)
+	{
+		std::cerr << "Error: could not open configuration file " << xmlfilename << std::endl;
 
-	if (fpSaveFile == NULL){
 		return;
 	}
 
@@ -638,7 +603,7 @@ void RoomAcoustic::saveConfiguraiton(char* xmlfilename)
 	fclose(fpSaveFile);
 }
 
-int RoomAcoustic::addSoundSource(char* sourcename)
+int RoomAcoustic::addSoundSource(const std::string& sourcename)
 {
 	auto fileExtension = getFileExtension(sourcename);
 
@@ -655,6 +620,7 @@ int RoomAcoustic::addSoundSource(char* sourcename)
 			{
 				mWavFileNames[i] = sourcename;
 				m_iNumOfWavFile++;
+
 				return i;
 			}
 		}
@@ -664,7 +630,7 @@ int RoomAcoustic::addSoundSource(char* sourcename)
 	}
 }
 
-bool RoomAcoustic::replaceSoundSource(char* sourcename, int id)
+bool RoomAcoustic::replaceSoundSource(const std::string& sourcename, int id)
 {
 	if (id < 0 && id >= MAX_PATH)
 	{
@@ -689,11 +655,11 @@ bool RoomAcoustic::replaceSoundSource(char* sourcename, int id)
 	}
 }
 
-bool RoomAcoustic::removeSoundSource(const char* sourcename)
+bool RoomAcoustic::removeSoundSource(const std::string& sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (!strcmp(sourcename, mWavFileNames[i].c_str()))
+		if (!strcmp(sourcename.c_str(), mWavFileNames[i].c_str()))
 		{
 			removeSoundSource(i);
 		}
@@ -719,6 +685,7 @@ bool RoomAcoustic::removeSoundSource(int id)
 				m_isrc1EnableMic = 0;
 				m_isrc1MuteDirectPath = 0;
 			}
+
 			// Clean file name
 			mWavFileNames[id].resize(0);
 			m_iNumOfWavFile--;
@@ -742,11 +709,11 @@ bool RoomAcoustic::isInsideRoom(float x, float y, float z)
 		(z >= 0.0f && z <= m_RoomDefinition.height);
 }
 
-int RoomAcoustic::findSoundSource(const char* sourcename)
+int RoomAcoustic::findSoundSource(const std::string& sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (!strcmp(sourcename, mWavFileNames[i].c_str()))
+		if(!strcmp(sourcename.c_str(), mWavFileNames[i].c_str()))
 		{
 			return i;
 		}

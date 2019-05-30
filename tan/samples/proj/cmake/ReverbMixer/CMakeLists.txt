@@ -46,6 +46,8 @@ project(ReverbMixer DESCRIPTION "ReverbMixer")
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
+include_directories(../../../../common)
+
 include_directories(../../../../../amf)
 include_directories(../../../../../tan)
 
@@ -53,13 +55,10 @@ include_directories(../../../src/ReverbMixer)
 include_directories(../../../src/ReverbMixer/UI)
 include_directories(../../../src/ReverbMixer/QTObject)
 
-#
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-D_CONSOLE)
-  ADD_DEFINITIONS(-D_LIB)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+ADD_DEFINITIONS(-D_CONSOLE)
+ADD_DEFINITIONS(-D_LIB)
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 # sources
 set(

@@ -373,7 +373,7 @@ std::string RoomAcousticQT::getTANVersion()
 {
 #ifdef _WIN32
 	std::string current_dir = getCurrentDirectory();
-	std::string dll_dir = current_dir + getDirectorySeparator() + "tanrt64.dll";
+	std::string dll_dir = joinPaths(current_dir, "tanrt64.dll");
 	return getFileVersionString(dll_dir);
 #else
 	return "Error: not implemented!";
@@ -1213,18 +1213,16 @@ void RoomAcousticQT::on_AddSoundSourceButton_clicked()
 		m_RoomAcousticInstance.mTANDLLPath.c_str(),
 		tr("WAV File (*.wav)")
 		);
+
 	QList<QTableWidgetItem*> selected_sources = ConfigUi.SourcesTable->selectedItems();
+
 	// Try to add sound source without selecting empty slots
 	if (selected_sources.isEmpty())
 	{
 		for (int i = 0; i < fileNames.size(); i++)
 		{
-			std::string filename = fileNames[i].toStdString();
-			char* filenamecpy = new char[MAX_PATH];
-			std::strncpy(filenamecpy, filename.c_str(), MAX_PATH);
-			int index = m_RoomAcousticInstance.addSoundSource(filenamecpy);
+			int index = m_RoomAcousticInstance.addSoundSource(fileNames[i].toStdString());
 			addSoundsourceGraphics(index);
-			delete[]filenamecpy;
 		}
 	}
 	// Try to repleace a sound source
@@ -1233,12 +1231,9 @@ void RoomAcousticQT::on_AddSoundSourceButton_clicked()
 		for (int i = 0; i < fileNames.size(); i++)
 		{
 			QTableWidgetItem* item = selected_sources.first();
-			std::string filename = fileNames[i].toStdString();
-			char* filenamecpy = new char[MAX_PATH];
-			std::strncpy(filenamecpy, filename.c_str(), MAX_PATH);
-			m_RoomAcousticInstance.replaceSoundSource(filenamecpy, item->row());
+			m_RoomAcousticInstance.replaceSoundSource(fileNames[i].toStdString(), item->row());
 			addSoundsourceGraphics(item->row());
-			delete[]filenamecpy;
+
 			selected_sources.pop_front();
 			if (selected_sources.size() <= 0) break;
 		}
@@ -1246,4 +1241,3 @@ void RoomAcousticQT::on_AddSoundSourceButton_clicked()
 	updateSoundsourceNames();
 	updateAllSoundSourceGraphics();
 }
-

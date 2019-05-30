@@ -32,13 +32,12 @@ project(TALibVRTest DESCRIPTION "TALibVRTest")
 include_directories(../../../../../amf)
 include_directories(../../../../../tan)
 
-#
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-D_CONSOLE)
-  ADD_DEFINITIONS(-D_LIB)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+include_directories(../../../../common)
+
+ADD_DEFINITIONS(-D_CONSOLE)
+ADD_DEFINITIONS(-D_LIB)
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 # sources
 set(

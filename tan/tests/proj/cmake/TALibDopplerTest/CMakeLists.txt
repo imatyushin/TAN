@@ -29,13 +29,12 @@ endif()
 # name
 project(TALibDopplerTest DESCRIPTION "TALibDopplerTest")
 
-#
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-D_CONSOLE)
-  ADD_DEFINITIONS(-D_LIB)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+include_directories(../../../../common)
+
+ADD_DEFINITIONS(-D_CONSOLE)
+ADD_DEFINITIONS(-D_LIB)
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 include_directories(../../../../../amf)
 include_directories(../../../../../tan)

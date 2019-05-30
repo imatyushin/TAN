@@ -19,7 +19,6 @@ struct element {
 	struct element *elemList;
 };
 
-
 class RoomAcoustic
 {
 public:
@@ -29,14 +28,17 @@ public:
 	void initialize();															// Initialize the Room Acoustic
 	int start();																// Start the demo
 	void stop();																// Stop the demo
-	void loadConfiguration(char *xmlfilename);									// Load the configuration from the xml file
-	void saveConfiguraiton(char *xmlfilename);									// Save all the configruation in xml file named by the parameter
-	int addSoundSource(char* sourcename);										// Add a sound source in the audio engine
-	bool replaceSoundSource(char* sourcename, int id);							// Replace a sound source in the audio engine given its ID. Return true if success
-	bool removeSoundSource(const char* sourcename);								// Remove a sound source in the audio engine, return true if success
+
+	void loadConfiguration(const std::string& xmlfilename);						// Load the configuration from the xml file
+	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
+
+	int addSoundSource(const std::string& sourcename);							// Add a sound source in the audio engine
+	bool replaceSoundSource(const std::string& sourcename, int id);				// Replace a sound source in the audio engine given its ID. Return true if success
+	bool removeSoundSource(const std::string& sourcename);						// Remove a sound source in the audio engine, return true if success
 	bool removeSoundSource(int id);
+	int  findSoundSource(const std::string& sourcename);						// Given the sound source name, find the corresponding soundsource ID,
+
 	bool isInsideRoom(float x, float y, float z);								// determine if a point is inside the room or not.
-	int  findSoundSource(const char* sourcename);								// Given the sound source name, find the corresponding soundsource ID,
 																				// return -1 if not found
 
 	float getReverbTime(float final_db, int* nreflections);						// Based on the room definition and given db, estimate the reverb time.

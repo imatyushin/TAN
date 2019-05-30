@@ -31,14 +31,12 @@ project(AmbisonicVRDecoder DESCRIPTION "AmbisonicVRDecoder")
 
 include_directories(../../../../../amf)
 include_directories(../../../../../tan)
+include_directories(../../../../common)
 
-#
-#if(COMPILER_MSVC)
-  ADD_DEFINITIONS(-D_CONSOLE)
-  ADD_DEFINITIONS(-D_LIB)
-  ADD_DEFINITIONS(-DUNICODE)
-  ADD_DEFINITIONS(-D_UNICODE)
-#endif()
+ADD_DEFINITIONS(-D_CONSOLE)
+ADD_DEFINITIONS(-D_LIB)
+ADD_DEFINITIONS(-DUNICODE)
+ADD_DEFINITIONS(-D_UNICODE)
 
 # sources
 set(

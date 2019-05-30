@@ -31,11 +31,9 @@ int main(int argc, char* argv[])
 	}
 
 	std::string kernelFileFullName = argv[1];
-	auto kernelFileExtension = kernelFileFullName.length() > 3
-	    ? kernelFileFullName.substr(kernelFileFullName.length() - 3)
-		: "";
+	auto kernelFileExtension = getFileExtension(kernelFileFullName);
 
-	if(!compareIgnoreCase(kernelFileExtension, ".cl"))
+	if(!compareIgnoreCase(kernelFileExtension, "cl"))
 	{
 		std::cerr << "File is not a .cl file" << std::endl;
 

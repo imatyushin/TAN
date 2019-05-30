@@ -2,14 +2,8 @@
 #include "FileUtility.h"
 #include "StringUtility.h"
 
-//#include <string>
-//#include <cstring>
 #include <fstream>
-//#include <vector>
-//#include <sstream>
 #include <iostream>
-//#include <clocale>
-//#include <cctype>
 
 #define MAX_SIZE_STRING  16384
 #define MAX_BLOCK_CHUNK  12000
@@ -31,11 +25,9 @@ int main(int argc, char* argv[])
 	}
 
 	std::string kernelFileFullName = argv[1];
-	auto kernelFileExtension = kernelFileFullName.length() > 3
-	    ? kernelFileFullName.substr(kernelFileFullName.length() - 3)
-		: "";
+	auto kernelFileExtension = getFileExtension(kernelFileFullName);
 
-	if(!compareIgnoreCase(kernelFileExtension, ".cl"))
+	if(!compareIgnoreCase(kernelFileExtension, "cl"))
 	{
 		std::cout << "File is not a .cl file" << std::endl;
 

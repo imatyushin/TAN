@@ -20,6 +20,37 @@ std::string getDirectorySeparator()
 		;
 }
 
+std::string getCurrentDirectory()
+{
+    char currentDirectory[MAX_PATH] = { 0 };
+
+#ifdef _WIN32
+    GetCurrentDirectory(MAX_PATH, currentDirectory);
+#else
+	getcwd(currentDirectory, MAX_PATH);
+#endif
+
+	return currentDirectory;
+}
+
+bool setCurrentDirectory(const std::string& directoryName)
+{
+	return -1 !=
+#ifdef _WIN32
+		_chdir(directoryName.c_str());
+#else
+		chdir(directoryName.c_str());
+#endif
+		;
+}
+
+std::string joinPaths(const std::string & left, const std::string & right)
+{
+	auto separator(getDirectorySeparator());
+
+	return left + (left.rfind(separator) == (left.size() - separator.length()) ? right : separator + right);
+}
+
 FileVersion getFileVersion(const std::string& filepath)
 {
 	FileVersion ret;
@@ -61,6 +92,61 @@ std::string getFileVersionString(const std::string& filepath)
 		std::to_string(ret.m_RevisionVersion);
 }
 
+/*
+void getFileVersionAndDate(wchar_t *logMessage, char *version, size_t maxLength))
+{
+#ifdef _WIN32
+	time_t dt = time(NULL);
+	tm *lt = localtime(&dt);
+
+	auto moduleFileName = getModuleFileName();
+
+	DWORD dummy = 0;
+	DWORD size = GetFileVersionInfoSizeW(filename, &dummy);
+	std::wstring buffer(size + 1);
+
+	WCHAR * buffer = new WCHAR[size];
+	if (buffer == NULL){ return; }
+	WCHAR *ver = NULL, *pStr;
+	WCHAR *pSrch = L"FileVersion";
+	if (GetFileVersionInfoW(filename, 0, size, (void*)buffer)){
+		pStr = buffer;
+		while (pStr < buffer + size){
+			if (wcsncmp(pStr, pSrch, 10) == 0){
+				ver = pStr + wcslen(pStr) + 2;
+				break;
+			}
+			else {
+				pStr++;
+			}
+		}
+	}
+
+	wsprintfW(logMessage, L"**** %s v%s on %4d/%02d/%02d %02d:%02d:%02d ****\n", filename, ver,
+		2000 + (lt->tm_year % 100), 1 + lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
+
+	int lv = wcslen(ver);
+	for (int i = 0; i < lv; i++){
+		version[i] = char(ver[i]);
+	}
+	delete []buffer;
+#else
+    //todo: implement
+	std::swprintf(logMessage, 256, L"Error! Not implemented");
+	std::snprintf(version, 256, "Error! Not implemented");
+#endif
+}
+*/
+
+std::string getPath2File(const std::string& fileNameWithPath)
+{
+	auto separatorPosition = fileNameWithPath.find_last_of(getDirectorySeparator());
+
+	return (separatorPosition != std::string::npos)
+		? fileNameWithPath.substr(0, separatorPosition + 1)
+		: "";
+}
+
 std::string getFileNameWithExtension(const std::string& filepath)
 {
 	auto lastSeparatorPosition = filepath.rfind(
@@ -68,15 +154,15 @@ std::string getFileNameWithExtension(const std::string& filepath)
 		filepath.length()
 	   	);
 
-   if(std::string::npos != lastSeparatorPosition)
-   {
-      return filepath.substr(
-		  lastSeparatorPosition + 1,
-		  std::string::npos
-		  );
-   }
+	if(std::string::npos != lastSeparatorPosition)
+	{
+		return filepath.substr(
+			lastSeparatorPosition + 1,
+			std::string::npos
+			);
+	}
 
-   return filepath;
+	return filepath;
 }
 
 std::string getFileNameWithoutExtension(const std::string& filepath)
@@ -96,24 +182,10 @@ std::string getFileExtension(const std::string & fileName)
 
     if(std::string::npos != lastDot)
     {
-        return fileName.substr(lastDot);
+        return fileName.substr(lastDot + 1);
     }
 
     return "";
-}
-
-std::string getCurrentDirectory()
-{
-#ifdef _WIN32
-    char currentDirectory[MAX_PATH] = { 0 };
-    GetCurrentDirectory(MAX_PATH, currentDirectory);
-#else
-	//todo: implement more correct way
-	char currentDirectory[256] = {0};
-	getcwd(currentDirectory, 256);
-#endif
-
-	return currentDirectory;
 }
 
 bool checkFileExist(const std::string& filename)
@@ -195,7 +267,7 @@ bool makePath(const std::string& path)
 }
 */
 
-std::string getModulePath()
+std::string getModuleFileName()
 {
     char buffer[MAX_PATH] = {};
 
@@ -204,16 +276,17 @@ std::string getModulePath()
     {
         throw std::string("GetModuleFileName() failed!");
     }
-
 #else
-    ssize_t len(0);
-    if((len = readlink("/proc/self/exe",buffer, sizeof(buffer) - 1)) == -1)
+    if(-1 == readlink("/proc/self/exe", buffer, MAX_PATH))
     {
         throw std::string("Error: readlink() failed!");
     }
-
 #endif
 
+	return buffer;
+
+	//todo: ivm: ivestigate why?
+	/*
 	std::string str(buffer);
 
 	auto separatorPosition = str.find_last_of(getDirectorySeparator());
@@ -221,9 +294,5 @@ std::string getModulePath()
 	return (separatorPosition != std::string::npos) && (separatorPosition > 0)
 		? str.substr(0, separatorPosition + 1)
 		: str;
-}
-
-bool setCurrentDirectory(const std::string& directoryName)
-{
-
+	*/
 }
