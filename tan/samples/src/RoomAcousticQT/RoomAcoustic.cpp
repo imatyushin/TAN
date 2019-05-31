@@ -19,9 +19,7 @@
 #include <unistd.h>
 #endif
 
-#ifndef MAX_PATH
-#define MAX_PATH 254
-#endif
+#include <QStandardPaths>
 
 RoomAcoustic::RoomAcoustic()
 {
@@ -93,11 +91,14 @@ void RoomAcoustic::initializeEnvironment()
 {
 	auto moduleFileName = getModuleFileName();
 	auto path2Exe = getPath2File(moduleFileName);
-	auto exeName = getFileNameWithExtension(moduleFileName);
+	auto commandName = getFileNameWithoutExtension(moduleFileName);
+
+	auto locations = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
+	auto homeLocation = locations.size() ? locations[0].toStdString() : path2Exe;
 
 	mTANDLLPath = path2Exe;
-	mConfigFilePath = joinPaths(mTANDLLPath, "default.xml");
-	mLogPath = joinPaths(mTANDLLPath, exeName + ".log");
+	mConfigFileName = joinPaths(homeLocation, std::string(".") + commandName + "-default.xml");
+	mLogPath = joinPaths(homeLocation, std::string(".") + commandName + ".log");
 
 	setCurrentDirectory(mTANDLLPath);
 

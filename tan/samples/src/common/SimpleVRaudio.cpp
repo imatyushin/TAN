@@ -43,7 +43,9 @@
 	#define countOf( arr ) ( sizeof( arr ) / sizeof( arr[ 0 ] ) )
 #endif
 
-const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
+//todo: declared inside the same module twice, check and fix
+//const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
+
 bool Audio3D::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 amf::TAN_CONVOLUTION_METHOD Audio3D::m_convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 
@@ -52,7 +54,7 @@ amf::TAN_CONVOLUTION_METHOD Audio3D::m_convMethod = amf::TAN_CONVOLUTION_METHOD_
 #ifdef _WIN32
 #define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
 #else
-#define ERROR_MESSAGE(message) std::cerr << "Error: " << message << std::endl
+#define ERROR_MESSAGE(message) __asm__("int3"); std::cerr << "Error: " << message << std::endl
 #endif
 
 #endif
@@ -256,7 +258,8 @@ int Audio3D::finit(){
 //int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize,
 //                    bool useGPU_Conv)
 
-int Audio3D::init(
+int Audio3D::init
+(
 	const std::string & dllPath,
 	RoomDefinition      roomDef,
 	int                 nFiles,
@@ -281,7 +284,7 @@ int Audio3D::init(
                         convMethod,
     bool                useCPU_Conv,
     bool                useCPU_IRGen
-    )
+)
 {
     finit();
     // shouldn't need this, they are radio buttons:

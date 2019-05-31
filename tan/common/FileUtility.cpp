@@ -167,13 +167,18 @@ std::string getFileNameWithExtension(const std::string& filepath)
 
 std::string getFileNameWithoutExtension(const std::string& filepath)
 {
-	size_t seppos = filepath.rfind(getDirectorySeparator(), filepath.length());
-	size_t dotpos = filepath.rfind('.', filepath.length());
+	size_t seppos = filepath.rfind(getDirectorySeparator());
+	size_t dotpos = filepath.rfind('.');
 
-	if (dotpos > seppos && (dotpos != std::string::npos))
+	if((std::string::npos != dotpos) && ((std::string::npos == seppos) || (dotpos > seppos)))
 	{
-		return(filepath.substr((seppos + 1), dotpos-seppos-1));
+		return std::string::npos == seppos
+			? filepath.substr(0, dotpos - 1)
+			: filepath.substr((seppos + 1), dotpos - seppos - 1)
+			;
 	}
+
+	return getFileNameWithExtension(filepath);
 }
 
 std::string getFileExtension(const std::string & fileName)

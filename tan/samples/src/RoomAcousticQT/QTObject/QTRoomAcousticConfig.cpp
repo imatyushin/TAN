@@ -12,10 +12,6 @@
 #include <iostream>
 #include <cstring>
 
-#ifndef MAX_PATH
-#define MAX_PATH 254
-#endif
-
 RoomAcousticQT::RoomAcousticQT(QWidget *parent)
 	: QMainWindow(parent)
 {
@@ -45,15 +41,14 @@ RoomAcousticQT::~RoomAcousticQT()
 void RoomAcousticQT::Init()
 {
 	m_RoomAcousticGraphic->clear();
-	char* filenamecpy = new char[MAX_PATH];
-	std::strncpy(filenamecpy, "default.xml", MAX_PATH);
-	m_RoomAcousticInstance.loadConfiguration(filenamecpy);
+	m_RoomAcousticInstance.loadConfiguration(m_RoomAcousticInstance.mConfigFileName);
+
 	updateAllFields();
 	updateRoomGraphic();
 	initSoundSourceGraphic();
 	initListenerGraphics();
-	delete[]filenamecpy;
-	this->show();
+
+	show();
 }
 
 void RoomAcousticQT::saveLastSelectedSoundSource()

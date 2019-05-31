@@ -157,7 +157,7 @@ private:
 
 			// Calling __cpuid with 0x0 as the function_id argument
 			// gets the number of the highest valid function ID.
-			
+
 			//todo: verify
 			//__cpuid(cpui.data(), 0);
 			GetCpuID(cpui.data(), 0);
@@ -239,6 +239,12 @@ private:
 				brand_ = brand;
 			}
 		};
+
+		virtual ~InstructionSet_Internal()
+		{
+			int i = 0;
+			++i;
+		}
 
 		int nIds_;
 		int nExIds_;

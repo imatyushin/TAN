@@ -53,10 +53,9 @@ public:
 
     PrioritizedThread& operator=(std::thread&& other) noexcept
     {
-        std::cout << "Assign thread..." << std::endl;
-
         swap(other);
 
+        /*
 #ifdef _WIN32
         if(mRealtime)
         {
@@ -71,9 +70,9 @@ public:
             &mSheduleParams
             ))
         {
-            std::cerr << "Error: failed to set thread priority (" << std::strerror(errno) << ") " << std::endl;
+            std::cerr << "Error: failed to set thread priority (" << std::strerror(errno) << ")" << std::endl;
         }
-#endif
+#endif*/
 
         //??? SetSecurityInfo(GetCurrentProcess(), SE_WINDOW_OBJECT, PROCESS_SET_INFORMATION, 0, 0, 0, 0);
         //done - SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);

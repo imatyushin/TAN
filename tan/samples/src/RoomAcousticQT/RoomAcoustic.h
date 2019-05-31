@@ -71,7 +71,7 @@ private:
 public:
 	std::string mTANDLLPath;
 	std::string mLogPath;
-	std::string mConfigFilePath;
+	std::string mConfigFileName;
 
 	std::string mWavFileNames[MAX_SOURCES];
 	int m_iNumOfWavFile = 0;

@@ -79,6 +79,7 @@ set(
   ../../../../common/StringUtility.cpp
   ../../../../common/RegisterBrowser.cpp
   ../../../../common/wav.cpp
+  ../../../../common/cpucaps.cpp
 
   ../../../src/RoomAcousticQT/main.cpp
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp
@@ -141,6 +142,7 @@ set(
   ../../../../common/StringUtility.h
   ../../../../common/RegisterBrowser.h
   ../../../../common/wav.h
+  ../../../../common/cpucaps.h
 
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
