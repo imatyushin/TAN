@@ -548,7 +548,7 @@ void RoomAcousticQT::on_actionAbout_triggered()
 {
 	std::string driverversion = "Driver Version: " + getDriverVersion() + '\n';
 	std::string tandllversion = "True Audio Next Version: " + getTANVersion() + '\n';
-	QMessageBox info("About\:", QString::fromStdString(driverversion+tandllversion),
+	QMessageBox info("About:", QString::fromStdString(driverversion+tandllversion),
 		QMessageBox::Information,
 		QMessageBox::Ok | QMessageBox::Default,
 		QMessageBox::NoButton,

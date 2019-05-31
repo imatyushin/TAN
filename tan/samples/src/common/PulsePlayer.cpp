@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
+/*
 #include "PulsePlayer.h"
 #include "wav.h"
 
@@ -54,7 +54,7 @@ PulsePlayer::~PulsePlayer()
  *         >0  for failure
  *
  *******************************************************************************
- */
+ * /
 int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture)
 {
     /*HRESULT hr;
@@ -165,7 +165,7 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
     //AUDIO_STREAM_CATEGORY AudioCategory_ForegroundOnlyMedia
     //BOOL isOffloadCapable = false;
 
-    return hr;*/
+    return hr;* /
     return 0;
 }
 
@@ -184,7 +184,7 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
  *         >0  for failure
  *
  *******************************************************************************
- */
+ * /
 void PulsePlayer::Release()
 {
     /*
@@ -199,10 +199,10 @@ void PulsePlayer::Release()
     SAFE_RELEASE(devEnum);
 	initializedRender = false;
 	initializedCapture = false;
-    */
+    * /
 }
 
-QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
+WavError PulsePlayer::ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer)
 {
     /*STREAMINFO          streaminfo;
 
@@ -215,7 +215,7 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
     if (!ReadWaveFile(inFile, &samplesPerSec, &bitsPerSample, &nChannels, pNsamples, &pOutBuffer, &pSamples)){
         strncat_s(inFile, MAX_PATH, " >>>>ERROR: failed to load!", MAX_PATH - strlen(inFile));
         //FAILONERROR(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), "Failed to read wave file %s");
-        return QueueErrors::FileNotFound;
+        return WavError::FileNotFound;
     }
 
     if (nChannels != 2 || bitsPerSample != 16) {
@@ -225,7 +225,7 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
         {
             //return -1;
             //todo: return not enoght memory
-            return QueueErrors::FileNotFound;
+            return WavError::FileNotFound;
         }
 
         short *pSBuf = (short *)pOutBuffer;
@@ -250,8 +250,8 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
     streaminfo.NumOfChannels = 2;
     streaminfo.SamplesPerSec = samplesPerSec;// 48000;
     int result = wasapiInit( &streaminfo,  &bufferSize, &frameSize, AUDCLNT_SHAREMODE_SHARED);
-    return SUCCEEDED(result) ? QueueErrors::OK : QueueErrors::FileNotFound;*/
-    return QueueErrors::OK;
+    return SUCCEEDED(result) ? WavError::OK : WavError::FileNotFound;* /
+    return WavError::OK;
 }
 
 /**
@@ -267,7 +267,7 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
  *         >0  for failure
  *
  *******************************************************************************
- */
+ * /
 int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
 {
     /*if (audioClient == NULL || renderClient==NULL)
@@ -303,7 +303,7 @@ int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
         audioClient->Start();
     }
 
-    return  (frames*frameSize);*/
+    return  (frames*frameSize);* /
 }
 
 /**
@@ -319,7 +319,7 @@ int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
 *         >0  for failure
 *
 *******************************************************************************
-*/
+* /
 int32_t PulsePlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
 {
     /*if (captureClient == NULL)
@@ -356,7 +356,7 @@ int32_t PulsePlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
     hr = captureClient->ReleaseBuffer(frames);
     FAILONERROR(hr, "Failed releaseBuffer");
 
-    return  (frames*frameSize);*/
+    return  (frames*frameSize);* /
     return 0;
 }
 
@@ -386,7 +386,7 @@ bool PulsePlayer::PlayQueuedStreamChunk(bool init, long sampleCount, unsigned ch
     Sleep(5);
 
     return done;
-    */
+    * /
    return false;
 }
 

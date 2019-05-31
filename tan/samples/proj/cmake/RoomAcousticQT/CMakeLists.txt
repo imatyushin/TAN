@@ -90,9 +90,10 @@ set(
   )
 
 if(WIN32)
-  list(APPEND SOURCE_EXE ../../../src/common/WASAPIUtils.cpp)
+  list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
 else()
   list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.cpp)
+  list(APPEND SOURCE_EXE ../../../src/common/AlsaPlayer.cpp)
 endif()
 
 set(
@@ -148,6 +149,13 @@ set(
   ../../../src/RoomAcousticQT/Resources/resource.h
   ../../../src/RoomAcousticQT/RoomAcoustic.h
 )
+
+if(WIN32)
+  list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.h)
+else()
+  list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.h)
+  list(APPEND SOURCE_EXE ../../../src/common/AlsaPlayer.h)
+endif()
 
 set(
   UI_FILES

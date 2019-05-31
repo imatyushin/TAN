@@ -20,14 +20,14 @@
 // THE SOFTWARE.
 //
 
-#include "PulsePlayer.h"
+#include "AlsaPlayer.h"
 #include "wav.h"
 
 #define MAXFILES 100
 int muteInit = 1;
 //IAudioEndpointVolume *g_pEndptVol = NULL;
 
-PulsePlayer::PulsePlayer():
+AlsaPlayer::AlsaPlayer():
     startedRender(false),
     startedCapture(false),
     initializedRender(false),
@@ -35,7 +35,7 @@ PulsePlayer::PulsePlayer():
 {
 }
 
-PulsePlayer::~PulsePlayer()
+AlsaPlayer::~AlsaPlayer()
 {
     Release();
 }
@@ -55,7 +55,7 @@ PulsePlayer::~PulsePlayer()
  *
  *******************************************************************************
  */
-int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture)
+WavError AlsaPlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture)
 {
     /*HRESULT hr;
 
@@ -160,13 +160,11 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
 
     }
 
-
-
     //AUDIO_STREAM_CATEGORY AudioCategory_ForegroundOnlyMedia
     //BOOL isOffloadCapable = false;
 
     return hr;*/
-    return 0;
+    return WavError::OK;
 }
 
 
@@ -185,7 +183,7 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
  *
  *******************************************************************************
  */
-void PulsePlayer::Release()
+void AlsaPlayer::Release()
 {
     /*
     // Reset system timer
@@ -202,20 +200,25 @@ void PulsePlayer::Release()
     */
 }
 
-QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
+WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer)
 {
-    /*STREAMINFO          streaminfo;
-
     int samplesPerSec = 0;
     int bitsPerSample = 0;
     int nChannels = 0;
     float **pSamples;
     unsigned char *pOutBuffer;
 
-    if (!ReadWaveFile(inFile, &samplesPerSec, &bitsPerSample, &nChannels, pNsamples, &pOutBuffer, &pSamples)){
-        strncat_s(inFile, MAX_PATH, " >>>>ERROR: failed to load!", MAX_PATH - strlen(inFile));
-        //FAILONERROR(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), "Failed to read wave file %s");
-        return QueueErrors::FileNotFound;
+    if(!::ReadWaveFile(
+        fileName.c_str(),
+        &samplesPerSec,
+        &bitsPerSample,
+        &nChannels,
+        pNsamples,
+        &pOutBuffer,
+        &pSamples
+        ))
+    {
+        return WavError::FileNotFound;
     }
 
     if (nChannels != 2 || bitsPerSample != 16) {
@@ -225,7 +228,7 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
         {
             //return -1;
             //todo: return not enoght memory
-            return QueueErrors::FileNotFound;
+            return WavError::FileNotFound;
         }
 
         short *pSBuf = (short *)pOutBuffer;
@@ -245,13 +248,13 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
 
     *ppOutBuffer = pOutBuffer;
 
-    memset(&streaminfo, 0, sizeof(STREAMINFO));
+    STREAMINFO streaminfo = {0};
+    //memset(&streaminfo, 0, sizeof(STREAMINFO));
     streaminfo.bitsPerSample = 16;
     streaminfo.NumOfChannels = 2;
     streaminfo.SamplesPerSec = samplesPerSec;// 48000;
-    int result = wasapiInit( &streaminfo,  &bufferSize, &frameSize, AUDCLNT_SHAREMODE_SHARED);
-    return SUCCEEDED(result) ? QueueErrors::OK : QueueErrors::FileNotFound;*/
-    return QueueErrors::OK;
+
+    return Init(&streaminfo,  &bufferSize, &frameSize);
 }
 
 /**
@@ -268,7 +271,7 @@ QueueErrors PulsePlayer::QueueWaveFile(const char *inFile,long *pNsamples, unsig
  *
  *******************************************************************************
  */
-int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
+uint32_t AlsaPlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
 {
     /*if (audioClient == NULL || renderClient==NULL)
         return 0;
@@ -304,6 +307,7 @@ int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
     }
 
     return  (frames*frameSize);*/
+    return 0;
 }
 
 /**
@@ -320,7 +324,7 @@ int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
 *
 *******************************************************************************
 */
-int32_t PulsePlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
+uint32_t AlsaPlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
 {
     /*if (captureClient == NULL)
         return 0;
@@ -360,9 +364,10 @@ int32_t PulsePlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
     return 0;
 }
 
-bool PulsePlayer::PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer )
+/*
+bool AlsaPlayer::PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer )
 {
-    /*static int bytesPlayed;
+    static int bytesPlayed;
     static int bytesRecorded;
     static bool done = false;
     static unsigned char *pData;
@@ -386,9 +391,8 @@ bool PulsePlayer::PlayQueuedStreamChunk(bool init, long sampleCount, unsigned ch
     Sleep(5);
 
     return done;
-    */
-   return false;
 }
+*/
 
 /*
 #include <alsa/asoundlib.h>

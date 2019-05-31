@@ -89,50 +89,64 @@ void SetupWaveHeader(RiffWave *fhd,
 
 bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples)
 {
-	FILE *fpIn = NULL;
-	RiffWave fhd;
-	unsigned long length;
-
-	memset(&fhd, 0, sizeof(fhd));
-
-	if ((fopen_s(&fpIn,fileName, "rb")) != 0){
+	FILE *fpIn = nullptr;
+	if ((fopen_s(&fpIn,fileName, "rb")) != 0)
+	{
 		printf("ReadWaveFile: Can't open %s\n", fileName);
 		return(false);
 	}
 
+	RiffWave fhd = {0};
+	//memset(&fhd, 0, sizeof(fhd));
 	fread((char *)&(fhd.riff), 8, 1, fpIn);
-	if (memcmp(fhd.riff.name, "RIFF", 4) != 0){
-			printf("ReadWaveFile: File %s is not a valid .WAV file!\n", fileName);
+
+	if (memcmp(fhd.riff.name, "RIFF", 4) != 0)
+	{
+		printf("ReadWaveFile: File %s is not a valid .WAV file!\n", fileName);
 		return(false);
 	}
 
+	uint32_t length = 0;
 	size_t count = 0;
-	do {
+
+	do
+	{
 		count = fread(fhd.wave.name, 4, 1, fpIn);
-		if (memcmp(fhd.wave.name, "WAVE", 4) == 0){
+
+		if(memcmp(fhd.wave.name, "WAVE", 4) == 0)
+		{
 			break;
 		}
+
 		fread((char*)&length, 4, 1, fpIn);
 		fseek(fpIn, length, SEEK_CUR);
 
-	} while( count > 0);
+	}
+	while( count > 0);
 
-	do {
+	do
+	{
 		count = fread(fhd.wave.fmt.name, 4, 1, fpIn);
-		if (memcmp(fhd.wave.fmt.name, "fmt ", 4) == 0){
+
+		if(memcmp(fhd.wave.fmt.name, "fmt ", 4) == 0)
+		{
 			break;
 		}
+
 		fread((char*)&length, 4, 1, fpIn);
 		fseek(fpIn, length, SEEK_CUR);
 
-	} while (count > 0);
+	}
+	while (count > 0);
 
 	fread((char*)&fhd.wave.fmt.length, 4, 1, fpIn);
 	fread((char*)&fhd.wave.fmt.info, sizeof(fhd.wave.fmt.info), 1, fpIn);
 
 	fseek(fpIn, fhd.wave.fmt.length - 16, SEEK_CUR);
 	fread((char *)&fhd.wave.data, 8, 1, fpIn);
-	while (memcmp(fhd.wave.data.name, "data", 4) != 0){
+
+	while(memcmp(fhd.wave.data.name, "data", 4) != 0)
+	{
 		fseek(fpIn, fhd.wave.data.length, SEEK_CUR);
 		fread((char *)&fhd.wave.data, 8, 1, fpIn);
 	}
@@ -222,8 +236,8 @@ bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample
 	}
 
 	fclose(fpIn);
-	return(true);
 
+	return(true);
 }
 
 bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples)

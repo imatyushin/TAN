@@ -210,7 +210,7 @@ void WASAPIUtils::wasapiRelease()
 	initializedCapture = false;
 }
 
-QueueErrors WASAPIUtils::QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer)
+WavError WASAPIUtils::ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer)
 {
     STREAMINFO          streaminfo;
 
@@ -223,7 +223,7 @@ QueueErrors WASAPIUtils::QueueWaveFile(const char *inFile,long *pNsamples, unsig
     if (!ReadWaveFile(inFile, &samplesPerSec, &bitsPerSample, &nChannels, pNsamples, &pOutBuffer, &pSamples)){
         strncat_s(inFile, MAX_PATH, " >>>>ERROR: failed to load!", MAX_PATH - strlen(inFile));
         //FAILONERROR(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), "Failed to read wave file %s");
-        return QueueErrors::FileNotFound;
+        return WavError::FileNotFound;
     }
 
     if (nChannels != 2 || bitsPerSample != 16) {
@@ -233,7 +233,7 @@ QueueErrors WASAPIUtils::QueueWaveFile(const char *inFile,long *pNsamples, unsig
         {
             //return -1;
             //todo: return not enoght memory
-            return QueueErrors::FileNotFound;
+            return WavError::FileNotFound;
         }
 
         short *pSBuf = (short *)pOutBuffer;
@@ -258,7 +258,7 @@ QueueErrors WASAPIUtils::QueueWaveFile(const char *inFile,long *pNsamples, unsig
     streaminfo.NumOfChannels = 2;
     streaminfo.SamplesPerSec = samplesPerSec;// 48000;
     int result = wasapiInit( &streaminfo,  &bufferSize, &frameSize, AUDCLNT_SHAREMODE_SHARED);
-    return SUCCEEDED(result) ? QueueErrors::OK : QueueErrors::FileNotFound;
+    return SUCCEEDED(result) ? WavError::OK : WavError::FileNotFound;
 }
 
 /**

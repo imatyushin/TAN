@@ -19,87 +19,82 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
+#pragma once
 #pragma pack(push,1)
 
-    /*\
-    |*|----====< ".WAV" file definition >====----
-    |*|
-    |*|     4 bytes 'RIFF'
-    |*|     4 bytes <length>
-    |*|     4 bytes 'WAVE'
-    |*|     4 bytes 'fmt '
-	|*| 	4 bytes  <length>	; 10h - length of 'data' block
-    |*|     2 bytes  01 	    ; format tag
-    |*|     2 bytes  01 	    ; channels (1=mono, 2=stereo)
-    |*|     4 bytes  xxxx	    ; samples per second
-    |*|     4 bytes  xxxx	    ; average samples per second
-	|*| 	2 bytes  01/02/04	; block alignment
-    |*|     2 bytes  08/16	    ; bits per sample
-    |*|     4 bytes 'data'
-    |*|     4 bytes <length>
-    |*|       bytes <sample data>
-    |*|
-    \*/
+#include <cstdint>
 
+/*\
+|*|----====< ".WAV" file definition >====----
+|*|
+|*|     4 bytes 'RIFF'
+|*|     4 bytes <length>
+|*|     4 bytes 'WAVE'
+|*|     4 bytes 'fmt '
+|*| 	4 bytes  <length>	; 10h - length of 'data' block
+|*|     2 bytes  01 	    ; format tag
+|*|     2 bytes  01 	    ; channels (1=mono, 2=stereo)
+|*|     4 bytes  xxxx	    ; samples per second
+|*|     4 bytes  xxxx	    ; average samples per second
+|*| 	2 bytes  01/02/04	; block alignment
+|*|     2 bytes  08/16	    ; bits per sample
+|*|     4 bytes 'data'
+|*|     4 bytes <length>
+|*|       bytes <sample data>
+|*|
+\*/
 
-    /* Wave format control block					*/
+/* Wave format control block					*/
 
-        typedef struct {
-	    short  formatTag;		/* format category		*/
-	    short  nChannels;		/* stereo/mono			*/
-	    long nSamplesPerSec;	/* sample rate			*/
-	    long nAvgBytesPerSec;	/* stereo * sample rate 	*/
-	    short  nBlockAlign;		/* block alignment (1=byte)	*/
-	    short  nBitsPerSample;	/* # byte bits per sample	*/
-	} WaveInfo;
+typedef struct
+{
+	uint16_t  formatTag;		/* format category		*/
+	uint16_t  nChannels;		/* stereo/mono			*/
+	uint32_t nSamplesPerSec;	/* sample rate			*/
+	uint32_t nAvgBytesPerSec;	/* stereo * sample rate 	*/
+	uint16_t  nBlockAlign;		/* block alignment (1=byte)	*/
+	uint16_t  nBitsPerSample;	/* # byte bits per sample	*/
+} WaveInfo;
 
-	typedef struct {
-	    char name[4];
-	    long length;
-	    WaveInfo info;
-	} WaveFormat;
+typedef struct
+{
+	char name[4];
+	uint32_t length;
+	WaveInfo info;
+} WaveFormat;
 
-    /* Data header which follows a WaveFormat Block			*/
+/* Data header which follows a WaveFormat Block			*/
+typedef struct
+{
+	char name[4];
+	uint32_t length;
+} DataHeader;
 
-        typedef struct {
-	    char name[4];
-	    unsigned long length;
-	} DataHeader;
+/* Total Wave Header data in a wave file				*/
+typedef struct
+{
+	char name[4];
+	WaveFormat fmt;
+	DataHeader data;
+} WaveHeader;
 
-    /* Total Wave Header data in a wave file				*/
+/* Riff wrapper around the WaveFormat Block (optional)		*/
+typedef struct
+{
+	char name[4];
+	uint32_t length;
+} RiffHeader;
 
-        typedef struct {
-	    char name[4];
-	    WaveFormat fmt;
-	    DataHeader data;
-	} WaveHeader;
+/* Riff wrapped WaveFormat Block					*/
 
-    /* Riff wrapper around the WaveFormat Block (optional)		*/
+typedef struct
+{
+	RiffHeader riff;
+	WaveHeader wave;
+} RiffWave;
 
-	typedef struct {
-	    char name[4];
-	    long length;
-	} RiffHeader;
-
-    /* Riff wrapped WaveFormat Block					*/
-
-	typedef struct {
-	    RiffHeader riff;
-	    WaveHeader wave;
-	} RiffWave;
-
-	bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples);
-	bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples);
-	bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples);
+bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples);
+bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples);
+bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples);
 
 #pragma pack(pop)
-
-
-#ifdef _MSC_VER
-
-#endif
-
-    /*\
-	|*| end of WAV.H
-	\*/

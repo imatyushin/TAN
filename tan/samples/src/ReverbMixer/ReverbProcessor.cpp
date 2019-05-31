@@ -554,9 +554,9 @@ int ReverbProcessor::loadWAVFile(char* FilePath)
 		delete m_pInputRawBuffer;
 	HRESULT res;
 	res = CoInitialize(NULL);
-    QueueErrors queueErrors = m_WASAPIPlayer.QueueWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
+    WavError queueErrors = m_WASAPIPlayer.ReadWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
 	m_iInputSizeInFloatPerChannel = m_iInputSizeInBytesPerChannel / sizeof(float);
-	if (QueueErrors::FileNotFound == queueErrors) {
+	if (WavError::FileNotFound == queueErrors) {
 		//todo: reimplement
         return E_FAIL;
 	}

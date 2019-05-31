@@ -77,7 +77,7 @@ INT wasapiPlay(WASAPISTRUCT *wasapi,unsigned char *pOutputBuffer, unsigned int s
 INT wasapiRecord(WASAPISTRUCT *wasapi, unsigned char *pOutputBuffer, unsigned int size);
 void wasapiRelease(WASAPISTRUCT *wasapi, int playBack);
 void wasapiSetMute(BOOL mute);
-int QueueWaveFile(const char *inFile, WASAPISTRUCT *pWasapiHandle,long *pNsamples, unsigned char **ppOutBuffer);
+int ReadWaveFile(const char *inFile, WASAPISTRUCT *pWasapiHandle, long *pNsamples, unsigned char **ppOutBuffer);
 int PlayQueuedSamples(WASAPISTRUCT *pWasapiHandle, int nSamples, unsigned char *pOutBuffer);
 int PlayQueuedStreams(int nStreams, WASAPISTRUCT *pWasapiHandles, long *sampleCounts, unsigned char **pOutBuffers,
 				       WASAPISTRUCT *pWasapiLoopback, long lbSampleCount, unsigned char *lbBuffer);

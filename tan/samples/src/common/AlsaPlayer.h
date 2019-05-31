@@ -24,13 +24,12 @@
 #include "IWavPlayer.h"
 #include <iostream>
 
-/*Structure which hold elements required for wasapi playback */
-class PulsePlayer:
+class AlsaPlayer:
   public IWavPlayer
 {
 public:
-    PulsePlayer();
-    virtual ~PulsePlayer();
+    AlsaPlayer();
+    virtual ~AlsaPlayer();
 
     uint32_t frameSize;
     uint32_t bufferSize;
@@ -39,11 +38,13 @@ public:
     bool initializedRender;
     bool initializedCapture;
 
-    QueueErrors QueueWaveFile(const char *inFile,long *pNsamples, unsigned char **ppOutBuffer);
-    int32_t Record( unsigned char *pOutputBuffer, unsigned int size);
-    int32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
-
-    int Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
+    WavError Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
+    //bool PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer);
     void Release();
-    bool PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer );
+
+    WavError ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer);
+
+    uint32_t Record(unsigned char *pOutputBuffer, unsigned int size);
+    uint32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
+
 };

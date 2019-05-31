@@ -29,7 +29,7 @@
 #include "GpuUtils.h"
 #include "wav.h"
 #include "../TrueAudioVR/TrueAudioVR.h"
-#include "../common/PulsePlayer.h"
+#include "../common/AlsaPlayer.h"
 #include "cpucaps.h"
 
 #include <immintrin.h>
@@ -150,7 +150,7 @@ Audio3D::Audio3D():
 #ifdef _WIN32
         new WASAPIUtils()
 #else
-        new PulsePlayer()
+        new AlsaPlayer()
 #endif
     )
 {
@@ -358,9 +358,9 @@ int Audio3D::init
     //To Do skip missing files / handle error?
     for (int idx = 0; idx < nFiles; idx++)
     {
-        QueueErrors queueError = mPlayer->QueueWaveFile(inFiles[idx].c_str(), &nSamples[idx], &pBuffers[idx]);
+        WavError queueError = mPlayer->ReadWaveFile(inFiles[idx].c_str(), &nSamples[idx], &pBuffers[idx]);
 
-        if(QueueErrors::FileNotFound == queueError)
+        if(WavError::FileNotFound == queueError)
         {
             return int(queueError);
         }

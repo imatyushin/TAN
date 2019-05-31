@@ -142,7 +142,7 @@ m_headingCCW(true)
 Audio3D::~Audio3D()
 {
     finit();
-   
+
 }
 
 int Audio3D::finit(){
@@ -174,7 +174,7 @@ int Audio3D::finit(){
     return 0;
 }
 
-int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize, 
+int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize,
                     bool useGPU_Conv, int devIdx_Conv, int useRTQ_Conv, int cuRes_Conv,
                     bool useGPU_IRGen, int devIdx_IRGen, int useRTQ_IRGen, int cuRes_IRGen)
 {
@@ -213,7 +213,7 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     memset(&room, 0, sizeof(room));
 
     room = roomDef;
- 
+
     for (int idx = 0; idx < nFiles; idx++) {
         sources[idx].speakerX = 0.0;
         sources[idx].speakerY = 0.0;
@@ -230,7 +230,7 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
 
     //To Do skip missing files / handle error?
     for (int idx = 0; idx < nFiles; idx++){
-        Player.QueueWaveFile(inFiles[idx], &nSamples[idx], &pBuffers[idx]);
+        Player.ReadWaveFile(inFiles[idx], &nSamples[idx], &pBuffers[idx]);
     }
 
 
@@ -243,7 +243,7 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     }
     pProcessed = new unsigned char[nSP * 4];
 
- 
+
     // Allocate RT-Queues
     cl_command_queue cmdQueue1 = NULL;
     cl_command_queue cmdQueue2 = NULL;
@@ -329,7 +329,7 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     char title[100];
     sprintf(title, "Room: %5.1lfm W x %5.1lfm L x %5.1lfm H", room.width, room.length, room.height);
 
- 
+
     // head model:
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 
@@ -490,7 +490,7 @@ int Audio3D::processProc()
 
     short *pRec, *pOut;
     short *pWaves[MAX_SOURCES];
-    short *pWaveStarts[MAX_SOURCES]; 
+    short *pWaveStarts[MAX_SOURCES];
     int sizes[MAX_SOURCES];
 
     int nSP = 0;
@@ -517,7 +517,7 @@ int Audio3D::processProc()
     unsigned char *pProc = pProcessed;
     running = true;
 
-    while (!stop) { 
+    while (!stop) {
 
         if (src1EnableMic) {
             bytesRecorded = 0;
