@@ -63,17 +63,16 @@ private:
     static const int IR_UPDATE_MODE = 1; // 0: Non-Blocking 1: Blocking
     static unsigned processThreadProc(void *ptr);
     static unsigned updateThreadProc(void *ptr);
-    //HANDLE m_hProcessThread;
-    //HANDLE m_hUpdateThread;
+
     PrioritizedThread mProcessThread;
     PrioritizedThread mUpdateThread;
 
     int process(short *pOut, short *pChan[MAX_SOURCES], int sampleCount);
 
-    bool running = false;
-    bool updated = false;
-    bool stop = false;
-    bool updateParams = true;
+    bool mRunning = false;
+    bool mUpdated = false;
+    bool mStop = false;
+    bool mUpdateParams = true;
     bool m_useOCLOutputPipeline;
 
     std::unique_ptr<IWavPlayer> mPlayer;

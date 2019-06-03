@@ -142,8 +142,8 @@ Audio3D::Audio3D():
     //m_hProcessThread(nullptr),
     //m_hUpdateThread(nullptr),
     mProcessThread(true),
-    running(false),
-    stop(false),
+    mRunning(false),
+    mStop(false),
     m_headingOffset(0.),
     m_headingCCW(true),
     mPlayer(
@@ -174,7 +174,7 @@ Audio3D::Audio3D():
         outputMixCLBufs[i] = NULL;
         outputShortBuf = NULL;
     }
-    updated = false;
+    mUpdated = false;
 
 }
 
@@ -621,7 +621,7 @@ int Audio3D::init
         RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
 
-    running = false;
+    mRunning = false;
 
     return 0;
 }
@@ -645,7 +645,7 @@ int Audio3D::updateHeadPosition(float x, float y, float z, float yaw, float pitc
     ears.pitch = pitch;
     ears.roll = roll;
 
-    updateParams = true;
+    mUpdateParams = true;
     return 0;
 }
 
@@ -661,7 +661,7 @@ int Audio3D::updateSourcePosition(int srcNumber, float x, float y, float z)
     sources[srcNumber].speakerY = y;
     sources[srcNumber].speakerZ = z;// +room.length / 2.0f;
 
-    updateParams = true;
+    mUpdateParams = true;
     return 0;
 }
 
@@ -671,7 +671,7 @@ int Audio3D::updateRoomDimension(float _width, float _height, float _length)
 	room.height = _height;
 	room.length = _length;
 
-	updateParams = true;
+	mUpdateParams = true;
 	return 0;
 }
 
@@ -684,7 +684,7 @@ int Audio3D::updateRoomDamping(float _left, float _right, float _top, float _but
 	room.mFront.damp = _front;
 	room.mBack.damp = _back;
 
-	updateParams = true;
+	mUpdateParams = true;
 	return 0;
 }
 
@@ -712,14 +712,14 @@ float rotationY=0., float headingOffset=0., bool headingCCW=true){
 
 int Audio3D::Run()
 {
-    stop = false;
+    mStop = false;
     // start main processing thread:
     //m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
     //RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
     mProcessThread = std::thread(processThreadProc, this);
 
     // wait for processing thread to start:
-    while (!running)
+    while (!mRunning)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -729,13 +729,13 @@ int Audio3D::Run()
     //RETURN_IF_FALSE(m_hUpdateThread != (HANDLE)-1);
     mUpdateThread = std::thread(updateThreadProc, this);
 
-    updateParams = true;
+    mUpdateParams = true;
     return 0;
 }
 
 int Audio3D::Stop()
 {
-    stop = true;
+    mStop = true;
 
     //WaitForSingleObject(m_hProcessThread, INFINITE);
     //WaitForSingleObject(m_hUpdateThread, INFINITE);
@@ -912,22 +912,26 @@ int Audio3D::processProc()
     //already set in the thread's wrapper class
 
     unsigned char *pProc = pProcessed;
-    running = true;
+    mRunning = true;
 
-    while(!updated)
+    while(!mUpdated && !mStop)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
-    while (!stop) {
-
-        if (src1EnableMic) {
+    while(!mStop)
+    {
+        if (src1EnableMic)
+        {
             bytesRecorded = 0;
             int nRec;
-            while ((nRec = recFifo.fifoLength()) < m_bufSize){
+
+            while(!mStop && ((nRec = recFifo.fifoLength()) < m_bufSize))
+            {
                 // get some more:
                 nRec = mPlayer->Record((unsigned char *)pRec, m_bufSize - nRec);
                 recFifo.store((char *)pRec, nRec);
+
                 //Sleep(5);
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
@@ -939,7 +943,8 @@ int Audio3D::processProc()
             process(pOut, pWaves, m_bufSize);
             pWaves[0] = wavPtr;
         }
-        else {
+        else
+        {
             process(pOut, pWaves, m_bufSize);
         }
 
@@ -949,28 +954,36 @@ int Audio3D::processProc()
         pData = (unsigned char *)pOut;
         memcpy(pProc, pData, m_bufSize);
 
-        while (bytes2Play > 0) {
+        while(bytes2Play > 0 && !mStop)
+        {
             bytesPlayed = mPlayer->Play(pData, bytes2Play, false);
             bytes2Play -= bytesPlayed;
             pData += bytesPlayed;
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
+
         bytesPlayed = m_bufSize;
 
-        for (int idx = 0; idx<m_nFiles; idx++){
+        for (int idx = 0; idx<m_nFiles; idx++)
+        {
             pWaves[idx] += bytesPlayed / 2;
-            if (pWaves[idx] - pWaveStarts[idx] + m_bufSize / 2 > sizes[idx]){
+
+            if (pWaves[idx] - pWaveStarts[idx] + m_bufSize / 2 > sizes[idx])
+            {
                 pWaves[idx] = pWaveStarts[idx];
             }
         }
 
         pProc += m_bufSize;
-        if (pProc - pProcessed + m_bufSize > nSP){
+
+        if (pProc - pProcessed + m_bufSize > nSP)
+        {
             pProc = pProcessed;
         }
 
         ///compute current sample position for each stream:
-        for (int i = 0; i < m_nFiles; i++) {
+        for (int i = 0; i < m_nFiles; i++)
+        {
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
         }
 
@@ -989,7 +1002,7 @@ int Audio3D::processProc()
     SAFE_DELETE_ARR(pOut);
     SAFE_DELETE_ARR(pRec);
 
-    running = false;
+    mRunning = false;
     return 0;
 }
 
@@ -1007,8 +1020,8 @@ int64_t Audio3D::getCurrentPosition(int streamIdx)
 
 int Audio3D::updateProc(){
 
-    while (running && !stop) {
-        while (!updateParams  && running && !stop)
+    while (mRunning && !mStop) {
+        while (!mUpdateParams  && mRunning && !mStop)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
@@ -1039,13 +1052,13 @@ int Audio3D::updateProc(){
                 ret = m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE);
             }
 
-        } while (ret == AMF_INPUT_FULL && running && !stop);
+        } while (ret == AMF_INPUT_FULL && mRunning && !mStop);
         //todo: investigate about AMF_BUSY
         RETURN_IF_FALSE(ret == AMF_OK /*|| ret == AMF_BUSY*/);
 
-        updated = true;
+        mUpdated = true;
         //Sleep(20);
-        updateParams = false;
+        mUpdateParams = false;
     }
 
     return 0;
