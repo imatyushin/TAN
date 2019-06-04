@@ -23,15 +23,20 @@
 #include "AlsaPlayer.h"
 #include "wav.h"
 
+#include <string>
+#include <vector>
+
 #define MAXFILES 100
 int muteInit = 1;
 //IAudioEndpointVolume *g_pEndptVol = NULL;
 
 AlsaPlayer::AlsaPlayer():
-    startedRender(false),
-    startedCapture(false),
-    initializedRender(false),
-    initializedCapture(false)
+    mPCMHandle(nullptr),
+    mUpdatePeriod(0),
+    mStartedRender(false),
+    mStartedCapture(false),
+    mInitializedRender(false),
+    mInitializedCapture(false)
 {
 }
 
@@ -40,23 +45,166 @@ AlsaPlayer::~AlsaPlayer()
     Release();
 }
 
-
 /**
  *******************************************************************************
- * @fn wasapiInit
- * @brief Will export stream header contents
- *
- * @param[in/out] mp3Decoder    : Points to structure which holds
- *                                elements required for MP3Decoding
- *
- * @return INT
- *         0   for success
- *         >0  for failure
+ * @fn Init
+ * @brief Will init alsa
  *
  *******************************************************************************
  */
-WavError AlsaPlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture)
+WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture)
 {
+    std::vector<std::string> devices;
+    int pcmError(0);
+
+    //Start with first card
+    int cardNum = -1;
+
+    for(;;)
+    {
+        snd_ctl_t *cardHandle(nullptr);
+
+        if((pcmError = snd_card_next(&cardNum)) < 0)
+        {
+            std::cerr << "Can't get the next card number: %s" << snd_strerror(pcmError) << std::endl;
+
+            break;
+        }
+
+        if(cardNum < 0)
+        {
+            break;
+        }
+
+        // Open this card's control interface. We specify only the card number -- not
+        // any device nor sub-device too
+        {
+            std::string cardName("hw:");
+            cardName += std::to_string(cardNum);
+
+            if((pcmError = snd_ctl_open(&cardHandle, cardName.c_str(), 0)) < 0)
+            {
+                std::cerr << "Can't open card " << cardNum << ": " << snd_strerror(pcmError) << std::endl;
+
+                continue;
+            }
+
+            devices.push_back(cardName);
+        }
+
+        {
+            snd_ctl_card_info_t *cardInfo(nullptr);
+
+            // We need to get a snd_ctl_card_info_t. Just alloc it on the stack
+            snd_ctl_card_info_alloca(&cardInfo);
+
+            // Tell ALSA to fill in our snd_ctl_card_info_t with info about this card
+            if((pcmError = snd_ctl_card_info(cardHandle, cardInfo)) < 0)
+            {
+                std::cerr << "Can't get info for card " << cardNum << ": " << snd_strerror(pcmError) << std::endl;
+            }
+            else
+            {
+                std::cout << "Card " << cardNum << " = " << snd_ctl_card_info_get_name(cardInfo) << std::endl;
+            }
+        }
+
+        // Close the card's control interface after we're done with it
+        snd_ctl_close(cardHandle);
+    }
+
+    if(devices.empty())
+    {
+        std::cerr << "Error: No compatible sound card found." << std::endl;
+
+        return WavError::PCMError;
+    }
+
+    /* Open the PCM device in playback mode */
+	if(pcmError = snd_pcm_open(
+        &mPCMHandle,
+        "default",
+        SND_PCM_STREAM_PLAYBACK,
+        0//SND_PCM_ASYNC | SND_PCM_NONBLOCK
+        ) < 0)
+    {
+        std::cerr << "Error: Can't open default PCM device. " << snd_strerror(pcmError) << std::endl;
+
+        return WavError::PCMError;
+    }
+    else
+    {
+        std::cerr << "PCM device opened: " << devices[0] << std::endl;
+    }
+
+    /* Allocate parameters object and fill it with default values*/
+    snd_pcm_hw_params_t *params(nullptr);
+	snd_pcm_hw_params_alloca(&params);
+    snd_pcm_hw_params_any(mPCMHandle, params);
+
+    /* Set parameters */
+	if(pcmError = snd_pcm_hw_params_set_access(
+        mPCMHandle,
+        params,
+        SND_PCM_ACCESS_RW_INTERLEAVED) < 0)
+    {
+		printf("ERROR: Can't set interleaved mode. %s\n", snd_strerror(pcmError));
+
+        return WavError::PCMError;
+    }
+
+	if(pcmError = snd_pcm_hw_params_set_format(
+        mPCMHandle,
+        params,
+        SND_PCM_FORMAT_S16_LE) < 0)
+    {
+		printf("ERROR: Can't set format. %s\n", snd_strerror(pcmError));
+    }
+
+	if(pcmError = snd_pcm_hw_params_set_channels(mPCMHandle, params, streaminfo->NumOfChannels) < 0)
+    {
+		printf("ERROR: Can't set channels number. %s\n", snd_strerror(pcmError));
+    }
+
+	uint32_t rate(uint32_t(streaminfo->SamplesPerSec));
+    if(pcmError = snd_pcm_hw_params_set_rate_near(mPCMHandle, params, &rate, 0) < 0)
+    {
+		printf("ERROR: Can't set rate. %s\n", snd_strerror(pcmError));
+    }
+
+	/* Write parameters */
+	if(pcmError = snd_pcm_hw_params(mPCMHandle, params) < 0)
+    {
+		printf("ERROR: Can't set harware parameters. %s\n", snd_strerror(pcmError));
+    }
+
+	/* Resume information */
+    {
+        printf("PCM name: '%s'\n", snd_pcm_name(mPCMHandle));
+        printf("PCM state: %s\n", snd_pcm_state_name(snd_pcm_state(mPCMHandle)));
+
+        uint32_t channels(0);
+	    snd_pcm_hw_params_get_channels(params, &channels);
+	    printf("channels: %i ", channels);
+
+        if (channels == 1)
+            printf("(mono)\n");
+        else if (channels == 2)
+            printf("(stereo)\n");
+
+        uint32_t rate(0);
+        snd_pcm_hw_params_get_rate(params, &rate, 0);
+        printf("rate: %d bps\n", rate);
+    }
+
+    mChannelsCount = streaminfo->NumOfChannels;
+    mUpdatePeriod = 0;
+    snd_pcm_hw_params_get_period_time(params, &mUpdatePeriod, NULL);
+
+	//printf("seconds: %d\n", streaminfo->);
+
+    return WavError::OK;
+
     /*HRESULT hr;
 
     INT sampleRate = streaminfo->SamplesPerSec;
@@ -101,7 +249,7 @@ WavError AlsaPlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t
     FAILONERROR(hr, "Failed getting MMDeviceEnumerator.");
 
     if (capture){
-        if (initializedCapture){
+        if (mInitializedCapture){
             return 0;
         }
         devCapture = NULL;
@@ -124,12 +272,12 @@ WavError AlsaPlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t
             hr = audioCapClient->GetBufferSize(bufferSize);
             FAILONERROR(hr, "Failed getting BufferSize");
         }
-        startedCapture = false;
-        initializedCapture = true;
+        mStartedCapture = false;
+        mInitializedCapture = true;
 
     }
     else {
-        if (initializedRender){
+        if (mInitializedRender){
             return 0;
         }
         devRender = NULL;
@@ -155,8 +303,8 @@ WavError AlsaPlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t
         FAILONERROR(hr, "Failed getting renderClient");
         hr = audioClient->GetBufferSize(bufferSize);
         FAILONERROR(hr, "Failed getting BufferSize");
-        startedRender = false;
-        initializedRender = true;
+        mStartedRender = false;
+        mInitializedRender = true;
 
     }
 
@@ -164,10 +312,7 @@ WavError AlsaPlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t
     //BOOL isOffloadCapable = false;
 
     return hr;*/
-    return WavError::OK;
 }
-
-
 
 /**
  *******************************************************************************
@@ -195,9 +340,17 @@ void AlsaPlayer::Release()
     SAFE_RELEASE(devRender);
     SAFE_RELEASE(devCapture);
     SAFE_RELEASE(devEnum);
-	initializedRender = false;
-	initializedCapture = false;
+	mInitializedRender = false;
+	mInitializedCapture = false;
     */
+
+    snd_pcm_drain(mPCMHandle);
+	snd_pcm_close(mPCMHandle);
+
+    // ALSA allocates some mem to load its config file when we call some of the
+    // above functions. Now that we're done getting the info, let's tell ALSA
+    // to unload the info and free up that mem
+    snd_config_update_free_global();
 }
 
 WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer)
@@ -240,8 +393,10 @@ WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, 
             }
         }
     }
+
     //don't need floats;
-    for (int i = 0; i < nChannels; i++){
+    for (int i = 0; i < nChannels; i++)
+    {
         delete pSamples[i];
     }
     delete pSamples;
@@ -249,10 +404,9 @@ WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, 
     *ppOutBuffer = pOutBuffer;
 
     STREAMINFO streaminfo = {0};
-    //memset(&streaminfo, 0, sizeof(STREAMINFO));
-    streaminfo.bitsPerSample = 16;
-    streaminfo.NumOfChannels = 2;
-    streaminfo.SamplesPerSec = samplesPerSec;// 48000;
+    streaminfo.bitsPerSample = bitsPerSample;
+    streaminfo.NumOfChannels = nChannels;
+    streaminfo.SamplesPerSec = samplesPerSec;
 
     return Init(&streaminfo,  &bufferSize, &frameSize);
 }
@@ -273,6 +427,20 @@ WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, 
  */
 uint32_t AlsaPlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
 {
+    int pcmError = 0;
+
+    uint32_t uiFrames2Play(size / mChannelsCount / 2);
+
+    if(pcmError = snd_pcm_writei(mPCMHandle, pOutputBuffer, uiFrames2Play) == -EPIPE)
+    {
+        printf("XRUN.\n");
+        snd_pcm_prepare(mPCMHandle);
+    }
+    else if(pcmError < 0)
+    {
+        printf("ERROR. Can't write to PCM device. %s\n", snd_strerror(pcmError));
+    }
+
     /*if (audioClient == NULL || renderClient==NULL)
         return 0;
 
@@ -300,14 +468,14 @@ uint32_t AlsaPlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
     hr = renderClient->ReleaseBuffer(frames, NULL);
     FAILONERROR(hr, "Failed releaseBuffer");
 
-    if (!startedRender)
+    if (!mStartedRender)
     {
-        startedRender = TRUE;
+        mStartedRender = TRUE;
         audioClient->Start();
     }
 
     return  (frames*frameSize);*/
-    return 0;
+    return uiFrames2Play * 2 * mChannelsCount;
 }
 
 /**
@@ -333,9 +501,9 @@ uint32_t AlsaPlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
     UINT32 frames;
     CHAR *buffer = NULL;
 
-    if (!startedCapture)
+    if (!mStartedCapture)
     {
-        startedCapture = TRUE;
+        mStartedCapture = TRUE;
         hr = audioCapClient->Start();
     }
 

@@ -52,7 +52,8 @@ enum class WavError
 {
     OK = 0,
 
-    FileNotFound = 1 << 1
+    FileNotFound = 1 << 1,
+    PCMError = 1 << 2,
 };
 
 /*Structure which hold elements required for wasapi playback */

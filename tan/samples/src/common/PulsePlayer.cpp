@@ -28,10 +28,10 @@ int muteInit = 1;
 //IAudioEndpointVolume *g_pEndptVol = NULL;
 
 PulsePlayer::PulsePlayer():
-    startedRender(false),
-    startedCapture(false),
-    initializedRender(false),
-    initializedCapture(false)
+    mStartedRender(false),
+    mStartedCapture(false),
+    mInitializedRender(false),
+    mInitializedCapture(false)
 {
 }
 
@@ -101,7 +101,7 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
     FAILONERROR(hr, "Failed getting MMDeviceEnumerator.");
 
     if (capture){
-        if (initializedCapture){
+        if (mInitializedCapture){
             return 0;
         }
         devCapture = NULL;
@@ -124,12 +124,12 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
             hr = audioCapClient->GetBufferSize(bufferSize);
             FAILONERROR(hr, "Failed getting BufferSize");
         }
-        startedCapture = false;
-        initializedCapture = true;
+        mStartedCapture = false;
+        mInitializedCapture = true;
 
     }
     else {
-        if (initializedRender){
+        if (mInitializedRender){
             return 0;
         }
         devRender = NULL;
@@ -155,8 +155,8 @@ int PulsePlayer::Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *fr
         FAILONERROR(hr, "Failed getting renderClient");
         hr = audioClient->GetBufferSize(bufferSize);
         FAILONERROR(hr, "Failed getting BufferSize");
-        startedRender = false;
-        initializedRender = true;
+        mStartedRender = false;
+        mInitializedRender = true;
 
     }
 
@@ -197,8 +197,8 @@ void PulsePlayer::Release()
     SAFE_RELEASE(devRender);
     SAFE_RELEASE(devCapture);
     SAFE_RELEASE(devEnum);
-	initializedRender = false;
-	initializedCapture = false;
+	mInitializedRender = false;
+	mInitializedCapture = false;
     * /
 }
 
@@ -297,9 +297,9 @@ int32_t PulsePlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
     hr = renderClient->ReleaseBuffer(frames, NULL);
     FAILONERROR(hr, "Failed releaseBuffer");
 
-    if (!startedRender)
+    if (!mStartedRender)
     {
-        startedRender = TRUE;
+        mStartedRender = TRUE;
         audioClient->Start();
     }
 
@@ -329,9 +329,9 @@ int32_t PulsePlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
     UINT32 frames;
     CHAR *buffer = NULL;
 
-    if (!startedCapture)
+    if (!mStartedCapture)
     {
-        startedCapture = TRUE;
+        mStartedCapture = TRUE;
         hr = audioCapClient->Start();
     }
 

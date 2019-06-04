@@ -50,10 +50,10 @@ public:
     IAudioCaptureClient *captureClient;
     UINT frameSize;
     UINT bufferSize;
-    bool startedRender;
-    bool startedCapture;
-    bool initializedRender;
-    bool initializedCapture;
+    bool mStartedRender;
+    bool mStartedCapture;
+    bool mInitializedRender;
+    bool mInitializedCapture;
 
     WavError ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer);
     int32_t Record(unsigned char *pOutputBuffer, unsigned int size);

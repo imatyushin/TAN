@@ -28,10 +28,10 @@ int muteInit = 1;
 IAudioEndpointVolume *g_pEndptVol = NULL;
 
 WASAPIUtils::WASAPIUtils(){
-    startedRender = false;
-    startedCapture = false;
-    initializedRender = false;
-    initializedCapture = false;
+    mStartedRender = false;
+    mStartedCapture = false;
+    mInitializedRender = false;
+    mInitializedCapture = false;
     devRender = devCapture = NULL;
 
     devRender = NULL;
@@ -109,7 +109,7 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
     FAILONERROR(hr, "Failed getting MMDeviceEnumerator.");
 
     if (capture){
-        if (initializedCapture){
+        if (mInitializedCapture){
             return 0;
         }
         devCapture = NULL;
@@ -132,12 +132,12 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
             hr = audioCapClient->GetBufferSize(bufferSize);
             FAILONERROR(hr, "Failed getting BufferSize");
         }
-        startedCapture = false;
-        initializedCapture = true;
+        mStartedCapture = false;
+        mInitializedCapture = true;
 
     }
     else {
-        if (initializedRender){
+        if (mInitializedRender){
             return 0;
         }
         devRender = NULL;
@@ -163,8 +163,8 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
         FAILONERROR(hr, "Failed getting renderClient");
         hr = audioClient->GetBufferSize(bufferSize);
         FAILONERROR(hr, "Failed getting BufferSize");
-        startedRender = false;
-        initializedRender = true;
+        mStartedRender = false;
+        mInitializedRender = true;
 
     }
 
@@ -206,8 +206,8 @@ void WASAPIUtils::wasapiRelease()
     SAFE_RELEASE(devRender);
     SAFE_RELEASE(devCapture);
     SAFE_RELEASE(devEnum);
-	initializedRender = false;
-	initializedCapture = false;
+	mInitializedRender = false;
+	mInitializedCapture = false;
 }
 
 WavError WASAPIUtils::ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer)
@@ -304,9 +304,9 @@ int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
     hr = renderClient->ReleaseBuffer(frames, NULL);
     FAILONERROR(hr, "Failed releaseBuffer");
 
-    if (!startedRender)
+    if (!mStartedRender)
     {
-        startedRender = TRUE;
+        mStartedRender = TRUE;
         audioClient->Start();
     }
 
@@ -336,9 +336,9 @@ int32_t WASAPIUtils::Record( unsigned char *pOutputBuffer, unsigned int size)
     UINT32 frames;
     CHAR *buffer = NULL;
 
-    if (!startedCapture)
+    if (!mStartedCapture)
     {
-        startedCapture = TRUE;
+        mStartedCapture = TRUE;
         hr = audioCapClient->Start();
     }
 

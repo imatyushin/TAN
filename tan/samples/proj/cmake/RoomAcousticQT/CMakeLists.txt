@@ -202,7 +202,8 @@ target_link_libraries(RoomAcousticsQT "version.lib")
 target_link_libraries(RoomAcousticsQT "shlwapi.lib")
 else()
 
-find_package(Threads)
+find_package(Threads REQUIRED)
 target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(RoomAcousticsQT "asound")
 
 endif()

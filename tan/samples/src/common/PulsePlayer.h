@@ -34,10 +34,10 @@ public:
 
     uint32_t frameSize;
     uint32_t bufferSize;
-    bool startedRender;
-    bool startedCapture;
-    bool initializedRender;
-    bool initializedCapture;
+    bool mStartedRender;
+    bool mStartedCapture;
+    bool mInitializedRender;
+    bool mInitializedCapture;
 
     WavError ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer);
     int32_t Record( unsigned char *pOutputBuffer, unsigned int size);

@@ -24,21 +24,29 @@
 #include "IWavPlayer.h"
 #include <iostream>
 
+#include <alsa/asoundlib.h>
+
 class AlsaPlayer:
-  public IWavPlayer
+    public IWavPlayer
 {
+protected:
+    snd_pcm_t *mPCMHandle;
+    uint32_t mUpdatePeriod;
+    uint8_t mChannelsCount;
+
+    uint32_t frameSize;
+    uint32_t bufferSize;
+    bool mStartedRender;
+    bool mStartedCapture;
+    bool mInitializedRender;
+    bool mInitializedCapture;
+
+
 public:
     AlsaPlayer();
     virtual ~AlsaPlayer();
 
-    uint32_t frameSize;
-    uint32_t bufferSize;
-    bool startedRender;
-    bool startedCapture;
-    bool initializedRender;
-    bool initializedCapture;
-
-    WavError Init(STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
+    WavError Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
     //bool PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer);
     void Release();
 
@@ -46,5 +54,4 @@ public:
 
     uint32_t Record(unsigned char *pOutputBuffer, unsigned int size);
     uint32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
-
 };

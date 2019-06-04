@@ -949,9 +949,10 @@ int Audio3D::processProc()
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
+
         int bytes2Play = m_bufSize;
-        unsigned char *pData;
-        pData = (unsigned char *)pOut;
+        unsigned char *pData = (unsigned char *)pOut;
+
         memcpy(pProc, pData, m_bufSize);
 
         while(bytes2Play > 0 && !mStop)
@@ -959,6 +960,7 @@ int Audio3D::processProc()
             bytesPlayed = mPlayer->Play(pData, bytes2Play, false);
             bytes2Play -= bytesPlayed;
             pData += bytesPlayed;
+
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
 
