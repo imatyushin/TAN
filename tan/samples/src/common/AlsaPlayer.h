@@ -34,20 +34,11 @@ protected:
     uint32_t mUpdatePeriod;
     uint8_t mChannelsCount;
 
-    uint32_t frameSize;
-    uint32_t bufferSize;
-    bool mStartedRender;
-    bool mStartedCapture;
-    bool mInitializedRender;
-    bool mInitializedCapture;
-
-
 public:
     AlsaPlayer();
     virtual ~AlsaPlayer();
 
     WavError Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
-    //bool PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer);
     void Release();
 
     WavError ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer);

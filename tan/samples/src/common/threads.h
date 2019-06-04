@@ -4,12 +4,18 @@
 #include <chrono>
 #include <iostream>
 #include <cstring>
+//#include <mutex>
+//#include <condition_variable>
 
 #ifdef _WIN32
+
 #include <Windows.h>
 #include <AclAPI.h>
+
 #else
+
 #include <pthread.h>
+
 #endif
 
 class PrioritizedThread:
@@ -17,6 +23,9 @@ class PrioritizedThread:
 {
 protected:
     bool mRealtime;
+    //std::mutex mLockMutex;
+    //std::condition_variable mQuitCondition;
+
 #ifdef _WIN32
 #else
     int mPolicy;
@@ -55,7 +64,6 @@ public:
     {
         swap(other);
 
-        /*
 #ifdef _WIN32
         if(mRealtime)
         {
@@ -72,7 +80,7 @@ public:
         {
             std::cerr << "Error: failed to set thread priority (" << std::strerror(errno) << ")" << std::endl;
         }
-#endif*/
+#endif
 
         //??? SetSecurityInfo(GetCurrentProcess(), SE_WINDOW_OBJECT, PROCESS_SET_INFORMATION, 0, 0, 0, 0);
         //done - SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
@@ -83,11 +91,12 @@ public:
 
     virtual void WaitCloseInfinite()
     {
-        std::cout << "Wait thread finish..." << std::endl;
+        join();
 
-        while(joinable())
-        {
-           std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
+        /*
+        // wait for the detached thread
+        std::unique_lock<std::mutex> lock(mLockMutex);
+        mQuitCondition.wait(lock, []{ return ready; });
+        */
     }
 };
