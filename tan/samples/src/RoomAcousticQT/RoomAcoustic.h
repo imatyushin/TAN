@@ -6,13 +6,13 @@
 #define MAX_DEVICES 10
 
 struct attribute {
-	char *name;
+	std::string name;
 	void *value;
 	char fmt; // f, i, s
 };
 
 struct element {
-	char *name;
+	std::string name;
 	int nAttribs;
 	struct attribute *attriblist;
 	int nElements;
@@ -64,7 +64,7 @@ private:
 	void initializeListener();													// Initialize TAN listener profile
 	void initializeDevice();													// Initialize TAN device (Convolution, FFT, etc.)
 	bool parseElement(char *start, char *end, struct element *elem);			// Function used to parse XML file. Used in load configruation
-	bool findElement(char **start, char **end, char *name);						// Function used to parse XML file
+	bool findElement(char **start, char **end, const char *name);						// Function used to parse XML file
 	void portInfoToEngine();													// Port all the configuration to engine
 
 //todo: make accessors

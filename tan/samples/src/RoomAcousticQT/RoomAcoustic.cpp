@@ -58,11 +58,21 @@ int RoomAcoustic::start()
 	{
 		Roomdevice--;
 	}
-	int err =  m_pAudioEngine->init(
+
+	std::vector<std::string> fileNames;
+	fileNames.reserve(m_iNumOfWavFileInternal);
+
+	for(int nameIndex(0); nameIndex < m_iNumOfWavFileInternal; ++nameIndex)
+	{
+		fileNames.push_back(mWavFileNamesInternal[nameIndex]);
+	}
+
+	int err =  m_pAudioEngine->Init(
 		mTANDLLPath.c_str(),
 		m_RoomDefinition,
-		m_iNumOfWavFileInternal,
-		mWavFileNamesInternal,
+
+		fileNames,
+
 		m_iConvolutionLength,
 		m_iBufferSize, m_iuseGPU4Conv, convolutiondevice,
 #ifdef RTQ_ENABLED
@@ -195,15 +205,14 @@ void RoomAcoustic::initializeDevice()
 bool RoomAcoustic::parseElement(char* start, char* end, element* elem)
 {
 	bool ok = false;
-	start += strlen(elem->name) + 1;
+	start += elem->name.length() + 1;
 
 	// parse attributes
 	for (int j = 0; j < elem->nAttribs; j++){
-		char *pName = elem->attriblist[j].name;
-		int len = (int)strlen(pName);
+		int len = (int)elem->attriblist[j].name.length();
 		char *p = start;
 		while (p++ < end){
-			if (strncmp(p, pName, len) == 0){
+			if (strncmp(p, elem->attriblist[j].name.c_str(), len) == 0){
 				p += len;
 				while (p < end){
 					if (*p++ == '=')
@@ -239,7 +248,7 @@ bool RoomAcoustic::parseElement(char* start, char* end, element* elem)
 		char *s, *e;
 		s = start;
 		e = end;
-		if (findElement(&s, &e, elem->elemList[i].name)){
+		if (findElement(&s, &e, elem->elemList[i].name.c_str())){
 			ok = parseElement(s, e, &elem->elemList[i]);
 		}
 	}
@@ -247,7 +256,7 @@ bool RoomAcoustic::parseElement(char* start, char* end, element* elem)
 	return ok;
 }
 
-bool RoomAcoustic::findElement(char** start, char** end, char* name)
+bool RoomAcoustic::findElement(char** start, char** end, const char* name)
 {
 	bool found = false;
 	char *p = *start;
@@ -384,8 +393,8 @@ void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 			_position += std::to_string(i+1);
 			src[0].name = new char[MAX_PATH];
 			src[1].name = new char[MAX_PATH];
-			std::strncpy(src[0].name, _stream.c_str(), MAX_PATH);
-			std::strncpy(src[1].name, _position.c_str(), MAX_PATH);
+			src[0].name = _stream;
+			src[1].name = _position;
 			src[0].nAttribs = 2;
 			src[1].nAttribs = 3;
 			src[0].attriblist = streamAttribs;
@@ -398,7 +407,7 @@ void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 		std::string _Source = "Source";
 		_Source += std::to_string(i+1);
 
-		std::strncpy(RAelementList[i].name, _Source.c_str(), MAX_PATH);
+		RAelementList[i].name = _Source;
 		RAelementList[i].nAttribs = 0;
 		RAelementList[i].attriblist = NULL;
 
@@ -521,7 +530,6 @@ void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 		}
 		else
 		{
-			delete[] elements_list[i]->name;
 			delete elements_list[i];
 		}
 	}

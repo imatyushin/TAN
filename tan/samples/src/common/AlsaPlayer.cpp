@@ -214,20 +214,20 @@ void AlsaPlayer::Release()
     snd_config_update_free_global();
 }
 
-WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer)
+WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, uint32_t& samplesCount, uint8_t **ppOutBuffer)
 {
-    int samplesPerSec = 0;
-    int bitsPerSample = 0;
-    int nChannels = 0;
+    uint32_t samplesPerSec = 0;
+    uint16_t bitsPerSample = 0;
+    uint16_t nChannels = 0;
     float **pSamples;
     unsigned char *pOutBuffer;
 
     if(!::ReadWaveFile(
         fileName.c_str(),
-        &samplesPerSec,
-        &bitsPerSample,
-        &nChannels,
-        pNsamples,
+        samplesPerSec,
+        bitsPerSample,
+        nChannels,
+        samplesCount,
         &pOutBuffer,
         &pSamples
         ))
@@ -235,10 +235,12 @@ WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, 
         return WavError::FileNotFound;
     }
 
-    if (nChannels != 2 || bitsPerSample != 16) {
+    if(nChannels != 2 || bitsPerSample != 16)
+    {
         free(pOutBuffer);
-        pOutBuffer = (unsigned char *)calloc(*pNsamples, 2 * sizeof(short));
-        if (!pOutBuffer)
+        pOutBuffer = (unsigned char *)calloc(samplesCount, 2 * sizeof(short));
+
+        if(!pOutBuffer)
         {
             //return -1;
             //todo: return not enoght memory
@@ -246,10 +248,11 @@ WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, long *pNsamples, 
         }
 
         short *pSBuf = (short *)pOutBuffer;
-        for (int i = 0; i < *pNsamples; i++)
+        for (int i = 0; i < samplesCount; i++)
         {
             pSBuf[2 * i + 1] = pSBuf[2 * i] = (short)(32767 * pSamples[0][i]);
-            if (nChannels == 2){
+            if (nChannels == 2)
+            {
                 pSBuf[2 * i + 1] = (short)(32767 * pSamples[1][i]);
             }
         }

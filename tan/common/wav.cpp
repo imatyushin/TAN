@@ -28,14 +28,16 @@
 #define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),  (mode)))==NULL
 #endif
 
-void SetupWaveHeader(RiffWave *fhd,
-	long sampleRate,
-	int bitsPerSample,
+void SetupWaveHeader
+(
+	RiffWave *fhd,
+	int32_t sampleRate,
+	int32_t bitsPerSample,
 	int channels,
-	long nSamples)
+	long samplesCount)
 {
 	long dataLength;
-	dataLength = nSamples*(bitsPerSample / 8)*channels;
+	dataLength = samplesCount*(bitsPerSample / 8)*channels;
 	memset(fhd, 0, sizeof(RiffWave));
 
 	fhd->riff.name[0] = 'R';
@@ -69,7 +71,7 @@ void SetupWaveHeader(RiffWave *fhd,
 	fhd->wave.fmt.info.formatTag = 1;
 
 	/* set up the sample rate, etc...	*/
-	fhd->wave.fmt.info.nChannels = (short)channels;
+	fhd->wave.fmt.info.nChannels = (uint16_t)channels;
 	fhd->wave.fmt.info.nSamplesPerSec = sampleRate;
 
 	//fhd->wave.fmt.info.nAvgBytesPerSec = (sampleRate << (channels - 1)) <<
@@ -84,11 +86,27 @@ void SetupWaveHeader(RiffWave *fhd,
         fhd->wave.fmt.info.formatTag = 3;
     }
 
-	fhd->wave.fmt.info.nBitsPerSample = (short)bitsPerSample;
+	fhd->wave.fmt.info.nBitsPerSample = (uint16_t)bitsPerSample;
 }
 
-bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples)
+bool 			ReadWaveFile
+(
+	const char *fileName,
+	uint32_t &	samplesPerSec,
+	uint16_t &	bitsPerSample,
+	uint16_t &	channelsCount,
+	uint32_t &	samplesCount,
+	uint8_t **	pSamples,
+	float ***	pfSamples
+)
 {
+	//reset output
+	samplesPerSec = 0;
+	bitsPerSample = 0;
+	channelsCount = 0;
+	samplesCount = 0;
+	*pSamples = nullptr;
+
 	FILE *fpIn = nullptr;
 	if ((fopen_s(&fpIn,fileName, "rb")) != 0)
 	{
@@ -152,39 +170,33 @@ bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample
 	}
 
 	/* get the data size */
-	int nChannels = fhd.wave.fmt.info.nChannels;
-	int samplesPerSec = fhd.wave.fmt.info.nSamplesPerSec;
-	int bitsPerSam = fhd.wave.fmt.info.nBitsPerSample;
-	int nSamples = (fhd.wave.data.length * 8) / (bitsPerSam*nChannels);
-
-	*pSamplesPerSec = samplesPerSec;
-	*pBitsPerSample = bitsPerSam;
-	*pNChannels = nChannels;
-	*pNSamples = nSamples;
+	samplesPerSec = fhd.wave.fmt.info.nSamplesPerSec;
+	bitsPerSample = fhd.wave.fmt.info.nBitsPerSample;
+	channelsCount = fhd.wave.fmt.info.nChannels;
+	samplesCount = (fhd.wave.data.length * 8) / (bitsPerSample * channelsCount);
 
 	/* sampling interval in seconds: */
 	//int delta = 1.0 / (float)samplesPerSec;
 	//printf("interval = %fs\n", delta);
 
-	printf("ReadWaveFile: File %s has %ld %dbit samples\n", fileName, nSamples, bitsPerSam);
-	printf("ReadWaveFile: recorded at %ld samples per second, ", samplesPerSec);
-	printf((nChannels == 2) ? "in Stereo.\n" : "%d channels.\n",nChannels);
-	printf("ReadWaveFile: Play duration: %6.2f seconds.\n",
-		(float)nSamples / (float)samplesPerSec);
+	printf("ReadWaveFile: File %s has %d %dbit samples\n", fileName, samplesCount, bitsPerSample);
+	printf("ReadWaveFile: recorded at %d samples per second, ", samplesPerSec);
+	printf((channelsCount == 2) ? "in Stereo.\n" : "%d channels.\n", channelsCount);
+	printf("ReadWaveFile: Play duration: %6.2f seconds.\n", (float)samplesCount / (float)samplesPerSec);
 
-	*pfSamples = new float *[nChannels];
-	for (int i = 0; i < nChannels; i++)
+	*pfSamples = new float *[channelsCount];
+	for(int channelNumber = 0; channelNumber < channelsCount; ++channelNumber)
 	{
 		float *data;
-		(*pfSamples)[i] = data = new float[(nSamples + 1)];
+		(*pfSamples)[channelNumber] = data = new float[(samplesCount + 1)];
 		if (data == NULL) {
-			printf("ReadWaveFile: Failed to allocate %d floats\n", nSamples + 1);
+			printf("ReadWaveFile: Failed to allocate %d floats\n", samplesCount + 1);
 			return(false);
 		}
-		for (int j = 0; j < (nSamples + 1); j++) data[j] = 0.0;
+		for (int j = 0; j < (samplesCount + 1); j++) data[j] = 0.0;
 	}
 
-	int bytesPerSam = bitsPerSam / 8;
+	int bytesPerSam = bitsPerSample / 8;
     if (bytesPerSam == 0)
     {
         printf("ReadWaveFile: broken file\n");
@@ -192,44 +204,47 @@ bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample
     }
 
 	/* read wave samples, convert to floating point: */
-	unsigned char *sampleBuf = new unsigned char[nSamples*nChannels * bytesPerSam];
-	if (sampleBuf == NULL) {
-		printf("ReadWaveFile: Failed to allocate %d bytes\n", nSamples*nChannels * bytesPerSam);
+	auto wavDataSize(channelsCount * samplesCount * bytesPerSam);
+	*pSamples = new uint8_t[ wavDataSize ];
+
+	if(!*pSamples)
+	{
+		printf("ReadWaveFile: Failed to allocate %d bytes\n", samplesCount*channelsCount * bytesPerSam);
+
 		return(false);
 	}
-	fread(sampleBuf, nSamples*bytesPerSam*nChannels, 1, fpIn);
-	short *sSampleBuf = (short *)sampleBuf;
-	float *fSampleBuf = (float *)sampleBuf;
-	*pSamples = sampleBuf;
 
-	switch (bitsPerSam){
+	fread(*pSamples, wavDataSize, 1, fpIn);
+
+	switch(bitsPerSample)
+	{
 	case 8:
-		for (int i = 0; i < nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n < nChannels;n++)
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n < channelsCount;n++)
 			{
-				(*pfSamples)[n][i] = (float)(sampleBuf[k + n] - 127) / 256.0f;
+				(*pfSamples)[n][sampleNumber] = (float)((*pSamples)[k + n] - 127) / 256.0f;
 			}
 		}
 		break;
 	case 16:
-		for (int i = 0; i < nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n < nChannels; n++)
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n < channelsCount; n++)
 			{
-				(*pfSamples)[n][i] = (float)(sSampleBuf[k + n]) / 32768.0f;
+				(*pfSamples)[n][sampleNumber] = (float)(((uint16_t *)*pSamples)[k + n]) / 32768.0f;
 			}
 		}
 		break;
 	case 32:
-		for (int i = 0; i < nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n < nChannels; n++)
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n < channelsCount; n++)
 			{
-				(*pfSamples)[n][i] = fSampleBuf[k + n];
+				(*pfSamples)[n][sampleNumber] = ((float *)*pSamples)[k + n];
 			}
 		}
 		break;
@@ -237,31 +252,31 @@ bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample
 
 	fclose(fpIn);
 
-	return(true);
+	return true;
 }
 
-bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples)
+bool WriteWaveFileF(const char *fileName, int samplesPerSec, int channelsCount, int bitsPerSample, long samplesCount, float **pSamples)
 {
 	/* write wave samples: */
 	RiffWave fhd;
 	FILE *fpOut;
 
-	SetupWaveHeader(&fhd, samplesPerSec, bitsPerSample, nChannels, nSamples);
+	SetupWaveHeader(&fhd, samplesPerSec, bitsPerSample, channelsCount, samplesCount);
 	int bytesPerSample = bitsPerSample / 8;
     if (fopen_s(&fpOut, fileName, "wb") != 0 || !fpOut) return false;
 	fwrite(&fhd, sizeof(fhd), 1, fpOut);
 
-	char *buffer = new char[bytesPerSample*nChannels*nSamples];
+	char *buffer = new char[bytesPerSample*channelsCount*samplesCount];
 	short *sSamBuf = (short *)buffer;
 	float *fSamBuf = (float *)buffer;
 
 	switch (bytesPerSample){
 	case 1:
-		for (int i = 0; i<nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber<samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n<nChannels; n++) {
-				float value = pSamples[n][i];
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n<channelsCount; n++) {
+				float value = pSamples[n][sampleNumber];
 				if (value > 1.0) value = 1.0;
 				if (value < -1.0) value = -1.0;
 				buffer[k + n] = (char)(value * 127.0);
@@ -269,11 +284,11 @@ bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int 
 		}
 		break;
 	case 2:
-		for (int i = 0; i<nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber<samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n<nChannels; n++) {
-				float value = pSamples[n][i];
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n<channelsCount; n++) {
+				float value = pSamples[n][sampleNumber];
 				if (value > 1.0) value = 1.0;
 				if (value < -1.0) value = -1.0;
 				sSamBuf[k+n] = (short)(value * 32767.0);
@@ -281,11 +296,11 @@ bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int 
 		}
 		break;
 	case 4:
-		for (int i = 0; i<nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber<samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n<nChannels; n++) {
-				fSamBuf[k + n] = pSamples[n][i];
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n<channelsCount; n++) {
+				fSamBuf[k + n] = pSamples[n][sampleNumber];
 			}
 		}
 		break;
@@ -295,20 +310,20 @@ bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int 
 	}
 
 
-	fwrite(buffer, nSamples*nChannels * bytesPerSample, 1, fpOut);
+	fwrite(buffer, samplesCount*channelsCount * bytesPerSample, 1, fpOut);
 	fclose(fpOut);
 
 	return(0);
 
 }
 
-bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples)
+bool WriteWaveFileS(const char *fileName, int samplesPerSec, int channelsCount, int bitsPerSample, long samplesCount, short *pSamples)
 {
 	/* write wave samples: */
 	RiffWave fhd;
 	FILE *fpOut;
 
-	SetupWaveHeader(&fhd, samplesPerSec, bitsPerSample, nChannels, nSamples);
+	SetupWaveHeader(&fhd, samplesPerSec, bitsPerSample, channelsCount, samplesCount);
 	int bytesPerSample = bitsPerSample / 8;
 	fopen_s(&fpOut,fileName, "wb");
 	if (fpOut == NULL)
@@ -316,36 +331,36 @@ bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int 
 
 	fwrite(&fhd, sizeof(fhd), 1, fpOut);
 
-	char *buffer = new char[bytesPerSample*nChannels*nSamples];
+	char *buffer = new char[bytesPerSample*channelsCount*samplesCount];
 	short *sSamBuf = (short *)buffer;
 	float *fSamBuf = (float *)buffer;
 
 	switch (bytesPerSample){
 	case 1:
-		for (int i = 0; i<nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber<samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n<nChannels; n++) {
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n<channelsCount; n++) {
 				short value = pSamples[k + n];
 				buffer[k + n] = (short)(value >> 8);
 			}
 		}
 		break;
 	case 2:
-		for (int i = 0; i<nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber<samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n<nChannels; n++) {
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n<channelsCount; n++) {
 				short value = pSamples[k + n];
 				sSamBuf[k + n] = value;
 			}
 		}
 		break;
 	case 4:
-		for (int i = 0; i<nSamples; i++){
+		for (int sampleNumber = 0; sampleNumber<samplesCount; sampleNumber++){
 			int k;
-			k = i*nChannels;
-			for (int n = 0; n<nChannels; n++) {
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n<channelsCount; n++) {
 				fSamBuf[k + n] = (float)pSamples[k + n] / 32767;
 			}
 		}
@@ -356,10 +371,207 @@ bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int 
 	}
 
 
-	fwrite(buffer, nSamples*nChannels * bytesPerSample, 1, fpOut);
+	fwrite(buffer, samplesCount*channelsCount * bytesPerSample, 1, fpOut);
 	fclose(fpOut);
 
-	return(true);
-
+	return true;
 }
 
+#ifdef __cplusplus
+
+#include <iostream>
+
+bool WavContent::ReadWaveFile(const std::string & fileName)
+{
+	Reset();
+
+	FILE *fpIn = nullptr;
+	if((fopen_s(&fpIn, fileName.c_str(), "rb")) != 0)
+	{
+		std::cerr << "ReadWaveFile: Can't open " << fileName << std::endl;
+
+		return false;
+	}
+
+	RiffWave fhd = {0};
+	fread((char *)&(fhd.riff), 8, 1, fpIn);
+
+	if(memcmp(fhd.riff.name, "RIFF", 4) != 0)
+	{
+		std::cerr << "ReadWaveFile: File " << fileName << " is not a valid .WAV file!" << std::endl;
+
+		return false;
+	}
+
+	uint32_t length = 0;
+	size_t count = 0;
+
+	do
+	{
+		count = fread(fhd.wave.name, 4, 1, fpIn);
+
+		if(memcmp(fhd.wave.name, "WAVE", 4) == 0)
+		{
+			break;
+		}
+
+		fread((char*)&length, 4, 1, fpIn);
+		fseek(fpIn, length, SEEK_CUR);
+
+	}
+	while(count > 0);
+
+	do
+	{
+		count = fread(fhd.wave.fmt.name, 4, 1, fpIn);
+
+		if(memcmp(fhd.wave.fmt.name, "fmt ", 4) == 0)
+		{
+			break;
+		}
+
+		fread((char*)&length, 4, 1, fpIn);
+		fseek(fpIn, length, SEEK_CUR);
+
+	}
+	while(count > 0);
+
+	fread((char*)&fhd.wave.fmt.length, 4, 1, fpIn);
+	fread((char*)&fhd.wave.fmt.info, sizeof(fhd.wave.fmt.info), 1, fpIn);
+
+	fseek(fpIn, fhd.wave.fmt.length - 16, SEEK_CUR);
+	fread((char *)&fhd.wave.data, 8, 1, fpIn);
+
+	while(memcmp(fhd.wave.data.name, "data", 4) != 0)
+	{
+		fseek(fpIn, fhd.wave.data.length, SEEK_CUR);
+		fread((char *)&fhd.wave.data, 8, 1, fpIn);
+	}
+
+	//
+	if(fhd.wave.fmt.info.nBitsPerSample != 8 &&
+	    fhd.wave.fmt.info.nBitsPerSample != 16 &&
+		fhd.wave.fmt.info.nBitsPerSample != 32)
+    {
+        std::cerr << "Error: invalid bits per sample value" << std::endl;
+
+        return false;
+	}
+
+	/* get the data size */
+	ChannelsCount = fhd.wave.fmt.info.nChannels;
+	BitsPerSample = fhd.wave.fmt.info.nBitsPerSample;
+	SamplesCount = (fhd.wave.data.length * 8) / (BitsPerSample * ChannelsCount);
+
+	auto wavDataSize = fhd.wave.fmt.info.nChannels * fhd.wave.fmt.info.nSamplesPerSec * BitsPerSample / 8;
+	Data.resize(wavDataSize);
+
+	if(Data.size() != wavDataSize)
+	{
+		std::cerr << "Error: could not allocate memory for wav file" << std::endl;
+
+		return false;
+	}
+
+	/* sampling interval in seconds: */
+	//int delta = 1.0 / (float)samplesPerSec;
+	//printf("interval = %fs\n", delta);
+
+	printf("File %s has %d %dbit samples\n", fileName.c_str(), SamplesCount, BitsPerSample);
+	printf("Recorded at %d samples per second, ", SamplesPerSecond);
+	printf((ChannelsCount == 2) ? "in Stereo.\n" : "%d channels.\n", ChannelsCount);
+	std::cout << "Play duration: " << GetDuration().count() << std::endl;
+
+	/* read wave samples, convert to floating point: */
+	fread(&Data.front(), wavDataSize, 1, fpIn);
+
+	fclose(fpIn);
+
+	return true;
+}
+
+bool WavContent::Convert2Stereo16Bit()
+{
+	/*if(2 == ChannelsCount && 16 == BitsPerSample)
+	{
+		return true;
+	}
+
+	/*if(ChannelsCount > 2)
+	{
+		std::cerr << "Error: not supported conversion!" << std::endl;
+
+		return false;
+	}* /
+	std::vector<uint8_t> floatBuffer(sizeof(float) * 2 * SamplesCount /*+ 1* /, 0);
+
+	switch(BitsPerSample)
+	{
+	case 8:
+		for(int sampleNumber = 0; sampleNumber < SamplesCount; ++sampleNumber)
+		{
+			int k = sampleNumber * ChannelsCount;
+
+			for(int channelNumber = 0; channelNumber < ChannelsCount; ++channelNumber)
+			{
+				floatBuffer.data()[channelNumber * sa ][sampleNumber] = (float)((*pSamples)[k + channelNumber] - 127) / 256.0f;
+			}
+		}
+
+		break;
+
+	case 16:
+		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
+			int k;
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n < channelsCount; n++)
+			{
+				(*pfSamples)[n][sampleNumber] = (float)(((uint16_t *)*pSamples)[k + n]) / 32768.0f;
+			}
+		}
+		break;
+
+	case 32:
+		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
+			int k;
+			k = sampleNumber*channelsCount;
+			for (int n = 0; n < channelsCount; n++)
+			{
+				(*pfSamples)[n][sampleNumber] = ((float *)*pSamples)[k + n];
+			}
+		}
+		break;
+	}
+
+	auto convertedData(2 * SamplesCount * sizeof(int16_t));
+
+	try
+	{
+	    std::vector<uint8_t> convertedData(2 * SamplesCount * sizeof(int16_t));
+
+		int16_t *pSBuf = (int16_t *)convertedData.begin();
+
+		for(int sampleNumber = 0; sampleNumber < SamplesCount; ++sampleNumber)
+        {
+			int16_t channelNumber(0);
+
+            pSBuf[2 * sampleNumber + 1] = pSBuf[2 * sampleNumber] = (int16_t)(32767 * Data[channelNumber * SamplesCount + sampleNumber]);
+
+			if(ChannelsCount == 2)
+            {
+                pSBuf[2 * sampleNumber + 1] = (int16_t)(32767 * pSamples[1][sampleNumber]);
+            }
+        }
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+
+		return false;
+	}
+	*/
+
+	return true;
+}
+
+#endif

@@ -85,12 +85,12 @@ int main(int argc, char* argv[])
     //5.1 AAC  FC , FL , FR , SL , SR , LFE
     //5.1 AIFF  FL , SL , FC , FR , SR , LFE
 
-    int SamplesPerSec, BitsPerSample, NChannels;
-    long NSamples;
+    uint16_t BitsPerSample, NChannels;
+    uint32_t SamplesPerSec, NSamples;
     unsigned char *pSsamples;
     float **Samples;
 
-    ReadWaveFile(infile, &SamplesPerSec, &BitsPerSample, &NChannels, &NSamples, &pSsamples, &Samples);
+    ReadWaveFile(infile, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSsamples, &Samples);
 
     if (NChannels != 4){
         puts("input must be 4 channel 1st order ambisonic stream of (W,X,Y,Z) \n");

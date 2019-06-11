@@ -48,12 +48,12 @@
 
 typedef struct
 {
-	uint16_t  formatTag;		/* format category		*/
-	uint16_t  nChannels;		/* stereo/mono			*/
+	uint16_t formatTag;		/* format category		*/
+	uint16_t nChannels;		/* stereo/mono			*/
 	uint32_t nSamplesPerSec;	/* sample rate			*/
 	uint32_t nAvgBytesPerSec;	/* stereo * sample rate 	*/
-	uint16_t  nBlockAlign;		/* block alignment (1=byte)	*/
-	uint16_t  nBitsPerSample;	/* # byte bits per sample	*/
+	uint16_t nBlockAlign;		/* block alignment (1=byte)	*/
+	uint16_t nBitsPerSample;	/* # byte bits per sample	*/
 } WaveInfo;
 
 typedef struct
@@ -86,15 +86,65 @@ typedef struct
 } RiffHeader;
 
 /* Riff wrapped WaveFormat Block					*/
-
 typedef struct
 {
 	RiffHeader riff;
 	WaveHeader wave;
 } RiffWave;
 
-bool ReadWaveFile(const char *fileName, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples, unsigned char **pSamples, float ***pfSamples);
+bool ReadWaveFile
+(
+	const char*	fileName,
+	uint32_t & 	samplesPerSec,
+	uint16_t &	bitsPerSample,
+	uint16_t &	channelsCount,
+	uint32_t & 	samplesCount,
+	uint8_t **	pSamples,
+	float ***	pfSamples
+);
 bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples);
 bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples);
+
+#ifdef __cplusplus
+
+#include <vector>
+#include <string>
+#include <chrono>
+
+struct WavContent
+{
+	uint16_t	ChannelsCount;
+	int32_t 	SamplesCount;
+	uint16_t 	BitsPerSample;
+	uint32_t 	SamplesPerSecond;
+	std::vector<uint8_t>
+				Data;
+
+	inline std::chrono::milliseconds
+				GetDuration() const
+	{
+		return std::chrono::milliseconds(int(1000.f * float(SamplesCount) / float(SamplesPerSecond)));
+	}
+
+	inline void Reset()
+	{
+		ChannelsCount = 0;
+		SamplesCount = 0;
+		BitsPerSample = 0;
+		SamplesPerSecond = 0;
+		Data.resize(0);
+	}
+
+	inline bool Valid() const
+	{
+		return Data.size() && Data.size() == ChannelsCount * SamplesPerSecond * BitsPerSample / 8;
+	}
+
+	bool ReadWaveFile(const std::string & fileName);
+
+	bool Convert2Stereo16Bit();
+};
+
+#endif
 
 #pragma pack(pop)

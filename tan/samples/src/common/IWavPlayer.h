@@ -24,13 +24,13 @@
 #include <cstdint>
 #include <string>
 
-#define ONE_SEC_BUFFER_SIZE   (10000000)
-#define MS500_BUFFER_SIZE      (5000000)
-#define MS100_BUFFER_SIZE      (1000000)
+#define ONE_SEC_BUFFER_SIZE     (10000000)
+#define MS500_BUFFER_SIZE       (5000000)
+#define MS100_BUFFER_SIZE       (1000000)
 #define FIFTY_MS_BUFFER_SIZE    (500000)
-#define SIXTH_SEC_BUFFER_SIZE  (10000000/6) //@48000/6 = 8000 samples
-#define BUFFER_SIZE_8K	       (1706667)
-#define ONE_SEC               (1000)
+#define SIXTH_SEC_BUFFER_SIZE   (10000000/6) //@48000/6 = 8000 samples
+#define BUFFER_SIZE_8K	        (1706667)
+#define ONE_SEC                 (1000)
 #define FAILONERROR(hr, msg) { if (FAILED(hr)) {std::cerr << msg << std::endl; return hr;} }
 #define LOGERROR(hr, msg) { if (FAILED(hr)) {std::cerr << msg << std::endl;} }
 #define SAFE_RELEASE(pointer) if(pointer){pointer->Release(); pointer = NULL;}
@@ -61,7 +61,7 @@ struct IWavPlayer
 {
     virtual ~IWavPlayer() {};
 
-    virtual WavError ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer) = 0;
+    virtual WavError ReadWaveFile(const std::string& fileName, uint32_t& samplesCount, uint8_t **ppOutBuffer) = 0;
 
     virtual uint32_t Record(unsigned char *pOutputBuffer, unsigned int size) = 0;
     virtual uint32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute) = 0;

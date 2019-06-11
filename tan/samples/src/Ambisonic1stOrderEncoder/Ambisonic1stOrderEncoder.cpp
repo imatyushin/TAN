@@ -58,13 +58,15 @@ int main(int argc, char* argv[])
     float **tSamples;
 
     int SamplesPerSec, BitsPerSample, NChannels;
-    long *NSamples = new long [nFiles] ;
+    uint32_t *NSamples = new uint32_t[nFiles];
     unsigned char *pSsamples;
     long maxLen = 0;
 
     for (int i = 0; i < nFiles; i++){
-        int tSamplesPerSec, tBitsPerSample, tNChannels;
-        if (ReadWaveFile(argv[2 + i * 3], &tSamplesPerSec, &tBitsPerSample, &tNChannels, &NSamples[i], &pSsamples, &tSamples)) {
+        uint16_t tBitsPerSample(0), tNChannels(0);
+        uint32_t tSamplesPerSec(0);
+
+        if (ReadWaveFile(argv[2 + i * 3], tSamplesPerSec, tBitsPerSample, tNChannels, NSamples[i], &pSsamples, &tSamples)) {
             if (i == 0){
                 SamplesPerSec = tSamplesPerSec;
                 BitsPerSample = tBitsPerSample;

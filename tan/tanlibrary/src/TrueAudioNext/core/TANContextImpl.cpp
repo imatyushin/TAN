@@ -82,7 +82,7 @@ TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANCreateContext(
 
     //TOD when new version is needed version checking should be extended
     AMF_RETURN_IF_FALSE(
-        GET_MAJOR_VERSION(version) == 1, AMF_TAN_UNSUPPORTED_VERSION, 
+        GET_MAJOR_VERSION(version) == 1, AMF_TAN_UNSUPPORTED_VERSION,
         L"unsupported version %d.%d.%d.%d",
         (int)GET_MAJOR_VERSION(version),
         (int)GET_MINOR_VERSION(version),
@@ -137,7 +137,7 @@ TANContextImpl::TANContextImpl(void)
       m_pContextConvolutionAMF(nullptr)
 {
     AMF_RESULT res;
- 
+
     // Create default CPU AMF context.
     if (g_AMFFactory.GetFactory() != NULL) {
         AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&m_pContextGeneralAMF), L"CreateContext() failed");
@@ -219,7 +219,6 @@ bool TANContextImpl::checkOpenCL2_XCompatibility(cl_command_queue cmdQueue)
     return isOpenCL2_XSupported || (clDeviceType != CL_DEVICE_TYPE_GPU);
 }
 
-
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     cl_context pClContext)
@@ -233,7 +232,7 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     // Check context for correctness.
     cl_int deviceCount = 0;
     {
-        
+
         AMF_RETURN_IF_CL_FAILED(clGetContextInfo(static_cast<cl_context>(pClContext),
                                                  CL_CONTEXT_NUM_DEVICES,
                                                  sizeof(deviceCount), &deviceCount, nullptr),
@@ -245,7 +244,7 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     cl_device_id* devices = new cl_device_id[deviceCount];
 
     AMF_RETURN_IF_CL_FAILED(clGetContextInfo(static_cast<cl_context>(pClContext),
-                                             CL_CONTEXT_DEVICES, 
+                                             CL_CONTEXT_DEVICES,
                                              sizeof(cl_device_id)*deviceCount, devices, nullptr),
                             L"could not retrieve the device ids from context");
     cl_int error;
@@ -262,12 +261,12 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
         if (NULL != devices[idx])
             clReleaseDevice(devices[idx]);
     }
-    
+
     delete [] devices;
 
     AMF_RETURN_IF_FALSE(((NULL != m_oclGeneralQueue) && (NULL != m_oclConvQueue)), AMF_FAIL, L"Cannot create the queues");
     InitOpenCL(m_oclGeneralQueue, m_oclConvQueue);
-    
+
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
@@ -281,7 +280,7 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
 
     // Initialize clFft library here.
     AMF_RETURN_IF_FAILED(InitClfft(), L"Cannot initialize CLFFT");
-    
+
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
@@ -333,7 +332,7 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     pAMFContext->GetCompute(AMF_MEMORY_OPENCL, &pAMFCompute);
     AMF_RETURN_IF_FALSE(pAMFCompute != NULL, AMF_FAIL, L"Could not get the AMFCompute.");
     pCompute = pAMFCompute;
-    
+
     return AMF_OK;
 }
 

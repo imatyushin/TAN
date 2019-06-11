@@ -27,7 +27,6 @@
 #include "CL/cl.h"
 #include "SimpleVRaudio.h"
 #include "GpuUtils.h"
-#include "wav.h"
 #include "../TrueAudioVR/TrueAudioVR.h"
 #include "../common/AlsaPlayer.h"
 #include "cpucaps.h"
@@ -36,6 +35,7 @@
 #include <cmath>
 #include <cstring>
 #include <chrono>
+#include <algorithm>
 
 #if defined( _MSC_VER )
 	#define countOf _countof
@@ -47,7 +47,6 @@
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
 bool Audio3D::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
-amf::TAN_CONVOLUTION_METHOD Audio3D::m_convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 
 #ifndef ERROR_MESSAGE
 
@@ -155,8 +154,6 @@ Audio3D::Audio3D():
     )
 {
     responseBuffer = NULL;
-    std::memset(nSamples, 0, sizeof(nSamples));
-    std::memset(pBuffers, 0, sizeof(pBuffers));
     std::memset(responses, 0, sizeof(responses));
     std::memset(inputFloatBufs, 0, sizeof(inputFloatBufs));
     std::memset(outputFloatBufs, 0, sizeof(outputFloatBufs));
@@ -175,7 +172,6 @@ Audio3D::Audio3D():
         outputShortBuf = NULL;
     }
     mUpdated = false;
-
 }
 
 Audio3D::~Audio3D()
@@ -184,17 +180,20 @@ Audio3D::~Audio3D()
 
 }
 
-int Audio3D::finit(){
+int Audio3D::finit()
+{
+    mRunning = false;
+
     // destroy dumb pointer:
     if (m_pTAVR != NULL) {
         delete m_pTAVR;
         m_pTAVR = nullptr;
     }
 
-    for (amf_uint id = 0; id < countOf(pBuffers); id++)
+    /*for (amf_uint id = 0; id < countOf(mBuffers); id++)
     {
-        SAFE_DELETE_ARR(pBuffers[id]);
-    }
+        SAFE_DELETE_ARR(mBuffers[id]);
+    }*/
     SAFE_DELETE_ARR(pProcessed);
 
     SAFE_DELETE_ARR(responseBuffer);
@@ -206,7 +205,8 @@ int Audio3D::finit(){
         clReleaseMemObject(oclResponses[i]);
         oclResponses[i] = NULL;
     }
-    for (int i = 0; i < m_nFiles * 2; i++)
+
+    for (int i = 0; i < mWavFiles.size() * 2; i++)
     {
         if (outputCLBufs[i] == NULL) continue;
         clReleaseMemObject(outputCLBufs[i]);
@@ -239,54 +239,56 @@ int Audio3D::finit(){
     m_spTANContext2.Release();
     m_spTANContext1.Release();
 
-    if (cmdQueue1 != NULL){
-        clReleaseCommandQueue(cmdQueue1);
+    if (mCmdQueue1 != NULL){
+        clReleaseCommandQueue(mCmdQueue1);
     }
-    if (cmdQueue2 != NULL){
-        clReleaseCommandQueue(cmdQueue2);
+    if (mCmdQueue2 != NULL){
+        clReleaseCommandQueue(mCmdQueue2);
     }
-    if (cmdQueue3 != NULL && cmdQueue3 != cmdQueue2){
-        clReleaseCommandQueue(cmdQueue3);
+    if (mCmdQueue3 != NULL && mCmdQueue3 != mCmdQueue2){
+        clReleaseCommandQueue(mCmdQueue3);
     }
-    cmdQueue1 = NULL;
-    cmdQueue2 = NULL;
-    cmdQueue3 = NULL;
+
+    mCmdQueue1 = NULL;
+    mCmdQueue2 = NULL;
+    mCmdQueue3 = NULL;
 
     return 0;
 }
 
-//int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize,
-//                    bool useGPU_Conv)
-
-int Audio3D::init
+int Audio3D::Init
 (
-	const std::string & dllPath,
-	RoomDefinition      roomDef,
-	int                 nFiles,
-	const std::string   inFiles[MAX_SOURCES],
-	int                 fftLen,
-	int                 bufSize,
-    bool                useGPU_Conv,
-    int                 devIdx_Conv,
+	const std::string &     dllPath,
+	const RoomDefinition &  roomDef,
+
+    const std::vector<std::string> &
+                            inFiles,
+
+	int                     fftLen,
+	int                     bufSize,
+
+    bool                    useGPU_Conv,
+    int                     devIdx_Conv,
 #ifdef RTQ_ENABLED
-	bool                useHPr_Conv,
-    bool                useRTQ_Conv,
-    int                 cuRes_Conv,
+	bool                    useHPr_Conv,
+    bool                    useRTQ_Conv,
+    int                     cuRes_Conv,
 #endif // RTQ_ENABLED
-    bool                useGPU_IRGen,
-    int                 devIdx_IRGen,
+    bool                    useGPU_IRGen,
+    int                     devIdx_IRGen,
 #ifdef RTQ_ENABLED
-	bool                useHPr_IRGen,
-    bool                useRTQ_IRGen,
-    int                 cuRes_IRGen,
+	bool                    useHPr_IRGen,
+    bool                    useRTQ_IRGen,
+    int                     cuRes_IRGen,
 #endif // RTQ_ENABLED
-    amf::TAN_CONVOLUTION_METHOD &
-                        convMethod,
-    bool                useCPU_Conv,
-    bool                useCPU_IRGen
+    amf::TAN_CONVOLUTION_METHOD
+                            convMethod,
+    bool                    useCPU_Conv,
+    bool                    useCPU_IRGen
 )
 {
     finit();
+
     // shouldn't need this, they are radio buttons:
     if (useGPU_Conv) useCPU_Conv = false;
     if (useGPU_IRGen) useCPU_IRGen = false;
@@ -296,36 +298,50 @@ int Audio3D::init
     //m_useGpuConv = useGPU_Conv;
 	//m_useGpuIRGen = useGPU_IRGen;
 
+    mWavFiles.reserve(inFiles.size());
+
+    for(const auto& fileName: inFiles)
+    {
+        WavContent content;
+
+        if(content.ReadWaveFile(fileName))
+        {
+            mWavFiles.push_back(content);
+        }
+    }
+
+    if(!mWavFiles.size())
+    {
+        return -1;
+    }
 
     /* # fft buffer length must be power of 2: */
     m_fftLen = 1;
-    while ((int)m_fftLen < fftLen && (m_fftLen << 1) <= MAXRESPONSELENGTH){
+    while((int)m_fftLen < fftLen && (m_fftLen << 1) <= MAXRESPONSELENGTH)
+    {
         m_fftLen <<= 1;
     }
 
-    m_bufSize = bufSize*sizeof(float);
+    m_bufSize = bufSize * sizeof(float);
 
-    for (int i = 0; i < MAX_SOURCES; i++) {
+    for(int i = 0; i < MAX_SOURCES; i++)
+    {
         m_samplePos[i] = 0;
     }
 
-    if (nFiles > MAX_SOURCES)
-        nFiles = MAX_SOURCES;
-
-    m_nFiles = nFiles;
-
-
     // allocate responses in one block
     // to optimize transfer to GPU
-    responseBuffer = new float[m_fftLen*nFiles*2];
+    responseBuffer = new float[m_fftLen * mWavFiles.size() * 2];
 
-    for (int idx = 0; idx < nFiles * 2; idx++){
+    for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
+    {
         responses[idx] = responseBuffer + idx*m_fftLen;
         inputFloatBufs[idx] = new float[m_fftLen];
         outputFloatBufs[idx] = new float[m_fftLen];
     }
 
-    for (int i = 0; i < nFiles * 2; i++){
+    for (int i = 0; i < mWavFiles.size() * 2; i++)
+    {
         memset(responses[i], 0, sizeof(float)*m_fftLen);
         memset(inputFloatBufs[i], 0, sizeof(float)*m_fftLen);
         memset(outputFloatBufs[i], 0, sizeof(float)*m_fftLen);
@@ -341,7 +357,8 @@ int Audio3D::init
 
     room = roomDef;
 
-    for (int idx = 0; idx < nFiles; idx++) {
+    for (int idx = 0; idx < mWavFiles.size(); idx++)
+    {
         sources[idx].speakerX = 0.0;
         sources[idx].speakerY = 0.0;
         sources[idx].speakerZ = 0.0;
@@ -355,99 +372,89 @@ int Audio3D::init
     ears.roll = 0.0;
     ears.yaw = 0.0;
 
-    //To Do skip missing files / handle error?
-    for (int idx = 0; idx < nFiles; idx++)
     {
-        WavError queueError = mPlayer->ReadWaveFile(inFiles[idx].c_str(), &nSamples[idx], &pBuffers[idx]);
-
-        if(WavError::FileNotFound == queueError)
+        int nSP = mWavFiles[0].SamplesCount;
+        for(int i = 1; i < mWavFiles.size(); ++i)
         {
-            return int(queueError);
+            if(mWavFiles[i].SamplesCount > nSP)
+            {
+                nSP = mWavFiles[i].SamplesCount;
+            }
         }
+
+        pProcessed = new unsigned char[nSP * 4];
     }
-
-
-    //int nSP = nSamples[0] > nSamples[1] ? nSamples[0] : nSamples[1];
-    //nSP = nSamples[2] > nSP ? nSamples[2] : nSP;
-
-    int nSP = 0;
-    for (int i = 0; i < nFiles; i++){
-        if (nSamples[i] > nSP) nSP = nSamples[i];
-    }
-    pProcessed = new unsigned char[nSP * 4];
-
 
     //// Allocate RT-Queues
-    //cl_command_queue cmdQueue1 = NULL;
-    //cl_command_queue cmdQueue2 = NULL;
-    //cl_command_queue cmdQueue3 = NULL;
-    cmdQueue3 = cmdQueue2 = cmdQueue1 = NULL;
-
-    unsigned int refCountQ1 = 0;
-    unsigned int refCountQ2 = 0;
-
-    int32_t flagsQ1 = 0;
-    int32_t flagsQ2 = 0;
-
-    //if (useGPU_Conv || useGPU_IRGen)
-    if (useGPU_Conv)
     {
-#ifdef RTQ_ENABLED
-#define QUEUE_MEDIUM_PRIORITY                   0x00010000
+        mCmdQueue1 = mCmdQueue2 = mCmdQueue3 = nullptr;
+        unsigned int refCountQ1 = 0;
+        unsigned int refCountQ2 = 0;
 
-#define QUEUE_REAL_TIME_COMPUTE_UNITS           0x00020000
-        if (useHPr_Conv){
-            flagsQ1 = QUEUE_MEDIUM_PRIORITY;
-        }
+        int32_t flagsQ1 = 0;
+        int32_t flagsQ2 = 0;
 
-  else if (useRTQ_Conv){
-            flagsQ1 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_Conv;
-        }
-
-	    if (useHPr_IRGen){
-            flagsQ2 = QUEUE_MEDIUM_PRIORITY;
-        }
-
-		else if (useRTQ_IRGen){
-			flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_IRGen;
-		}
-#endif // RTQ_ENABLED
-
-        CreateGpuCommandQueues(devIdx_Conv, flagsQ1, &cmdQueue1, flagsQ2, &cmdQueue2);
-
-        if (devIdx_Conv == devIdx_IRGen && useGPU_IRGen)
+        //if (useGPU_Conv || useGPU_IRGen)
+        if (useGPU_Conv)
         {
-            cmdQueue3 = cmdQueue2;
-        }
-    }
+    #ifdef RTQ_ENABLED
+    #define QUEUE_MEDIUM_PRIORITY                   0x00010000
 
-    if (useCPU_Conv)
-    {
-#ifdef RTQ_ENABLED
-		// For " core "reservation" on CPU" -ToDo test and enable
-        if (cuRes_Conv > 0 && cuRes_IRGen > 0){
-            cl_int err = CreateCommandQueuesWithCUcount(devIdx_Conv, &cmdQueue1, &cmdQueue2, cuRes_Conv, cuRes_IRGen);
-        }
-        else {
-            CreateCpuCommandQueues(devIdx_Conv, 0, &cmdQueue1, 0, &cmdQueue2);
-        }
-#endif // RTQ_ENABLED
+    #define QUEUE_REAL_TIME_COMPUTE_UNITS           0x00020000
+            if (useHPr_Conv){
+                flagsQ1 = QUEUE_MEDIUM_PRIORITY;
+            }
 
-        if (devIdx_Conv == devIdx_IRGen && useCPU_IRGen)
-        {
-            cmdQueue3 = cmdQueue2;
-        }
-    }
+    else if (useRTQ_Conv){
+                flagsQ1 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_Conv;
+            }
 
-    if(cmdQueue3 == NULL)
-    {
-        if (useGPU_IRGen)
-        {
-            CreateGpuCommandQueues(devIdx_IRGen, 0, &cmdQueue3, 0, NULL);
+            if (useHPr_IRGen){
+                flagsQ2 = QUEUE_MEDIUM_PRIORITY;
+            }
+
+            else if (useRTQ_IRGen){
+                flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_IRGen;
+            }
+    #endif // RTQ_ENABLED
+
+            CreateGpuCommandQueues(devIdx_Conv, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
+
+            if(devIdx_Conv == devIdx_IRGen && useGPU_IRGen)
+            {
+                mCmdQueue3 = mCmdQueue2;
+            }
         }
-        else if (useCPU_IRGen)
+        else if(useCPU_Conv)
         {
-            CreateCpuCommandQueues(devIdx_IRGen, 0, &cmdQueue3, 0, NULL);
+    #ifdef RTQ_ENABLED
+            // For " core "reservation" on CPU" -ToDo test and enable
+            if (cuRes_Conv > 0 && cuRes_IRGen > 0)
+            {
+                cl_int err = CreateCommandQueuesWithCUcount(devIdx_Conv, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
+            }
+            else
+            {
+                CreateCpuCommandQueues(devIdx_Conv, 0, &mCmdQueue1, 0, &mCmdQueue2);
+            }
+    #endif // RTQ_ENABLED
+
+            if (devIdx_Conv == devIdx_IRGen && useCPU_IRGen)
+            {
+                mCmdQueue3 = mCmdQueue2;
+            }
+        }
+
+        if(mCmdQueue3 == NULL)
+        {
+            if (useGPU_IRGen)
+            {
+                CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
+            }
+            else //if (useCPU_IRGen)
+            {
+                CreateCpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
+            }
         }
     }
 
@@ -455,35 +462,39 @@ int Audio3D::init
     RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &m_spTANContext1));
 
     if (useGPU_Conv || useCPU_Conv) {
-        RETURN_IF_FAILED(m_spTANContext1->InitOpenCL(cmdQueue1, cmdQueue2));
+        RETURN_IF_FAILED(m_spTANContext1->InitOpenCL(mCmdQueue1, mCmdQueue2));
     }
 
     RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &m_spTANContext2));
     if (useGPU_IRGen || useCPU_IRGen) {
-        RETURN_IF_FAILED(m_spTANContext2->InitOpenCL(cmdQueue3, cmdQueue3));
+        RETURN_IF_FAILED(m_spTANContext2->InitOpenCL(mCmdQueue3, mCmdQueue3));
     }
 
     RETURN_IF_FAILED(TANCreateConvolution(m_spTANContext1, &m_spConvolution));
     if (!useGPU_Conv && !useCPU_Conv) // don't use OpenCL at all
     {
-		if (convMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
-			convMethod = TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;			// ensures compatible with old room acoustic
+        // ensures compatible with old room acoustic
+		if(convMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
+        {
+            convMethod = TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
+        }
+
         // C_Model implementation
         RETURN_IF_FAILED(m_spConvolution->InitCpu(convMethod,
             m_fftLen, bufSize,
-            nFiles * 2));
+            mWavFiles.size() * 2));
     }
     else {
         RETURN_IF_FAILED(m_spConvolution->InitGpu(convMethod,//TAN_CONVOLUTION_METHOD_FHT_UINFORM_HEAD_TAIL
             m_fftLen, bufSize,
-            nFiles * 2));
+            mWavFiles.size() * 2));
     }
 
     RETURN_IF_FAILED(TANCreateConverter(m_spTANContext2, &m_spConverter));
     RETURN_IF_FAILED(m_spConverter->Init());
 
     RETURN_IF_FAILED(TANCreateMixer(m_spTANContext2, &m_spMixer));
-	RETURN_IF_FAILED(m_spMixer->Init(bufSize, m_nFiles));
+	RETURN_IF_FAILED(m_spMixer->Init(bufSize, mWavFiles.size()));
 
     RETURN_IF_FAILED(TANCreateFFT(m_spTANContext2, &m_spFft));
     RETURN_IF_FAILED(m_spFft->Init());
@@ -495,19 +506,20 @@ int Audio3D::init
 
     m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
 
-    if (useGPU_IRGen && useGPU_Conv) {
-        //if (cmdQueue3 == NULL){
-        //    CreateGpuCommandQueues(devIdx_IRGen, 0, &cmdQueue3, 0, NULL);
+    if (useGPU_IRGen && useGPU_Conv)
+    {
+        //if (mCmdQueue3 == NULL){
+        //    CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, NULL);
         //}
 
         cl_int status;
         cl_context context_IR;
         cl_context context_Conv;
 
-        clGetCommandQueueInfo(cmdQueue3, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_IR, NULL);
-        clGetCommandQueueInfo(cmdQueue2, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_Conv, NULL);
+        clGetCommandQueueInfo(mCmdQueue3, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_IR, NULL);
+        clGetCommandQueueInfo(mCmdQueue2, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_Conv, NULL);
         if (context_IR == context_Conv) {
-            for (int i = 0; i < nFiles * 2; i++){
+            for (int i = 0; i < mWavFiles.size() * 2; i++){
                 oclResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, m_fftLen * sizeof(float), NULL, &status);
             }
             //HACK out for test
@@ -520,7 +532,7 @@ int Audio3D::init
 
             // First create a big cl_mem buffer then create small sub-buffers from it
             outputMainCLbuf = clCreateBuffer(m_spTANContext1->GetOpenCLContext(), CL_MEM_READ_WRITE,
-                 m_bufSize * nFiles * 2, nullptr, &clErr);
+                 m_bufSize * mWavFiles.size() * 2, nullptr, &clErr);
 
             if (clErr != CL_SUCCESS)
             {
@@ -528,7 +540,7 @@ int Audio3D::init
                 return AMF_FAIL;
             };
 
-            for (amf_uint32 i = 0; i < nFiles * 2; i++){
+            for (amf_uint32 i = 0; i < mWavFiles.size() * 2; i++){
                 cl_buffer_region region;
                 region.origin = i*m_bufSize;
                 region.size = m_bufSize;
@@ -542,7 +554,7 @@ int Audio3D::init
                     return AMF_FAIL;
                 };
                 float zero = 0.0;
-                clErr = clEnqueueFillBuffer(cmdQueue1, outputCLBufs[i], &zero,sizeof(zero), 0, region.size, 0, NULL, NULL);
+                clErr = clEnqueueFillBuffer(mCmdQueue1, outputCLBufs[i], &zero,sizeof(zero), 0, region.size, 0, NULL, NULL);
                 if (clErr != CL_SUCCESS)
                 {
                     printf("Could not fill OpenCL subBuffer\n");
@@ -552,7 +564,6 @@ int Audio3D::init
 
             for (int idx = 0; idx < 2; idx++)
             {
-
                 outputMixCLBufs[idx] = clCreateBuffer(
                     m_spTANContext1->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufSize, nullptr, &clErr);
                 if (clErr != CL_SUCCESS)
@@ -586,7 +597,7 @@ int Audio3D::init
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
     #endif
 
-    CreateAmdTrueAudioVR(&m_pTAVR, m_spTANContext2, m_spFft, cmdQueue3, 48000, m_fftLen);
+    CreateAmdTrueAudioVR(&m_pTAVR, m_spTANContext2, m_spFft, mCmdQueue3, 48000, m_fftLen);
 
     if (useGPU_IRGen){
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
@@ -595,17 +606,13 @@ int Audio3D::init
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
 
-    char title[100];
-    sprintf(title, "Room: %5.1lfm W x %5.1lfm L x %5.1lfm H", room.width, room.length, room.height);
-
+    std::cout << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H" << std::endl;
 
     // head model:
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 
-
     //To Do use gpu mem responses
-
-    for (int idx = 0; idx < nFiles; idx++){
+    for (int idx = 0; idx < mWavFiles.size(); idx++){
         if (m_useClMemBufs) {
             m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, oclResponses[idx * 2], oclResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
         }
@@ -620,8 +627,6 @@ int Audio3D::init
     else {
         RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
-
-    mRunning = false;
 
     return 0;
 }
@@ -651,7 +656,7 @@ int Audio3D::updateHeadPosition(float x, float y, float z, float yaw, float pitc
 
 int Audio3D::updateSourcePosition(int srcNumber, float x, float y, float z)
 {
-    if (srcNumber >= m_nFiles){
+    if (srcNumber >= mWavFiles.size()){
         return -1;
     }
     // world to room coordinates transform:
@@ -737,15 +742,6 @@ int Audio3D::Stop()
 {
     mStop = true;
 
-    //WaitForSingleObject(m_hProcessThread, INFINITE);
-    //WaitForSingleObject(m_hUpdateThread, INFINITE);
-
-    //CloseHandle(m_hProcessThread);
-    //CloseHandle(m_hUpdateThread);
-
-    //m_hProcessThread = nullptr;
-    //m_hUpdateThread = nullptr;
-
     mProcessThread.WaitCloseInfinite();
     mUpdateThread.WaitCloseInfinite();
 
@@ -758,12 +754,20 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
 
 
     // Read from the files
-    for (int idx = 0; idx < m_nFiles; idx++) {
+    for (int idx = 0; idx < mWavFiles.size(); idx++) {
         for (int chan = 0; chan < 2; chan++){
             // The way sources in inputFloatBufs are ordered is: Even indexed elements for left channels, odd indexed ones for right,
             // this ordering matches with the way impulse responses are generated and indexed to be convolved with the sources.
-            RETURN_IF_FAILED(m_spConverter->Convert(pChan[idx] + chan, 2, sampleCount,
-                inputFloatBufs[idx * 2 + chan], 1, 1.f));
+            RETURN_IF_FAILED(
+                m_spConverter->Convert(
+                    pChan[idx] + chan,
+                    2,
+                    sampleCount,
+                    inputFloatBufs[idx * 2 + chan],
+                    1,
+                    1.f
+                    )
+                );
         }
     }
 
@@ -832,7 +836,7 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
 
 #if 0// Old code: Crossfade, Mixing and Conversion on CPU
 
-    for (int idx = 0; idx < m_nFiles; idx++) {
+    for (int idx = 0; idx < mWavFiles.size(); idx++) {
         for (int chan = 0; chan < 2; chan++){
             RETURN_IF_FAILED(m_spConverter->Convert(pChan[idx] + chan, 2, sampleCount,
                 inputFloatBufs[idx*2 + chan], 1, 1.f));
@@ -845,7 +849,7 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
     // ToDo:  use limiter...
 
 
-    for (int idx = 2; idx < 2 * m_nFiles; idx += 2) {
+    for (int idx = 2; idx < 2 * mWavFiles.size(); idx += 2) {
         int k = 0;
         int n = sampleCount;
         while (n >= 8 && useIntrinsics){
@@ -878,31 +882,35 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
     return 0;
 }
 
-
 int Audio3D::processProc()
 {
     int bytesPlayed;
     int bytesRecorded;
 
     short *pRec, *pOut;
-    short *pWaves[MAX_SOURCES];
+    int16_t *pWaves[MAX_SOURCES];
     short *pWaveStarts[MAX_SOURCES];
     int sizes[MAX_SOURCES];
 
     int nSP = 0;
 
-    for (int idx = 0; idx < m_nFiles; idx++){
-        pWaveStarts[idx] = pWaves[idx] = (short *)(pBuffers[idx]);
-        sizes[idx] = nSamples[idx] * 2; // stereo short samples
-        if (nSamples[idx] > nSP) nSP = nSamples[idx];
+    for(int idx = 0; idx < mWavFiles.size(); idx++)
+    {
+        pWaveStarts[idx] = pWaves[idx] = (short *)(mWavFiles[idx].Data.front());
+        sizes[idx] = mWavFiles[idx].SamplesCount * 2; // stereo short samples
+
+        if(mWavFiles[idx].SamplesCount > nSP)
+        {
+            nSP = mWavFiles[idx].SamplesCount;
+        }
     }
 
     FifoBuffer recFifo(FILTER_SAMPLE_RATE * 4);
 
-    pRec = new  short[FILTER_SAMPLE_RATE*2];
+    pRec = new short[FILTER_SAMPLE_RATE * 2];
     memset(pRec, 0, FILTER_SAMPLE_RATE * sizeof(short) * 2);
 
-    pOut = new  short[FILTER_SAMPLE_RATE*2];
+    pOut = new short[FILTER_SAMPLE_RATE * 2];
     memset(pOut, 0, FILTER_SAMPLE_RATE * sizeof(short) * 2);
 
     // upgrade our windows process and thread priorities:
@@ -912,6 +920,7 @@ int Audio3D::processProc()
     //already set in the thread's wrapper class
 
     unsigned char *pProc = pProcessed;
+
     mRunning = true;
 
     while(!mUpdated && !mStop)
@@ -921,10 +930,10 @@ int Audio3D::processProc()
 
     while(!mStop)
     {
-        if (src1EnableMic)
+        if(src1EnableMic)
         {
             bytesRecorded = 0;
-            int nRec;
+            int nRec = 0;
 
             while(!mStop && ((nRec = recFifo.fifoLength()) < m_bufSize))
             {
@@ -937,6 +946,7 @@ int Audio3D::processProc()
             }
 
             recFifo.retrieve((char *)pRec, m_bufSize);
+
             // [temporarily] duck the wave audio for mic audio:
             short * wavPtr = pWaves[0];
             pWaves[0] = pRec;
@@ -966,7 +976,7 @@ int Audio3D::processProc()
 
         bytesPlayed = m_bufSize;
 
-        for (int idx = 0; idx<m_nFiles; idx++)
+        for (int idx = 0; idx < mWavFiles.size(); idx++)
         {
             pWaves[idx] += bytesPlayed / 2;
 
@@ -984,7 +994,7 @@ int Audio3D::processProc()
         }
 
         ///compute current sample position for each stream:
-        for (int i = 0; i < m_nFiles; i++)
+        for (int i = 0; i < mWavFiles.size(); i++)
         {
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
         }
@@ -994,7 +1004,7 @@ int Audio3D::processProc()
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 
-    if (!WriteWaveFileS("RoomAcousticsRun.wav", FILTER_SAMPLE_RATE, 2, 16, nSamples[0], (short *)(pProcessed))){
+    if (!WriteWaveFileS("RoomAcousticsRun.wav", FILTER_SAMPLE_RATE, 2, 16, mWavFiles[0].SamplesCount, (short *)(pProcessed))){
         puts("unable to write RoomAcousticsRun.wav");
     }
     else {
@@ -1020,45 +1030,84 @@ int64_t Audio3D::getCurrentPosition(int streamIdx)
 }
 
 
-int Audio3D::updateProc(){
-
-    while (mRunning && !mStop) {
-        while (!mUpdateParams  && mRunning && !mStop)
+int Audio3D::updateProc()
+{
+    while(mRunning && !mStop)
+    {
+        while(!mUpdateParams && mRunning && !mStop)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if (src1TrackHeadPos) {
-            sources[0].speakerX = ears.headX;
-            sources[0].speakerY = ears.headY;
-            sources[0].speakerZ = ears.headZ;
+        if(!mStop)
+        {
+            if(src1TrackHeadPos)
+            {
+                sources[0].speakerX = ears.headX;
+                sources[0].speakerY = ears.headY;
+                sources[0].speakerZ = ears.headZ;
+            }
         }
 
-        for (int idx = 0; idx < m_nFiles; idx++){
-             if (m_useClMemBufs) {
-                m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, oclResponses[idx * 2], oclResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
+        for(int idx = 0; !!mStop && (idx < mWavFiles.size()); idx++)
+        {
+            if(m_useClMemBufs)
+            {
+                m_pTAVR->generateRoomResponse(
+                    room,
+                    sources[idx],
+                    ears,
+                    FILTER_SAMPLE_RATE,
+                    m_fftLen,
+                    oclResponses[idx * 2],
+                    oclResponses[idx * 2 + 1],
+                    GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
+                    50
+                    );
             }
-            else {
-                memset(responses[idx*2], 0, sizeof(float)*m_fftLen);
-                memset(responses[idx*2 + 1], 0, sizeof(float)*m_fftLen);
-                m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, responses[idx * 2], responses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
+            else
+            {
+                memset(responses[idx * 2], 0, sizeof(float )* m_fftLen);
+                memset(responses[idx * 2 + 1], 0, sizeof(float) * m_fftLen);
+
+                m_pTAVR->generateRoomResponse(
+                    room,
+                    sources[idx],
+                    ears,
+                    FILTER_SAMPLE_RATE,
+                    m_fftLen,
+                    responses[idx * 2],
+                    responses[idx * 2 + 1],
+                    GENROOM_LIMIT_BOUNCES,
+                    50
+                    );
             }
         }
 
         AMF_RESULT ret = AMF_OK;
-        do {
-            if (m_useClMemBufs) {
+
+        while(mRunning && !mStop)
+        {
+            if(m_useClMemBufs)
+            {
                 ret = m_spConvolution->UpdateResponseTD(oclResponses, m_fftLen, nullptr, IR_UPDATE_MODE);
             }
-            else {
+            else
+            {
                 ret = m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE);
             }
 
-        } while (ret == AMF_INPUT_FULL && mRunning && !mStop);
+            if(ret != AMF_INPUT_FULL)
+            {
+                break;
+            }
+        }
+
         //todo: investigate about AMF_BUSY
         RETURN_IF_FALSE(ret == AMF_OK /*|| ret == AMF_BUSY*/);
 
         mUpdated = true;
+
         //Sleep(20);
         mUpdateParams = false;
     }
@@ -1068,7 +1117,6 @@ int Audio3D::updateProc(){
 
 int Audio3D::exportImpulseResponse(int srcNumber, char * fileName)
 {
-
     int convolutionLength = this->m_fftLen;
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 

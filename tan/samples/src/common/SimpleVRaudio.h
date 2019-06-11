@@ -26,10 +26,12 @@
 #include "../TrueAudioVR/TrueAudioVR.h"
 #include "maxlimits.h"
 #include "threads.h"
+#include "wav.h"
 #include "IWavPlayer.h"
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -45,6 +47,12 @@ public:
 	void setAngles(float yaw, float pitch, float roll);
 	void setOffset(float x, float y, float z);
 	void transform(float &X, float &Y, float &Z);
+};
+
+enum class ProcessingType
+{
+    ProcessingType_CPU = 1 << 0,
+    ProcessingType_GPU = 1 << 1
 };
 
 // Simple VR audio engine using True Audio Next GPU acceleration
@@ -77,9 +85,11 @@ private:
 
     std::unique_ptr<IWavPlayer> mPlayer;
 
-	int m_nFiles;
-    long nSamples[MAX_SOURCES];
-	unsigned char *pBuffers[MAX_SOURCES];
+	//int m_nFiles;
+    //uint32_t mSamples[MAX_SOURCES];
+	//unsigned char *mBuffers[MAX_SOURCES];
+    std::vector<WavContent> mWavFiles;
+
     unsigned char *pProcessed;
 
 	TANContextPtr m_spTANContext1;
@@ -127,9 +137,9 @@ private:
 	bool m_headingCCW;
 
     // RT-Queues
-    cl_command_queue cmdQueue1 = NULL;
-    cl_command_queue cmdQueue2 = NULL;
-    cl_command_queue cmdQueue3 = NULL;
+    cl_command_queue mCmdQueue1 = nullptr;
+    cl_command_queue mCmdQueue2 = nullptr;
+    cl_command_queue mCmdQueue3 = nullptr;
 
 public:
     /*
@@ -140,33 +150,37 @@ public:
 	// Initialize room acoustics model, WASAPI audio, and TAN convolution:
     //int init(RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize, bool useGPU_Conv = true);
 
-    static amf::TAN_CONVOLUTION_METHOD m_convMethod;// = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
+    //static amf::TAN_CONVOLUTION_METHOD m_convMethod;// = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 
-    int init(
-        const std::string & dllPath,
-        RoomDefinition      roomDef,
-        int                 nFiles,
-        const std::string   inFiles[MAX_SOURCES],
-        int                 fftLen,
-        int                 bufSize,
-        bool                useGPU_Conv = true,
-        int                 devIdx_Conv=0,
+    int Init
+    (
+        const std::string &     dllPath,
+        const RoomDefinition &  roomDef,
+        const std::vector<std::string> &
+                                fileNames2Open,
+
+        int                     fftLen,
+        int                     bufSize,
+        //ProcessingType          convolutionProcessing,
+        //ProcessingType          roomProccessing,
+        bool                    useGPU_Conv = true,
+        int                     devIdx_Conv = 0,
 #ifdef RTQ_ENABLED
-		bool                useHPr_Conv = false,
-        bool                useRTQ_Conv = false,
-        int                 cuRes_Conv = 0,
+		bool                    useHPr_Conv = false,
+        bool                    useRTQ_Conv = false,
+        int                     cuRes_Conv = 0,
 #endif // RTQ_ENABLED
-        bool                useGPU_IRGen = true,
-        int                 devIdx_IRGen = 0,
+        bool                    useGPU_IRGen = true,
+        int                     devIdx_IRGen = 0,
 #ifdef RTQ_ENABLED
-		bool                useHPr_IRGen = false,
-        bool                useRTQ_IRGen = false,
-        int                 cuRes_IRGen = 0,
+		bool                    useHPr_IRGen = false,
+        bool                    useRTQ_IRGen = false,
+        int                     cuRes_IRGen = 0,
 #endif
-        amf::TAN_CONVOLUTION_METHOD &
-                            convMethod = m_convMethod, //amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
-        bool                useCPU_Conv = false,
-        bool                useCPU_IRGen = false
+        amf::TAN_CONVOLUTION_METHOD
+                                convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
+        bool                    useCPU_Conv = false,
+        bool                    useCPU_IRGen = false
         );
 
 	// Set transform to translate game coordinates to room audio coordinates:

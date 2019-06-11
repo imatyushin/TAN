@@ -41,7 +41,7 @@ public:
     WavError Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
     void Release();
 
-    WavError ReadWaveFile(const std::string& fileName, long *pNsamples, unsigned char **ppOutBuffer);
+    WavError ReadWaveFile(const std::string& fileName, uint32_t& samplesCount, uint8_t **ppOutBuffer);
 
     uint32_t Record(unsigned char *pOutputBuffer, unsigned int size);
     uint32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
