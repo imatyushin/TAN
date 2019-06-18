@@ -48,21 +48,32 @@ typedef struct streaminfo
     int32_t bitsPerSample;
 } STREAMINFO;
 
-enum class WavError
+enum class PlayerError
 {
     OK = 0,
 
-    FileNotFound = 1 << 1,
-    PCMError = 1 << 2,
+    PCMError = 1 << 1,
 };
 
 /*Structure which hold elements required for wasapi playback */
 struct IWavPlayer
 {
     virtual ~IWavPlayer() {};
+    virtual std::string GetPlayerName() const = 0;
 
-    virtual WavError ReadWaveFile(const std::string& fileName, uint32_t& samplesCount, uint8_t **ppOutBuffer) = 0;
+    virtual PlayerError Init(
+        uint16_t    channelsCount,
+        uint16_t    bitsPerSample,
+        uint32_t    samplesPerSecond,
+        bool        play,
+        bool        record
+        ) = 0;
+    virtual void Close() = 0;
 
-    virtual uint32_t Record(unsigned char *pOutputBuffer, unsigned int size) = 0;
-    virtual uint32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute) = 0;
+    virtual uint32_t Play(uint8_t * buffer, uint32_t size, bool mute) = 0;
+    virtual uint32_t Record(uint8_t * buffer, uint32_t size) = 0;
+
+    //todo: think about to add
+    //virtual bool IsInitialized() const = 0;
+    //virtual bool IsCompatible(uint16_t channelsCount, uint16_t bitsPerSample, uint32_t samplesPerSecond) const = 0;
 };

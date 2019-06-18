@@ -196,8 +196,9 @@ bool 			ReadWaveFile
 		for (int j = 0; j < (samplesCount + 1); j++) data[j] = 0.0;
 	}
 
-	int bytesPerSam = bitsPerSample / 8;
-    if (bytesPerSam == 0)
+	auto bytesPerSam = bitsPerSample / 8;
+
+	if(!bytesPerSam)
     {
         printf("ReadWaveFile: broken file\n");
         return false;
@@ -209,9 +210,9 @@ bool 			ReadWaveFile
 
 	if(!*pSamples)
 	{
-		printf("ReadWaveFile: Failed to allocate %d bytes\n", samplesCount*channelsCount * bytesPerSam);
+		printf("ReadWaveFile: Failed to allocate %d bytes\n", wavDataSize);
 
-		return(false);
+		return false;
 	}
 
 	fread(*pSamples, wavDataSize, 1, fpIn);
@@ -459,11 +460,7 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 	}
 
 	/* get the data size */
-	ChannelsCount = fhd.wave.fmt.info.nChannels;
-	BitsPerSample = fhd.wave.fmt.info.nBitsPerSample;
-	SamplesCount = (fhd.wave.data.length * 8) / (BitsPerSample * ChannelsCount);
-
-	auto wavDataSize = fhd.wave.fmt.info.nChannels * fhd.wave.fmt.info.nSamplesPerSec * BitsPerSample / 8;
+	auto wavDataSize = fhd.wave.fmt.info.nChannels * fhd.wave.fmt.info.nSamplesPerSec * fhd.wave.fmt.info.nBitsPerSample / 8;
 	Data.resize(wavDataSize);
 
 	if(Data.size() != wavDataSize)
@@ -472,6 +469,12 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 
 		return false;
 	}
+
+	/* get the data size */
+	ChannelsCount = fhd.wave.fmt.info.nChannels;
+	BitsPerSample = fhd.wave.fmt.info.nBitsPerSample;
+	SamplesCount = (fhd.wave.data.length * 8) / (fhd.wave.fmt.info.nBitsPerSample * fhd.wave.fmt.info.nChannels);
+	SamplesPerSecond = fhd.wave.fmt.info.nSamplesPerSec;
 
 	/* sampling interval in seconds: */
 	//int delta = 1.0 / (float)samplesPerSec;
@@ -487,11 +490,13 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 
 	fclose(fpIn);
 
-	return true;
+	return Valid();
 }
 
 bool WavContent::Convert2Stereo16Bit()
 {
+	throw std::runtime_error("Error: not implemented!");
+
 	/*if(2 == ChannelsCount && 16 == BitsPerSample)
 	{
 		return true;
@@ -571,7 +576,7 @@ bool WavContent::Convert2Stereo16Bit()
 	}
 	*/
 
-	return true;
+	return false;
 }
 
 #endif

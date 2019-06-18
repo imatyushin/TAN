@@ -33,16 +33,24 @@ protected:
     snd_pcm_t *mPCMHandle;
     uint32_t mUpdatePeriod;
     uint8_t mChannelsCount;
+    uint16_t mBitsPerSample;
+    uint32_t mSamplesPerSecond;
 
 public:
     AlsaPlayer();
     virtual ~AlsaPlayer();
 
-    WavError Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture = false);
-    void Release();
+    std::string GetPlayerName() const override { return "ALSA"; }
 
-    WavError ReadWaveFile(const std::string& fileName, uint32_t& samplesCount, uint8_t **ppOutBuffer);
+    PlayerError Init(
+        uint16_t    channelsCount,
+        uint16_t    bitsPerSample,
+        uint32_t    samplesPerSecond,
+        bool        play,
+        bool        record
+        ) override;
+    void Close() override;
 
-    uint32_t Record(unsigned char *pOutputBuffer, unsigned int size);
-    uint32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
+    uint32_t Record(uint8_t * buffer, uint32_t size) override;
+    uint32_t Play(uint8_t * buffer, uint32_t size, bool mute) override;
 };

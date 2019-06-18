@@ -73,8 +73,15 @@ int RoomAcoustic::start()
 
 		fileNames,
 
+		m_isrc1EnableMic,
+		m_isrc1TrackHeadPos,
+
 		m_iConvolutionLength,
-		m_iBufferSize, m_iuseGPU4Conv, convolutiondevice,
+		m_iBufferSize,
+
+		m_iuseGPU4Conv,
+		convolutiondevice,
+
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Conv,m_iuseRTQ4Conv, m_iConvolutionCUCount,
 #endif // RTQ_ENABLED
@@ -86,9 +93,10 @@ int RoomAcoustic::start()
 		);
 
 	m_pAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
-	m_pAudioEngine->setSrc1Options(m_isrc1EnableMic, m_isrc1TrackHeadPos);
+
 	updateAllSoundSourcesPosition();
 	updateListenerPosition();
+
 	return m_pAudioEngine->Run();
 }
 

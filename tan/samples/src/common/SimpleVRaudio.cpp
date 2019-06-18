@@ -126,20 +126,19 @@ void transRotMtx::transform(float &X, float &Y, float &Z)
 unsigned Audio3D::processThreadProc(void * ptr)
 {
     Audio3D *pAudio3D = static_cast<Audio3D*>(ptr);
-    return pAudio3D->processProc();
+
+    return pAudio3D->ProcessProc();
 }
 
 unsigned Audio3D::updateThreadProc(void * ptr)
 {
     Audio3D *pAudio3D = static_cast<Audio3D*>(ptr);
-    return pAudio3D->updateProc();
+
+    return pAudio3D->UpdateProc();
 }
 
 Audio3D::Audio3D():
     m_pTAVR(nullptr),
-    pProcessed(nullptr),
-    //m_hProcessThread(nullptr),
-    //m_hUpdateThread(nullptr),
     mProcessThread(true),
     mRunning(false),
     mStop(false),
@@ -176,11 +175,10 @@ Audio3D::Audio3D():
 
 Audio3D::~Audio3D()
 {
-    finit();
-
+    Close();
 }
 
-int Audio3D::finit()
+int Audio3D::Close()
 {
     mRunning = false;
 
@@ -189,12 +187,6 @@ int Audio3D::finit()
         delete m_pTAVR;
         m_pTAVR = nullptr;
     }
-
-    /*for (amf_uint id = 0; id < countOf(mBuffers); id++)
-    {
-        SAFE_DELETE_ARR(mBuffers[id]);
-    }*/
-    SAFE_DELETE_ARR(pProcessed);
 
     SAFE_DELETE_ARR(responseBuffer);
     for (int i = 0; i < MAX_SOURCES*2; i++){
@@ -253,6 +245,9 @@ int Audio3D::finit()
     mCmdQueue2 = NULL;
     mCmdQueue3 = NULL;
 
+    mWavFiles.resize(0);
+    mPlayer->Close();
+
     return 0;
 }
 
@@ -263,6 +258,9 @@ int Audio3D::Init
 
     const std::vector<std::string> &
                             inFiles,
+
+    bool                    useMicSource,
+    bool                    trackHeadPos,
 
 	int                     fftLen,
 	int                     bufSize,
@@ -287,7 +285,7 @@ int Audio3D::Init
     bool                    useCPU_IRGen
 )
 {
-    finit();
+    Close();
 
     // shouldn't need this, they are radio buttons:
     if (useGPU_Conv) useCPU_Conv = false;
@@ -306,14 +304,56 @@ int Audio3D::Init
 
         if(content.ReadWaveFile(fileName))
         {
+            //check that samples have compatible formats
+            //becouse convertions are not yet implemented
+            if(mWavFiles.size())
+            {
+                if(!mWavFiles[0].IsSameFormat(content))
+                {
+                    std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
+
+                    return -1;
+                }
+            }
+
             mWavFiles.push_back(content);
+        }
+        else
+        {
+            std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
+
+            return -1;
         }
     }
 
     if(!mWavFiles.size())
     {
+        std::cerr << "Error: no files opened to play" << std::endl;
+
         return -1;
     }
+
+    //initialize hardware
+    //assume that all opened files has the same format
+    //and we have at least one opened file
+    auto openStatus = mPlayer->Init(
+        mWavFiles[0].ChannelsCount,
+        mWavFiles[0].BitsPerSample,
+        mWavFiles[0].SamplesPerSecond,
+
+        mWavFiles.size() > 0,
+        useMicSource
+        );
+
+    if(PlayerError::OK != openStatus)
+    {
+        std::cerr << "Error: could not initialize player " << std::endl;
+
+        return -1;
+    }
+
+    mSrc1EnableMic = useMicSource;
+    mSrc1TrackHeadPos = trackHeadPos;
 
     /* # fft buffer length must be power of 2: */
     m_fftLen = 1;
@@ -373,16 +413,14 @@ int Audio3D::Init
     ears.yaw = 0.0;
 
     {
-        int nSP = mWavFiles[0].SamplesCount;
-        for(int i = 1; i < mWavFiles.size(); ++i)
-        {
-            if(mWavFiles[i].SamplesCount > nSP)
-            {
-                nSP = mWavFiles[i].SamplesCount;
-            }
-        }
+        auto maxSamplesCount = mWavFiles[0].SamplesCount;
 
-        pProcessed = new unsigned char[nSP * 4];
+        for(int file = 1; file < mWavFiles.size(); ++file)
+        {
+            maxSamplesCount = std::max(mWavFiles[file].SamplesCount, maxSamplesCount);
+        }
+                                                        //stereo
+        mProcessed.resize(maxSamplesCount * sizeof(int16_t) * 2);
     }
 
     //// Allocate RT-Queues
@@ -451,7 +489,7 @@ int Audio3D::Init
             {
                 CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
             }
-            else //if (useCPU_IRGen)
+            else if (useCPU_IRGen)
             {
                 CreateCpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
             }
@@ -549,44 +587,54 @@ int Audio3D::Init
 
                 if (clErr != CL_SUCCESS)
                 {
-
                     printf("Could not create OpenCL subBuffer\n");
                     return AMF_FAIL;
-                };
+                }
+
                 float zero = 0.0;
                 clErr = clEnqueueFillBuffer(mCmdQueue1, outputCLBufs[i], &zero,sizeof(zero), 0, region.size, 0, NULL, NULL);
                 if (clErr != CL_SUCCESS)
                 {
                     printf("Could not fill OpenCL subBuffer\n");
                     return AMF_FAIL;
-                };
+                }
             }
 
             for (int idx = 0; idx < 2; idx++)
             {
                 outputMixCLBufs[idx] = clCreateBuffer(
-                    m_spTANContext1->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufSize, nullptr, &clErr);
+                    m_spTANContext1->GetOpenCLContext(),
+                    CL_MEM_READ_WRITE,
+                    m_bufSize,
+                    nullptr,
+                    &clErr
+                    );
+
+                if (clErr != CL_SUCCESS)
+                {
+                    printf("Could not create OpenCL buffer\n");
+                    return AMF_FAIL;
+                }
+
                 if (clErr != CL_SUCCESS)
                 {
 
                     printf("Could not create OpenCL buffer\n");
                     return AMF_FAIL;
-                };
-
-                if (clErr != CL_SUCCESS)
-                {
-
-                    printf("Could not create OpenCL buffer\n");
-                    return AMF_FAIL;
-                };
+                }
             }
+
             // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
             // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
             outputShortBuf = clCreateBuffer(
-                m_spTANContext1->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufSize, nullptr, &clErr);
+                m_spTANContext1->GetOpenCLContext(),
+                CL_MEM_READ_WRITE,
+                m_bufSize,
+                nullptr,
+                &clErr
+                );
         }
     }
-
 
     #ifdef _WIN32
     HMODULE TanVrDll;
@@ -597,7 +645,14 @@ int Audio3D::Init
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
     #endif
 
-    CreateAmdTrueAudioVR(&m_pTAVR, m_spTANContext2, m_spFft, mCmdQueue3, 48000, m_fftLen);
+    CreateAmdTrueAudioVR(
+        &m_pTAVR,
+        m_spTANContext2,
+        m_spFft,
+        mCmdQueue3,
+        48000, //todo: other frequencies?
+        m_fftLen
+        );
 
     if (useGPU_IRGen){
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
@@ -703,9 +758,17 @@ TANConverterPtr Audio3D::getTANConverter()
 	return m_spConverter;
 }
 
-int Audio3D::setWorldToRoomCoordTransform(float translationX=0., float translationY=0., float translationZ=0.,
-float rotationY=0., float headingOffset=0., bool headingCCW=true){
+int Audio3D::setWorldToRoomCoordTransform(
+    float translationX=0.,
+    float translationY=0.,
+    float translationZ=0.,
 
+    float rotationY=0.,
+
+    float headingOffset=0.,
+    bool headingCCW=true
+    )
+{
     m_mtxWorldToRoomCoords.setOffset(translationX, translationY, translationZ);
     m_mtxWorldToRoomCoords.setAngles(rotationY, 0.0, 0.0);
     m_headingOffset = headingOffset;
@@ -713,7 +776,6 @@ float rotationY=0., float headingOffset=0., bool headingCCW=true){
 
     return 0;
 }
-
 
 int Audio3D::Run()
 {
@@ -748,10 +810,9 @@ int Audio3D::Stop()
     return 0;
 }
 
-int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountBytes)
+int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
 {
-    int sampleCount = sampleCountBytes / (sizeof(short) * 2);
-
+    uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * 2);
 
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++) {
@@ -770,10 +831,6 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
                 );
         }
     }
-
-
-
-
 
     if (m_useOCLOutputPipeline)
     {   // OCL device memory objects are passed to the TANConvolution->Process method.
@@ -882,36 +939,36 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCountByte
     return 0;
 }
 
-int Audio3D::processProc()
+int Audio3D::ProcessProc()
 {
-    int bytesPlayed;
-    int bytesRecorded;
+    int bytesPlayed(0);
+    int bytesRecorded(0);
 
-    short *pRec, *pOut;
-    int16_t *pWaves[MAX_SOURCES];
-    short *pWaveStarts[MAX_SOURCES];
-    int sizes[MAX_SOURCES];
+    int16_t *pRec(nullptr);
+    int16_t *pOut(nullptr);
 
-    int nSP = 0;
+    int16_t *pWaves[MAX_SOURCES] = {nullptr};
+    int16_t *pWaveStarts[MAX_SOURCES] = {nullptr};
 
-    for(int idx = 0; idx < mWavFiles.size(); idx++)
+    uint32_t sizes[MAX_SOURCES] = {0};
+    uint32_t maxSamplesCount(0);
+
+    for(int file = 0; file < mWavFiles.size(); ++file)
     {
-        pWaveStarts[idx] = pWaves[idx] = (short *)(mWavFiles[idx].Data.front());
-        sizes[idx] = mWavFiles[idx].SamplesCount * 2; // stereo short samples
+        int16_t *data16Bit((int16_t *)&(mWavFiles[file].Data[0]));
+        pWaveStarts[file] = pWaves[file] = data16Bit;
+        sizes[file] = mWavFiles[file].SamplesCount * sizeof(int16_t); // stereo short samples
 
-        if(mWavFiles[idx].SamplesCount > nSP)
-        {
-            nSP = mWavFiles[idx].SamplesCount;
-        }
+        maxSamplesCount = std::max(mWavFiles[file].SamplesCount, maxSamplesCount);
     }
 
     FifoBuffer recFifo(FILTER_SAMPLE_RATE * 4);
 
-    pRec = new short[FILTER_SAMPLE_RATE * 2];
-    memset(pRec, 0, FILTER_SAMPLE_RATE * sizeof(short) * 2);
+    pRec = new int16_t[FILTER_SAMPLE_RATE * 2];
+    memset(pRec, 0, sizeof(int16_t) * FILTER_SAMPLE_RATE * 2);
 
-    pOut = new short[FILTER_SAMPLE_RATE * 2];
-    memset(pOut, 0, FILTER_SAMPLE_RATE * sizeof(short) * 2);
+    pOut = new int16_t[FILTER_SAMPLE_RATE * 2];
+    memset(pOut, 0, sizeof(int16_t) * FILTER_SAMPLE_RATE * 2);
 
     // upgrade our windows process and thread priorities:
     //SetSecurityInfo(GetCurrentProcess(), SE_WINDOW_OBJECT, PROCESS_SET_INFORMATION, 0, 0, 0, 0);
@@ -919,7 +976,7 @@ int Audio3D::processProc()
     //SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     //already set in the thread's wrapper class
 
-    unsigned char *pProc = pProcessed;
+    auto processed = &mProcessed.front();
 
     mRunning = true;
 
@@ -930,7 +987,7 @@ int Audio3D::processProc()
 
     while(!mStop)
     {
-        if(src1EnableMic)
+        if(mSrc1EnableMic)
         {
             bytesRecorded = 0;
             int nRec = 0;
@@ -950,12 +1007,12 @@ int Audio3D::processProc()
             // [temporarily] duck the wave audio for mic audio:
             short * wavPtr = pWaves[0];
             pWaves[0] = pRec;
-            process(pOut, pWaves, m_bufSize);
+            Process(pOut, pWaves, m_bufSize);
             pWaves[0] = wavPtr;
         }
         else
         {
-            process(pOut, pWaves, m_bufSize);
+            Process(pOut, pWaves, m_bufSize);
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -963,7 +1020,7 @@ int Audio3D::processProc()
         int bytes2Play = m_bufSize;
         unsigned char *pData = (unsigned char *)pOut;
 
-        memcpy(pProc, pData, m_bufSize);
+        memcpy(processed, pData, m_bufSize);
 
         while(bytes2Play > 0 && !mStop)
         {
@@ -986,11 +1043,11 @@ int Audio3D::processProc()
             }
         }
 
-        pProc += m_bufSize;
+        processed += m_bufSize;
 
-        if (pProc - pProcessed + m_bufSize > nSP)
+        if (processed - &mProcessed.front() + m_bufSize > maxSamplesCount)
         {
-            pProc = pProcessed;
+            processed = &mProcessed.front();
         }
 
         ///compute current sample position for each stream:
@@ -1003,11 +1060,19 @@ int Audio3D::processProc()
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-
-    if (!WriteWaveFileS("RoomAcousticsRun.wav", FILTER_SAMPLE_RATE, 2, 16, mWavFiles[0].SamplesCount, (short *)(pProcessed))){
+    if(!WriteWaveFileS(
+        "RoomAcousticsRun.wav",
+        FILTER_SAMPLE_RATE,
+        2,
+        16,
+        mWavFiles[0].SamplesCount,
+        (short *)&mProcessed.front()
+        ))
+    {
         puts("unable to write RoomAcousticsRun.wav");
     }
-    else {
+    else
+    {
         puts("wrote output to RoomAcousticsRun.wav");
     }
 
@@ -1018,19 +1083,13 @@ int Audio3D::processProc()
     return 0;
 }
 
-int Audio3D::setSrc1Options(bool useMicSource, bool trackHeadPos){
-    src1EnableMic = useMicSource;
-    src1TrackHeadPos = trackHeadPos;
-    return 0;
-}
-
 int64_t Audio3D::getCurrentPosition(int streamIdx)
 {
     return m_samplePos[streamIdx];
 }
 
 
-int Audio3D::updateProc()
+int Audio3D::UpdateProc()
 {
     while(mRunning && !mStop)
     {
@@ -1041,7 +1100,7 @@ int Audio3D::updateProc()
 
         if(!mStop)
         {
-            if(src1TrackHeadPos)
+            if(mSrc1TrackHeadPos)
             {
                 sources[0].speakerX = ears.headX;
                 sources[0].speakerY = ears.headY;
@@ -1049,7 +1108,7 @@ int Audio3D::updateProc()
             }
         }
 
-        for(int idx = 0; !!mStop && (idx < mWavFiles.size()); idx++)
+        for(int idx = 0; !mStop && (idx < mWavFiles.size()); idx++)
         {
             if(m_useClMemBufs)
             {

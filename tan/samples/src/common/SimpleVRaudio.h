@@ -56,17 +56,57 @@ enum class ProcessingType
 };
 
 // Simple VR audio engine using True Audio Next GPU acceleration
-class  Audio3D
+class Audio3D
 {
 public:
-    int processProc();
-    int updateProc();
-
     Audio3D();
-    Audio3D(Audio3D const&) = delete;
+    Audio3D(Audio3D const &) = delete;
     virtual ~Audio3D();
 
-private:
+    int Init
+    (
+        const std::string &     dllPath,
+        const RoomDefinition &  roomDef,
+        const std::vector<std::string> &
+                                fileNames2Open,
+
+        // Source 1 can optionally be captured audio from default microphone:
+        bool                    useMicSource,
+        bool                    trackHeadPos,
+
+        int                     fftLen,
+        int                     bufSize,
+
+        bool                    useGPU_Conv = true,
+        int                     devIdx_Conv = 0,
+#ifdef RTQ_ENABLED
+		bool                    useHPr_Conv = false,
+        bool                    useRTQ_Conv = false,
+        int                     cuRes_Conv = 0,
+#endif // RTQ_ENABLED
+        bool                    useGPU_IRGen = true,
+        int                     devIdx_IRGen = 0,
+#ifdef RTQ_ENABLED
+		bool                    useHPr_IRGen = false,
+        bool                    useRTQ_IRGen = false,
+        int                     cuRes_IRGen = 0,
+#endif
+        amf::TAN_CONVOLUTION_METHOD
+                                convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
+        bool                    useCPU_Conv = false,
+        bool                    useCPU_IRGen = false
+        );
+
+	// finalize, deallocate resources, close files, etc.
+	int Close();
+
+	// start audio engine:
+    int Run();
+
+	// Stop audio engine:
+    int Stop();
+
+protected:
     static bool useIntrinsics;
     static const int IR_UPDATE_MODE = 1; // 0: Non-Blocking 1: Blocking
     static unsigned processThreadProc(void *ptr);
@@ -75,7 +115,9 @@ private:
     PrioritizedThread mProcessThread;
     PrioritizedThread mUpdateThread;
 
-    int process(short *pOut, short *pChan[MAX_SOURCES], int sampleCount);
+    int ProcessProc();
+    int UpdateProc();
+    int Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
 
     bool mRunning = false;
     bool mUpdated = false;
@@ -84,13 +126,9 @@ private:
     bool m_useOCLOutputPipeline;
 
     std::unique_ptr<IWavPlayer> mPlayer;
+	std::vector<WavContent> mWavFiles;
 
-	//int m_nFiles;
-    //uint32_t mSamples[MAX_SOURCES];
-	//unsigned char *mBuffers[MAX_SOURCES];
-    std::vector<WavContent> mWavFiles;
-
-    unsigned char *pProcessed;
+    std::vector<uint8_t> mProcessed;
 
 	TANContextPtr m_spTANContext1;
 	TANContextPtr m_spTANContext2;
@@ -104,9 +142,9 @@ private:
     MonoSource sources[MAX_SOURCES];
 	StereoListener ears;
 
-    int src1EnableMic = 0;
-    int src1TrackHeadPos = 0;
-    int src1MuteDirectPath = 0;
+    bool mSrc1EnableMic = false;
+    bool mSrc1TrackHeadPos = false;
+    bool mSrc1MuteDirectPath = false;
 
 	float *responseBuffer;
     float *responses[MAX_SOURCES*2];
@@ -152,52 +190,16 @@ public:
 
     //static amf::TAN_CONVOLUTION_METHOD m_convMethod;// = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 
-    int Init
-    (
-        const std::string &     dllPath,
-        const RoomDefinition &  roomDef,
-        const std::vector<std::string> &
-                                fileNames2Open,
-
-        int                     fftLen,
-        int                     bufSize,
-        //ProcessingType          convolutionProcessing,
-        //ProcessingType          roomProccessing,
-        bool                    useGPU_Conv = true,
-        int                     devIdx_Conv = 0,
-#ifdef RTQ_ENABLED
-		bool                    useHPr_Conv = false,
-        bool                    useRTQ_Conv = false,
-        int                     cuRes_Conv = 0,
-#endif // RTQ_ENABLED
-        bool                    useGPU_IRGen = true,
-        int                     devIdx_IRGen = 0,
-#ifdef RTQ_ENABLED
-		bool                    useHPr_IRGen = false,
-        bool                    useRTQ_IRGen = false,
-        int                     cuRes_IRGen = 0,
-#endif
-        amf::TAN_CONVOLUTION_METHOD
-                                convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
-        bool                    useCPU_Conv = false,
-        bool                    useCPU_IRGen = false
+    //todo: move to Init with help of struct
+    // Set transform to translate game coordinates to room audio coordinates:
+	int setWorldToRoomCoordTransform(
+        float translationX,
+        float translationY,
+        float translationZ,
+        float rotationY,
+        float headingOffset,
+        bool headingCCW
         );
-
-	// Set transform to translate game coordinates to room audio coordinates:
-	int setWorldToRoomCoordTransform(float translationX, float translationY, float translationZ,
-									 float rotationY, float headingOffset, bool headingCCW);
-
-	// Source 1 can optionally be captured audio from default microphone:
-	int setSrc1Options(bool useMicSource, bool trackHeadPos);
-
-	// finalize, deallocate resources, close files, etc.
-	int finit();
-
-	// start audio engine:
-    int Run();
-
-	// Stop audio engine:
-    int Stop();
 
 	// get's the current playback position in a stream:
     int64_t getCurrentPosition(int stream);

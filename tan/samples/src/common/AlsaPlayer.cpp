@@ -27,13 +27,16 @@
 
 AlsaPlayer::AlsaPlayer():
     mPCMHandle(nullptr),
-    mUpdatePeriod(0)
+    mUpdatePeriod(0),
+    mChannelsCount(0),
+    mBitsPerSample(0),
+    mSamplesPerSecond(0)
 {
 }
 
 AlsaPlayer::~AlsaPlayer()
 {
-    Release();
+    Close();
 }
 
 /**
@@ -42,7 +45,13 @@ AlsaPlayer::~AlsaPlayer()
  * @brief Will init alsa
  *******************************************************************************
  */
-WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, uint32_t *frameSize, bool capture)
+PlayerError AlsaPlayer::Init(
+    uint16_t channelsCount,
+    uint16_t bitsPerSample,
+    uint32_t samplesPerSecond,
+    bool play,
+    bool record
+    )
 {
     std::vector<std::string> devices;
     int pcmError(0);
@@ -107,7 +116,7 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
     {
         std::cerr << "Error: No compatible sound card found." << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
 
     /* Open the PCM device in playback mode */
@@ -120,7 +129,7 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
     {
         std::cerr << "Error: Can't open default PCM device. " << snd_strerror(pcmError) << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
     else
     {
@@ -140,7 +149,7 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
     {
 		std::cerr << "Error: Can't set interleaved mode. " << snd_strerror(pcmError) << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
 
 	if(pcmError = snd_pcm_hw_params_set_format(
@@ -150,22 +159,21 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
     {
 		std::cerr << "Error: Can't set format. " << snd_strerror(pcmError) << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
 
-	if(pcmError = snd_pcm_hw_params_set_channels(mPCMHandle, params, streaminfo->NumOfChannels) < 0)
+	if(pcmError = snd_pcm_hw_params_set_channels(mPCMHandle, params, channelsCount) < 0)
     {
 		std::cerr << "Error: Can't set channels number. " << snd_strerror(pcmError) << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
 
-	uint32_t rate(uint32_t(streaminfo->SamplesPerSec));
-    if(pcmError = snd_pcm_hw_params_set_rate_near(mPCMHandle, params, &rate, 0) < 0)
+	if(pcmError = snd_pcm_hw_params_set_rate_near(mPCMHandle, params, &samplesPerSecond, 0) < 0)
     {
 		std::cerr << "Error: Can't set rate. " << snd_strerror(pcmError) << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
 
 	/* Write parameters */
@@ -173,7 +181,7 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
     {
 		std::cerr << "Error: Can't set harware parameters. " << snd_strerror(pcmError) << std::endl;
 
-        return WavError::PCMError;
+        return PlayerError::PCMError;
     }
 
 	{
@@ -191,11 +199,11 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
             ;
     }
 
-    mChannelsCount = streaminfo->NumOfChannels;
+    mChannelsCount = channelsCount;
     mUpdatePeriod = 0;
     snd_pcm_hw_params_get_period_time(params, &mUpdatePeriod, NULL);
 
-	return WavError::OK;
+	return PlayerError::OK;
 }
 
 /**
@@ -203,79 +211,20 @@ WavError AlsaPlayer::Init(const STREAMINFO *streaminfo, uint32_t *bufferSize, ui
  * @fn Release
  *******************************************************************************
  */
-void AlsaPlayer::Release()
+void AlsaPlayer::Close()
 {
-    snd_pcm_drain(mPCMHandle);
-	snd_pcm_close(mPCMHandle);
+    if(mPCMHandle)
+    {
+        snd_pcm_drain(mPCMHandle);
+        snd_pcm_close(mPCMHandle);
+
+        mPCMHandle = nullptr;
+    }
 
     // ALSA allocates some mem to load its config file when we call some of the
     // above functions. Now that we're done getting the info, let's tell ALSA
     // to unload the info and free up that mem
     snd_config_update_free_global();
-}
-
-WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, uint32_t& samplesCount, uint8_t **ppOutBuffer)
-{
-    uint32_t samplesPerSec = 0;
-    uint16_t bitsPerSample = 0;
-    uint16_t nChannels = 0;
-    float **pSamples;
-    unsigned char *pOutBuffer;
-
-    if(!::ReadWaveFile(
-        fileName.c_str(),
-        samplesPerSec,
-        bitsPerSample,
-        nChannels,
-        samplesCount,
-        &pOutBuffer,
-        &pSamples
-        ))
-    {
-        return WavError::FileNotFound;
-    }
-
-    if(nChannels != 2 || bitsPerSample != 16)
-    {
-        free(pOutBuffer);
-        pOutBuffer = (unsigned char *)calloc(samplesCount, 2 * sizeof(short));
-
-        if(!pOutBuffer)
-        {
-            //return -1;
-            //todo: return not enoght memory
-            return WavError::FileNotFound;
-        }
-
-        short *pSBuf = (short *)pOutBuffer;
-        for (int i = 0; i < samplesCount; i++)
-        {
-            pSBuf[2 * i + 1] = pSBuf[2 * i] = (short)(32767 * pSamples[0][i]);
-            if (nChannels == 2)
-            {
-                pSBuf[2 * i + 1] = (short)(32767 * pSamples[1][i]);
-            }
-        }
-    }
-
-    //don't need floats;
-    for (int i = 0; i < nChannels; i++)
-    {
-        delete pSamples[i];
-    }
-    delete pSamples;
-
-    *ppOutBuffer = pOutBuffer;
-
-    STREAMINFO streaminfo = {0};
-    streaminfo.bitsPerSample = bitsPerSample;
-    streaminfo.NumOfChannels = nChannels;
-    streaminfo.SamplesPerSec = samplesPerSec;
-
-    //todo: implement similar usage with WASAPI player
-    uint32_t bufferSize(0), frameSize(0);
-
-    return Init(&streaminfo, &bufferSize, &frameSize);
 }
 
 /**
@@ -284,7 +233,7 @@ WavError AlsaPlayer::ReadWaveFile(const std::string& fileName, uint32_t& samples
  * @brief Play output
  *******************************************************************************
  */
-uint32_t AlsaPlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
+uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 {
     uint32_t uiFrames2Play(size / mChannelsCount / 2);
 
@@ -313,7 +262,7 @@ uint32_t AlsaPlayer::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
 * @fn Record
 *******************************************************************************
 */
-uint32_t AlsaPlayer::Record(unsigned char *pOutputBuffer, unsigned int size)
+uint32_t AlsaPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
 {
     /*if (captureClient == NULL)
         return 0;

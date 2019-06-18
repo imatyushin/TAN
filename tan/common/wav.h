@@ -114,7 +114,7 @@ bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int 
 struct WavContent
 {
 	uint16_t	ChannelsCount;
-	int32_t 	SamplesCount;
+	uint32_t 	SamplesCount;
 	uint16_t 	BitsPerSample;
 	uint32_t 	SamplesPerSecond;
 	std::vector<uint8_t>
@@ -141,8 +141,18 @@ struct WavContent
 	}
 
 	bool ReadWaveFile(const std::string & fileName);
+	bool Convert2Stereo16Bit(); //not implemented
 
-	bool Convert2Stereo16Bit();
+	inline bool IsSameFormat(const WavContent & other)
+	{
+		return
+		    other.ChannelsCount == ChannelsCount
+			&&
+		    other.BitsPerSample == BitsPerSample
+			&&
+			other.SamplesPerSecond == SamplesPerSecond
+			;
+	}
 };
 
 #endif
