@@ -460,7 +460,8 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 	}
 
 	/* get the data size */
-	auto wavDataSize = fhd.wave.fmt.info.nChannels * fhd.wave.fmt.info.nSamplesPerSec * fhd.wave.fmt.info.nBitsPerSample / 8;
+	auto samplesCount = (fhd.wave.data.length * 8) / (fhd.wave.fmt.info.nBitsPerSample * fhd.wave.fmt.info.nChannels);
+	auto wavDataSize = fhd.wave.fmt.info.nChannels * samplesCount * fhd.wave.fmt.info.nBitsPerSample / 8;
 	Data.resize(wavDataSize);
 
 	if(Data.size() != wavDataSize)

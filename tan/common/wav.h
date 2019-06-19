@@ -137,7 +137,7 @@ struct WavContent
 
 	inline bool Valid() const
 	{
-		return Data.size() && Data.size() == ChannelsCount * SamplesPerSecond * BitsPerSample / 8;
+		return Data.size() && Data.size() == ChannelsCount * SamplesCount * BitsPerSample / 8;
 	}
 
 	bool ReadWaveFile(const std::string & fileName);

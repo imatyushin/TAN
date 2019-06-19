@@ -21,8 +21,6 @@
 //
 
 #include <time.h>
-//#include <process.h>
-//#include <AclAPI.h>
 #include <stdio.h>
 #include "CL/cl.h"
 #include "SimpleVRaudio.h"
@@ -36,6 +34,13 @@
 #include <cstring>
 #include <chrono>
 #include <algorithm>
+
+/*
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+*/
 
 #if defined( _MSC_VER )
 	#define countOf _countof
@@ -332,6 +337,21 @@ int Audio3D::Init
 
         return -1;
     }
+
+    /*std::cout << "WAV:" << std::endl;
+    std::cout << mWavFiles[0].SamplesCount << std::endl;
+    std::cout << mWavFiles[0].Data.size() << std::endl;
+
+    for(int s = 0; s < mWavFiles[0].SamplesCount; ++s)
+    {
+        std::cout << std::hex
+            << s << ":"
+            << " 0x" << unsigned(mWavFiles[0].Data[s * 4 + 0])
+            << " 0x" << unsigned(mWavFiles[0].Data[s * 4 + 1])
+            << " 0x" << unsigned(mWavFiles[0].Data[s * 4 + 2])
+            << " 0x" << unsigned(mWavFiles[0].Data[s * 4 + 3])
+            << std::endl;
+    }*/
 
     //initialize hardware
     //assume that all opened files has the same format
