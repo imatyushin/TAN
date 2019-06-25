@@ -32,11 +32,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#endif
+#include <array>
 
 // rotation, translation matrix
 class transRotMtx{
@@ -125,10 +121,11 @@ protected:
     bool mUpdateParams = true;
     bool m_useOCLOutputPipeline;
 
-    std::unique_ptr<IWavPlayer> mPlayer;
-	std::vector<WavContent> mWavFiles;
+    std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
+	std::vector<WavContent>     mWavFiles;
 
-    std::vector<uint8_t> mProcessed;
+    uint32_t                    mMaxSamplesCount = 0;
+    std::vector<int16_t>        mStereoProcessedBuffer;
 
 	TANContextPtr m_spTANContext1;
 	TANContextPtr m_spTANContext2;
@@ -167,7 +164,9 @@ protected:
     int m_fftLen = 65536;  //default fft length
 
 	// buffer length 4096 / 48000 = 85 ms update rate:
-	int m_bufSize = 4096 * 4; // default buffer length
+	//int m_bufSize = 4096 * 4; // default buffer length
+    int mBufferSizeInSamples = 0;
+    int mBufferSizeInBytes = 0;
 
 	// World To Room coordinate transform:
 	transRotMtx m_mtxWorldToRoomCoords;

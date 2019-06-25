@@ -19,6 +19,8 @@
 #if !defined( amd_unicode_h )
 #define amd_unicode_h
 
+#include <iostream>
+
 //	Typedefs to support unicode and ansii compilation
 #if defined( _UNICODE )
 	typedef std::wstring		tstring;
@@ -49,14 +51,14 @@
 			#define _TCHAR wchar_t
 			#define _T(x)	L ## x
 			#define _tmain wmain
-		#else		
+		#else
 			#define _TCHAR char
 			#define _T(x)	x
 			#define _tmain main
 		#endif
 
 		#define TCHAR _TCHAR;
-		
+
 	#endif
 #endif
 

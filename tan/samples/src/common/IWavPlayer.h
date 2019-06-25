@@ -52,7 +52,8 @@ enum class PlayerError
 {
     OK = 0,
 
-    PCMError = 1 << 1,
+    InvalidParameters   = 1 << 1,
+    PCMError            = 1 << 2,
 };
 
 /*Structure which hold elements required for wasapi playback */

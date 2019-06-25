@@ -53,6 +53,13 @@ PlayerError AlsaPlayer::Init(
     bool record
     )
 {
+    if(!play && !record)
+    {
+        std::cerr << "Error: player must has play or record flags set!" << std::endl;
+
+        return PlayerError::InvalidParameters;
+    }
+
     std::vector<std::string> devices;
     int pcmError(0);
 
@@ -119,11 +126,19 @@ PlayerError AlsaPlayer::Init(
         return PlayerError::PCMError;
     }
 
+    snd_pcm_stream_t openMode(
+        snd_pcm_stream_t(
+            play && record
+                ? SND_PCM_STREAM_PLAYBACK | SND_PCM_STREAM_CAPTURE
+                : (play ? SND_PCM_STREAM_PLAYBACK : SND_PCM_STREAM_CAPTURE)
+            )
+        );
+
     /* Open the PCM device in playback mode */
 	if(pcmError = snd_pcm_open(
         &mPCMHandle,
         "default",
-        SND_PCM_STREAM_PLAYBACK,
+        openMode,
         0//SND_PCM_ASYNC | SND_PCM_NONBLOCK
         ) < 0)
     {
@@ -133,7 +148,7 @@ PlayerError AlsaPlayer::Init(
     }
     else
     {
-        std::cerr << "PCM device opened: " << devices[0] << std::endl;
+        std::cout << "PCM device opened: " << devices[0] << std::endl;
     }
 
     /* Allocate parameters object and fill it with default values*/
@@ -237,24 +252,27 @@ uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 {
     uint32_t uiFrames2Play(size / mChannelsCount / 2);
 
+    int pcmResult = 0;
+
     //todo: mute in realtime?
     if(!mute)
     {
-        int pcmError = 0;
 
-        if(pcmError = snd_pcm_writei(mPCMHandle, pOutputBuffer, uiFrames2Play) == -EPIPE)
+        if(-EPIPE == (pcmResult = snd_pcm_writei(mPCMHandle, pOutputBuffer, uiFrames2Play)))
         {
             snd_pcm_prepare(mPCMHandle);
+
+            return 0;
         }
-        else if(pcmError < 0)
+        else if(pcmResult < 0)
         {
-            std::cerr << "Error: Can't write to PCM device. " << snd_strerror(pcmError) << std::endl;
+            std::cerr << "Error: Can't write to PCM device. " << snd_strerror(pcmResult) << std::endl;
 
             return 0;
         }
     }
 
-    return uiFrames2Play * 2 * mChannelsCount;
+    return pcmResult * 2 * mChannelsCount;
 }
 
 /**
@@ -264,40 +282,29 @@ uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 */
 uint32_t AlsaPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
 {
-    /*if (captureClient == NULL)
-        return 0;
+    uint32_t uiFrames2Play(size / mChannelsCount / 2);
 
-    HRESULT hr;
-    UINT32 frames;
-    CHAR *buffer = NULL;
+    int pcmResult = 0;
 
-    if (!mStartedCapture)
+    //Returns
+    //a positive number of frames actually read otherwise a negative error code
+    //Return values
+    //-EBADFD	PCM is not in the right state (SND_PCM_STATE_PREPARED or SND_PCM_STATE_RUNNING)
+    //-EPIPE	an overrun occurred
+    //-ESTRPIPE	a suspend event occurred (stream is suspended and waiting for an application recovery)
+
+    if(-EPIPE == (pcmResult = snd_pcm_readi(mPCMHandle, pOutputBuffer, uiFrames2Play)))
     {
-        mStartedCapture = TRUE;
-        hr = audioCapClient->Start();
+        snd_pcm_prepare(mPCMHandle);
+
+        return 0;
+    }
+    else if(pcmResult < 0)
+    {
+        std::cerr << "Error: Can't read from PCM device. " << snd_strerror(pcmResult) << std::endl;
+
+        return 0;
     }
 
-    //hr = audioClient->GetCurrentPadding(&padding);
-    hr = captureClient->GetNextPacketSize(&frames);
-    FAILONERROR(hr, "Failed GetNextPacketSize");
-    if (frames == 0) {
-        return frames;
-    }
-
-    frames = min(frames, size / frameSize);
-
-
-    DWORD flags;
-    //UINT64 DevPosition;
-    //UINT64 QPCPosition;
-    hr = captureClient->GetBuffer( (BYTE **)&buffer, &frames, &flags, NULL, NULL );
-    FAILONERROR(hr, "Failed getBuffer");
-
-    memcpy(pOutputBuffer, buffer, (frames*frameSize));
-
-    hr = captureClient->ReleaseBuffer(frames);
-    FAILONERROR(hr, "Failed releaseBuffer");
-
-    return  (frames*frameSize);*/
-    return 0;
+    return pcmResult * 2 * mChannelsCount;;
 }

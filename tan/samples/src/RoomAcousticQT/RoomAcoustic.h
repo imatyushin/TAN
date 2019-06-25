@@ -85,7 +85,7 @@ public:
 	int m_iSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
 	int m_iSoundSourceMap[MAX_SOURCES];
 	int m_bSrcTrackHead[MAX_SOURCES];
-	int m_isrc1EnableMic = 0;
+	bool mSrc1EnableMic = false;
 	int m_isrc1MuteDirectPath = 0;
 	int m_isrc1TrackHeadPos = 0;
 	/*Device*/

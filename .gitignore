@@ -3,3 +3,4 @@
 /tan/tanlibrary/src/Graal/OclKernels/amdFIR_kernels.h
 /tan/samples/src/TrueAudioVR/Kernels/Fill.cl.h
 /tan/samples/src/TrueAudioVR/Kernels/GenerateRoomResponse.cl.h
+/tan/build/cmake/linux

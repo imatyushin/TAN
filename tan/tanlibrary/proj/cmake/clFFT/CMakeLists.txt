@@ -18,6 +18,7 @@ endif()
 
 include_directories(../../../../../amf)
 include_directories(../../../../..)
+include_directories(../../../../common)
 
 # library name
 project(clFFT-master)

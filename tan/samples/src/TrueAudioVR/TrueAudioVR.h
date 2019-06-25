@@ -43,6 +43,7 @@ using namespace amf;
 
 #define SPEED_OF_SOUND 343.0 // m/s
 #define FILTER_SAMPLE_RATE 48000
+#define STEREO_CHANNELS_COUNT 2
 
 #define DBTODAMP(dB) std::pow(10.0,float(-dB/20.0))
 #define DAMPTODB(d) float(-20.0*log10(d))
@@ -51,7 +52,7 @@ using namespace amf;
 #define GENROOM_NONE 0
 #define GENROOM_LIMIT_BOUNCES 0x40  // stop after maxBounces reflections on any axis
 #define GENROOM_SUPPRESS_DIRECT 0x80  // suppress direct sound path, render only echos
-#define GENROOM_USE_GPU_MEM     0x800  // create impulse responses in GPU buffer 
+#define GENROOM_USE_GPU_MEM     0x800  // create impulse responses in GPU buffer
 
 #define SIMPLEHRTF_FFTLEN 64
 
@@ -79,17 +80,17 @@ struct StereoListener {
 
 struct MaterialProperty {
     // surface acoustic absorption: [required]
-    float damp;			     // acoustic absorption factor [0 < damp < 1.0]  
+    float damp;			     // acoustic absorption factor [0 < damp < 1.0]
 
     // Frequency response: [optional], set irLen = 0 to disable
     //int irLen;               // length of impulse response
     //float *iresponse;        // impulse response, 48kHz, normalized (will be scaled by dampdB)
 
     // Surface roughness:  [optional], set nHostLevels = 0 to disable
-    //int nHistLevels;		 // roughnessHistogram is array representing 
-    //float histHeight;		 //	fractions of surface area having heights 	
-    //float *roughnessHistogram;	// in each of nHistLevels bands between 0 and histHeight 
-                                             
+    //int nHistLevels;		 // roughnessHistogram is array representing
+    //float histHeight;		 //	fractions of surface area having heights
+    //float *roughnessHistogram;	// in each of nHistLevels bands between 0 and histHeight
+
 };
 
 // RoomDefinition:
@@ -116,7 +117,7 @@ struct Door {
     float r2brX, r2brY, r2brZ; //  bottom right corner
 };
 
-class TAN_SDK_LINK AmdTrueAudioVR 
+class TAN_SDK_LINK AmdTrueAudioVR
 {
 public:
     enum VRExecutionMode

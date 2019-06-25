@@ -73,7 +73,7 @@ int RoomAcoustic::start()
 
 		fileNames,
 
-		m_isrc1EnableMic,
+		mSrc1EnableMic,
 		m_isrc1TrackHeadPos,
 
 		m_iConvolutionLength,
@@ -372,7 +372,7 @@ void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 			attribute* src1MicAttribs = new attribute[3];
 			attributes_list.push_back(src1MicAttribs);
 			src1MicAttribs[0].name = "enableMic";
-			src1MicAttribs[0].value = &m_isrc1EnableMic;
+			src1MicAttribs[0].value = &mSrc1EnableMic;
 			src1MicAttribs[0].fmt = 'i';
 			src1MicAttribs[1].name = "trackHeadPos";
 			src1MicAttribs[1].value = &m_isrc1TrackHeadPos;
@@ -381,7 +381,7 @@ void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 			src1MicAttribs[2].value = &m_isrc1TrackHeadPos;
 			src1MicAttribs[2].fmt = 'i';
 
-			//attribute src1MicAttribs[3] = { { "enableMic", &m_isrc1EnableMic, 'i' }, { "trackHeadPos", &m_isrc1TrackHeadPos, 'i' }, { "muteDirectPath", &m_isrc1TrackHeadPos, 'i' } };
+			//attribute src1MicAttribs[3] = { { "enableMic", &mSrc1EnableMic, 'i' }, { "trackHeadPos", &m_isrc1TrackHeadPos, 'i' }, { "muteDirectPath", &m_isrc1TrackHeadPos, 'i' } };
 			//attribute streamAttribs[1] = { { "file", &mWavFileNames[i][0], 's' } };
 			src[0] = { "streamS1", 2, streamAttribs, 0, NULL };
 			src[1] = { "microphone", 3, src1MicAttribs, 0, NULL };
@@ -577,7 +577,7 @@ void RoomAcoustic::saveConfiguraiton(const std::string& xmlfilename)
 	fputs(" <Source1>\n", fpSaveFile);
 	fprintf(fpSaveFile, " <streamS1  on=\"%d\" file=\"%s\" />\n", m_iSoundSourceEnable[0], mWavFileNames[0].c_str());
 	fprintf(fpSaveFile, "  <microphone enableMic=\"%d\" trackHeadPos=\"%d\" muteDirectPath=\"%d\" />\n",
-		m_isrc1EnableMic, m_isrc1TrackHeadPos, m_isrc1MuteDirectPath);
+		mSrc1EnableMic, m_isrc1TrackHeadPos, m_isrc1MuteDirectPath);
 	fprintf(fpSaveFile, "  <positionS1 X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", m_SoundSources[0].speakerX, m_SoundSources[0].speakerY, m_SoundSources[0].speakerZ);
 	fputs(" </Source1>\n", fpSaveFile);
 
@@ -662,7 +662,7 @@ bool RoomAcoustic::replaceSoundSource(const std::string& sourcename, int id)
 		if (id == 0)
 		{
 			m_isrc1TrackHeadPos = 0;
-			m_isrc1EnableMic = 0;
+			mSrc1EnableMic = false;
 			m_isrc1MuteDirectPath = 0;
 		}
 
@@ -699,7 +699,7 @@ bool RoomAcoustic::removeSoundSource(int id)
 			if (id == 0)
 			{
 				m_isrc1TrackHeadPos = 0;
-				m_isrc1EnableMic = 0;
+				mSrc1EnableMic = false;
 				m_isrc1MuteDirectPath = 0;
 			}
 

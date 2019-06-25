@@ -19,6 +19,10 @@
 #if !defined( CLFFT_private_H )
 #define CLFFT_private_H
 
+#include "../include/clFFT.h"
+#include "../include/unicode.compatibility.h"
+#include "Utilities.h"
+
 #include <vector>
 #include <string>
 #include <locale>
@@ -26,8 +30,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <cassert>
-#include "../include/clFFT.h"
-#include "../include/unicode.compatibility.h"
 
 #if defined(_MSC_VER)
 	//	Microsoft Visual C++ compiler
@@ -44,14 +46,6 @@
 	}
 #else
 #error Unknown/unsupported C++ compiler.
-#endif
-
-//	Creating a portable defintion of countof
-//  This excludes mingw compilers; mingw32 does not have _countof
-#if defined( _MSC_VER )
-	#define countOf _countof
-#else
-	#define countOf( arr ) ( sizeof( arr ) / sizeof( arr[ 0 ] ) )
 #endif
 
 // This excludes mingw compilers; mingw32 does not have <intrin.h>

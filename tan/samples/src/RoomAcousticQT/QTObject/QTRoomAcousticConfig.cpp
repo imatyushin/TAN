@@ -16,15 +16,28 @@ RoomAcousticQT::RoomAcousticQT(QWidget *parent)
 	: QMainWindow(parent)
 {
 	ConfigUi.setupUi(this);
+
 	// Initialize source table
 	ConfigUi.SourcesTable->setRowCount(MAX_SOURCES);
 	ConfigUi.SourcesTable->setColumnCount(1);
+
+	//
+	connect(
+		ConfigUi.CB_UseMicroPhone,
+		&QCheckBox::stateChanged,
+		[this](int state)
+		{
+			m_RoomAcousticInstance.mSrc1EnableMic = Qt::Checked == state;
+		}
+		);
+
 	// Initialize device
 	for (int i = 0; i < m_RoomAcousticInstance.m_iDeviceCount; i++)
 	{
 		ConfigUi.CB_UseGPU4Room->addItem(QString::fromUtf8(m_RoomAcousticInstance.m_cpDeviceName[i]));
 		ConfigUi.CB_UseGPU4Conv->addItem(QString::fromUtf8(m_RoomAcousticInstance.m_cpDeviceName[i]));
 	}
+
 	// Update Graphics
 	QGraphicsScene* m_pGraphicsScene = new QGraphicsScene(this);
 
@@ -64,7 +77,7 @@ void RoomAcousticQT::saveLastSelectedSoundSource()
 		if (sound_id == 0)
 		{
 			ConfigUi.CB_TrackHead->isChecked() ? m_RoomAcousticInstance.m_isrc1TrackHeadPos = 1 : m_RoomAcousticInstance.m_isrc1TrackHeadPos = 0;
-			ConfigUi.CB_UseMicroPhone->isChecked() ? m_RoomAcousticInstance.m_isrc1EnableMic = 1 : m_RoomAcousticInstance.m_isrc1EnableMic = 0;
+			m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked();
 		}
 		ConfigUi.CB_SoundSourceEnable->isChecked() ? m_RoomAcousticInstance.m_iSoundSourceEnable[sound_id] = 1 : m_RoomAcousticInstance.m_iSoundSourceEnable[sound_id] = 0;
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerX = ConfigUi.SB_SoundPositionX->value();

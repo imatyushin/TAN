@@ -19,21 +19,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-
-
+#include "Utilities.h"
 #include "GraalConv_clFFT.hpp"
 #include "GraalCLUtil/GraalUtil.hpp"
 #include "GraalConvOCL.hpp"
+#include "../common/OCLHelper.h"
+#include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <math.h>
 #include <algorithm>
-
-#include "../common/OCLHelper.h"
-
-#include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
 
 //to allow std::min usage
 #ifdef min
@@ -42,14 +39,6 @@
 
 #ifndef AMF_RETURN_IF_FALSE
 #define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
-#endif
-
-//	Creating a portable defintion of countof
-//  This excludes mingw compilers; mingw32 does not have _countof
-#if defined( _MSC_VER )
-	#define countOf _countof
-#else
-	#define countOf( arr ) ( sizeof( arr ) / sizeof( arr[ 0 ] ) )
 #endif
 
 const int debug = 0;
@@ -65,7 +54,7 @@ namespace graal
 #if _MSC_VER <= 1800
     static double log2(double n)
     {
-        // log(n)/log(2) is log2.  
+        // log(n)/log(2) is log2.
         return log(n) / log(2.);
     }
 #endif
@@ -115,7 +104,7 @@ void CGraalConv_clFFT::cleanup()
     {
         if (clIRInputBuf[ch])
             delete clIRInputBuf[ch];
-        
+
         if (clIRInputPaddedBuf[ch])
             delete clIRInputPaddedBuf[ch];
 
@@ -190,13 +179,13 @@ int CGraalConv_clFFT::initializeConv(
     max_conv_sz_freq_ = num_blocks_ * freq_block_sz_;
     const size_t one = 1;
     max_conv_sz_freq_aligned_ = one << static_cast<uint>(ceil(log2((double)max_conv_sz_freq_)));
-    
+
     int ret = setupCL(pConvolution, pUpdate);
     AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Internal error: graal's initialization failed");
-    
+
     ret = setupCLFFT();
     AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Internal error: CLFFT's initialization failed");
-    
+
     return 0;
 }
 
@@ -252,7 +241,7 @@ CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFCompu
     ret = clInputBaseBuf->create(block_sz_ * n_max_channels_ * n_input_blocks_, 0);
     AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
 
-    //The input in frequency domain 
+    //The input in frequency domain
     clInputBlockBaseBuf = new CABuf<float>(CABufArgs);
     ret = clInputBlockBaseBuf->create(freq_block_sz_ * n_max_channels_, 0);
     AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
@@ -303,7 +292,7 @@ CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFCompu
         clIRInputPaddedBuf[ch] = new CABuf<float>(CAUpdBufArgs);
         ret = clIRInputPaddedBuf[ch]->create(num_blocks_ * double_block_sz_, 0);
         AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
-        
+
         clIRBlocksBuf[ch].resize(n_sets_);
         roundCounter_[ch].resize(n_sets_);
         for (uint set = 0; set < n_sets_; set++)
@@ -312,7 +301,7 @@ CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFCompu
             ret = clIRBlocksBuf[ch][set]->create(max_conv_sz_freq_*(set + ch*n_sets_),
                                                  max_conv_sz_freq_, 0); // double the size for padding, double again for complex numbers
             AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
-            
+
             roundCounter_[ch][set] = 0;
         }
     }
@@ -329,28 +318,28 @@ CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFCompu
                                       "amdInterleaveFFTBlock", "");
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdInterleaveFFTBlock");
     goit = GetOclKernel(deinterleaveKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount, 
+                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
                                       "amdDeinterleaveFFTBlock", "");
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdDeinterleaveFFTBlock");
 
     //These MuliChan kernels handle multiple channels at a time
     goit = GetOclKernel(interleaveMultiChanKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount, 
+                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
                                       "amdInterleaveFFTBlockMultiChan", "");
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdInterleaveFFTBlockMultiChan");
     goit = GetOclKernel(madaccMultiChanKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount, 
+                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
                                       "amdMADAccBlocksMultiChan", "");
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdMADAccBlocksMultiChan");
     goit = GetOclKernel(sigHistInsertMultiChanKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount, 
+                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
                                       "amdSigHistoryInsertMultiChan", "");
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdSigHistoryInsertMultiChan");
     return 0;
 }
 
 
-int 
+int
 CGraalConv_clFFT::setupCLFFT()
 {
     clfftStatus status;
@@ -377,7 +366,7 @@ CGraalConv_clFFT::setupCLFFT()
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
 
     status = clfftCreateDefaultPlan(
-                &clfftPlanBackAllChannels, 
+                &clfftPlanBackAllChannels,
                 context_Convolution,
                 CLFFT_1D, &double_block_sz_64);
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
@@ -485,7 +474,7 @@ void CGraalConv_clFFT::printAllBlocks(CABuf<float>* buf, std::string name, int b
         return;
     std::cout << "The values of " << name << std::endl;
     for (int block = 0; block < blockCount; block++)
-    { 
+    {
         char str[64];
         sprintf(str, "block %d", block);
         printBlock(buf, str, blockLength, block*blockLength, count);
@@ -505,7 +494,7 @@ void CGraalConv_clFFT::writeComplexToOctaveFile(CABuf<float>* buf, std::string f
         if (i != 0)
             file << ",";
         file << data[i] << " " << data[i+1] << "i";
-    }	
+    }
     buf->unmap();
     file.close();
 }
@@ -534,7 +523,7 @@ int CGraalConv_clFFT::getConvBuffers(
     int *convIDs,               // kernel IDs
     float** conv_ptrs           // gpu-frendly system pointers
     )
-{ 
+{
     cl_command_queue updQueue = m_commandqueue_Update;
 
     for (int n = 0; n < n_channels; n++)
@@ -544,7 +533,7 @@ int CGraalConv_clFFT::getConvBuffers(
 
         conv_ptrs[n] = clIRInputBuf[ch]->mapA(updQueue, CL_MAP_WRITE_INVALIDATE_REGION);
     }
-    
+
     clFinish(updQueue);
 
     return 0;
@@ -575,7 +564,7 @@ int CGraalConv_clFFT::uploadConvHostPtrs(
     const int *convIDs,       // kernel IDs
     const float** conv_ptrs,  // arbitrary host ptrs
     const int * conv_lens,
-    bool synchronous   // synchronous call	
+    bool synchronous   // synchronous call
     )
 {
     cl_int ret;
@@ -596,16 +585,16 @@ int CGraalConv_clFFT::uploadConvHostPtrs(
     {
         clFinish(updQueue);
     }
-    
+
     return 0;
 }
 
 int CGraalConv_clFFT::uploadConvGpuPtrs(
-	int n_channels, 
-	const int* _uploadIDs, 
-	const int* _convIDs, 
-	const cl_mem* _conv_ptrs, 
-	const int* _conv_lens, 
+	int n_channels,
+	const int* _uploadIDs,
+	const int* _convIDs,
+	const cl_mem* _conv_ptrs,
+	const int* _conv_lens,
 	bool synchronous
 	)
 {
@@ -651,9 +640,9 @@ int CGraalConv_clFFT::updateConvHostPtrs(
     const int *convIDs,       // kernel IDs
     const float** conv_ptrs,  // arbitrary host ptrs
     const int * conv_lens,
-    bool synchronous   // synchronous call	
+    bool synchronous   // synchronous call
     )
-{ 
+{
     processLock.lock();
 
     // first copy IR from system to GPU [clIRInputBuf]
@@ -669,7 +658,7 @@ int CGraalConv_clFFT::updateConvHostPtrs(
 
     updateConv(n_channels, uploadIDs, convIDs, &ocl_mems[0], conv_lens, synchronous);
 
-    
+
     processLock.unlock();
     return 0;
 }
@@ -681,7 +670,7 @@ int CGraalConv_clFFT::updateConv(
     const int *uploadIDs,     // upload set IDs
     const int *convIDs,       // kernel IDs
     const int * conv_lens,
-    bool synchronous   // synchronous call	
+    bool synchronous   // synchronous call
     )
 {
     processLock.lock();
@@ -707,9 +696,9 @@ int CGraalConv_clFFT::updateConv(
     const int *convIDs,       // kernel IDs
     const cl_mem* ocl_mems,
     const int * conv_lens,
-    bool synchronous   // synchronoius call	
+    bool synchronous   // synchronoius call
     )
-{ 
+{
     processLock.lock();
 
     cl_int ret = CL_SUCCESS;
@@ -821,7 +810,7 @@ int CGraalConv_clFFT::updateConv(
 
         printAllBlocks(clIRBlocksBuf[ch][set], "IR in freq", freq_block_sz_);
     }
-    
+
     if (synchronous)
     {
         clFinish(m_commandqueue_Update);
@@ -912,11 +901,11 @@ int CGraalConv_clFFT::process(
     int prev_input,
     int advance_time,
     int skip_stage,
-    int crossfade_state 
+    int crossfade_state
     )
 {
     processLock.lock();
-    
+
     clfftStatus fftstatus;
     int inputset = 0;//for the roundCounter as the input is not set dependent
     int n_arg;
@@ -1150,7 +1139,7 @@ int CGraalConv_clFFT::process(
     {
         const uint ch = convIDs[n];
         const uint set = uploadID[n];
-    
+
         float * sysOutMem = outputs[n];
         memcpy(sysOutMem, clOutMem + n * double_block_sz_ + block_sz_,
                max_proc_buffer_sz_ * sizeof(float));

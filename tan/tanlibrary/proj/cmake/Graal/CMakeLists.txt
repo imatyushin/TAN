@@ -44,6 +44,7 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
+include_directories(../../../../common)
 
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DCLFFT_EXPORTS)

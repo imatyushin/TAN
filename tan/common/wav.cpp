@@ -19,25 +19,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#include "wav.h"
+#include "Utilities.h"
 
 #include <stdio.h>
 #include <memory.h>
-#include "wav.h"
-
-#ifdef __unix
-#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),  (mode)))==NULL
-#endif
+#include <stdexcept>
 
 void SetupWaveHeader
 (
 	RiffWave *fhd,
-	int32_t sampleRate,
-	int32_t bitsPerSample,
-	int channels,
-	long samplesCount)
+	uint32_t sampleRate, //samples per second
+	uint16_t bitsPerSample,
+	uint16_t channelsCount,
+	uint32_t samplesCount
+)
 {
-	long dataLength;
-	dataLength = samplesCount*(bitsPerSample / 8)*channels;
 	memset(fhd, 0, sizeof(RiffWave));
 
 	fhd->riff.name[0] = 'R';
@@ -60,6 +57,8 @@ void SetupWaveHeader
 	fhd->wave.fmt.name[2] = 't';
 	fhd->wave.fmt.name[3] = ' ';
 
+	uint32_t dataLength(samplesCount * channelsCount * (bitsPerSample / 8));
+
 	/* set the data size				*/
 	fhd->wave.data.length = dataLength;
 
@@ -68,10 +67,12 @@ void SetupWaveHeader
 
 	/* set the length of the FORMAT block	*/
 	fhd->wave.fmt.length = sizeof(WaveInfo);
-	fhd->wave.fmt.info.formatTag = 1;
+	fhd->wave.fmt.info.formatTag = (bitsPerSample == 32)
+		? 3
+		: 1;
 
 	/* set up the sample rate, etc...	*/
-	fhd->wave.fmt.info.nChannels = (uint16_t)channels;
+	fhd->wave.fmt.info.nChannels = channelsCount;
 	fhd->wave.fmt.info.nSamplesPerSec = sampleRate;
 
 	//fhd->wave.fmt.info.nAvgBytesPerSec = (sampleRate << (channels - 1)) <<
@@ -79,14 +80,10 @@ void SetupWaveHeader
 	//fhd->wave.fmt.info.nBlockAlign = (1 + ((bitsPerSample == 8) ? 0 : 1))
 	//	<< (channels - 1);
 
-    fhd->wave.fmt.info.nAvgBytesPerSec = (sampleRate*channels*bitsPerSample) / 8;
-    fhd->wave.fmt.info.nBlockAlign = (channels*bitsPerSample) / 8;
+    fhd->wave.fmt.info.nAvgBytesPerSec = channelsCount * sampleRate * (bitsPerSample / 8);
+    fhd->wave.fmt.info.nBlockAlign = channelsCount * (bitsPerSample / 8);
 
-    if (bitsPerSample == 32) {
-        fhd->wave.fmt.info.formatTag = 3;
-    }
-
-	fhd->wave.fmt.info.nBitsPerSample = (uint16_t)bitsPerSample;
+    fhd->wave.fmt.info.nBitsPerSample = bitsPerSample;
 }
 
 bool 			ReadWaveFile
@@ -318,21 +315,51 @@ bool WriteWaveFileF(const char *fileName, int samplesPerSec, int channelsCount, 
 
 }
 
-bool WriteWaveFileS(const char *fileName, int samplesPerSec, int channelsCount, int bitsPerSample, long samplesCount, short *pSamples)
+bool WriteWaveFileS
+(
+	const char * fileName,
+	uint32_t samplesPerSec,
+	uint16_t channelsCount,
+	uint16_t bitsPerSample,
+	uint32_t samplesCount,
+	int16_t * pSamples
+)
 {
-	/* write wave samples: */
-	RiffWave fhd;
-	FILE *fpOut;
-
-	SetupWaveHeader(&fhd, samplesPerSec, bitsPerSample, channelsCount, samplesCount);
-	int bytesPerSample = bitsPerSample / 8;
-	fopen_s(&fpOut,fileName, "wb");
-	if (fpOut == NULL)
+	FILE *fpOut(nullptr);
+	fopen_s(&fpOut, fileName, "wb" );
+	if(!fpOut)
+	{
 		return false;
+	}
 
+	/* write wave samples: */
+	RiffWave fhd = {0};
+	SetupWaveHeader(
+		&fhd,
+		samplesPerSec,
+		bitsPerSample,
+		channelsCount,
+		samplesCount
+		);
 	fwrite(&fhd, sizeof(fhd), 1, fpOut);
 
-	char *buffer = new char[bytesPerSample*channelsCount*samplesCount];
+	uint16_t bytesPerSample = bitsPerSample / 8;
+
+	if(2 == bytesPerSample)
+	{
+		fwrite(
+			pSamples,
+			channelsCount * samplesCount * bytesPerSample,
+			1,
+			fpOut
+			);
+	}
+	else
+	{
+		throw std::runtime_error("Error: not implemented!");
+	}
+
+	/*char *buffer = new char[bytesPerSample*channelsCount*samplesCount];
 	short *sSamBuf = (short *)buffer;
 	float *fSamBuf = (float *)buffer;
 
@@ -371,8 +398,9 @@ bool WriteWaveFileS(const char *fileName, int samplesPerSec, int channelsCount, 
 		break;
 	}
 
-
 	fwrite(buffer, samplesCount*channelsCount * bytesPerSample, 1, fpOut);
+	*/
+
 	fclose(fpOut);
 
 	return true;

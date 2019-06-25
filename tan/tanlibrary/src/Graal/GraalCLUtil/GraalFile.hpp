@@ -1,10 +1,10 @@
 /**********************************************************************
-Copyright ©2015 Advanced Micro Devices, Inc. All rights reserved.
+Copyright ï¿½2015 Advanced Micro Devices, Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-•   Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-•   Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or
+ï¿½   Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ï¿½   Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or
  other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -16,50 +16,19 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef GRAALFILE_HPP_
 #define GRAALFILE_HPP_
 
-/**
- * Header Files
- */
+#include "Utilities.h"
+
 #include <vector>
 #include <string>
 #include <fstream>
 #include <malloc.h>
-
-
-#if defined(_WIN32) || defined(__CYGWIN__)
-#include <direct.h>
-#define GETCWD _getcwd
-#else // !_WIN32
 #include <cstring>
-#include <cstdlib>
-#include <unistd.h>
-#define GETCWD ::getcwd
-#endif // !_WIN32
-
-#ifndef _WIN32
-#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode)))==NULL
-#endif
 
 /**
  * namespace appsdk
  */
 namespace graal
 {
-/**
- * getCurrentDir
- * Get current directory
- * @return string
- */
-static std::string getCurrentDir()
-{
-    const   size_t  pathSize = 4096;
-    char    currentDir[pathSize];
-    // Check if we received the path
-    if (GETCWD(currentDir, pathSize) != NULL)
-    {
-        return std::string(currentDir);
-    }
-    return  std::string("");
-}
 
 /**
  * class SDKFile
@@ -123,7 +92,7 @@ class GraalFile
         int writeBinaryToFile(const char* fileName, const char* binary, size_t numBytes)
         {
             FILE *output = NULL;
-            
+
 	    if(fopen_s(&output, fileName, "wb"))
             {
                 return GRAAL_FAILURE;
@@ -144,7 +113,7 @@ class GraalFile
             FILE * input = NULL;
             size_t size = 0,val;
             char* binary = NULL;
-            
+
             if(fopen_s(&input, fileName, "rb"))
             {
                 return GRAAL_FAILURE;

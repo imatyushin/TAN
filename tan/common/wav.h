@@ -103,7 +103,15 @@ bool ReadWaveFile
 	float ***	pfSamples
 );
 bool WriteWaveFileF(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, float **pSamples);
-bool WriteWaveFileS(const char *fileName, int samplesPerSec, int nChannels, int bitsPerSample, long nSamples, short *pSamples);
+bool WriteWaveFileS
+(
+	const char * fileName,
+	uint32_t samplesPerSec,
+	uint16_t channelsCount,
+	uint16_t bitsPerSample,
+	uint32_t samplesCount,
+	int16_t * pSamples
+);
 
 #ifdef __cplusplus
 
