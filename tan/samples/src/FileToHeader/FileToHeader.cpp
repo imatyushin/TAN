@@ -96,7 +96,10 @@ int main(int argc, char* argv[])
 
 		for(auto column(0); (column < 8) && (charIterator != clKernelSource.end()); ++column, ++charIterator, ++counter)
 		{
-			outputStream << L"0x" << std::setw(2) << std::setfill(L'0') << std::hex << int(*charIterator) << L", ";
+			outputStream
+			  //<< L"0x" << std::setw(2) << std::setfill(L'0') << std::hex
+			  << int(*charIterator)
+			  << L", ";
 		}
 	}
 

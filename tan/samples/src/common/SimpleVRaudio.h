@@ -165,8 +165,8 @@ protected:
 
 	// buffer length 4096 / 48000 = 85 ms update rate:
 	//int m_bufSize = 4096 * 4; // default buffer length
-    int mBufferSizeInSamples = 0;
-    int mBufferSizeInBytes = 0;
+    uint32_t mBufferSizeInSamples = 0;
+    uint32_t mBufferSizeInBytes = 0;
 
 	// World To Room coordinate transform:
 	transRotMtx m_mtxWorldToRoomCoords;

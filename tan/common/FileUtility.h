@@ -36,7 +36,6 @@ std::string getFileNameWithExtension(const std::string& filePath);
 std::string getFileNameWithoutExtension(const std::string& filePath);
 std::string getFileExtension(const std::string& fileName);
 bool compareIgnoreCase(const std::string& first, const std::string& second);
-std::wstring toWideString(const std::string& inputString);
 bool checkFileExist(const std::string& fileName);
 
 std::string getModuleFileName();

@@ -19,44 +19,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-
 #include "OCLHelper.h"
+#include "StringUtility.h"
 
-bool GetOclKernel(
-    cl_kernel &ResultKernel,
-    amf::AMFComputePtr &pDevice,
-    const cl_command_queue c_queue,
-    std::string kernel_id,
-    std::string kernel_src,
-    size_t kernel_src_size,
-    std::string kernel_name,
-    std::string comp_options)
+bool GetOclKernel
+(
+    cl_kernel &                 resultKernel,
+    const amf::AMFComputePtr &  device,
+    const cl_command_queue      c_queue,
+    const std::string &         kernelID,
+    const std::string &         kernelSource,
+    size_t                      kernelSourceSize,
+    const std::string &         kernelName,
+    const std::string &         comp_options
+)
 {
-    ResultKernel = NULL;
+    resultKernel = nullptr;
 
     ///First: Try to load kernel via AMF interface
-    if (nullptr != pDevice)
+    if(false && nullptr != device)
     {
-        amf::AMF_KERNEL_ID amfKernelId = -1;
-        std::wstring wKernelId(kernel_id.begin(), kernel_id.end());
+        std::wstring wKernelId(toWideString(kernelID));
+        amf::AMF_KERNEL_ID amfKernelID = -1;
 
-        amf::AMFPrograms* pPrograms = nullptr;
+        amf::AMFPrograms *pPrograms(nullptr);
         g_AMFFactory.GetFactory()->GetPrograms(&pPrograms);
-        if (nullptr != pPrograms)
+
+        if(nullptr != pPrograms)
         {
-            if (AMF_OK == pPrograms->RegisterKernelSource(&amfKernelId,
-                                                            wKernelId.c_str(),
-                                                            kernel_name.c_str(),
-                                                            kernel_src_size,
-                                                            reinterpret_cast<const amf_uint8*>(kernel_src.c_str()),
-                                                            comp_options.c_str()) )
+            AMF_RESULT result(
+                pPrograms->RegisterKernelSource(
+                    &amfKernelID,
+                    wKernelId.c_str(),
+                    kernelName.c_str(),
+                    kernelSourceSize,
+                    reinterpret_cast<const amf_uint8 *>(kernelSource.c_str()),
+                    comp_options.c_str()
+                    )
+                );
+
+            if(AMF_OK == result)
             {
                 amf::AMFComputeKernel* pAMFComputeKernel = nullptr;
-                pDevice->GetKernel(amfKernelId, &pAMFComputeKernel);
-                if (nullptr != pAMFComputeKernel)
+                device->GetKernel(amfKernelID, &pAMFComputeKernel);
+
+                if(nullptr != pAMFComputeKernel)
                 {
-                    ResultKernel = (cl_kernel)pAMFComputeKernel->GetNative();
+                    resultKernel = (cl_kernel)pAMFComputeKernel->GetNative();
+
                     return true;
                 }
             }
@@ -64,60 +74,78 @@ bool GetOclKernel(
     }
 
     //seconf: try to load kernel via OpenCL interface
-    if ( NULL != c_queue )
+    if(nullptr != c_queue )
     {
         cl_kernel ret = 0;
-        cl_int status = CL_SUCCESS;
-        std::string key = kernel_id + "." + comp_options;
 
-        cl_context context = NULL;
+        std::string key = kernelID + "." + comp_options;
+
+        cl_context context = nullptr;
         size_t param_value_size_ret = 0;
         clGetCommandQueueInfo(c_queue, CL_QUEUE_CONTEXT, sizeof(context), &context, &param_value_size_ret);
 
-        const char *source = (kernel_src.c_str());
+        const char *source = &kernelSource.front();
 
-        cl_program program = clCreateProgramWithSource(context,
-                                            1,
-                                            &source,
-                                            &kernel_src_size,
-                                            &status);
-        if ( CL_SUCCESS == status )
+        cl_int status = CL_SUCCESS;
+        cl_program program = clCreateProgramWithSource(
+            context,
+            1,
+            &source,
+            &kernelSourceSize,
+            &status
+            );
+
+        if(CL_SUCCESS == status)
         {
             cl_device_id device_id = 0;
-            status = clGetCommandQueueInfo(c_queue, CL_QUEUE_DEVICE, sizeof(device_id), &device_id, &param_value_size_ret);
-            if ( CL_SUCCESS == status )
+            status = clGetCommandQueueInfo(
+                c_queue,
+                CL_QUEUE_DEVICE,
+                sizeof(device_id),
+                &device_id,
+                &param_value_size_ret
+                );
+
+            if(CL_SUCCESS == status)
             {
                 status = clBuildProgram(program, 1, &device_id, comp_options.c_str(), NULL, NULL);
-                if ( CL_SUCCESS == status )
+
+                if(CL_SUCCESS == status)
                 {
-                    ResultKernel = clCreateKernel(program, kernel_name.c_str(), &status);
-                    if ((CL_SUCCESS == status) && (NULL < ResultKernel) )
+                    resultKernel = clCreateKernel(program, kernelName.c_str(), &status);
+
+                    if((CL_SUCCESS == status) && (nullptr != resultKernel))
                     {
                         return true;
                     }
                 }
                 else
                 {
-                    if (CL_BUILD_PROGRAM_FAILURE == status)
+                    if(CL_BUILD_PROGRAM_FAILURE == status)
                     {
-                        cl_int logStatus;
-                        char *buildLog = NULL;
+                        cl_int logStatus(0);
+                        char *buildLog = nullptr;
                         size_t buildLogSize = 0;
-                        logStatus = clGetProgramBuildInfo(program,
+
+                        logStatus = clGetProgramBuildInfo(
+                            program,
                             device_id,
                             CL_PROGRAM_BUILD_LOG,
                             buildLogSize,
                             buildLog,
-                            &buildLogSize);
+                            &buildLogSize
+                            );
 
                         buildLog = (char*)malloc(buildLogSize);
                         memset(buildLog, 0, buildLogSize);
-                        logStatus = clGetProgramBuildInfo(program,
+                        logStatus = clGetProgramBuildInfo(
+                            program,
                             device_id,
                             CL_PROGRAM_BUILD_LOG,
                             buildLogSize,
                             buildLog,
-                            &buildLogSize);
+                            &buildLogSize
+                            );
                         fprintf(stderr, buildLog);
                         free(buildLog);
                     }

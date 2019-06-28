@@ -19,17 +19,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
+#pragma once
 
 #include <CL/cl.h>
-#include "public/common/AMFFactory.h"           //AMF
 
-bool GetOclKernel(
-    cl_kernel &ResultKernel,
-    amf::AMFComputePtr &pDevice,
-    const cl_command_queue c_queue,
-    std::string kernel_id,
-    std::string kernel_src,
-    size_t kernel_src_size,
-    std::string kernel_name,
-    std::string comp_options);
+#include "public/common/AMFFactory.h"
+
+bool GetOclKernel
+(
+    cl_kernel &                 resultKernel,
+    const amf::AMFComputePtr &  device,
+    const cl_command_queue      c_queue,
+    const std::string &         kernelID,
+    const std::string &         kernelSource,
+    size_t                      kernelSourceSize,
+    const std::string &         kernelName,
+    const std::string &         comp_options
+);

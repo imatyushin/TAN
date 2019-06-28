@@ -124,10 +124,14 @@ class	FFTRepo
 	struct fftKernels {
 		cl_kernel kernel_fwd;
 		cl_kernel kernel_back;
+		lockRAII* kernel_fwd_lock;
+		lockRAII* kernel_back_lock;
 
 		fftKernels ()
 		:	kernel_fwd (NULL)
 		,	kernel_back (NULL)
+		,	kernel_fwd_lock(NULL)
+		,	kernel_back_lock(NULL)
 		{}
 	};
 
@@ -179,8 +183,14 @@ public:
 	//	Used to make the FFTRepo struct thread safe; STL is not thread safe by default
 	//	Optimally, we could use a lock object per STL struct, as two different STL structures
 	//	can be modified at the same time, but a single lock object is easier and performance should
-	//	still be good
-	static lockRAII lockRepo;
+	//	still be good. This is implemented as a function returning a static local reference to
+	//	assert that the lock must be instantiated before the result can be used.
+	static lockRAII& lockRepo()
+	{
+		//	Static initialization of the repo lock variable
+		static lockRAII lock(_T("FFTRepo"));
+		return lock;
+	}
 
 	//	Our runtime library can instrument kernel timings with a GPU timer available in a shared module
 	//	Handle/Address of the dynamic module that contains timers
@@ -211,7 +221,7 @@ public:
 	clfftStatus getclProgram( const clfftGenerators gen, const FFTKernelSignatureHeader * data, cl_program& prog, const cl_device_id &device, const cl_context& planContext );
 
 	clfftStatus setclKernel ( cl_program prog, clfftDirection dir, const cl_kernel& kernel );
-	clfftStatus getclKernel ( cl_program prog, clfftDirection dir, cl_kernel& kernel );
+	clfftStatus getclKernel ( cl_program prog, clfftDirection dir, cl_kernel& kernel, lockRAII*& kernelLock);
 
 	clfftStatus createPlan( clfftPlanHandle* plHandle, FFTPlan*& fftPlan );
 	clfftStatus getPlan( clfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock );

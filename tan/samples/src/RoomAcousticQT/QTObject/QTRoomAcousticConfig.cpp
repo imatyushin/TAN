@@ -1076,20 +1076,26 @@ void RoomAcousticQT::on_RB_RTQ4Conv_clicked()
 
 void RoomAcousticQT::on_PB_RunDemo_clicked()
 {
-	if (!m_bDemoStarted)
+	if(!m_bDemoStarted)
 	{
-		ConfigUi.PB_RunDemo->setText("Stop");
 		updateAllFieldsToInstance();
+
 #ifdef _DEBUG
 		printConfiguration();
 #endif
-		this->m_bDemoStarted = true;
-		int err = this->m_RoomAcousticInstance.start();
+
+		m_bDemoStarted = 0 == m_RoomAcousticInstance.start();
+
+		if(m_bDemoStarted)
+		{
+			ConfigUi.PB_RunDemo->setText("Stop");
+		}
 	}
 	else
 	{
-		this->m_bDemoStarted = false;
-		this->m_RoomAcousticInstance.stop();
+		m_RoomAcousticInstance.stop();
+		m_bDemoStarted = false;
+
 		ConfigUi.PB_RunDemo->setText("Run");
 	}
 }

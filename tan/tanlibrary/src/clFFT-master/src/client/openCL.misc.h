@@ -13,24 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * ************************************************************************/
-#pragma once
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)
 #endif
 
+#pragma once
 #if !defined( OPENCL_MISC_H )
 #define OPENCL_MISC_H
 #include <memory>
 #include <stdexcept>
 #include "unicode.compatibility.h"
 
-#include "Utilities.h"
+//	Creating a portable defintion of countof
+#if defined( _MSC_VER )
+	#define countOf _countof
+#else
+	#define countOf( arr ) ( sizeof( arr ) / sizeof( arr[ 0 ] ) )
+#endif
 
 /*
  * \brief OpenCL platform and device discovery
  *        Creates a list of OpenCL platforms
- *        and their associated devices
+ *        and their associated devices 
  */
 int discoverCLPlatforms( cl_device_type deviceType,
 					     std::vector< cl_platform_id >& platforms,

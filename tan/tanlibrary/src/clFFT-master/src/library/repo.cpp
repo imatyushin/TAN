@@ -24,9 +24,6 @@
 using std::map;
 using std::string;
 
-//	Static initialization of the repo lock variable
-lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
-
 //	Static initialization of the plan count variable
 size_t FFTRepo::planCount	= 1;
 
@@ -39,7 +36,7 @@ GpuStatTimer* FFTRepo::pStatTimer	= NULL;
 
 clfftStatus FFTRepo::releaseResources( )
 {
-	scopedLock sLock( lockRepo, _T( "releaseResources" ) );
+	scopedLock sLock( lockRepo(), _T( "releaseResources" ) );
 
 	//	Release all handles to Kernels
 	//
@@ -53,6 +50,18 @@ clfftStatus FFTRepo::releaseResources( )
 		iKern->second.kernel_back = NULL;
 		if (NULL != k)
 			clReleaseKernel( k );
+
+		if (NULL != iKern->second.kernel_fwd_lock)
+		{
+			delete iKern->second.kernel_fwd_lock;
+			iKern->second.kernel_fwd_lock = NULL;
+		}
+
+		if (NULL != iKern->second.kernel_back_lock)
+		{
+			delete iKern->second.kernel_back_lock;
+			iKern->second.kernel_back_lock = NULL;
+		}
 	}
 	mapKernels.clear( );
 
@@ -98,7 +107,7 @@ clfftStatus FFTRepo::releaseResources( )
 
 clfftStatus FFTRepo::setProgramCode( const clfftGenerators gen, const FFTKernelSignatureHeader * data, const std::string& kernel, const cl_device_id &device, const cl_context& planContext )
 {
-	scopedLock sLock( lockRepo, _T( "setProgramCode" ) );
+	scopedLock sLock( lockRepo(), _T( "setProgramCode" ) );
 
 	FFTRepoKey key(gen, data, planContext, device);
 
@@ -126,14 +135,18 @@ clfftStatus FFTRepo::setProgramCode( const clfftGenerators gen, const FFTKernelS
 
 	std::string prefixCopyright = ss.str();
 
-	mapFFTs[ key ].ProgramString = prefixCopyright + kernel;
+	fftRepoType::iterator it = mapFFTs.find(key);
+	if (it == mapFFTs.end())
+		mapFFTs[key].ProgramString = prefixCopyright + kernel;
+	else
+		key.deleteData();
 
 	return	CLFFT_SUCCESS;
 }
 
 clfftStatus FFTRepo::getProgramCode( const clfftGenerators gen, const FFTKernelSignatureHeader * data, std::string& kernel, const cl_device_id &device, const cl_context& planContext )
 {
-	scopedLock sLock( lockRepo, _T( "getProgramCode" ) );
+	scopedLock sLock( lockRepo(), _T( "getProgramCode" ) );
 
 	FFTRepoKey key(gen, data, planContext, device);
 
@@ -148,7 +161,7 @@ clfftStatus FFTRepo::getProgramCode( const clfftGenerators gen, const FFTKernelS
 clfftStatus FFTRepo::setProgramEntryPoints( const clfftGenerators gen, const FFTKernelSignatureHeader * data,
 	const char * kernel_fwd, const char * kernel_back, const cl_device_id &device, const cl_context& planContext  )
 {
-	scopedLock sLock( lockRepo, _T( "setProgramEntryPoints" ) );
+	scopedLock sLock( lockRepo(), _T( "setProgramEntryPoints" ) );
 
 	FFTRepoKey key(gen, data, planContext, device);
 
@@ -162,7 +175,7 @@ clfftStatus FFTRepo::setProgramEntryPoints( const clfftGenerators gen, const FFT
 clfftStatus FFTRepo::getProgramEntryPoint( const clfftGenerators gen, const FFTKernelSignatureHeader * data,
 			clfftDirection dir, std::string& kernel, const cl_device_id &device, const cl_context& planContext )
 {
-	scopedLock sLock( lockRepo, _T( "getProgramEntryPoint" ) );
+	scopedLock sLock( lockRepo(), _T( "getProgramEntryPoint" ) );
 
 	FFTRepoKey key(gen, data, planContext, device);
 
@@ -190,7 +203,7 @@ clfftStatus FFTRepo::getProgramEntryPoint( const clfftGenerators gen, const FFTK
 
 clfftStatus FFTRepo::setclProgram( const clfftGenerators gen, const FFTKernelSignatureHeader * data, const cl_program& prog, const cl_device_id &device, const cl_context& planContext )
 {
-	scopedLock sLock( lockRepo, _T( "setclProgram" ) );
+	scopedLock sLock( lockRepo(), _T( "setclProgram" ) );
 
  	FFTRepoKey key(gen, data, planContext, device);
 
@@ -213,7 +226,7 @@ clfftStatus FFTRepo::setclProgram( const clfftGenerators gen, const FFTKernelSig
 
 clfftStatus FFTRepo::getclProgram( const clfftGenerators gen, const FFTKernelSignatureHeader * data, cl_program& prog, const cl_device_id &device, const cl_context& planContext  )
 {
-	scopedLock sLock( lockRepo, _T( "getclProgram" ) );
+	scopedLock sLock( lockRepo(), _T( "getclProgram" ) );
 
 	FFTRepoKey key(gen, data, planContext, device);
 
@@ -234,17 +247,21 @@ clfftStatus FFTRepo::getclProgram( const clfftGenerators gen, const FFTKernelSig
 
 clfftStatus FFTRepo::setclKernel( cl_program prog, clfftDirection dir, const cl_kernel& kernel )
 {
-	scopedLock sLock( lockRepo, _T( "setclKernel" ) );
+	scopedLock sLock( lockRepo(), _T( "setclKernel" ) );
 
 	fftKernels & Kernels = mapKernels[ prog ];
 
 	cl_kernel * pk;
+	lockRAII ** kernelLock;
+
 	switch (dir) {
 	case CLFFT_FORWARD:
 		pk = & Kernels.kernel_fwd;
+		kernelLock = & Kernels.kernel_fwd_lock;
 		break;
 	case CLFFT_BACKWARD:
 		pk = & Kernels.kernel_back;
+		kernelLock = & Kernels.kernel_back_lock;
 		break;
 	default:
 		assert (false);
@@ -255,14 +272,19 @@ clfftStatus FFTRepo::setclKernel( cl_program prog, clfftDirection dir, const cl_
 	if (NULL != *pk)
 		clReleaseKernel( *pk );
 
-	 *pk = kernel;
+	*pk = kernel;
+
+	if (NULL != *kernelLock)
+		 delete kernelLock;
+
+	*kernelLock = new lockRAII;
 
 	return	CLFFT_SUCCESS;
 }
 
-clfftStatus FFTRepo::getclKernel( cl_program prog, clfftDirection dir, cl_kernel& kernel )
+clfftStatus FFTRepo::getclKernel( cl_program prog, clfftDirection dir, cl_kernel& kernel, lockRAII*& kernelLock)
 {
-	scopedLock sLock( lockRepo, _T( "getclKernel" ) );
+	scopedLock sLock( lockRepo(), _T( "getclKernel" ) );
 
 	Kernel_iterator pos = mapKernels.find( prog );
 	if (pos == mapKernels.end( ) )
@@ -271,9 +293,11 @@ clfftStatus FFTRepo::getclKernel( cl_program prog, clfftDirection dir, cl_kernel
 	switch (dir) {
 	case CLFFT_FORWARD:
 		kernel = pos->second.kernel_fwd;
+		kernelLock = pos->second.kernel_fwd_lock;
 		break;
 	case CLFFT_BACKWARD:
 		kernel = pos->second.kernel_back;
+		kernelLock = pos->second.kernel_back_lock;
 		break;
 	default:
 		assert (false);
@@ -288,7 +312,7 @@ clfftStatus FFTRepo::getclKernel( cl_program prog, clfftDirection dir, cl_kernel
 
 clfftStatus FFTRepo::createPlan( clfftPlanHandle* plHandle, FFTPlan*& fftPlan )
 {
-	scopedLock sLock( lockRepo, _T( "insertPlan" ) );
+	scopedLock sLock( lockRepo(), _T( "insertPlan" ) );
 
 	//	We keep track of this memory in our own collection class, to make sure it's freed in releaseResources
 	//	The lifetime of a plan is tracked by the client and is freed when the client calls ::clfftDestroyPlan()
@@ -309,7 +333,7 @@ clfftStatus FFTRepo::createPlan( clfftPlanHandle* plHandle, FFTPlan*& fftPlan )
 
 clfftStatus FFTRepo::getPlan( clfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock )
 {
-	scopedLock sLock( lockRepo, _T( "getPlan" ) );
+	scopedLock sLock( lockRepo(), _T( "getPlan" ) );
 
 	//	First, check if we have already created a plan with this exact same FFTPlan
 	repoPlansType::iterator iter	= repoPlans.find( plHandle );
@@ -325,7 +349,7 @@ clfftStatus FFTRepo::getPlan( clfftPlanHandle plHandle, FFTPlan*& fftPlan, lockR
 
 clfftStatus FFTRepo::deletePlan( clfftPlanHandle* plHandle )
 {
-	scopedLock sLock( lockRepo, _T( "deletePlan" ) );
+	scopedLock sLock( lockRepo(), _T( "deletePlan" ) );
 
 	//	First, check if we have already created a plan with this exact same FFTPlan
 	repoPlansType::iterator iter	= repoPlans.find( *plHandle );

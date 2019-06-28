@@ -28,7 +28,6 @@
 #include "../include/convenienceFunctions.h"
 #include "action.h"
 #include "fft_binary_lookup.h"
-#include <algorithm>
 
 using std::vector;
 
@@ -166,7 +165,7 @@ static bool split1D_for_inplace(size_t num, vector<vector<size_t> > &splitNums, 
 
 	num = num / divide_factor;
 	//now the remaining num should have even number of pow2, pow3 and pow5 and we can do sqrt
-	size_t temp = sqrt(num);
+	size_t temp = (size_t)sqrt((double)num);
 	vector<size_t> splitVec;
 	splitVec.push_back(temp*divide_factor);
 	splitVec.push_back(temp);
@@ -817,7 +816,7 @@ clfftStatus	clfftBakePlan( clfftPlanHandle plHandle, cl_uint numQueues, cl_comma
 					if (fftPlan->inStride[0] != 1 || fftPlan->outStride[0] != 1) break;
 
 					if ( IsPo2(fftPlan->length[0]) &&
-						 (fftPlan->length[0] <= 262144/PrecisionWidth(fftPlan->precision)) &&
+						 (fftPlan->length[0] <= 262144/PrecisionWidth(fftPlan->precision)) && (fftPlan->length.size() <= 1) &&
 						 (!clfftGetRequestLibNoMemAlloc() || (fftPlan->placeness == CLFFT_OUTOFPLACE)) ) break;
 
 					if ( clLengths[0]<=32 && clLengths[1]<=32) break;
@@ -898,6 +897,8 @@ clfftStatus	clfftBakePlan( clfftPlanHandle plHandle, cl_uint numQueues, cl_comma
 						transGen = Transpose_SQUARE;
 					}
 
+					if (fftPlan->tmpBufSize != 0)
+						padding = 0;
 
 					if ( (fftPlan->tmpBufSize==0 ) && !fftPlan->allOpsInplace)
 					{
@@ -4700,11 +4701,11 @@ clfftStatus FFTPlan::SetEnvelope ()
 		if (0 == cContextDevices)
 			break;
 
-		envelope.limit_LocalMemSize  = ~0;
-		envelope.limit_WorkGroupSize = ~0;
+		envelope.limit_LocalMemSize  = 32768;
+		envelope.limit_WorkGroupSize = 256;
 		envelope.limit_Dimensions    = countOf (envelope.limit_Size);
 		for (size_t u = 0; u < countOf (envelope.limit_Size); ++u) {
-			envelope.limit_Size[u] = ~0;
+			envelope.limit_Size[u] = 256;
 		}
 
 		for( cl_uint i = 0; i < cContextDevices; ++i )

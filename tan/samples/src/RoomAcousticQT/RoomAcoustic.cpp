@@ -92,12 +92,17 @@ int RoomAcoustic::start()
 		m_eConvolutionMethod
 		);
 
-	m_pAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
+	if(!err)
+	{
+		m_pAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
 
-	updateAllSoundSourcesPosition();
-	updateListenerPosition();
+		updateAllSoundSourcesPosition();
+		updateListenerPosition();
 
-	return m_pAudioEngine->Run();
+		return m_pAudioEngine->Run();
+	}
+
+	return -1;
 }
 
 void RoomAcoustic::stop()

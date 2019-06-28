@@ -18,14 +18,27 @@ bool compareIgnoreCase(const std::string & first, const std::string & second)
     return true;
 }
 
+std::string toString(const std::wstring & inputString)
+{
+	std::mbstate_t state = std::mbstate_t();
+
+	const std::wstring::value_type *input(inputString.c_str());
+
+    std::size_t length = std::wcsrtombs(nullptr, &input, 0, &state) + 1;
+    std::vector<std::string::value_type> buffer(length);
+    std::wcsrtombs(buffer.data(), &input, buffer.size(), &state);
+
+	return buffer.data();
+}
+
 std::wstring toWideString(const std::string & inputString)
 {
 	std::mbstate_t state = std::mbstate_t();
 
-	const char *input(inputString.c_str());
+	const std::string::value_type *input(inputString.c_str());
 
     std::size_t length = std::mbsrtowcs(nullptr, &input, 0, &state) + 1;
-    std::vector<wchar_t> buffer(length);
+    std::vector<std::wstring::value_type> buffer(length);
     std::mbsrtowcs(buffer.data(), &input, buffer.size(), &state);
 
 	return buffer.data();

@@ -33,7 +33,6 @@ set(
   SOURCE_LIB
   ../../../src/clFFT-master/src/library/accessors.cpp
   ../../../src/clFFT-master/src/library/action.transpose.cpp
-  ../../../src/clFFT-master/src/library/dllmain.cpp
   ../../../src/clFFT-master/src/library/enqueue.cpp
   ../../../src/clFFT-master/src/library/fft_binary_lookup.cpp
 
@@ -51,6 +50,10 @@ set(
 
   ../../../src/clFFT-master/src/library/transform.cpp
 )
+
+if(WIN32)
+  list(APPEND SOURCE_LIB ../../../src/TrueAudioVR/dllmain.cpp)
+endif()
 
 set(
   HEADER_LIB

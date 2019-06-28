@@ -24,12 +24,22 @@
 #include "../include/sharedLibrary.h"
 #include "../statTimer/statisticalTimer.extern.h"
 
+clfftStatus clfftInitSetupData( clfftSetupData* setupData )
+{
+	setupData->major	= clfftVersionMajor;
+	setupData->minor	= clfftVersionMinor;
+	setupData->patch	= clfftVersionPatch;
+	setupData->debugFlags	= 0;
+
+	return	CLFFT_SUCCESS;
+}
+
 //	Allow AMD's implementation of FFT's to allocate internal resources
 clfftStatus	clfftSetup( const clfftSetupData* sData )
 {
 	//	Static data is not thread safe (to create), so we implement a lock to protect instantiation for the first call
 	//	Implemented outside of FFTRepo::getInstance to minimize lock overhead; this is only necessary on first creation
-	scopedLock sLock( FFTRepo::lockRepo, _T( "FFTRepo::getInstance" ) );
+	scopedLock sLock( FFTRepo::lockRepo(), _T( "FFTRepo::getInstance" ) );
 
 	//	First invocation of this function will allocate the FFTRepo singleton; thereafter the object always exists
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );

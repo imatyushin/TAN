@@ -248,7 +248,8 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
             m_bufferSize * sizeof(float),
             0,
             NULL,
-            NULL);
+            NULL
+            );
 		AMF_RETURN_IF_CL_FAILED(status, L"Failed to enqueue OCL copy");
     }
 	AMF_RESULT ret = Mix(m_internalBuff, pBufferOutput, m_bufferSize);

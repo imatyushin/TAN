@@ -23,7 +23,7 @@ errno_t _wfopen_s(FILE **f, const wchar_t *name, const wchar_t *mode);
   #define _TCHAR wchar_t
   #define _T(x)	L ## x
   #define _tmain wmain
-#else		
+#else
   #define _TCHAR char
   #define _T(x)	x
   #define _tmain main
@@ -32,6 +32,3 @@ errno_t _wfopen_s(FILE **f, const wchar_t *name, const wchar_t *mode);
 #define TCHAR _TCHAR;
 
 #endif
-
-//std::string toString(const std::wstring & wideString);
-//std::wstring toWideString(const std::string & string);

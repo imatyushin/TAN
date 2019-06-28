@@ -19,8 +19,6 @@
 #if !defined( amd_unicode_h )
 #define amd_unicode_h
 
-#include <iostream>
-
 //	Typedefs to support unicode and ansii compilation
 #if defined( _UNICODE )
 	typedef std::wstring		tstring;
@@ -40,25 +38,21 @@
 	static std::ostream&	terr	= std::cerr;
 #endif
 
-//	These macros help linux code with the conventions of windows tchar.h file
+//	These macros help linux cope with the conventions of windows tchar.h file
 #if defined( _WIN32 )
 	#include <tchar.h>
 	#include <windows.h>
 #else
 	#if defined( __GNUC__ )
+		typedef char TCHAR;
+		typedef char _TCHAR;
+		#define _tmain main
 
-		#if defined(UNICODE)
-			#define _TCHAR wchar_t
+		#if defined( UNICODE )
 			#define _T(x)	L ## x
-			#define _tmain wmain
 		#else
-			#define _TCHAR char
 			#define _T(x)	x
-			#define _tmain main
 		#endif
-
-		#define TCHAR _TCHAR;
-
 	#endif
 #endif
 

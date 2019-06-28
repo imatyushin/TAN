@@ -1541,11 +1541,24 @@ amf_size TANConvolutionImpl::ovlAddProcess(
         {
             // move samples to the OCL output buffers
             cl_command_queue convQ = m_pContextTAN->GetOpenCLConvQueue();
-            for (amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+
+            for(amf_uint32 iChan = 0; iChan < n_channels; iChan++)
             {
-                AMF_RETURN_IF_CL_FAILED(clEnqueueWriteBuffer(convQ, outputData.buffer.clmem[iChan], CL_TRUE, 0,
-                                                             nSamples * sizeof(float), m_ovlAddLocalOutBuffs[iChan],
-                                                             0, NULL, NULL), L"Failed to write to OvlAdd output buffers");
+                auto result(
+                    clEnqueueWriteBuffer(
+                        convQ,
+                        outputData.buffer.clmem[iChan],
+                        CL_TRUE,
+                        0,
+                        nSamples * sizeof(float),
+                        m_ovlAddLocalOutBuffs[iChan],
+                        0,
+                        NULL,
+                        NULL
+                        )
+                    );
+
+                AMF_RETURN_IF_CL_FAILED(result, L"Failed to write to OvlAdd output buffers");
             }
         }
 
@@ -1907,13 +1920,20 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             }
         }
 
-        amf_size numOfSamplesProcessed =
-            ovlAddProcess(state, m_internalInBufs, m_internalOutBufs, static_cast<int>(nSamples),
-            n_channels, ocl_advance_time);
-        if (pNumOfSamplesProcessed)
+        amf_size numOfSamplesProcessed = ovlAddProcess(
+            state,
+            m_internalInBufs,
+            m_internalOutBufs,
+            static_cast<int>(nSamples),
+            n_channels,
+            ocl_advance_time
+            );
+
+        if(pNumOfSamplesProcessed)
         {
             *pNumOfSamplesProcessed = numOfSamplesProcessed;
         }
+
         return AMF_OK;
     }
 

@@ -282,6 +282,7 @@ int Audio3D::Init
     bool                    useCPU_IRGen
 )
 {
+    //useCPU_Conv = true;
     Close();
 
     // shouldn't need this, they are radio buttons:
@@ -306,6 +307,15 @@ int Audio3D::Init
                 std::cerr
                     << "Error: file " << fileName << " has an unsupported frequency! Currently only "
                     << FILTER_SAMPLE_RATE << " frequency is supported!" << std::endl;
+
+                return -1;
+            }
+
+            if(content.BitsPerSample != 16)
+            {
+                std::cerr
+                    << "Error: file " << fileName << " has an unsupported bits per sample count. Currently only "
+                    << 16 << " bits is supported!" << std::endl;
 
                 return -1;
             }
@@ -377,7 +387,8 @@ int Audio3D::Init
     mSrc1TrackHeadPos = trackHeadPos;
 
     mBufferSizeInSamples = bufferSizeInSamples;
-    mBufferSizeInBytes = STEREO_CHANNELS_COUNT * bufferSizeInSamples * (mWavFiles[0].BitsPerSample / 8);
+    //mBufferSizeInBytes = STEREO_CHANNELS_COUNT * bufferSizeInSamples * (mWavFiles[0].BitsPerSample / 8);
+    mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
 
     /* # fft buffer length must be power of 2: */
     m_fftLen = 1;
@@ -385,7 +396,6 @@ int Audio3D::Init
     {
         m_fftLen <<= 1;
     }
-
 
     for(int i = 0; i < MAX_SOURCES; i++)
     {
@@ -465,7 +475,7 @@ int Audio3D::Init
         int32_t flagsQ2 = 0;
 
         //if (useGPU_Conv || useGPU_IRGen)
-        if (useGPU_Conv)
+        if(useGPU_Conv || useCPU_Conv )
         {
     #ifdef RTQ_ENABLED
     #define QUEUE_MEDIUM_PRIORITY                   0x00010000
@@ -554,7 +564,7 @@ int Audio3D::Init
             m_spConvolution->InitCpu(
                 convMethod,
                 m_fftLen,
-                bufferSizeInSamples,
+                mBufferSizeInSamples,
                 mWavFiles.size() * STEREO_CHANNELS_COUNT
                 )
             );
@@ -563,9 +573,10 @@ int Audio3D::Init
     {
         RETURN_IF_FAILED(
             m_spConvolution->InitGpu(
-                convMethod,//TAN_CONVOLUTION_METHOD_FHT_UINFORM_HEAD_TAIL
+                //TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
+                convMethod,
                 m_fftLen,
-                bufferSizeInSamples,
+                mBufferSizeInSamples,
                 mWavFiles.size() * STEREO_CHANNELS_COUNT
                 )
             );
@@ -654,7 +665,7 @@ int Audio3D::Init
                 outputMixCLBufs[idx] = clCreateBuffer(
                     m_spTANContext1->GetOpenCLContext(),
                     CL_MEM_READ_WRITE,
-                    m_bufSize,
+                    mBufferSizeInBytes,
                     nullptr,
                     &clErr
                     );
@@ -678,7 +689,7 @@ int Audio3D::Init
             outputShortBuf = clCreateBuffer(
                 m_spTANContext1->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
-                m_bufSize,
+                mBufferSizeInBytes,
                 nullptr,
                 &clErr
                 );
@@ -731,6 +742,8 @@ int Audio3D::Init
     else {
         RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
+
+    mRunning = true;
 
     return 0;
 }
@@ -990,8 +1003,8 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
 
 int Audio3D::ProcessProc()
 {
-    int bytesPlayed(0);
-    int bytesRecorded(0);
+    uint32_t bytesTotalPlayed(0);
+    uint32_t bytesRecorded(0);
 
     std::array<int16_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE> recordBuffer;
     std::array<int16_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE> outputBuffer;
@@ -1012,8 +1025,6 @@ int Audio3D::ProcessProc()
 
     auto *processed = &mStereoProcessedBuffer.front();
 
-    mRunning = true;
-
     while(!mUpdated && !mStop)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -1025,10 +1036,12 @@ int Audio3D::ProcessProc()
         {
             bytesRecorded = 0;
 
-            while(
+            while
+            (
                 !mStop
                 &&
                 (recFifo.fifoLength() < mBufferSizeInBytes)
+            )
             {
                 // get some more:
                 auto recordedSamplesCount = mPlayer->Record(
@@ -1076,41 +1089,46 @@ int Audio3D::ProcessProc()
         }
         else
         {
-            Process(&outputBuffer.front(), pWaves, m_bufSize);
+            Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
         }
 
+        /*
+        //std::cout << mBufferSizeInBytes << " bytes processed" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
+        memcpy(processed, &outputBuffer.front(), mBufferSizeInBytes);
+
+        //todo: mBufferSizeInBytes could be too large at this point
+        //use actual filled size instead of mBufferSizeInBytes
+
         auto bytes2Play = mBufferSizeInBytes;
-
-        memcpy(processed, &outputBuffer.front(), m_bufSize);
-
         unsigned char *pData = (unsigned char *)&outputBuffer.front();
 
         while(bytes2Play > 0 && !mStop)
         {
             bytesPlayed = mPlayer->Play(pData, bytes2Play, false);
             bytes2Play -= bytesPlayed;
+
             pData += bytesPlayed;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
 
-        bytesPlayed = m_bufSize;
+        bytesPlayed = mBufferSizeInBytes;
 
         for (int idx = 0; idx < mWavFiles.size(); idx++)
         {
             pWaves[idx] += bytesPlayed / 2;
 
-            if (pWaves[idx] - pWaveStarts[idx] + m_bufSize / 2 > sizes[idx])
+            if (pWaves[idx] - pWaveStarts[idx] + (mBufferSizeInBytes / sizeof(int16_t) / STEREO_CHANNELS_COUNT) > sizes[idx])
             {
                 pWaves[idx] = pWaveStarts[idx];
             }
         }
 
-        processed += m_bufSize;
+        processed += mBufferSizeInBytes / sizeof(int16_t);
 
-        if (processed - &mStereoProcessedBuffer.front() + m_bufSize > mMaxSamplesCount)
+        if (processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
         {
             processed = &mStereoProcessedBuffer.front();
         }
@@ -1122,7 +1140,9 @@ int Audio3D::ProcessProc()
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        */
     }
+
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     if(!WriteWaveFileS(
