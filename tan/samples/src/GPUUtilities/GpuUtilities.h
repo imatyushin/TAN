@@ -23,6 +23,8 @@
 
 #include <cstdint>
 
+#include <CL/cl.h>
+
 //define export declaration
 #ifdef _WIN32
 
@@ -50,7 +52,7 @@ typedef struct _TanDeviceCapabilities {
     bool supportsTAN;                       // This device supports AMD True Audio Next
     bool hasAttachedDisplay;                // This device has a connected monitor
     int maxClockFrequency;                  // This device's maximum clock in MHz
-    float ComputeUnitPerfFactor;            // Device specific performance factor 
+    float ComputeUnitPerfFactor;            // Device specific performance factor
     int totalComputeUnits;                  // Total number of compute units in this device
     int maxReservableComputeUnits;          // Maximum reservable compute units <= 20% of Total
     int reserveComputeUnitsGranularity;     // granualarity of Cu reservation: typically 4
