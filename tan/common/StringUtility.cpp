@@ -1,5 +1,7 @@
 #include "StringUtility.h"
 
+#include <cctype>
+
 bool compareIgnoreCase(const std::string & first, const std::string & second)
 {
 	if(first.size() != second.size())

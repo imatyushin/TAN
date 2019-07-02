@@ -52,7 +52,7 @@ set(
 )
 
 if(WIN32)
-  list(APPEND SOURCE_LIB ../../../src/TrueAudioVR/dllmain.cpp)
+  list(APPEND SOURCE_LIB ../../../src/clFFT-master/src/library/dllmain.cpp)
 endif()
 
 set(

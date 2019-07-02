@@ -85,8 +85,8 @@ if(WIN32)
       ../../../src/common/fifo.cpp
       ../../../src/common/GpuUtils.cpp
       ../../../src/common/SimpleVRaudio.cpp
-      ../../../src/common/WASAPIUtils.cpp
 
+      ../../../src/common/WASAPIPlayer.cpp
       ../../../../common/wav.cpp
 
       ../../../src/RoomAcoustics/RoomAcoustics.cpp

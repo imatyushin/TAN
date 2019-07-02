@@ -27,7 +27,8 @@
 int muteInit = 1;
 IAudioEndpointVolume *g_pEndptVol = NULL;
 
-WASAPIUtils::WASAPIUtils(){
+WASAPIPlayer::WASAPIPlayer()
+{
     mStartedRender = false;
     mStartedCapture = false;
     mInitializedRender = false;
@@ -41,35 +42,23 @@ WASAPIUtils::WASAPIUtils(){
     renderClient = NULL;
     audioCapClient = NULL;
     captureClient = NULL;
-
 }
 
-WASAPIUtils::~WASAPIUtils(){
-    wasapiRelease();
+WASAPIPlayer::~WASAPIPlayer()
+{
+    Close();
 }
 
-
-/**
- *******************************************************************************
- * @fn wasapiInit
- * @brief Will export stream header contents
- *
- * @param[in/out] mp3Decoder    : Points to structure which holds
- *                                elements required for MP3Decoding
- *
- * @return INT
- *         0   for success
- *         >0  for failure
- *
- *******************************************************************************
- */
-int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *frameSize, AUDCLNT_SHAREMODE sharMode, bool capture)
+PlayerError WASAPIPlayer::Init
+(
+    uint16_t    channelsCount,
+    uint16_t    bitsPerSample,
+    uint32_t    samplesPerSecond,
+    bool        play,
+    bool        record
+)
 {
     HRESULT hr;
-
-    INT sampleRate = streaminfo->SamplesPerSec;
-    INT numCh = streaminfo->NumOfChannels;
-    INT bitsPerSample = streaminfo->bitsPerSample;
 
     REFERENCE_TIME bufferDuration = (BUFFER_SIZE_8K);//(SIXTH_SEC_BUFFER_SIZE); //(MS100_BUFFER_SIZE); // (ONE_SEC_BUFFER_SIZE);
 
@@ -79,10 +68,10 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
     mixFormat.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
 
     /* Default is 44100 */
-    mixFormat.Format.nSamplesPerSec = sampleRate;
+    mixFormat.Format.nSamplesPerSec = samplesPerSecond;
 
     /* Default is 2 channels */
-    mixFormat.Format.nChannels = (WORD) numCh;
+    mixFormat.Format.nChannels = (WORD) channelsCount;
 
     /* Default is 16 bit */
     mixFormat.Format.wBitsPerSample = (WORD) bitsPerSample;
@@ -90,10 +79,10 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
     mixFormat.Format.cbSize = sizeof(mixFormat) - sizeof(WAVEFORMATEX);
 
     /* nChannels * bitsPerSample / BitsPerByte (8) = 4 */
-    mixFormat.Format.nBlockAlign = (WORD)(numCh * bitsPerSample / 8);
+    mixFormat.Format.nBlockAlign = (WORD)(channelsCount * bitsPerSample / 8);
 
     /* samples per sec * blockAllign */
-    mixFormat.Format.nAvgBytesPerSec = sampleRate * (numCh * bitsPerSample / 8);
+    mixFormat.Format.nAvgBytesPerSec = samplesPerSecond * (channelsCount * bitsPerSample / 8);
 
     mixFormat.dwChannelMask = KSAUDIO_SPEAKER_STEREO;
     mixFormat.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
@@ -108,7 +97,8 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
     hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **) &devEnum);
     FAILONERROR(hr, "Failed getting MMDeviceEnumerator.");
 
-    if (capture){
+    if(record)
+    {
         if (mInitializedCapture){
             return 0;
         }
@@ -165,38 +155,13 @@ int WASAPIUtils::wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *fram
         FAILONERROR(hr, "Failed getting BufferSize");
         mStartedRender = false;
         mInitializedRender = true;
-
     }
 
-
-
-    //AUDIO_STREAM_CATEGORY AudioCategory_ForegroundOnlyMedia
-    //BOOL isOffloadCapable = false;
-
-    return hr;
+    return PlayerError::OK;
 }
 
-
-
-/**
- *******************************************************************************
- * @fn wasapiRelease
- * @brief Play output using Wasapi Application
- *
- * @param[in/out] mp3Decoder    : Points to structure which holds
- *                                elements required for MP3Decoding
- *
- * @return INT
- *         0   for success
- *         >0  for failure
- *
- *******************************************************************************
- */
-
-
-void WASAPIUtils::wasapiRelease()
+void WASAPIPlayer::Close()
 {
-
     // Reset system timer
     //timeEndPeriod(1);
     if (audioClient)
@@ -210,72 +175,7 @@ void WASAPIUtils::wasapiRelease()
 	mInitializedCapture = false;
 }
 
-WavError WASAPIUtils::ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer)
-{
-    STREAMINFO          streaminfo;
-
-    int samplesPerSec = 0;
-    int bitsPerSample = 0;
-    int nChannels = 0;
-    float **pSamples;
-    unsigned char *pOutBuffer;
-
-    if (!ReadWaveFile(inFile, &samplesPerSec, &bitsPerSample, &nChannels, pNsamples, &pOutBuffer, &pSamples)){
-        strncat_s(inFile, MAX_PATH, " >>>>ERROR: failed to load!", MAX_PATH - strlen(inFile));
-        //FAILONERROR(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), "Failed to read wave file %s");
-        return WavError::FileNotFound;
-    }
-
-    if (nChannels != 2 || bitsPerSample != 16) {
-        free(pOutBuffer);
-        pOutBuffer = (unsigned char *)calloc(*pNsamples, 2 * sizeof(short));
-        if (!pOutBuffer)
-        {
-            //return -1;
-            //todo: return not enoght memory
-            return WavError::FileNotFound;
-        }
-
-        short *pSBuf = (short *)pOutBuffer;
-        for (int i = 0; i < *pNsamples; i++)
-        {
-            pSBuf[2 * i + 1] = pSBuf[2 * i] = (short)(32767 * pSamples[0][i]);
-            if (nChannels == 2){
-                pSBuf[2 * i + 1] = (short)(32767 * pSamples[1][i]);
-            }
-        }
-    }
-    //don't need floats;
-    for (int i = 0; i < nChannels; i++){
-        delete pSamples[i];
-    }
-    delete pSamples;
-
-    *ppOutBuffer = pOutBuffer;
-
-    memset(&streaminfo, 0, sizeof(STREAMINFO));
-    streaminfo.bitsPerSample = 16;
-    streaminfo.NumOfChannels = 2;
-    streaminfo.SamplesPerSec = samplesPerSec;// 48000;
-    int result = wasapiInit( &streaminfo,  &bufferSize, &frameSize, AUDCLNT_SHAREMODE_SHARED);
-    return SUCCEEDED(result) ? WavError::OK : WavError::FileNotFound;
-}
-
-/**
- *******************************************************************************
- * @fn wasapiPlay
- * @brief Play output using Wasapi Application
- *
- * @param[in/out] mp3Decoder    : Points to structure which holds
- *                                elements required for MP3Decoding
- *
- * @return INT
- *         0   for success
- *         >0  for failure
- *
- *******************************************************************************
- */
-int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool mute)
+uint32_t WASAPIPlayer::Play(uint8_t * buffer2Play, uint32_t size, bool mute)
 {
     if (audioClient == NULL || renderClient==NULL)
         return 0;
@@ -289,7 +189,7 @@ int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
     hr = audioClient->GetCurrentPadding(&padding);
     FAILONERROR(hr, "Failed getCurrentPadding");
 
-    availableFreeBufferSize = bufferSize - padding;
+    availableFreeBufferSize = size - padding;
 
     frames = min(availableFreeBufferSize/frameSize, size/frameSize);
 
@@ -299,7 +199,7 @@ int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
     if (mute)
         memset(buffer, 0, (frames*frameSize));
     else
-        memcpy(buffer, pOutputBuffer, (frames*frameSize));
+        memcpy(buffer, buffer2Play, (frames*frameSize));
 
     hr = renderClient->ReleaseBuffer(frames, NULL);
     FAILONERROR(hr, "Failed releaseBuffer");
@@ -310,26 +210,12 @@ int32_t WASAPIUtils::Play(unsigned char *pOutputBuffer, unsigned int size, bool 
         audioClient->Start();
     }
 
-    return  (frames*frameSize);
+    return (frames*frameSize);
 }
 
-/**
-*******************************************************************************
-* @fn wasapiRecord
-* @brief Play output using Wasapi Application
-*
-* @param[in/out]     : Points to structure
-*
-*
-* @return INT
-*         0   for success
-*         >0  for failure
-*
-*******************************************************************************
-*/
-int32_t WASAPIUtils::Record( unsigned char *pOutputBuffer, unsigned int size)
+uint32_t WASAPIPlayer::Record(uint8_t * buffer, uint32_t size)
 {
-    if (captureClient == NULL)
+    /*if (captureClient == NULL)
         return 0;
 
     HRESULT hr;
@@ -363,36 +249,5 @@ int32_t WASAPIUtils::Record( unsigned char *pOutputBuffer, unsigned int size)
     hr = captureClient->ReleaseBuffer(frames);
     FAILONERROR(hr, "Failed releaseBuffer");
 
-    return  (frames*frameSize);
+    return  (frames*frameSize);*/
 }
-
-bool WASAPIUtils::PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer )
-{
-    static int bytesPlayed;
-    static int bytesRecorded;
-    static bool done = false;
-    static unsigned char *pData;
-    static int size;
-
-    if(init) {
-            pData = pOutBuffer;
-            size = sampleCount * frameSize;
-        return false;
-    }
-
-    done = true;
-    if (size > 0){
-        bytesPlayed = Play( pData, size, false);
-        pData += bytesPlayed;
-        size -= bytesPlayed;
-        done = false;
-        //printf("stream%d: %d bytes played\n",i,bytesPlayed);
-        Sleep(0);
-    }
-    Sleep(5);
-
-    return done;
-}
-
-
-

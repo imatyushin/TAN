@@ -26,9 +26,13 @@
 #include "SimpleVRaudio.h"
 #include "GpuUtils.h"
 #include "../TrueAudioVR/TrueAudioVR.h"
-#include "../common/AlsaPlayer.h"
 #include "cpucaps.h"
 #include "Utilities.h"
+
+#if defined(_WIN32)
+#include "../common/AlsaPlayer.h"
+#else
+#endif
 
 #include <immintrin.h>
 #include <cmath>

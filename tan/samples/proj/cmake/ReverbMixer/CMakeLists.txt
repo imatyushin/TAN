@@ -74,9 +74,9 @@ set(
   ../../../../../amf/public/common/TraceAdapter.cpp
   ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
-  ../../../src/common/WASAPIUtils.cpp
   ../../../src/common/GpuUtils.cpp
 
+  ../../../src/common/WASAPIPlayer.cpp
   ../../../../common/wav.cpp
 
   ../../../src/ReverbMixer/ReverbMixer.cpp

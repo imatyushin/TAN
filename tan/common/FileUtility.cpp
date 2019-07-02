@@ -5,6 +5,7 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <direct.h>
 #else
 #include <unistd.h>
 #endif
@@ -25,7 +26,7 @@ std::string getCurrentDirectory()
     char currentDirectory[MAX_PATH] = { 0 };
 
 #ifdef _WIN32
-    GetCurrentDirectory(MAX_PATH, currentDirectory);
+    GetCurrentDirectoryA(MAX_PATH, currentDirectory);
 #else
 	getcwd(currentDirectory, MAX_PATH);
 #endif

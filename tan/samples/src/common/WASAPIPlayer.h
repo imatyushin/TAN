@@ -34,13 +34,14 @@
 #include <Audioclient.h>
 #include <endpointvolume.h>
 
-/*Structure which hold elements required for wasapi playback */
-class WASAPIUtils:
+class WASAPIPlayer:
   public IWavPlayer
 {
-public:
-    WASAPIUtils();
-    ~WASAPIUtils();
+protected:
+    uint16_t mChannelsCount;
+    uint16_t mBitsPerSample;
+    uint32_t mSamplesPerSecond;
+
     IMMDevice *devRender;
     IMMDevice *devCapture;
     IMMDeviceEnumerator *devEnum;
@@ -55,15 +56,21 @@ public:
     bool mInitializedRender;
     bool mInitializedCapture;
 
-    WavError ReadWaveFile(const char *inFile, long *pNsamples, unsigned char **ppOutBuffer);
-    int32_t Record(unsigned char *pOutputBuffer, unsigned int size);
-    int32_t Play(unsigned char *pOutputBuffer, unsigned int size, bool mute);
+public:
+    WASAPIPlayer();
+    virtual ~WASAPIPlayer();
 
-    int wasapiInit(STREAMINFO *streaminfo, UINT *bufferSize, UINT *frameSize, AUDCLNT_SHAREMODE sharMode, bool capture = false);
-    void wasapiRelease();
-    bool PlayQueuedStreamChunk(bool init, long sampleCount, unsigned char *pOutBuffer );
+    virtual PlayerError Init(
+        uint16_t    channelsCount,
+        uint16_t    bitsPerSample,
+        uint32_t    samplesPerSecond,
+        bool        play,
+        bool        record
+    ) override;
+    virtual void Close() override;
+
+    virtual uint32_t Play(uint8_t * buffer, uint32_t size, bool mute) override;
+    virtual uint32_t Record(uint8_t * buffer, uint32_t size) override;
 };
 
-#endif /* _WASAPI_H_ */
-
-/*End Of File */
+#endif
