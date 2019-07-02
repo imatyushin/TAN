@@ -561,11 +561,13 @@ int Audio3D::Init
     RETURN_IF_FAILED(TANCreateConvolution(m_spTANContext1, &m_spConvolution));
     if (!useGPU_Conv && !useCPU_Conv) // don't use OpenCL at all
     {
+        /*
         // ensures compatible with old room acoustic
 		if(convMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
         {
             convMethod = TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
         }
+        */
 
         // C_Model implementation
         RETURN_IF_FAILED(
@@ -1012,7 +1014,6 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
 
 int Audio3D::ProcessProc()
 {
-    uint32_t bytesTotalPlayed(0);
     uint32_t bytesRecorded(0);
 
     std::array<int16_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE> recordBuffer;
@@ -1023,6 +1024,7 @@ int Audio3D::ProcessProc()
     int16_t *pWaveStarts[MAX_SOURCES] = {nullptr};
 
     uint32_t waveSizesInBytes[MAX_SOURCES] = {0};
+    uint32_t waveBytesPlayed[MAX_SOURCES] = {0};
 
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
@@ -1111,24 +1113,26 @@ int Audio3D::ProcessProc()
         //todo: mBufferSizeInBytes could be too large at this point
         //use actual filled size instead of mBufferSizeInBytes
         auto bytes2Play = mBufferSizeInBytes;
+        uint32_t bytesTotalPlayed(0);
 
         while(bytes2Play > 0 && !mStop)
         {
             auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
-
-            bytes2Play -= bytesPlayed;
             bytesTotalPlayed += bytesPlayed;
+
             outputBufferData += bytesPlayed;
+            bytes2Play -= bytesPlayed;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
 
         for(int fileIndex = 0; fileIndex < mWavFiles.size(); ++fileIndex)
         {
+            waveBytesPlayed[fileIndex] += bytesTotalPlayed;
+
             //todo: eliminate size gaps
             //size of wav are not exactly rounded to mBufferSizeInBytes
-
-            if(bytesTotalPlayed + mBufferSizeInBytes < waveSizesInBytes[fileIndex])
+            if(waveBytesPlayed[fileIndex] + mBufferSizeInBytes < waveSizesInBytes[fileIndex])
             {
                 pWaves[fileIndex] += (mBufferSizeInBytes / sizeof(int16_t));
                 /*std::cout
@@ -1138,17 +1142,10 @@ int Audio3D::ProcessProc()
             }
             else
             {
+                //play wav again
                 pWaves[fileIndex] = pWaveStarts[fileIndex];
+                waveBytesPlayed[fileIndex] = 0;
             }
-
-            /*
-            pWaves[fileIndex] += (bytesTotalPlayed / sizeof(int16_t));// / STEREO_CHANNELS_COUNT;
-
-            if(pWaves[fileIndex] - pWaveStarts[fileIndex] + (bytesTotalPlayed / sizeof(int16_t) > sizes[fileIndex])
-            {
-                pWaves[fileIndex] = pWaveStarts[fileIndex];
-            }
-            */
         }
 
         /*processed += mBufferSizeInBytes / sizeof(int16_t);
@@ -1169,6 +1166,7 @@ int Audio3D::ProcessProc()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    /*
     if(!WriteWaveFileS(
         "RoomAcousticsRun.wav",
         FILTER_SAMPLE_RATE,
@@ -1184,7 +1182,7 @@ int Audio3D::ProcessProc()
     else
     {
         puts("wrote output to RoomAcousticsRun.wav");
-    }
+    }*/
 
     mRunning = false;
 
