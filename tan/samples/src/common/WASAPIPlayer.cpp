@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-#include "WASAPIUtils.h"
+#include "WASAPIPlayer.h"
 #include "wav.h"
 
 #define MAXFILES 100
@@ -92,16 +92,22 @@ PlayerError WASAPIPlayer::Init
     WAVEFORMATEX* format = NULL;
     format = (WAVEFORMATEX*) &mixFormat;
 
-    (*frameSize) = (format->nChannels * format->wBitsPerSample / 8);
+    frameSize = (format->nChannels * format->wBitsPerSample / 8);
 
     hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **) &devEnum);
-    FAILONERROR(hr, "Failed getting MMDeviceEnumerator.");
+    if (FAILED(hr))
+    {
+        //"Failed getting MMDeviceEnumerator."
+        return PlayerError::PCMError;
+    }
 
     if(record)
     {
-        if (mInitializedCapture){
-            return 0;
+        if (mInitializedCapture)
+        {
+            return PlayerError::OK;
         }
+
         devCapture = NULL;
         audioCapClient = NULL;
         hr = devEnum->GetDefaultAudioEndpoint(eCapture, eConsole, &devCapture);
@@ -112,47 +118,99 @@ PlayerError WASAPIPlayer::Init
         }
         captureClient = NULL;
         if (audioCapClient){
-            hr = audioCapClient->Initialize(sharMode, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
+            hr = audioCapClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
             if (hr != S_OK) {
-                hr = audioCapClient->Initialize(sharMode, 0, bufferDuration, 0, format, NULL);
+                hr = audioCapClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, bufferDuration, 0, format, NULL);
             }
-            FAILONERROR(hr, "Failed audioCapClient->Initialize");
+            
+            if (FAILED(hr))
+            {
+                //"Failed audioCapClient->Initialize"
+                return PlayerError::PCMError;
+            }
+            
             hr = audioCapClient->GetService(__uuidof(IAudioCaptureClient), (void **)&captureClient);
-            FAILONERROR(hr, "Failed getting captureClient");
-            hr = audioCapClient->GetBufferSize(bufferSize);
-            FAILONERROR(hr, "Failed getting BufferSize");
+            if (FAILED(hr))
+            {
+                //"Failed getting captureClient"
+                return PlayerError::PCMError;
+            }
+            
+            hr = audioCapClient->GetBufferSize(&bufferSize);
+            if (FAILED(hr))
+            {
+                //"Failed getting BufferSize"
+                return PlayerError::PCMError;
+            }
         }
         mStartedCapture = false;
         mInitializedCapture = true;
 
     }
     else {
-        if (mInitializedRender){
-            return 0;
+        if (mInitializedRender)
+        {
+            return PlayerError::OK;
         }
+
         devRender = NULL;
         audioClient = NULL;
         hr = devEnum->GetDefaultAudioEndpoint(eRender, eConsole, &devRender);
-        FAILONERROR(hr, "Failed to getdefaultaudioendpoint for Render.");
+        //FAILONERROR(hr, "Failed to getdefaultaudioendpoint for Render.");
+        if (FAILED(hr))
+        {
+            //"Failed getting BufferSize"
+            return PlayerError::PCMError;
+        }
+
         if (devRender) {
             hr = devRender->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&audioClient);
-            FAILONERROR(hr, "Failed render activate.");
+            //FAILONERROR(hr, "Failed render activate.");
+            if (FAILED(hr))
+            {
+                //"Failed getting BufferSize"
+                return PlayerError::PCMError;
+            }
         }
         if(!muteInit)
         {
             hr = devRender->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void **)&g_pEndptVol);
-            FAILONERROR(hr, "Failed Mute Init.");
+            //FAILONERROR(hr, "Failed Mute Init.");
+            if (FAILED(hr))
+            {
+                //"Failed getting BufferSize"
+                return PlayerError::PCMError;
+            }
+
             muteInit =1;
         }
-       hr = audioClient->Initialize(sharMode, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
+       hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
         if (hr != S_OK) {
-            hr = audioClient->Initialize(sharMode, 0, bufferDuration, 0, format, NULL);
+            hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, bufferDuration, 0, format, NULL);
         }
-        FAILONERROR(hr, "Failed audioClient->Initialize");
+        //FAILONERROR(hr, "Failed audioClient->Initialize");
+        if (FAILED(hr))
+        {
+            //"Failed getting BufferSize"
+            return PlayerError::PCMError;
+        }
+
         hr = audioClient->GetService(__uuidof(IAudioRenderClient), (void **) &renderClient);
-        FAILONERROR(hr, "Failed getting renderClient");
-        hr = audioClient->GetBufferSize(bufferSize);
-        FAILONERROR(hr, "Failed getting BufferSize");
+        //FAILONERROR(hr, "Failed getting renderClient");
+        if (FAILED(hr))
+        {
+            //"Failed getting BufferSize"
+            return PlayerError::PCMError;
+        }
+
+        hr = audioClient->GetBufferSize(&bufferSize);
+        //FAILONERROR(hr, "Failed getting BufferSize");
+        if (FAILED(hr))
+        {
+            //"Failed getting BufferSize"
+            return PlayerError::PCMError;
+        }
+
         mStartedRender = false;
         mInitializedRender = true;
     }
@@ -250,4 +308,5 @@ uint32_t WASAPIPlayer::Record(uint8_t * buffer, uint32_t size)
     FAILONERROR(hr, "Failed releaseBuffer");
 
     return  (frames*frameSize);*/
+    return 0;
 }

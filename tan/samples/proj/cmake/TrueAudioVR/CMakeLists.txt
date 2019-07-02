@@ -51,6 +51,7 @@ set(
 
 if(WIN32)
   list(APPEND SOURCE_LIB ../../../src/TrueAudioVR/dllmain.cpp)
+  list(APPEND SOURCE_LIB ../../../../common/cpucaps.cpp)
   list(APPEND SOURCE_LIB ../../../../../amf/public/common/Windows/ThreadWindows.cpp)
 else()
   list(APPEND SOURCE_LIB ../../../../../amf/public/common/Linux/ThreadLinux.cpp)

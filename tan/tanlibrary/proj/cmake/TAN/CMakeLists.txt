@@ -59,6 +59,8 @@ set(
   ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
   ../../../src/common/OCLHelper.cpp
+  ../../../../common/StringUtility.cpp
+
   ../../../src/TrueAudioNext/converter/ConverterImpl.cpp
   ../../../src/TrueAudioNext/convolution/ConvolutionImpl.cpp
   ../../../src/TrueAudioNext/core/TANContextImpl.cpp
@@ -72,6 +74,7 @@ set(
 
 if(WIN32)
   list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/windows/dll.cpp)
+  list(APPEND SOURCE_LIB ../../../../common/cpucaps.cpp)
 else()
   list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/linux/dll.cpp)
 endif()

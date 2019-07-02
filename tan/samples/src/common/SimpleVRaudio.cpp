@@ -30,8 +30,9 @@
 #include "Utilities.h"
 
 #if defined(_WIN32)
-#include "../common/AlsaPlayer.h"
+#include "../common/WASAPIPlayer.h"
 #else
+#include "../common/AlsaPlayer.h"
 #endif
 
 #include <immintrin.h>
@@ -147,7 +148,7 @@ Audio3D::Audio3D():
     m_headingCCW(true),
     mPlayer(
 #ifdef _WIN32
-        new WASAPIUtils()
+        new WASAPIPlayer()
 #else
         new AlsaPlayer()
 #endif
@@ -298,6 +299,12 @@ int Audio3D::Init
     //m_useGpuConv = useGPU_Conv;
 	//m_useGpuIRGen = useGPU_IRGen;
 
+    mSrc1EnableMic = useMicSource;
+    mSrc1TrackHeadPos = trackHeadPos;
+
+    mBufferSizeInSamples = bufferSizeInSamples;
+    mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
+
     mWavFiles.reserve(inFiles.size());
 
     for(const auto& fileName: inFiles)
@@ -391,12 +398,6 @@ int Audio3D::Init
 
         return -1;
     }
-
-    mSrc1EnableMic = useMicSource;
-    mSrc1TrackHeadPos = trackHeadPos;
-
-    mBufferSizeInSamples = bufferSizeInSamples;
-    mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
 
     /* # fft buffer length must be power of 2: */
     m_fftLen = 1;
@@ -593,7 +594,7 @@ int Audio3D::Init
     RETURN_IF_FAILED(m_spConverter->Init());
 
     RETURN_IF_FAILED(TANCreateMixer(m_spTANContext2, &m_spMixer));
-	RETURN_IF_FAILED(m_spMixer->Init(bufferSizeInSamples, mWavFiles.size()));
+	RETURN_IF_FAILED(m_spMixer->Init(mBufferSizeInSamples, mWavFiles.size()));
 
     RETURN_IF_FAILED(TANCreateFFT(m_spTANContext2, &m_spFft));
     RETURN_IF_FAILED(m_spFft->Init());
@@ -634,7 +635,7 @@ int Audio3D::Init
             outputMainCLbuf = clCreateBuffer(
                 m_spTANContext1->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
-                mBufferSizeInSamples * mWavFiles.size() * STEREO_CHANNELS_COUNT,
+                mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
                 nullptr,
                 &clErr
                 );
@@ -648,8 +649,8 @@ int Audio3D::Init
             for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
             {
                 cl_buffer_region region;
-                region.origin = i * mBufferSizeInSamples;
-                region.size = mBufferSizeInSamples;
+                region.origin = i * mBufferSizeInBytes;
+                region.size = mBufferSizeInBytes;
                 outputCLBufs[i] = clCreateSubBuffer(
                     outputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
 

@@ -50,7 +50,7 @@ protected:
     IAudioClient *audioCapClient;
     IAudioCaptureClient *captureClient;
     UINT frameSize;
-    UINT bufferSize;
+    UINT32 bufferSize;
     bool mStartedRender;
     bool mStartedCapture;
     bool mInitializedRender;
@@ -59,6 +59,8 @@ protected:
 public:
     WASAPIPlayer();
     virtual ~WASAPIPlayer();
+
+    std::string GetPlayerName() const override { return "WASAPI"; }
 
     virtual PlayerError Init(
         uint16_t    channelsCount,
