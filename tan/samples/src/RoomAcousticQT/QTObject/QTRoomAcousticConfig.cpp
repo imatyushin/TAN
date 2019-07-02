@@ -8,6 +8,7 @@
 #include <QString>
 #include <QTableWidgetItem>
 #include <QList>
+#include <QMessageBox>
 
 #include <iostream>
 #include <cstring>
@@ -1089,6 +1090,14 @@ void RoomAcousticQT::on_PB_RunDemo_clicked()
 		if(m_bDemoStarted)
 		{
 			ConfigUi.PB_RunDemo->setText("Stop");
+		}
+		else
+		{
+			QMessageBox::critical(
+				this,
+				"Error",
+				"Could not start playing, please see output log!"
+				);
 		}
 	}
 	else

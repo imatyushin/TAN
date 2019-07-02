@@ -215,6 +215,9 @@ PlayerError AlsaPlayer::Init(
     }
 
     mChannelsCount = channelsCount;
+    mBitsPerSample = bitsPerSample;
+    mSamplesPerSecond = samplesPerSecond;
+
     mUpdatePeriod = 0;
     snd_pcm_hw_params_get_period_time(params, &mUpdatePeriod, NULL);
 
@@ -250,29 +253,29 @@ void AlsaPlayer::Close()
  */
 uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 {
-    uint32_t uiFrames2Play(size / mChannelsCount / 2);
+    uint32_t uiFrames2Play(size / mChannelsCount / (mBitsPerSample / 8));
 
-    int pcmResult = 0;
+    snd_pcm_sframes_t pcmFramesResult = 0;
 
     //todo: mute in realtime?
     if(!mute)
     {
 
-        if(-EPIPE == (pcmResult = snd_pcm_writei(mPCMHandle, pOutputBuffer, uiFrames2Play)))
+        if(-EPIPE == (pcmFramesResult = snd_pcm_writei(mPCMHandle, pOutputBuffer, uiFrames2Play)))
         {
             snd_pcm_prepare(mPCMHandle);
 
             return 0;
         }
-        else if(pcmResult < 0)
+        else if(pcmFramesResult < 0)
         {
-            std::cerr << "Error: Can't write to PCM device. " << snd_strerror(pcmResult) << std::endl;
+            std::cerr << "Error: Can't write to PCM device. " << snd_strerror(pcmFramesResult) << std::endl;
 
             return 0;
         }
     }
 
-    return pcmResult * 2 * mChannelsCount;
+    return pcmFramesResult * mChannelsCount * mBitsPerSample / 8;
 }
 
 /**
@@ -282,7 +285,7 @@ uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 */
 uint32_t AlsaPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
 {
-    uint32_t uiFrames2Play(size / mChannelsCount / 2);
+    uint32_t uiFrames2Play(size / mChannelsCount / (mBitsPerSample / 8));
 
     int pcmResult = 0;
 
@@ -306,5 +309,5 @@ uint32_t AlsaPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
         return 0;
     }
 
-    return pcmResult * 2 * mChannelsCount;;
+    return pcmResult * mChannelsCount * (mBitsPerSample / 8);
 }

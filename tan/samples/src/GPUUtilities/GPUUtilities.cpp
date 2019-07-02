@@ -24,26 +24,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #include "stdafx.h"
+#include "GpuUtilities.h"
+#include "../../../../amf/public/include/core/Context.h"
+#include "../../../../amf/public/common/AMFFactory.h"
+#include "../ADL/ADLQuery.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 
 #ifdef _WIN32
 #include <io.h>
 #endif
 
-//#include <gl/gl.h>
-//#include <gl/GLU.h>
-
-#include <CL/cl.h>
 #include <CL/cl_ext.h>
-#include <CL/cl_gl.h>
-
-#include "GpuUtilities.h"
-#include "../../../../amf/public/include/core/Context.h"
-#include "../../../../amf/public/common/AMFFactory.h"
-#include "../ADL/ADLQuery.h"
 
 #ifndef _WIN32
 #define sscanf_s sscanf
@@ -61,7 +56,7 @@ cl_context_properties properties[] = {
 };
 
 // Find CL capable devices in the current GL context
-cl_device_id devices[32]; 
+cl_device_id devices[32];
 size_t size;
 clGetGLContextInfoKHR(properties, CL_DEVICES_FOR_GL_CONTEXT_KHR, 32 * sizeof(cl_device_id), devices, &size);
 
@@ -169,16 +164,20 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
             fprintf(stdout, "clGetDeviceInfo returned error: %d\n", status);
         }
         else {
-
-            fprintf(stdout, "Driver version: %s\n", driverVersion);
-            fprintf(stdout, "%d devices found:\n", numDevices);
+            std::cout
+                << std::endl
+                << "Driver version: " << driverVersion << std::endl
+                << numDevices << " devices found" << std::endl
+                ;
 
             for (unsigned int n = 0; n < numDevices && n < count; n++) {
                 int k = totalDevices + n;
                 devNames[k] = new char[100];
                 devNames[k][0] = '\0';
+
                 clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 100, devNames[k], NULL);
-                fprintf(stdout, "   GPU device %s\n", devNames[k]);
+                std::cout << "GPU device: " << devNames[k] << std::endl;
+
                 cl_device_topology_amd pciBusInfo;
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
                 if (status == CL_SUCCESS){
@@ -198,7 +197,7 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
         devices = NULL;
     }
 
-    if (platforms)    
+    if (platforms)
         delete[] platforms;
 
     return totalDevices;
@@ -286,7 +285,7 @@ int getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice,
 
     // To Do: handle multi-GPU case, pick appropriate GPU/APU
     char driverVersion[100] = "\0";
-    
+
 
     // Retrieve device
     int totalDevices = 0;
@@ -369,7 +368,7 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
     // Create a command queue
 
     if (flag != 0) {
-        // use clCreateCommandQueueWithProperties to pass custom queue properties to driver: 
+        // use clCreateCommandQueueWithProperties to pass custom queue properties to driver:
         const cl_queue_properties cprops[] = {
             CL_QUEUE_PROPERTIES,
             0,
@@ -494,7 +493,7 @@ bool getAMFdeviceProperties(cl_command_queue queue, int *maxReservedComputeUnits
     }
 }
 
-// 
+//
 
 int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength)
 {
@@ -506,7 +505,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
     TanDeviceCapabilities *deviceList = new TanDeviceCapabilities[100];
 
     /*
-    * Have a look at the available platforms 
+    * Have a look at the available platforms
     */
 
     cl_uint numPlatforms = 0;
@@ -639,8 +638,8 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                     clGetDeviceInfo(devices[n], CL_DEVICE_GLOBAL_MEM_SIZE, 100, &deviceList[k].maxMemory, NULL);
                     deviceList[k].localMemSize = 0;
                     clGetDeviceInfo(devices[n], CL_DEVICE_LOCAL_MEM_SIZE, 100, &deviceList[k].localMemSize, NULL);
-                    
-                    
+
+
 
                     //hack extra stuff
                     cl_device_topology_amd pciBusInfo;
@@ -669,7 +668,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                         }
                     }
 
-                    
+
                     //{
                     ////    // hack wglGetCurrentContext needs OpenGL32.lib
                     //    cl_device_id devices[32];
@@ -695,7 +694,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
 
                     //    printf("%d", size);
                     //}
-                    
+
 
                 }
             }

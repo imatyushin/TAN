@@ -157,7 +157,7 @@ protected:
 	cl_mem outputShortBuf;
 
 	// current position in each stream:
-	int64_t m_samplePos[MAX_SOURCES];
+	//int64_t m_samplePos[MAX_SOURCES];
 
 	// fft length must be power of 2
 	// 65536/48000 = reverb time of 1.37 seconds
@@ -201,7 +201,7 @@ public:
         );
 
 	// get's the current playback position in a stream:
-    int64_t getCurrentPosition(int stream);
+    //int64_t getCurrentPosition(int stream);
 
 	// update the head (listener) position:
     int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);

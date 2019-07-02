@@ -27,6 +27,7 @@ include_directories(../../../src/clFFT-master/src/include)
 
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
+ADD_DEFINITIONS(-D_DEBUG)
 
 # sources
 set(
