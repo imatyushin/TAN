@@ -93,9 +93,8 @@ PlayerError         PortPlayer::Init
     mBitsPerSample = bitsPerSample;
     mSamplesPerSecond = samplesPerSecond;
 
-    mFifoBuffer.Reset(mBitsPerSample / 8 * mSamplesPerSecond * mChannelsCount);
-    //mBuffer.resize(mBitsPerSample / 8 * mSamplesPerSecond * mChannelsCount);
-    //mBufferInPosition = mBufferOutPosition = 0;
+    mFifoPlayBuffer.Reset(mBitsPerSample / 8 * mSamplesPerSecond * mChannelsCount);
+    mFifoRecordBuffer.Reset(mBitsPerSample / 8 * mSamplesPerSecond * mChannelsCount);
 
     auto returnCode(Pa_Initialize());
     if(returnCode != paNoError)
@@ -121,17 +120,17 @@ PlayerError         PortPlayer::Init
         return PlayerError::PCMError;
     }
 
-	PaStreamParameters outputParameters = {};
+	PaStreamParameters streamParameters = {};
 
-    outputParameters.device = device;
-    outputParameters.channelCount = channelsCount;
-    outputParameters.sampleFormat = sampleFormat;
-    outputParameters.suggestedLatency = deviceInfo->defaultHighOutputLatency;
+    streamParameters.device = device;
+    streamParameters.channelCount = channelsCount;
+    streamParameters.sampleFormat = sampleFormat;
+    streamParameters.suggestedLatency = deviceInfo->defaultHighOutputLatency;
 
 	returnCode = Pa_OpenStream(
 		&mStream,
-		nullptr, // no input
-		&outputParameters,
+        record ? &streamParameters : nullptr,
+		&streamParameters,
 		samplesPerSecond,
 		paFramesPerBufferUnspecified, // framesPerBuffer
 		0, // flags
@@ -164,8 +163,6 @@ PlayerError         PortPlayer::Init
  */
 void                PortPlayer::Close()
 {
-    mFifoBuffer.Reset(0);
-
     if(mStream)
     {
         Pa_StopStream(mStream);
@@ -173,6 +170,9 @@ void                PortPlayer::Close()
 
         mStream = nullptr;
     }
+
+    mFifoPlayBuffer.Reset(0);
+    mFifoRecordBuffer.Reset(0);
 
     auto returnCode(Pa_Terminate());
     if(returnCode != paNoError)
@@ -215,14 +215,22 @@ int                 PortPlayer::StreamCallbackImplementation
                     statusFlags
 )
 {
-    auto size2Play(frameCount * mChannelsCount * (mBitsPerSample / 8));
+    auto dataSize(frameCount * mChannelsCount * (mBitsPerSample / 8));
 
-    auto sizeFilled(mFifoBuffer.Read(static_cast<uint8_t *>(output), size2Play));
+    //play
+    auto sizePlayed(mFifoPlayBuffer.Read(static_cast<uint8_t *>(output), dataSize));
 
-    if(sizeFilled < size2Play)
+    if(sizePlayed < dataSize)
     {
-        std::memset(output + sizeFilled, 0, size2Play - sizeFilled);
+        std::memset(output + sizePlayed, 0, dataSize - sizePlayed);
     }
+
+    //record
+    auto sizeRecorded(
+        mFifoRecordBuffer.Write(
+            static_cast<uint8_t *>(output), dataSize
+            )
+        );
 
 	return paContinue;
 }
@@ -233,9 +241,9 @@ int                 PortPlayer::StreamCallbackImplementation
  * @brief Play output
  *******************************************************************************
  */
-uint32_t PortPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
+uint32_t PortPlayer::Play(uint8_t * outputBuffer, uint32_t size, bool mute)
 {
-    return mFifoBuffer.Write(pOutputBuffer, size);
+    return mFifoPlayBuffer.Write(outputBuffer, size);
 }
 
 /**
@@ -243,34 +251,7 @@ uint32_t PortPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 * @fn Record
 *******************************************************************************
 */
-uint32_t PortPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
+uint32_t PortPlayer::Record(uint8_t * outputBuffer, uint32_t size)
 {
-    /*
-    uint32_t uiFrames2Play(size / mChannelsCount / (mBitsPerSample / 8));
-
-    int pcmResult = 0;
-
-    //Returns
-    //a positive number of frames actually read otherwise a negative error code
-    //Return values
-    //-EBADFD	PCM is not in the right state (SND_PCM_STATE_PREPARED or SND_PCM_STATE_RUNNING)
-    //-EPIPE	an overrun occurred
-    //-ESTRPIPE	a suspend event occurred (stream is suspended and waiting for an application recovery)
-
-    if(-EPIPE == (pcmResult = snd_pcm_readi(mPCMHandle, pOutputBuffer, uiFrames2Play)))
-    {
-        snd_pcm_prepare(mPCMHandle);
-
-        return 0;
-    }
-    else if(pcmResult < 0)
-    {
-        std::cerr << "Error: Can't read from PCM device. " << snd_strerror(pcmResult) << std::endl;
-
-        return 0;
-    }
-
-    return pcmResult * mChannelsCount * (mBitsPerSample / 8);
-    */
-   return size;
+    return mFifoRecordBuffer.Read(outputBuffer, size);
 }

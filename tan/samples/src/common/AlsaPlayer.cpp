@@ -251,7 +251,7 @@ void AlsaPlayer::Close()
  * @brief Play output
  *******************************************************************************
  */
-uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
+uint32_t AlsaPlayer::Play(uint8_t * outputBuffer, uint32_t size, bool mute)
 {
     uint32_t uiFrames2Play(size / mChannelsCount / (mBitsPerSample / 8));
 
@@ -261,7 +261,7 @@ uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
     if(!mute)
     {
 
-        if(-EPIPE == (pcmFramesResult = snd_pcm_writei(mPCMHandle, pOutputBuffer, uiFrames2Play)))
+        if(-EPIPE == (pcmFramesResult = snd_pcm_writei(mPCMHandle, outputBuffer, uiFrames2Play)))
         {
             snd_pcm_prepare(mPCMHandle);
 
@@ -283,7 +283,7 @@ uint32_t AlsaPlayer::Play(uint8_t * pOutputBuffer, uint32_t size, bool mute)
 * @fn Record
 *******************************************************************************
 */
-uint32_t AlsaPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
+uint32_t AlsaPlayer::Record(uint8_t * outputBuffer, uint32_t size)
 {
     uint32_t uiFrames2Play(size / mChannelsCount / (mBitsPerSample / 8));
 
@@ -296,7 +296,7 @@ uint32_t AlsaPlayer::Record(uint8_t * pOutputBuffer, uint32_t size)
     //-EPIPE	an overrun occurred
     //-ESTRPIPE	a suspend event occurred (stream is suspended and waiting for an application recovery)
 
-    if(-EPIPE == (pcmResult = snd_pcm_readi(mPCMHandle, pOutputBuffer, uiFrames2Play)))
+    if(-EPIPE == (pcmResult = snd_pcm_readi(mPCMHandle, outputBuffer, uiFrames2Play)))
     {
         snd_pcm_prepare(mPCMHandle);
 

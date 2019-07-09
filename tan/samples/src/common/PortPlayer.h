@@ -38,7 +38,8 @@ protected:
     uint16_t        mBitsPerSample;
     uint32_t        mSamplesPerSecond;
 
-    Fifo            mFifoBuffer;
+    Fifo            mFifoPlayBuffer;
+    Fifo            mFifoRecordBuffer;
 
     static int      StreamCallback
     (
