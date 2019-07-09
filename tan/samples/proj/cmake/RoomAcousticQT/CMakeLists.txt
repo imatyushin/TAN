@@ -43,6 +43,15 @@ endif()
 # name
 project(RoomAcousticsQT DESCRIPTION "RoomAcousticsQT")
 
+if(PortAudio_INCLUDE_DIRS)
+  message("PortAudio_INCLUDE_DIRS: " ${PortAudio_INCLUDE_DIRS})
+  message("PortAudio_LIBRARY: " ${PortAudio_LIBRARY})
+
+  include_directories(${PortAudio_INCLUDE_DIRS})
+
+  ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
+endif()
+
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
@@ -73,7 +82,6 @@ set(
   ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
   ../../../src/common/common.cpp
-  ../../../src/common/fifo.cpp
   ../../../src/common/GpuUtils.cpp
   ../../../src/common/SimpleVRaudio.cpp
   ../../../src/common/utilities.c
@@ -82,6 +90,7 @@ set(
   ../../../../common/StringUtility.cpp
   ../../../../common/RegisterBrowser.cpp
   ../../../../common/wav.cpp
+  ../../../../common/fifo.cpp
   ../../../../common/cpucaps.cpp
 
   ../../../src/RoomAcousticQT/main.cpp
@@ -89,7 +98,7 @@ set(
   ../../../src/RoomAcousticQT/QTObject/QTExportResponse.cpp
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticConfig.cpp
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticGraphic.cpp
-  ../../../src/RoomAcousticQT/RoomAcoustic.cpp
+  ../../../src/RoomAcousticQT/RoomAcousticQT.cpp
   )
 
 if(WIN32)
@@ -133,8 +142,9 @@ set(
   ../../../../../amf/public/include/core/Variant.h
   ../../../../../amf/public/include/core/Version.h
 
+  ../../../../common/fifo.h
+
   ../../../src/common/common.h
-  ../../../src/common/fifo.h
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h
   ../../../src/common/SimpleVRaudio.h
@@ -150,14 +160,19 @@ set(
 
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
-  ../../../src/RoomAcousticQT/RoomAcoustic.h
+  ../../../src/RoomAcousticQT/RoomAcousticQT.h
 )
 
 if(WIN32)
-  list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.h)
+  list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)
 else()
-  list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.h)
-  list(APPEND SOURCE_EXE ../../../src/common/AlsaPlayer.h)
+  list(APPEND HEADER_EXE ../../../src/common/PulsePlayer.h)
+  list(APPEND HEADER_EXE ../../../src/common/AlsaPlayer.h)
+endif()
+
+if(PortAudio_INCLUDE_DIRS)
+  list(APPEND SOURCE_EXE ../../../src/common/PortPlayer.cpp)
+  list(APPEND HEADER_EXE ../../../src/common/PortPlayer.h)
 endif()
 
 set(
@@ -201,12 +216,20 @@ target_link_libraries(RoomAcousticsQT ${OpenCL_LIBRARY})
 target_link_libraries(RoomAcousticsQT Qt5::Widgets)
 
 if(WIN32)
+
 target_link_libraries(RoomAcousticsQT "version.lib")
 target_link_libraries(RoomAcousticsQT "shlwapi.lib")
+
 else()
 
 find_package(Threads REQUIRED)
 target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(RoomAcousticsQT "asound")
 
+target_link_libraries(RoomAcousticsQT "asound")
+target_link_libraries(RoomAcousticsQT "portaudio")
+
+endif()
+
+if(PortAudio_INCLUDE_DIRS)
+  target_link_libraries(RoomAcousticsQT ${PortAudio_LIBRARY})
 endif()

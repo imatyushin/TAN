@@ -21,13 +21,17 @@
 //
 #pragma once
 
-#include "fifo.h"
+#include <cstdint>
+
 #include "tanlibrary/include/TrueAudioNext.h"       //TAN
 #include "../TrueAudioVR/TrueAudioVR.h"
+
+#include "fifo.h"
 #include "maxlimits.h"
 #include "threads.h"
-#include "wav.h"
 #include "IWavPlayer.h"
+#include "wav.h"
+#include "Timer.h"
 
 #include <memory>
 #include <string>
@@ -73,24 +77,26 @@ public:
         int                     fftLen,
         int                     bufSize,
 
-        bool                    useGPU_Conv = true,
-        int                     devIdx_Conv = 0,
+        bool                    useGPU_Conv/* = true*/,
+        int                     devIdx_Conv/* = 0*/,
 #ifdef RTQ_ENABLED
-		bool                    useHPr_Conv = false,
-        bool                    useRTQ_Conv = false,
-        int                     cuRes_Conv = 0,
+		bool                    useHPr_Conv/* = false*/,
+        bool                    useRTQ_Conv/* = false*/,
+        int                     cuRes_Conv/* = 0*/,
 #endif // RTQ_ENABLED
-        bool                    useGPU_IRGen = true,
-        int                     devIdx_IRGen = 0,
+        bool                    useGPU_IRGen/* = true*/,
+        int                     devIdx_IRGen/* = 0*/,
 #ifdef RTQ_ENABLED
-		bool                    useHPr_IRGen = false,
-        bool                    useRTQ_IRGen = false,
-        int                     cuRes_IRGen = 0,
+		bool                    useHPr_IRGen/* = false*/,
+        bool                    useRTQ_IRGen/* = false*/,
+        int                     cuRes_IRGen/* = 0*/,
 #endif
         amf::TAN_CONVOLUTION_METHOD
-                                convMethod = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
-        bool                    useCPU_Conv = false,
-        bool                    useCPU_IRGen = false
+                                convMethod/* = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD*/,
+        bool                    useCPU_Conv/* = false*/,
+        bool                    useCPU_IRGen/* = false*/,
+
+        const std::string &     playerType
         );
 
 	// finalize, deallocate resources, close files, etc.
@@ -123,6 +129,8 @@ protected:
 
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
 	std::vector<WavContent>     mWavFiles;
+
+    Timer                       mRealtimeTimer;
 
     uint32_t                    mMaxSamplesCount = 0;
     std::vector<int16_t>        mStereoProcessedBuffer;

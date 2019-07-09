@@ -9,10 +9,10 @@
 #else
 #include "ui_RoomAcousticConfig_NoRTQ.h"
 #endif // RTQ_ENABLED
-#include "../RoomAcoustic.h"
+#include "../RoomAcousticQT.h"
 #include "QTRoomAcousticGraphic.h"
 
-class RoomAcousticQT : public QMainWindow
+class RoomAcousticQTConfig : public QMainWindow
 {
 	Q_OBJECT
 private slots:
@@ -31,7 +31,7 @@ private slots:
 	void on_SB_RoomWidth_valueChanged(double value);
 	void on_SB_RoomLength_valueChanged(double value);
 	void on_SB_RoomHeight_valueChanged(double value);
-	
+
 	void on_SB_RoomDampLeft_valueChanged(double value);
 	void on_SB_RoomDampRight_valueChanged(double value);
 	void on_SB_RoomDampTop_valueChanged(double value);
@@ -48,12 +48,12 @@ private slots:
 	void on_SB_HeadPositionX_valueChanged(double value);
 	void on_SB_HeadPositionY_valueChanged(double value);
 	void on_SB_HeadPositionZ_valueChanged(double value);
-	
+
 	void on_CB_UseGPU4Room_currentIndexChanged(int index);
 	void on_CB_UseGPU4Conv_currentIndexChanged(int index);
 	void on_CB_ConvMethod_currentIndexChanged(int index);
 	void on_RB_DEF4Room_clicked();
-	
+
 
 	void on_RB_DEF4Conv_clicked();
 #ifdef RTQ_ENABLED
@@ -75,8 +75,8 @@ private slots:
 	void update_convMethod_CPU();
 	void update_convMethod_GPU();
 public:
-	RoomAcousticQT(QWidget *parent = 0);
-	~RoomAcousticQT();
+	RoomAcousticQTConfig(QWidget *parent = 0);
+	~RoomAcousticQTConfig();
 	void Init();
 private:
 
@@ -87,8 +87,8 @@ private:
 	/************************************************************************************/
 	/*								GUI Functions			 							*/
 	/************************************************************************************/
-	/*				Function below update the value in instance to gui					*/			
-	void updateAllFields();	
+	/*				Function below update the value in instance to gui					*/
+	void updateAllFields();
 	void updateSoundsourceNames();
 	void updateRoomDefinitionFields();
 	void updateConvolutionFields();
@@ -124,9 +124,9 @@ private:
 	void setHeadSpinTimeInterval(float interval);
 	void startHeadSpinAnimation();
 	void stopHeadSpinAnimation();
-	
+
 	Ui::RoomAcousticConfig ConfigUi;							// The main configuration ConfigUi
-	RoomAcoustic m_RoomAcousticInstance;						// The main room acoustic instance
+	RoomAcousticQT m_RoomAcousticInstance;						// The main room acoustic instance
 
 	RoomAcousticGraphic* m_RoomAcousticGraphic;
 	int m_iLastClickedRow = -1;									// Record the last selected sound source id, Initially

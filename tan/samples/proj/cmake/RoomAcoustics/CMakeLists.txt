@@ -82,12 +82,12 @@ if(WIN32)
       ../../../../../amf/public/common/AMFFactory.cpp
       ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
-      ../../../src/common/fifo.cpp
       ../../../src/common/GpuUtils.cpp
       ../../../src/common/SimpleVRaudio.cpp
-
       ../../../src/common/WASAPIPlayer.cpp
+
       ../../../../common/wav.cpp
+      ../../../../common/fifo.cpp
 
       ../../../src/RoomAcoustics/RoomAcoustics.cpp
       ../../../src/RoomAcoustics/RoomAcousticsDlg.cpp
@@ -123,8 +123,8 @@ if(WIN32)
 
       ../../../../common/cpucaps.h
       ../../../../common/wav.h
+      ../../../../common/fifo.h
 
-      ../../../src/common/fifo.h
       ../../../src/common/GpuUtils.h
       ../../../src/common/maxlimits.h
       ../../../src/common/SimpleVRaudio.h

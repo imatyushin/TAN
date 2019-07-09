@@ -170,7 +170,7 @@ void QTExportResponse::updateCustomListenerConfig(bool ch)
 	m_UIExportResponse.SB_ListenerEarSpacing->setValue(0.16f);
 }
 
-void QTExportResponse::Init(RoomAcoustic* in_pRoomAcoustic)
+void QTExportResponse::Init(RoomAcousticQT * in_pRoomAcoustic)
 {
 	m_pRoomAcoustic = in_pRoomAcoustic;
 	m_UIExportResponse.setupUi(this);

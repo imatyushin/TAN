@@ -1,4 +1,4 @@
-#include "RoomAcoustic.h"
+#include "RoomAcousticQT.h"
 #include "samples/src/common/GpuUtils.h"
 #include "samples/src//TrueAudioVR/TrueAudioVR.h"
 #include "../common/common.h"
@@ -21,16 +21,16 @@
 
 #include <QStandardPaths>
 
-RoomAcoustic::RoomAcoustic()
+RoomAcousticQT::RoomAcousticQT()
 {
 	initialize();
 }
 
-RoomAcoustic::~RoomAcoustic()
+RoomAcousticQT::~RoomAcousticQT()
 {
 }
 
-void RoomAcoustic::initialize()
+void RoomAcousticQT::initialize()
 {
 	initializeEnvironment();
 	initializeAudioEngine();
@@ -39,7 +39,7 @@ void RoomAcoustic::initialize()
 	initializeDevice();
 }
 
-int RoomAcoustic::start()
+int RoomAcousticQT::start()
 {
 	// Remap the sound path to accomodates the audioVR engine
 	// TODO: Need to port the configuration back to the audio3D engine
@@ -68,7 +68,7 @@ int RoomAcoustic::start()
 	}
 
 	int err =  m_pAudioEngine->Init(
-		mTANDLLPath.c_str(),
+		mTANDLLPath,
 		m_RoomDefinition,
 
 		fileNames,
@@ -89,7 +89,12 @@ int RoomAcoustic::start()
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Room,m_iuseRTQ4Room, m_iRoomCUCount,
 #endif
-		m_eConvolutionMethod
+		m_eConvolutionMethod,
+
+		false,
+		false,
+
+		mPlayerName
 		);
 
 	if(!err)
@@ -105,12 +110,12 @@ int RoomAcoustic::start()
 	return -1;
 }
 
-void RoomAcoustic::stop()
+void RoomAcousticQT::stop()
 {
 	m_pAudioEngine->Stop();
 }
 
-void RoomAcoustic::initializeEnvironment()
+void RoomAcousticQT::initializeEnvironment()
 {
 	auto moduleFileName = getModuleFileName();
 	auto path2Exe = getPath2File(moduleFileName);
@@ -163,13 +168,13 @@ void RoomAcoustic::initializeEnvironment()
 	}
 }
 
-void RoomAcoustic::initializeAudioEngine()
+void RoomAcousticQT::initializeAudioEngine()
 {
 	m_pAudioEngine = new Audio3D();
 
 }
 
-void RoomAcoustic::initializeRoom()
+void RoomAcousticQT::initializeRoom()
 {
 	m_RoomDefinition.height = 4.0;
 	m_RoomDefinition.width = 6.0;
@@ -193,7 +198,7 @@ void RoomAcoustic::initializeRoom()
 	}
 }
 
-void RoomAcoustic::initializeListener()
+void RoomAcousticQT::initializeListener()
 {
 	m_Listener.earSpacing = float(0.16);
 	m_Listener.headX = float(m_RoomDefinition.width*.8);
@@ -204,7 +209,7 @@ void RoomAcoustic::initializeListener()
 	m_Listener.yaw = 0.0;
 }
 
-void RoomAcoustic::initializeDevice()
+void RoomAcousticQT::initializeDevice()
 {
 	m_iConvolutionLength = 32768;
 	m_iBufferSize = 2048;
@@ -215,7 +220,7 @@ void RoomAcoustic::initializeDevice()
 	m_iDeviceCount = listGpuDeviceNamesWrapper(m_cpDeviceName, MAX_DEVICES);
 }
 
-bool RoomAcoustic::parseElement(char* start, char* end, element* elem)
+bool RoomAcousticQT::parseElement(char* start, char* end, element* elem)
 {
 	bool ok = false;
 	start += elem->name.length() + 1;
@@ -269,7 +274,7 @@ bool RoomAcoustic::parseElement(char* start, char* end, element* elem)
 	return ok;
 }
 
-bool RoomAcoustic::findElement(char** start, char** end, const char* name)
+bool RoomAcousticQT::findElement(char** start, char** end, const char* name)
 {
 	bool found = false;
 	char *p = *start;
@@ -319,7 +324,7 @@ bool RoomAcoustic::findElement(char** start, char** end, const char* name)
 	return found;
 }
 
-void RoomAcoustic::portInfoToEngine()
+void RoomAcousticQT::portInfoToEngine()
 {
 	// Remap the source name so that it maps the audio3D engine
 	int soundnameindex = 0;
@@ -337,7 +342,7 @@ void RoomAcoustic::portInfoToEngine()
 	}
 }
 
-void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
+void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 {
 	// Creating internal structre and prepare for xml loading
 	// attribute src1PosAttribs[3] = { { "X", &m_SoundSources->speakerX, 'f' }, { "Y", &srcY[0], 'f' }, { "Z", &srcZ[0], 'f' } };
@@ -557,7 +562,7 @@ void RoomAcoustic::loadConfiguration(const std::string& xmlfilename)
 }
 
 /* Save Room acoustic configuration in xml file*/
-void RoomAcoustic::saveConfiguraiton(const std::string& xmlfilename)
+void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 {
 	time_t dt = time(NULL);
 	struct tm *lt = localtime(&dt);
@@ -625,7 +630,7 @@ void RoomAcoustic::saveConfiguraiton(const std::string& xmlfilename)
 	fclose(fpSaveFile);
 }
 
-int RoomAcoustic::addSoundSource(const std::string& sourcename)
+int RoomAcousticQT::addSoundSource(const std::string& sourcename)
 {
 	auto fileExtension = getFileExtension(sourcename);
 
@@ -652,7 +657,7 @@ int RoomAcoustic::addSoundSource(const std::string& sourcename)
 	}
 }
 
-bool RoomAcoustic::replaceSoundSource(const std::string& sourcename, int id)
+bool RoomAcousticQT::replaceSoundSource(const std::string& sourcename, int id)
 {
 	if (id < 0 && id >= MAX_PATH)
 	{
@@ -677,7 +682,7 @@ bool RoomAcoustic::replaceSoundSource(const std::string& sourcename, int id)
 	}
 }
 
-bool RoomAcoustic::removeSoundSource(const std::string& sourcename)
+bool RoomAcousticQT::removeSoundSource(const std::string& sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
@@ -689,7 +694,7 @@ bool RoomAcoustic::removeSoundSource(const std::string& sourcename)
 	return true;
 }
 
-bool RoomAcoustic::removeSoundSource(int id)
+bool RoomAcousticQT::removeSoundSource(int id)
 {
 	// Check if the id is valid
 	if (id >= 0 && id < MAX_SOURCES)
@@ -724,14 +729,14 @@ bool RoomAcoustic::removeSoundSource(int id)
 }
 
 /*TODO: Need to rework this function for potential epislon comparison*/
-bool RoomAcoustic::isInsideRoom(float x, float y, float z)
+bool RoomAcousticQT::isInsideRoom(float x, float y, float z)
 {
 	return (x >= 0.0f && x <= m_RoomDefinition.width) &&
 		(y >= 0.0f && y <= m_RoomDefinition.length) &&
 		(z >= 0.0f && z <= m_RoomDefinition.height);
 }
 
-int RoomAcoustic::findSoundSource(const std::string& sourcename)
+int RoomAcousticQT::findSoundSource(const std::string& sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
@@ -743,22 +748,22 @@ int RoomAcoustic::findSoundSource(const std::string& sourcename)
 	return -1;
 }
 
-float RoomAcoustic::getReverbTime(float final_db, int* nreflections)
+float RoomAcousticQT::getReverbTime(float final_db, int* nreflections)
 {
 	return estimateReverbTime(this->m_RoomDefinition, final_db, nreflections);
 }
 
-float RoomAcoustic::getConvolutionTime()
+float RoomAcousticQT::getConvolutionTime()
 {
 	return m_iConvolutionLength / 48000.0f;
 }
 
-float RoomAcoustic::getBufferTime()
+float RoomAcousticQT::getBufferTime()
 {
 	return m_iBufferSize / 48000.0f;
 }
 
-void RoomAcoustic::getCPUConvMethod(std::string** _out, int* _num)
+void RoomAcousticQT::getCPUConvMethod(std::string** _out, int* _num)
 {
 	int numberOfMethod = 1;
 	std::string* output = new std::string[numberOfMethod];
@@ -767,7 +772,7 @@ void RoomAcoustic::getCPUConvMethod(std::string** _out, int* _num)
 	*_num = numberOfMethod;
 }
 
-void RoomAcoustic::getGPUConvMethod(std::string** _out, int* _num)
+void RoomAcousticQT::getGPUConvMethod(std::string** _out, int* _num)
 {
 	int numberOfMethod = 4;
 	std::string* output = new std::string[numberOfMethod];
@@ -779,7 +784,7 @@ void RoomAcoustic::getGPUConvMethod(std::string** _out, int* _num)
 	*_num = numberOfMethod;
 }
 
-amf::TAN_CONVOLUTION_METHOD RoomAcoustic::getConvMethodFlag(const std::string& _name)
+amf::TAN_CONVOLUTION_METHOD RoomAcousticQT::getConvMethodFlag(const std::string& _name)
 {
 	if (_name == "FFT OVERLAP ADD")
 		return TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
@@ -791,7 +796,7 @@ amf::TAN_CONVOLUTION_METHOD RoomAcoustic::getConvMethodFlag(const std::string& _
 		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL;
 }
 
-void RoomAcoustic::updateAllSoundSourcesPosition()
+void RoomAcousticQT::updateAllSoundSourcesPosition()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
@@ -802,37 +807,37 @@ void RoomAcoustic::updateAllSoundSourcesPosition()
 	}
 }
 
-void RoomAcoustic::updateSoundSourcePosition(int index)
+void RoomAcousticQT::updateSoundSourcePosition(int index)
 {
 	int i = m_iSoundSourceMap[index];
 	m_pAudioEngine->updateSourcePosition(i, m_SoundSources[index].speakerX,
 		m_SoundSources[index].speakerY, m_SoundSources[index].speakerZ);
 }
 
-void RoomAcoustic::updateListenerPosition()
+void RoomAcousticQT::updateListenerPosition()
 {
 	m_pAudioEngine->updateHeadPosition(m_Listener.headX, m_Listener.headY, m_Listener.headZ,
 		m_Listener.yaw, m_Listener.pitch, m_Listener.roll);
 }
 
-void RoomAcoustic::updateRoomDimention()
+void RoomAcousticQT::updateRoomDimention()
 {
 	m_pAudioEngine->updateRoomDimension(m_RoomDefinition.width, m_RoomDefinition.height, m_RoomDefinition.length);
 }
 
-void RoomAcoustic::updateRoomDamping()
+void RoomAcousticQT::updateRoomDamping()
 {
 	m_pAudioEngine->updateRoomDamping(m_RoomDefinition.mLeft.damp, m_RoomDefinition.mRight.damp, m_RoomDefinition.mTop.damp,
 		m_RoomDefinition.mBottom.damp, m_RoomDefinition.mFront.damp, m_RoomDefinition.mBack.damp);
 }
 
-AmdTrueAudioVR* RoomAcoustic::getAMDTrueAudioVR()
+AmdTrueAudioVR* RoomAcousticQT::getAMDTrueAudioVR()
 {
 	return m_pAudioEngine->getAMDTrueAudioVR();
 }
 
 
-TANConverterPtr RoomAcoustic::getTANConverter()
+TANConverterPtr RoomAcousticQT::getTANConverter()
 {
 	return m_pAudioEngine->getTANConverter();
 }

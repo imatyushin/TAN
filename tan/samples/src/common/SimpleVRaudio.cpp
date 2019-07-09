@@ -19,20 +19,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#include "SimpleVRaudio.h"
+
+#include "../TrueAudioVR/TrueAudioVR.h"
+#include "GpuUtils.h"
+#include "Utilities.h"
+#include "cpucaps.h"
 
 #include <time.h>
 #include <stdio.h>
-#include "CL/cl.h"
-#include "SimpleVRaudio.h"
-#include "GpuUtils.h"
-#include "../TrueAudioVR/TrueAudioVR.h"
-#include "cpucaps.h"
-#include "Utilities.h"
+#include <CL/cl.h>
 
 #if defined(_WIN32)
 #include "../common/WASAPIPlayer.h"
 #else
 #include "../common/AlsaPlayer.h"
+#include "../common/PortPlayer.h"
 #endif
 
 #include <immintrin.h>
@@ -145,14 +147,7 @@ Audio3D::Audio3D():
     mRunning(false),
     mStop(false),
     m_headingOffset(0.),
-    m_headingCCW(true),
-    mPlayer(
-#ifdef _WIN32
-        new WASAPIPlayer()
-#else
-        new AlsaPlayer()
-#endif
-    )
+    m_headingCCW(true)
 {
     responseBuffer = NULL;
     std::memset(responses, 0, sizeof(responses));
@@ -183,6 +178,12 @@ Audio3D::~Audio3D()
 int Audio3D::Close()
 {
     mRunning = false;
+
+    if(mPlayer)
+    {
+        mPlayer->Close();
+        mPlayer.reset();
+    }
 
     // destroy dumb pointer:
     if (m_pTAVR != NULL) {
@@ -248,7 +249,6 @@ int Audio3D::Close()
     mCmdQueue3 = NULL;
 
     mWavFiles.resize(0);
-    mPlayer->Close();
 
     return 0;
 }
@@ -284,7 +284,9 @@ int Audio3D::Init
     amf::TAN_CONVOLUTION_METHOD
                             convMethod,
     bool                    useCPU_Conv,
-    bool                    useCPU_IRGen
+    bool                    useCPU_IRGen,
+
+    const std::string &     playerType
 )
 {
     //useCPU_Conv = true;
@@ -381,6 +383,28 @@ int Audio3D::Init
     }
 
     //initialize hardware
+    mPlayer.reset(
+#ifdef ENABLE_PORTAUDIO
+        playerType == "PortAudio"
+            ? static_cast<IWavPlayer *>(new PortPlayer())
+            :
+#ifdef _WIN32
+                static_cast<IWavPlayer *>(new WASAPIPlayer())
+#else
+                static_cast<IWavPlayer *>(new AlsaPlayer())
+#endif
+
+#else
+
+#ifdef _WIN32
+        new WASAPIPlayer()
+#else
+        new AlsaPlayer()
+#endif
+
+#endif
+        );
+
     //assume that all opened files has the same format
     //and we have at least one opened file
     auto openStatus = mPlayer->Init(
@@ -1026,6 +1050,11 @@ int Audio3D::ProcessProc()
     uint32_t waveSizesInBytes[MAX_SOURCES] = {0};
     uint32_t waveBytesPlayed[MAX_SOURCES] = {0};
 
+    auto buffers2Play = mMaxSamplesCount / mBufferSizeInSamples; //at least 1 block
+    uint32_t buffersPlayed(0);
+    uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
+    uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
+
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
         int16_t *data16Bit((int16_t *)&(mWavFiles[file].Data[0]));
@@ -1040,6 +1069,9 @@ int Audio3D::ProcessProc()
     }
 
     auto *processed = &mStereoProcessedBuffer.front();
+
+    double previousTimerValue(0.0);
+    bool firstFrame(false);
 
     while(!mStop)
     {
@@ -1103,10 +1135,9 @@ int Audio3D::ProcessProc()
             Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
         }
 
-        //std::cout << mBufferSizeInBytes << " bytes processed" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
-        //memcpy(processed, &outputBuffer.front(), mBufferSizeInBytes);
+        memcpy(processed, &outputBuffer.front(), mBufferSizeInBytes);
 
         unsigned char *outputBufferData = (unsigned char *)&outputBuffer.front();
 
@@ -1117,13 +1148,35 @@ int Audio3D::ProcessProc()
 
         while(bytes2Play > 0 && !mStop)
         {
-            auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
-            bytesTotalPlayed += bytesPlayed;
+            if(!mRealtimeTimer.IsStarted())
+            {
+                mRealtimeTimer.Start();
+                firstFrame = true;
+            }
 
-            outputBufferData += bytesPlayed;
-            bytes2Play -= bytesPlayed;
+            double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            if
+            (
+                firstFrame
+                ||
+                ((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
+            )
+            {
+                auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
+                bytesTotalPlayed += bytesPlayed;
+
+                outputBufferData += bytesPlayed;
+                bytes2Play -= bytesPlayed;
+
+                previousTimerValue = timerValue;
+                firstFrame = false;
+            }
+            else
+            {
+                //std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            }
         }
 
         for(int fileIndex = 0; fileIndex < mWavFiles.size(); ++fileIndex)
@@ -1148,12 +1201,14 @@ int Audio3D::ProcessProc()
             }
         }
 
-        /*processed += mBufferSizeInBytes / sizeof(int16_t);
-
-        if (processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+        if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
         {
             processed = &mStereoProcessedBuffer.front();
-        }*/
+        }
+        else
+        {
+            processed += (mBufferSizeInBytes / sizeof(int16_t));
+        }
 
         /*///compute current sample position for each stream:
         for (int i = 0; i < mWavFiles.size(); i++)
@@ -1161,7 +1216,8 @@ int Audio3D::ProcessProc()
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
         }*/
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(0));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

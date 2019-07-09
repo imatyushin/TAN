@@ -19,11 +19,11 @@ struct element {
 	struct element *elemList;
 };
 
-class RoomAcoustic
+class RoomAcousticQT
 {
 public:
-	RoomAcoustic();
-	virtual ~RoomAcoustic();
+	RoomAcousticQT();
+	virtual ~RoomAcousticQT();
 
 	void initialize();															// Initialize the Room Acoustic
 	int start();																// Start the demo
@@ -114,6 +114,8 @@ public:
 	int m_iRoomCUCount = 0;
 	int m_iuseRTQ4Room = 0;
 #endif // RTQ_ENABLED
+
+	std::string mPlayerName;
 
 private:
 	std::string mWavFileNamesInternal[MAX_SOURCES];							// Internal wav file name, used to pass valid source file into Audio3D engine
