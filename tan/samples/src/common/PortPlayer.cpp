@@ -215,6 +215,9 @@ int                 PortPlayer::StreamCallbackImplementation
                     statusFlags
 )
 {
+    std::memcpy(output, input, frameCount * mChannelsCount * (mBitsPerSample / 8));
+    return paContinue;
+
     auto dataSize(frameCount * mChannelsCount * (mBitsPerSample / 8));
 
     //play

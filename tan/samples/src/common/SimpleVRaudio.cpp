@@ -1133,22 +1133,22 @@ int Audio3D::ProcessProc()
             int16_t *wavPtrTemp = pWaves[0];
             pWaves[0] = &recordBuffer.front();
 
-            Process(&outputBuffer.front(), pWaves, recordedBytes);
+            //Process(&outputBuffer.front(), pWaves, recordedBytes);
 
             pWaves[0] = wavPtrTemp;
         }
         else
         {
-            Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
+            //Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(0));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
         auto bytes2Play = mSrc1EnableMic
             ? recordedBytes
             : mBufferSizeInBytes
             ;
-        memcpy(processed, &outputBuffer.front(), bytes2Play);
+        //memcpy(processed, &outputBuffer.front(), bytes2Play);
 
         unsigned char *outputBufferData = (unsigned char *)&outputBuffer.front();
 
@@ -1174,7 +1174,8 @@ int Audio3D::ProcessProc()
                 ((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
             )
             {
-                auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
+                //auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
+                auto bytesPlayed = mPlayer->Play((uint8_t *)&recordBuffer.front(), bytes2Play, false);
                 bytesTotalPlayed += bytesPlayed;
 
                 outputBufferData += bytesPlayed;
