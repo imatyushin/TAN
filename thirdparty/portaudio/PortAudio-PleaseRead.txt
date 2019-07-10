@@ -1,0 +1,12 @@
+============================QT Setup Instruction=====================
+
+1. Make sure you download PortAudio v19 from http://www.portaudio.com/download.html to this or another one directory
+2. Go to the PortAudio folder
+3. run ./configure 
+4. run make
+5. Go to the Tan/tan/build/cmake folder
+6. Edit generate-linux.sh with actual PortAudio folders
+7. Generate Makefiles by running generate-linux.sh script
+8. Build Tan library and examples
+7. Copy PortAudio/lib/.libs/portaudio.so and related files to Tan/tan/build/cmake/cmake-RoomAcousticQT folder
+8. Run RoomAcousticQT with PortAudio

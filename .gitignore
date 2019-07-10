@@ -5,4 +5,4 @@
 /tan/samples/src/TrueAudioVR/Kernels/GenerateRoomResponse.cl.h
 /tan/build/cmake/linux
 /tan/build/cmake/vs2015
-/thirdparty/portaudio/*
+#/thirdparty/portaudio/*
