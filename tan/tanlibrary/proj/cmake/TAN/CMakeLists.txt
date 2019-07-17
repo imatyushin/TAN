@@ -162,7 +162,7 @@ add_dependencies(TrueAudioNext clFFT-master)
 
 # linking
 target_link_libraries(TrueAudioNext ${OpenCL_LIBRARY})
-#target_link_libraries(TrueAudioNext AMF)
+target_link_libraries(TrueAudioNext amf)
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
 
@@ -178,7 +178,6 @@ set_target_properties(
   )
 
 if(NOT WIN32)
-#to allow _mm256_add_ps support
 target_compile_options(TrueAudioNext PUBLIC -mavx2)
 target_compile_options(TrueAudioNext PUBLIC -mfma)
 target_compile_options(TrueAudioNext PUBLIC -msse4.2)

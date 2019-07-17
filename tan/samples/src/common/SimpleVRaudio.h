@@ -151,18 +151,19 @@ protected:
     bool mSrc1TrackHeadPos = false;
     bool mSrc1MuteDirectPath = false;
 
-	float *responseBuffer;
-    float *responses[MAX_SOURCES*2];
-    cl_mem oclResponses[MAX_SOURCES * 2];
-    bool m_useClMemBufs;
+	float *mResponseBuffer = nullptr;
+    float *mResponses[MAX_SOURCES * 2] = {nullptr};
+    cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
+    bool   mUseClMemBufs = false;
 
-    float *inputFloatBufs[MAX_SOURCES*2];
-	float *outputFloatBufs[MAX_SOURCES * 2];
-    float* outputMixFloatBufs[2];
-	cl_mem outputCLBufs[MAX_SOURCES * 2];
-	cl_mem outputMainCLbuf;
-	cl_mem outputMixCLBufs[2];
-	cl_mem outputShortBuf;
+    float *mInputFloatBufs[MAX_SOURCES * 2] = {nullptr};
+	float *mOutputFloatBufs[MAX_SOURCES * 2] = {nullptr};
+    float *mOutputMixFloatBufs[2] = {nullptr};
+
+	cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
+	cl_mem mOutputMainCLbuf = nullptr;
+	cl_mem mOutputMixCLBufs[2] = {nullptr};
+	cl_mem mOutputShortBuf = nullptr;
 
 	// current position in each stream:
 	//int64_t m_samplePos[MAX_SOURCES];

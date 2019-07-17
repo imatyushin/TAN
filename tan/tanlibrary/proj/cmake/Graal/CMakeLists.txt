@@ -133,7 +133,8 @@ generateCLKernel(
 
 add_dependencies(Graal CLKernelPreprocessor)
 
-#set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(Graal amf)
+
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)

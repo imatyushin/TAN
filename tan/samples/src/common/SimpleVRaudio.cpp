@@ -144,30 +144,10 @@ unsigned Audio3D::updateThreadProc(void * ptr)
 Audio3D::Audio3D():
     m_pTAVR(nullptr),
     mProcessThread(true),
-    mRunning(false),
     mStop(false),
     m_headingOffset(0.),
     m_headingCCW(true)
 {
-    responseBuffer = NULL;
-    std::memset(responses, 0, sizeof(responses));
-    std::memset(inputFloatBufs, 0, sizeof(inputFloatBufs));
-    std::memset(outputFloatBufs, 0, sizeof(outputFloatBufs));
-    std::memset(outputMixFloatBufs, 0, sizeof(outputMixFloatBufs));
-    //std::memset(m_samplePos, 0, sizeof(m_samplePos));
-
-    for (int i = 0; i < MAX_SOURCES * 2; i++){
-        oclResponses[i] = NULL;
-        outputCLBufs[i] = NULL;
-    }
-    outputMainCLbuf = NULL;
-    m_useClMemBufs = false;
-    for (int i = 0; i < 2; i++)
-    {
-        outputMixCLBufs[i] = NULL;
-        outputShortBuf = NULL;
-    }
-    mUpdated = false;
 }
 
 Audio3D::~Audio3D()
@@ -191,40 +171,40 @@ int Audio3D::Close()
         m_pTAVR = nullptr;
     }
 
-    SAFE_DELETE_ARR(responseBuffer);
+    SAFE_DELETE_ARR(mResponseBuffer);
     for (int i = 0; i < MAX_SOURCES*2; i++){
-        SAFE_DELETE_ARR(inputFloatBufs[i]);
-        SAFE_DELETE_ARR(outputFloatBufs[i]);
+        SAFE_DELETE_ARR(mInputFloatBufs[i]);
+        SAFE_DELETE_ARR(mOutputFloatBufs[i]);
 
-        if (oclResponses[i] == NULL) continue;
-        clReleaseMemObject(oclResponses[i]);
-        oclResponses[i] = NULL;
+        if (mOCLResponses[i] == NULL) continue;
+        clReleaseMemObject(mOCLResponses[i]);
+        mOCLResponses[i] = NULL;
     }
 
     for (int i = 0; i < mWavFiles.size() * 2; i++)
     {
-        if (outputCLBufs[i] == NULL) continue;
-        clReleaseMemObject(outputCLBufs[i]);
-        outputCLBufs[i] = NULL;
+        if (mOutputCLBufs[i] == NULL) continue;
+        clReleaseMemObject(mOutputCLBufs[i]);
+        mOutputCLBufs[i] = NULL;
     }
 
-    if (outputMainCLbuf != NULL)
+    if (mOutputMainCLbuf != NULL)
     {
-        clReleaseMemObject(outputMainCLbuf);
-        outputMainCLbuf = NULL;
+        clReleaseMemObject(mOutputMainCLbuf);
+        mOutputMainCLbuf = NULL;
     }
     for (int i = 0; i < 2; i++)
     {
-        if (outputMixCLBufs[i] == NULL) continue;
-        clReleaseMemObject(outputMixCLBufs[i]);
-        outputMixCLBufs[i] = NULL;
+        if (mOutputMixCLBufs[i] == NULL) continue;
+        clReleaseMemObject(mOutputMixCLBufs[i]);
+        mOutputMixCLBufs[i] = NULL;
     }
-    if (outputShortBuf)
+    if (mOutputShortBuf)
     {
-        clReleaseMemObject(outputShortBuf);
-        outputShortBuf = NULL;
+        clReleaseMemObject(mOutputShortBuf);
+        mOutputShortBuf = NULL;
     }
-    m_useClMemBufs = false;
+    mUseClMemBufs = false;
 
     // release smart pointers:
     m_spFft.Release();
@@ -289,7 +269,9 @@ int Audio3D::Init
     const std::string &     playerType
 )
 {
+    //useMicSource = true;
     //useCPU_Conv = true;
+
     Close();
 
     // shouldn't need this, they are radio buttons:
@@ -437,26 +419,26 @@ int Audio3D::Init
 
     // allocate responses in one block
     // to optimize transfer to GPU
-    responseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
+    mResponseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
 
     for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
     {
-        responses[idx] = responseBuffer + idx*m_fftLen;
-        inputFloatBufs[idx] = new float[m_fftLen];
-        outputFloatBufs[idx] = new float[m_fftLen];
+        mResponses[idx] = mResponseBuffer + idx*m_fftLen;
+        mInputFloatBufs[idx] = new float[m_fftLen];
+        mOutputFloatBufs[idx] = new float[m_fftLen];
     }
 
     for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
     {
-        memset(responses[i], 0, sizeof(float)*m_fftLen);
-        memset(inputFloatBufs[i], 0, sizeof(float)*m_fftLen);
-        memset(outputFloatBufs[i], 0, sizeof(float)*m_fftLen);
+        memset(mResponses[i], 0, sizeof(float)*m_fftLen);
+        memset(mInputFloatBufs[i], 0, sizeof(float)*m_fftLen);
+        memset(mOutputFloatBufs[i], 0, sizeof(float)*m_fftLen);
     }
 
     for (int i = 0; i < STEREO_CHANNELS_COUNT; i++)//Right and left channel after mixing
     {
-        outputMixFloatBufs[i] = new float[m_fftLen];
-        memset(outputMixFloatBufs[i], 0, sizeof(float)*m_fftLen);
+        mOutputMixFloatBufs[i] = new float[m_fftLen];
+        memset(mOutputMixFloatBufs[i], 0, sizeof(float)*m_fftLen);
     }
 
     memset(&room, 0, sizeof(room));
@@ -647,10 +629,10 @@ int Audio3D::Init
         clGetCommandQueueInfo(mCmdQueue2, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_Conv, NULL);
         if (context_IR == context_Conv) {
             for (int i = 0; i < mWavFiles.size() * 2; i++){
-                oclResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, m_fftLen * sizeof(float), NULL, &status);
+                mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, m_fftLen * sizeof(float), NULL, &status);
             }
             //HACK out for test
-            m_useClMemBufs = true;
+            mUseClMemBufs = true;
         }
         // Initialize CL output buffers,
         if(useGPU_Conv)
@@ -658,7 +640,7 @@ int Audio3D::Init
             cl_int clErr;
 
             // First create a big cl_mem buffer then create small sub-buffers from it
-            outputMainCLbuf = clCreateBuffer(
+            mOutputMainCLbuf = clCreateBuffer(
                 m_spTANContext1->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
                 mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
@@ -677,8 +659,8 @@ int Audio3D::Init
                 cl_buffer_region region;
                 region.origin = i * mBufferSizeInBytes;
                 region.size = mBufferSizeInBytes;
-                outputCLBufs[i] = clCreateSubBuffer(
-                    outputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
+                mOutputCLBufs[i] = clCreateSubBuffer(
+                    mOutputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
 
                 if (clErr != CL_SUCCESS)
                 {
@@ -687,7 +669,7 @@ int Audio3D::Init
                 }
 
                 float zero = 0.0;
-                clErr = clEnqueueFillBuffer(mCmdQueue1, outputCLBufs[i], &zero,sizeof(zero), 0, region.size, 0, NULL, NULL);
+                clErr = clEnqueueFillBuffer(mCmdQueue1, mOutputCLBufs[i], &zero,sizeof(zero), 0, region.size, 0, NULL, NULL);
                 if (clErr != CL_SUCCESS)
                 {
                     printf("Could not fill OpenCL subBuffer\n");
@@ -697,7 +679,7 @@ int Audio3D::Init
 
             for (int idx = 0; idx < 2; idx++)
             {
-                outputMixCLBufs[idx] = clCreateBuffer(
+                mOutputMixCLBufs[idx] = clCreateBuffer(
                     m_spTANContext1->GetOpenCLContext(),
                     CL_MEM_READ_WRITE,
                     mBufferSizeInBytes,
@@ -721,7 +703,7 @@ int Audio3D::Init
 
             // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
             // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
-            outputShortBuf = clCreateBuffer(
+            mOutputShortBuf = clCreateBuffer(
                 m_spTANContext1->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
                 mBufferSizeInBytes,
@@ -763,19 +745,19 @@ int Audio3D::Init
 
     //To Do use gpu mem responses
     for (int idx = 0; idx < mWavFiles.size(); idx++){
-        if (m_useClMemBufs) {
-            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, oclResponses[idx * 2], oclResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
+        if (mUseClMemBufs) {
+            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
         }
         else {
-            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, responses[idx * 2], responses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
+            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
         }
     }
 
-    if (m_useClMemBufs) {
-        RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(oclResponses, m_fftLen, nullptr, IR_UPDATE_MODE));
+    if (mUseClMemBufs) {
+        RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(mOCLResponses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
     else {
-        RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE));
+        RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(mResponses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
 
     mRunning = true;
@@ -904,6 +886,12 @@ int Audio3D::Stop()
     mProcessThread.WaitCloseInfinite();
     mUpdateThread.WaitCloseInfinite();
 
+    if(mPlayer)
+    {
+        mPlayer->Close();
+        mPlayer.reset();
+    }
+
     return 0;
 }
 
@@ -921,7 +909,7 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
                     pChan[idx] + chan,
                     2,
                     sampleCount,
-                    inputFloatBufs[idx * 2 + chan],
+                    mInputFloatBufs[idx * 2 + chan],
                     1,
                     1.f
                     )
@@ -933,57 +921,61 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
     {   // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
-        RETURN_IF_FAILED(m_spConvolution->Process(inputFloatBufs, outputCLBufs, sampleCount, nullptr, nullptr));
+        RETURN_IF_FAILED(m_spConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
 
         cl_mem outputCLBufLeft[MAX_SOURCES];
         cl_mem outputCLBufRight[MAX_SOURCES];
+
         for (int src = 0; src < MAX_SOURCES; src++)
         {
-            outputCLBufLeft[src] = outputCLBufs[src*2 ];// Even indexed channels for left ear input
-            outputCLBufRight[src] = outputCLBufs[src*2+1];// Odd indexed channels for right ear input
+            outputCLBufLeft[src] = mOutputCLBufs[src*2 ];// Even indexed channels for left ear input
+            outputCLBufRight[src] = mOutputCLBufs[src*2+1];// Odd indexed channels for right ear input
         }
-        AMF_RESULT ret = m_spMixer->Mix(outputCLBufLeft, outputMixCLBufs[0]);
+
+        AMF_RESULT ret = m_spMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]);
         RETURN_IF_FALSE(ret == AMF_OK);
 
-        ret = m_spMixer->Mix(outputCLBufRight, outputMixCLBufs[1]);
+        ret = m_spMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]);
         RETURN_IF_FALSE(ret == AMF_OK);
-        ret = m_spConverter->Convert(outputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
-            outputShortBuf, 2, 0, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
+
+        ret = m_spConverter->Convert(mOutputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortBuf, 2, 0, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-        ret = m_spConverter->Convert(outputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
-            outputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
+        ret = m_spConverter->Convert(mOutputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-        cl_int clErr = clEnqueueReadBuffer(m_spTANContext1->GetOpenCLGeneralQueue(), outputShortBuf, CL_TRUE,
+        cl_int clErr = clEnqueueReadBuffer(m_spTANContext1->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
              0, sampleCountBytes, pOut, NULL, NULL, NULL);
         RETURN_IF_FALSE(clErr == CL_SUCCESS);
-
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
         // Mixing and short conversion are still performed on CPU.
 
-        RETURN_IF_FAILED(m_spConvolution->Process(inputFloatBufs, outputFloatBufs, sampleCount,
+        RETURN_IF_FAILED(m_spConvolution->Process(mInputFloatBufs, mOutputFloatBufs, sampleCount,
             nullptr, nullptr));
 
         float * outputFloatBufLeft[MAX_SOURCES];
         float * outputFloatBufRight[MAX_SOURCES];
+
         for (int src = 0; src < MAX_SOURCES; src++)
         {
-            outputFloatBufLeft[src] = outputFloatBufs[src * 2];// Even indexed channels for left ear input
-            outputFloatBufRight[src] = outputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
+            outputFloatBufLeft[src] = mOutputFloatBufs[src * 2];// Even indexed channels for left ear input
+            outputFloatBufRight[src] = mOutputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
-        AMF_RESULT ret = m_spMixer->Mix(outputFloatBufLeft, outputMixFloatBufs[0]);
+
+        AMF_RESULT ret = m_spMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]);
         RETURN_IF_FALSE(ret == AMF_OK);
 
-        ret = m_spMixer->Mix(outputFloatBufRight, outputMixFloatBufs[1]);
+        ret = m_spMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]);
         RETURN_IF_FALSE(ret == AMF_OK);
 
-        ret = m_spConverter->Convert(outputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
+        ret = m_spConverter->Convert(mOutputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-        ret = m_spConverter->Convert(outputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
+        ret = m_spConverter->Convert(mOutputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
     }
 
@@ -1092,12 +1084,11 @@ int Audio3D::ProcessProc()
                 //recordFifo.
             //)
             //{
+
                 // get some more:
                 recordedBytes = mPlayer->Record(
                     (unsigned char *)&recordBuffer.front(),
                     recordBuffer.size() * sizeof(recordBuffer[0])
-                    //m_bufSize - recordedSamplesCount //todo: unclear meaning, investigate
-                    //mBufferSizeInBytes - recFifo.fifoLength()
                     );
 
                 /*recFifo.store(
@@ -1122,27 +1113,31 @@ int Audio3D::ProcessProc()
                 recordedBytes
                 );*/
 
-            /*
-            mPlayer->Play(
-                (unsigned char *)&recordBuffer.front(),
-                recordedBytes, //STEREO_CHANNELS_COUNT * recordedSamplesCount * (mWavFiles[0].BitsPerSample / 8),
-                false
-            );*/
+            if(recordedBytes)
+            {
+                // [temporarily] duck the wave audio for mic audio:
+                int16_t *wavPtrTemp = pWaves[0];
+                pWaves[0] = &recordBuffer.front();
+                Process(&outputBuffer.front(), pWaves, recordedBytes);
+                pWaves[0] = wavPtrTemp;
 
-            // [temporarily] duck the wave audio for mic audio:
-            int16_t *wavPtrTemp = pWaves[0];
-            pWaves[0] = &recordBuffer.front();
-
-            //Process(&outputBuffer.front(), pWaves, recordedBytes);
-
-            pWaves[0] = wavPtrTemp;
+                //to test
+                /**/
+                mPlayer->Play(
+                    (unsigned char *)&recordBuffer.front(),
+                    recordedBytes,
+                    false
+                    );
+                /**/
+            }
         }
         else
         {
-            //Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
+            Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
         }
 
-        //std::this_thread::sleep_for(std::chrono::milliseconds(0));
+        continue;
+        std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
         auto bytes2Play = mSrc1EnableMic
             ? recordedBytes
@@ -1174,8 +1169,7 @@ int Audio3D::ProcessProc()
                 ((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
             )
             {
-                //auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
-                auto bytesPlayed = mPlayer->Play((uint8_t *)&recordBuffer.front(), bytes2Play, false);
+                auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
                 bytesTotalPlayed += bytesPlayed;
 
                 outputBufferData += bytesPlayed;
@@ -1283,7 +1277,7 @@ int Audio3D::UpdateProc()
 
         for(int idx = 0; !mStop && (idx < mWavFiles.size()); idx++)
         {
-            if(m_useClMemBufs)
+            if(mUseClMemBufs)
             {
                 m_pTAVR->generateRoomResponse(
                     room,
@@ -1291,16 +1285,16 @@ int Audio3D::UpdateProc()
                     ears,
                     FILTER_SAMPLE_RATE,
                     m_fftLen,
-                    oclResponses[idx * 2],
-                    oclResponses[idx * 2 + 1],
+                    mOCLResponses[idx * 2],
+                    mOCLResponses[idx * 2 + 1],
                     GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
                     50
                     );
             }
             else
             {
-                memset(responses[idx * 2], 0, sizeof(float )* m_fftLen);
-                memset(responses[idx * 2 + 1], 0, sizeof(float) * m_fftLen);
+                memset(mResponses[idx * 2], 0, sizeof(float )* m_fftLen);
+                memset(mResponses[idx * 2 + 1], 0, sizeof(float) * m_fftLen);
 
                 m_pTAVR->generateRoomResponse(
                     room,
@@ -1308,8 +1302,8 @@ int Audio3D::UpdateProc()
                     ears,
                     FILTER_SAMPLE_RATE,
                     m_fftLen,
-                    responses[idx * 2],
-                    responses[idx * 2 + 1],
+                    mResponses[idx * 2],
+                    mResponses[idx * 2 + 1],
                     GENROOM_LIMIT_BOUNCES,
                     50
                     );
@@ -1320,13 +1314,13 @@ int Audio3D::UpdateProc()
 
         while(mRunning && !mStop)
         {
-            if(m_useClMemBufs)
+            if(mUseClMemBufs)
             {
-                ret = m_spConvolution->UpdateResponseTD(oclResponses, m_fftLen, nullptr, IR_UPDATE_MODE);
+                ret = m_spConvolution->UpdateResponseTD(mOCLResponses, m_fftLen, nullptr, IR_UPDATE_MODE);
             }
             else
             {
-                ret = m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, IR_UPDATE_MODE);
+                ret = m_spConvolution->UpdateResponseTD(mResponses, m_fftLen, nullptr, IR_UPDATE_MODE);
             }
 
             if(ret != AMF_INPUT_FULL)
@@ -1352,8 +1346,8 @@ int Audio3D::exportImpulseResponse(int srcNumber, char * fileName)
     int convolutionLength = this->m_fftLen;
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 
-    float *leftResponse = responses[0];
-    float *rightResponse = responses[1];
+    float *leftResponse = mResponses[0];
+    float *rightResponse = mResponses[1];
     short *sSamples = new short[2 * convolutionLength];
      memset(sSamples, 0, 2 * convolutionLength*sizeof(short));
 

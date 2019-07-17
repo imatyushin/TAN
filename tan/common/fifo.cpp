@@ -216,7 +216,7 @@ void FifoBuffer::flush(){
 }
 
 //
-uint32_t Fifo::Write(uint8_t *data, size_t size)
+uint32_t Fifo::Write(const uint8_t *data, size_t size)
 {
     auto bufferDataSize(mQueueSize.load());
     auto bufferInPosition(mBufferInPosition.load());
@@ -284,6 +284,11 @@ uint32_t Fifo::Write(uint8_t *data, size_t size)
         size -= size2Write;
         sizeWritten += size2Write;
         bufferInPosition += size2Write;
+    }
+
+    if(bufferInPosition == mBuffer.size())
+    {
+        bufferInPosition = 0;
     }
 
     mBufferInPosition.store(bufferInPosition);
@@ -386,7 +391,6 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
     }*/
 
     mBufferOutPosition.store(bufferOutPosition);
-
     mQueueSize -= sizeFilled;
 
     return sizeFilled;

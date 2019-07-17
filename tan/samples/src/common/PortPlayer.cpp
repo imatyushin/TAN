@@ -104,33 +104,60 @@ PlayerError         PortPlayer::Init
         return PlayerError::PCMError;
     }
 
-    auto device(Pa_GetDefaultOutputDevice());
-    if(paNoDevice == device)
+    //setup output device
+    PaDeviceIndex outputDevice(Pa_GetDefaultOutputDevice());
+    if(paNoDevice == outputDevice)
     {
         std::cerr << "Error: Can't get default output device" << std::endl;
 
         return PlayerError::PCMError;
     }
 
-    auto deviceInfo(Pa_GetDeviceInfo(device));
-    if(!deviceInfo)
+    auto outputDeviceInfo(Pa_GetDeviceInfo(outputDevice));
+    if(!outputDeviceInfo)
     {
-        std::cerr << "Error: Can't get default device information" << std::endl;
+        std::cerr << "Error: Can't get default output device information" << std::endl;
 
         return PlayerError::PCMError;
     }
 
-	PaStreamParameters streamParameters = {};
+    PaStreamParameters outputStreamParameters = {};
+    outputStreamParameters.device = outputDevice;
+    outputStreamParameters.channelCount = channelsCount;
+    outputStreamParameters.sampleFormat = sampleFormat;
+    outputStreamParameters.suggestedLatency = outputDeviceInfo->defaultHighOutputLatency;
 
-    streamParameters.device = device;
-    streamParameters.channelCount = channelsCount;
-    streamParameters.sampleFormat = sampleFormat;
-    streamParameters.suggestedLatency = deviceInfo->defaultHighOutputLatency;
+    //setup input device
+    PaDeviceIndex inputDevice(paNoDevice);
+    PaStreamParameters inputStreamParameters = {};
+
+    if(record)
+    {
+        if(paNoDevice == (inputDevice = Pa_GetDefaultInputDevice()))
+        {
+            std::cerr << "Error: Can't get default input device" << std::endl;
+
+            return PlayerError::PCMError;
+        }
+
+        auto inputDeviceInfo(Pa_GetDeviceInfo(inputDevice));
+        if(!inputDeviceInfo)
+        {
+            std::cerr << "Error: Can't get default input device information" << std::endl;
+
+            return PlayerError::PCMError;
+        }
+
+        inputStreamParameters.device = inputDevice;
+        inputStreamParameters.channelCount = channelsCount;
+        inputStreamParameters.sampleFormat = sampleFormat;
+        inputStreamParameters.suggestedLatency = inputDeviceInfo->defaultHighInputLatency;
+    }
 
 	returnCode = Pa_OpenStream(
 		&mStream,
-        record ? &streamParameters : nullptr,
-		&streamParameters,
+        record ? &inputStreamParameters : nullptr,
+		play ? &outputStreamParameters : nullptr,
 		samplesPerSecond,
 		paFramesPerBufferUnspecified, // framesPerBuffer
 		0, // flags
@@ -215,8 +242,8 @@ int                 PortPlayer::StreamCallbackImplementation
                     statusFlags
 )
 {
-    std::memcpy(output, input, frameCount * mChannelsCount * (mBitsPerSample / 8));
-    return paContinue;
+    //std::memcpy(output, input, frameCount * mChannelsCount * (mBitsPerSample / 8));
+    //return paContinue;
 
     auto dataSize(frameCount * mChannelsCount * (mBitsPerSample / 8));
 
@@ -225,15 +252,18 @@ int                 PortPlayer::StreamCallbackImplementation
 
     if(sizePlayed < dataSize)
     {
-        std::memset(output + sizePlayed, 0, dataSize - sizePlayed);
+        std::memset(static_cast<uint8_t *>(output) + sizePlayed, 0, dataSize - sizePlayed);
     }
 
     //record
-    auto sizeRecorded(
-        mFifoRecordBuffer.Write(
-            static_cast<uint8_t *>(output), dataSize
-            )
-        );
+    if(input)
+    {
+        auto sizeRecorded(
+            mFifoRecordBuffer.Write(
+                static_cast<const uint8_t *>(input), dataSize
+                )
+            );
+    }
 
 	return paContinue;
 }

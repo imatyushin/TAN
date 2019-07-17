@@ -83,7 +83,7 @@ public:
         mBufferOutPosition.store(0);
     }
 
-    uint32_t Write(uint8_t *data, size_t size);
+    uint32_t Write(const uint8_t *data, size_t size);
     uint32_t Read(uint8_t *outputBuffer, size_t size2Fill);
 };
 
