@@ -581,7 +581,7 @@ amf_handle AMF_STD_CALL amf_load_library(const wchar_t* filename)
     if(!ret)
     {
         const char *err = dlerror();
-        fprintf(stderr, "\nError: %s\n", filename, err);
+        fprintf(stderr, "\nError: %s\n", err);
     }
 
     return ret;

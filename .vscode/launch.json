@@ -15,7 +15,7 @@
             "environment": [
                 {
                     "name": "AMF_DLL_NAME",
-                    "value": "/opt/amdgpu-pro/lib/x86_64-linux-gnu/libamfrt64.so"
+                    "value": "/opt/amdgpu-pro/lib/x86_64-linux-gnu/libamfrt64.so2"
                 }
             ],
             "externalConsole": false,
