@@ -47,37 +47,17 @@ set(
   SOURCE_LIB
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
+  ../../../../common/cpucaps.cpp
   )
 
 if(WIN32)
   list(APPEND SOURCE_LIB ../../../src/TrueAudioVR/dllmain.cpp)
-  list(APPEND SOURCE_LIB ../../../../common/cpucaps.cpp)
-  list(APPEND SOURCE_LIB ../../../../../amf/public/common/Windows/ThreadWindows.cpp)
 else()
-  list(APPEND SOURCE_LIB ../../../../../amf/public/common/Linux/ThreadLinux.cpp)
 endif()
 
 set(
   HEADER_LIB
-  ../../../../../amf/public/common/TraceAdapter.h
-  ../../../../../amf/public/include/core/AudioBuffer.h
-  ../../../../../amf/public/include/core/Buffer.h
-  ../../../../../amf/public/include/core/Compute.h
-  ../../../../../amf/public/include/core/ComputeFactory.h
-  ../../../../../amf/public/include/core/Context.h
-  ../../../../../amf/public/include/core/Data.h
-  ../../../../../amf/public/include/core/Debug.h
-  ../../../../../amf/public/include/core/Factory.h
-  ../../../../../amf/public/include/core/Interface.h
-  ../../../../../amf/public/include/core/Plane.h
-  ../../../../../amf/public/include/core/Platform.h
-  ../../../../../amf/public/include/core/PropertyStorage.h
-  ../../../../../amf/public/include/core/PropertyStorageEx.h
-  ../../../../../amf/public/include/core/Result.h
-  ../../../../../amf/public/include/core/Surface.h
-  ../../../../../amf/public/include/core/Trace.h
-  ../../../../../amf/public/include/core/Variant.h
-  ../../../../../amf/public/include/core/Version.h
+
   ../../../src/TrueAudioVR/Header.h
   ../../../src/TrueAudioVR/resource.h
   ../../../src/TrueAudioVR/resource1.h
@@ -122,6 +102,7 @@ generateCLKernelHeader(
 
 # linking
 target_link_libraries(TrueAudioVR ${OpenCL_LIBRARY})
+target_link_libraries(TrueAudioVR amf)
 
 if(NOT WIN32)
 target_compile_options(TrueAudioVR PUBLIC -mavx2)

@@ -105,21 +105,36 @@ extern "C"
     typedef AMF_RESULT             (AMF_CDECL_CALL *AMFQueryVersion_Fn)(amf_uint64 *pVersion);
 #endif
 
-#if defined(_WIN32)
-    #if defined(_M_AMD64)
-        #define AMF_DLL_NAME    L"amfrt64.dll"
-        #define AMF_DLL_NAMEA   "amfrt64.dll"
-    #else
-        #define AMF_DLL_NAME    L"amfrt32.dll"
-        #define AMF_DLL_NAMEA   "amfrt32.dll"
-    #endif
-#elif defined(__linux__)
-    #if defined(__x86_64__)
-        #define AMF_DLL_NAME    L"/opt/amdgpu-pro/lib/x86_64-linux-gnu/libamfrt64.so" //L"libamfrt64.so"
-        #define AMF_DLL_NAMEA   "/opt/amdgpu-pro/lib/x86_64-linux-gnu/libamfrt64.so"
-    #else
-        #define AMF_DLL_NAME    L"libamfrt32.so.1"
-        #define AMF_DLL_NAMEA   "libamfrt32.so.1"
+//to allow external setting of AMF library name
+#if defined(AMF_LIBRARY_NAME)
+
+    #define AMF_INTERNAL_EXPAND(arg) #arg
+    #define AMF_INTERNAL_EXPAND1(arg) AMF_INTERNAL_EXPAND(arg)
+    #define AMF_INTERNAL_CONCAT(A, B) A ## B
+    #define AMF_INTERNAL_CONCAT1(A, B) AMF_INTERNAL_CONCAT(A, B)
+
+    //#define AMF_DLL_NAME    AMF_INTERNAL_CONCAT1(L, AMF_LIBRARY_NAME/*AMF_INTERNAL_EXPAND1(AMF_LIBRARY_NAME)*/)
+    //#define AMF_DLL_NAMEA   /*AMF_INTERNAL_EXPAND1(*/AMF_LIBRARY_NAME/*)*/
+    #define AMF_DLL_NAME    AMF_INTERNAL_CONCAT1(L, AMF_LIBRARY_NAME)
+    #define AMF_DLL_NAMEA   AMF_INTERNAL_EXPAND1(AMF_LIBRARY_NAME)
+
+#else
+    #if defined(_WIN32)
+        #if defined(_M_AMD64)
+            #define AMF_DLL_NAME    L"amfrt64.dll"
+            #define AMF_DLL_NAMEA   "amfrt64.dll"
+        #else
+            #define AMF_DLL_NAME    L"amfrt32.dll"
+            #define AMF_DLL_NAMEA   "amfrt32.dll"
+        #endif
+    #elif defined(__linux__)
+        #if defined(__x86_64__)
+            #define AMF_DLL_NAME    L"libamfrt64.so.1"
+            #define AMF_DLL_NAMEA   "libamfrt64.so.1"
+        #else
+            #define AMF_DLL_NAME    L"libamfrt32.so.1"
+            #define AMF_DLL_NAMEA   "libamfrt32.so.1"
+        #endif
     #endif
 #endif
 //----------------------------------------------------------------------------------------------

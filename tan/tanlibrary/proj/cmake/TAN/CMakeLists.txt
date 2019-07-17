@@ -51,15 +51,11 @@ include_directories(../../../..)
 # sources
 set(
   SOURCE_LIB
-  ../../../../../amf/public/common/AMFFactory.cpp
-  ../../../../../amf/public/common/AMFSTL.cpp
-  ../../../../../amf/public/common/PropertyStorageExImpl.cpp
-  ../../../../../amf/public/common/Thread.cpp
-  ../../../../../amf/public/common/TraceAdapter.cpp
-  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
   ../../../src/common/OCLHelper.cpp
+
   ../../../../common/StringUtility.cpp
+  ../../../../common/cpucaps.cpp
 
   ../../../src/TrueAudioNext/converter/ConverterImpl.cpp
   ../../../src/TrueAudioNext/convolution/ConvolutionImpl.cpp
@@ -74,37 +70,12 @@ set(
 
 if(WIN32)
   list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/windows/dll.cpp)
-  list(APPEND SOURCE_LIB ../../../../common/cpucaps.cpp)
 else()
   list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/linux/dll.cpp)
 endif()
 
 set(
   HEADER_LIB
-  ../../../../../amf/public/common/AMFSTL.h
-  ../../../../../amf/public/common/InterfaceImpl.h
-  ../../../../../amf/public/common/ObservableImpl.h
-  ../../../../../amf/public/common/PropertyStorageExImpl.h
-  ../../../../../amf/public/common/PropertyStorageImpl.h
-  ../../../../../amf/public/common/TraceAdapter.h
-  ../../../../../amf/public/include/core/AudioBuffer.h
-  ../../../../../amf/public/include/core/Buffer.h
-  ../../../../../amf/public/include/core/Compute.h
-  ../../../../../amf/public/include/core/ComputeFactory.h
-  ../../../../../amf/public/include/core/Context.h
-  ../../../../../amf/public/include/core/Data.h
-  ../../../../../amf/public/include/core/Debug.h
-  ../../../../../amf/public/include/core/Factory.h
-  ../../../../../amf/public/include/core/Interface.h
-  ../../../../../amf/public/include/core/Plane.h
-  ../../../../../amf/public/include/core/Platform.h
-  ../../../../../amf/public/include/core/PropertyStorage.h
-  ../../../../../amf/public/include/core/PropertyStorageEx.h
-  ../../../../../amf/public/include/core/Result.h
-  ../../../../../amf/public/include/core/Surface.h
-  ../../../../../amf/public/include/core/Trace.h
-  ../../../../../amf/public/include/core/Variant.h
-  ../../../../../amf/public/include/core/Version.h
 
   ../../../include/TrueAudioNext.h
   ../../../src/common/OCLHelper.h

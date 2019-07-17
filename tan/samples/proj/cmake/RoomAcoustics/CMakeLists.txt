@@ -79,9 +79,6 @@ if(WIN32)
       #resources
       ../../../src/RoomAcoustics/RoomAcoustics.rc
 
-      ../../../../../amf/public/common/AMFFactory.cpp
-      ../../../../../amf/public/common/Windows/ThreadWindows.cpp
-
       ../../../src/common/GpuUtils.cpp
       ../../../src/common/SimpleVRaudio.cpp
       ../../../src/common/WASAPIPlayer.cpp
@@ -100,24 +97,6 @@ if(WIN32)
 
     set(
       HEADER_EXE
-      ../../../../../amf/public/include/core/AudioBuffer.h
-      ../../../../../amf/public/include/core/Buffer.h
-      ../../../../../amf/public/include/core/Compute.h
-      ../../../../../amf/public/include/core/ComputeFactory.h
-      ../../../../../amf/public/include/core/Context.h
-      ../../../../../amf/public/include/core/Data.h
-      ../../../../../amf/public/include/core/Debug.h
-      ../../../../../amf/public/include/core/Factory.h
-      ../../../../../amf/public/include/core/Interface.h
-      ../../../../../amf/public/include/core/Plane.h
-      ../../../../../amf/public/include/core/Platform.h
-      ../../../../../amf/public/include/core/PropertyStorage.h
-      ../../../../../amf/public/include/core/PropertyStorageEx.h
-      ../../../../../amf/public/include/core/Result.h
-      ../../../../../amf/public/include/core/Surface.h
-      ../../../../../amf/public/include/core/Trace.h
-      ../../../../../amf/public/include/core/Variant.h
-      ../../../../../amf/public/include/core/Version.h
 
       ../../../../tanlibrary/include/TrueAudioNext.h
 
@@ -148,6 +127,7 @@ if(WIN32)
       ${HEADER_EXE}
       )
 
+    target_link_libraries(RoomAcoustics amf)
     target_link_libraries(RoomAcoustics TrueAudioNext)
     target_link_libraries(RoomAcoustics "version.lib")
     target_link_libraries(RoomAcoustics ${OpenCL_LIBRARY})

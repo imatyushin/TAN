@@ -63,16 +63,6 @@ ADD_DEFINITIONS(-D_UNICODE)
 # sources
 set(
   SOURCE_EXE
-  ../../../../../amf/public/common/AMFFactory.cpp
-  ../../../../../amf/public/common/AMFSTL.cpp
-  ../../../../../amf/public/common/DataStreamFactory.cpp
-  ../../../../../amf/public/common/DataStreamFile.cpp
-  ../../../../../amf/public/common/DataStreamMemory.cpp
-  ../../../../../amf/public/common/IOCapsImpl.cpp
-  ../../../../../amf/public/common/PropertyStorageExImpl.cpp
-  ../../../../../amf/public/common/Thread.cpp
-  ../../../../../amf/public/common/TraceAdapter.cpp
-  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
 
   ../../../src/common/GpuUtils.cpp
 
@@ -88,37 +78,6 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../../amf/public/common/AMFFactory.h
-  ../../../../../amf/public/common/AMFSTL.h
-  ../../../../../amf/public/common/ByteArray.h
-  ../../../../../amf/public/common/DataStream.h
-  ../../../../../amf/public/common/DataStreamFile.h
-  ../../../../../amf/public/common/DataStreamMemory.h
-  ../../../../../amf/public/common/InterfaceImpl.h
-  ../../../../../amf/public/common/IOCapsImpl.h
-  ../../../../../amf/public/common/ObservableImpl.h
-  ../../../../../amf/public/common/PropertyStorageExImpl.h
-  ../../../../../amf/public/common/PropertyStorageImpl.h
-  ../../../../../amf/public/common/Thread.h
-  ../../../../../amf/public/common/TraceAdapter.h
-  ../../../../../amf/public/include/core/AudioBuffer.h
-  ../../../../../amf/public/include/core/Buffer.h
-  ../../../../../amf/public/include/core/Compute.h
-  ../../../../../amf/public/include/core/ComputeFactory.h
-  ../../../../../amf/public/include/core/Context.h
-  ../../../../../amf/public/include/core/Data.h
-  ../../../../../amf/public/include/core/Debug.h
-  ../../../../../amf/public/include/core/Factory.h
-  ../../../../../amf/public/include/core/Interface.h
-  ../../../../../amf/public/include/core/Plane.h
-  ../../../../../amf/public/include/core/Platform.h
-  ../../../../../amf/public/include/core/PropertyStorage.h
-  ../../../../../amf/public/include/core/PropertyStorageEx.h
-  ../../../../../amf/public/include/core/Result.h
-  ../../../../../amf/public/include/core/Surface.h
-  ../../../../../amf/public/include/core/Trace.h
-  ../../../../../amf/public/include/core/Variant.h
-  ../../../../../amf/public/include/core/Version.h
 
   ../../../src/common/WASAPIUtils.h
 
@@ -153,6 +112,7 @@ add_executable(
   ${MOC_HEADERS}
   )
 
+target_link_libraries(ReverbMixer amf)
 target_link_libraries(ReverbMixer TrueAudioNext)
 target_link_libraries(ReverbMixer GPUUtilities)
 target_link_libraries(ReverbMixer Qt5::Widgets)

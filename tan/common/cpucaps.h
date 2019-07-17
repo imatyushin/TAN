@@ -34,38 +34,6 @@
 #include <stdint.h>
 #endif
 
-static void GetCpuID
-(
-	int32_t registers[4], //out
-	int32_t functionID,
-	int32_t subfunctionID   = 0
-)
-{
-#ifdef _WIN32
-	if(!subfunctionID)
-	{
-		__cpuid((int *)registers, (int)functionID);
-	}
-	else
-	{
-		__cpuidex((int *)registers, (int)functionID, subfunctionID);
-	}
-#else
-
-	asm volatile
-	(
-		"cpuid":
-		"=a" (registers[0]),
-		"=b" (registers[1]),
-		"=c" (registers[2]),
-		"=d" (registers[3]):
-		"a" (functionID),
-		"c" (subfunctionID)
-	);
-
-#endif
-}
-
 class InstructionSet
 {
 	// forward declarations
@@ -139,6 +107,38 @@ private:
 
 	class InstructionSet_Internal
 	{
+	protected:
+		void GetCpuID
+		(
+			int32_t registers[4], //out
+			int32_t functionID,
+			int32_t subfunctionID   = 0
+		)
+		{
+		#ifdef _WIN32
+			if(!subfunctionID)
+			{
+				__cpuid((int *)registers, (int)functionID);
+			}
+			else
+			{
+				__cpuidex((int *)registers, (int)functionID, subfunctionID);
+			}
+		#else
+
+			asm volatile
+			(
+				"cpuid":
+				"=a" (registers[0]),
+				"=b" (registers[1]),
+				"=c" (registers[2]),
+				"=d" (registers[3]):
+				"a" (functionID),
+				"c" (subfunctionID)
+			);
+
+		#endif
+		}
 	public:
 		InstructionSet_Internal()
 			: nIds_( 0 ),

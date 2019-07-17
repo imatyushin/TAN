@@ -37,7 +37,6 @@
 #include <sstream>
 #include <cmath>
 
-//const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool AmdTrueAudioVR::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 const float AmdTrueAudioVR::S = 340.0; //Speed of sound

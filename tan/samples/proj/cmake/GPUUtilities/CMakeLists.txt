@@ -46,12 +46,7 @@ endif()
 # sources
 set(
   SOURCE_LIB
-  ../../../../../amf/public/common/AMFFactory.cpp
-  ../../../../../amf/public/common/AMFSTL.cpp
-  ../../../../../amf/public/common/PropertyStorageExImpl.cpp
-  ../../../../../amf/public/common/Thread.cpp
-  ../../../../../amf/public/common/TraceAdapter.cpp
-  ../../../../../amf/public/common/Windows/ThreadWindows.cpp
+
   ../../../src/ADL/ADLquery.cpp
   ../../../src/GPUUtilities/GPUUtilities.cpp
   )
@@ -62,30 +57,7 @@ endif()
 
 set(
   HEADER_LIB
-  ../../../../../amf/public/common/AMFSTL.h
-  ../../../../../amf/public/common/InterfaceImpl.h
-  ../../../../../amf/public/common/ObservableImpl.h
-  ../../../../../amf/public/common/PropertyStorageExImpl.h
-  ../../../../../amf/public/common/PropertyStorageImpl.h
-  ../../../../../amf/public/common/TraceAdapter.h
-  ../../../../../amf/public/include/core/AudioBuffer.h
-  ../../../../../amf/public/include/core/Buffer.h
-  ../../../../../amf/public/include/core/Compute.h
-  ../../../../../amf/public/include/core/ComputeFactory.h
-  ../../../../../amf/public/include/core/Context.h
-  ../../../../../amf/public/include/core/Data.h
-  ../../../../../amf/public/include/core/Debug.h
-  ../../../../../amf/public/include/core/Factory.h
-  ../../../../../amf/public/include/core/Interface.h
-  ../../../../../amf/public/include/core/Plane.h
-  ../../../../../amf/public/include/core/Platform.h
-  ../../../../../amf/public/include/core/PropertyStorage.h
-  ../../../../../amf/public/include/core/PropertyStorageEx.h
-  ../../../../../amf/public/include/core/Result.h
-  ../../../../../amf/public/include/core/Surface.h
-  ../../../../../amf/public/include/core/Trace.h
-  ../../../../../amf/public/include/core/Variant.h
-  ../../../../../amf/public/include/core/Version.h
+
   ../../../src/ADL/ADLQuery.h
   ../../../src/GPUUtilities/GpuUtilities.h
   ../../../src/GPUUtilities/stdafx.h
@@ -101,6 +73,7 @@ add_library(
   )
 
 # linking
+target_link_libraries(GPUUtilities amf)
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
 target_compile_options(GPUUtilities PUBLIC -g) #todo: to Debug only

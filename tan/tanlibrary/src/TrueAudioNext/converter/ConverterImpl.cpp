@@ -33,7 +33,6 @@
 
 using namespace amf;
 
-//const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool TANConverterImpl::useSSE2 = InstructionSet::SSE2();
 
 static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
