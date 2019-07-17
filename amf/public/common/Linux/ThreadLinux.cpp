@@ -576,18 +576,14 @@ amf_pts AMF_STD_CALL amf_high_precision_clock()
 //-------------------------------------------------------------------------------------------------
 amf_handle AMF_STD_CALL amf_load_library(const wchar_t* filename)
 {
-    printf("\n\namf_load_library: ");
-    wprintf(filename);
-    printf("\n\n");
-
     void *ret = dlopen(amf_from_unicode_to_multibyte(filename).c_str(), RTLD_NOW | RTLD_GLOBAL);
-    if(ret ==0 )
+
+    if(!ret)
     {
         const char *err = dlerror();
-        fprintf(stderr, err, "\n");
-
-        int a=1;
+        fprintf(stderr, "\nError: %s\n", filename, err);
     }
+
     return ret;
 }
 

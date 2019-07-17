@@ -1,5 +1,7 @@
 *CLKernel_*.h
-.vscode
+/.vscode/c_cpp_properties.json
+/.vscode/settings.json
+/.vscode/tasks.json
 /tan/tanlibrary/src/Graal/OclKernels/amdFIR_kernels.h
 /tan/samples/src/TrueAudioVR/Kernels/Fill.cl.h
 /tan/samples/src/TrueAudioVR/Kernels/GenerateRoomResponse.cl.h

@@ -14,10 +14,11 @@ include_directories(../../../../../amf)
 
 if(AMF_LIBRARY_NAME)
   message("AMF library name set to: " ${AMF_LIBRARY_NAME})
+  message("this way does not work with some lexems, use environment variable AMF_DLL_NAME instead")
+
   ADD_DEFINITIONS(-DAMF_LIBRARY_NAME=${AMF_LIBRARY_NAME})
-  ADD_DEFINITIONS(-DTESTT=-linux)
 else()
-  message("AMF will be built with default library names")
+  message("AMF will be built with default shared library name, use environment variable AMF_DLL_NAME to override it")
 endif()
 
 #ADD_DEFINITIONS(-DAMF_CORE_STATIC)

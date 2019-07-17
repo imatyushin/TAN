@@ -32,6 +32,7 @@
 
 #include "AMFFactory.h"
 #include "Thread.h"
+#include "AMFSTL.h"
 
 AMFFactoryHelper g_AMFFactory;
 
@@ -66,7 +67,11 @@ AMF_RESULT AMFFactoryHelper::Init()
         amf_atomic_inc(&m_iRefCount);
         return AMF_OK;
     }
-    m_hDLLHandle = amf_load_library(AMF_DLL_NAME);
+
+    auto amfDllNameMbs = std::getenv("AMF_DLL_NAME");
+    amf_wstring amfDllNameWide = amfDllNameMbs ? amf::amf_from_multibyte_to_unicode(amfDllNameMbs) : L"";
+
+    m_hDLLHandle = amf_load_library(amfDllNameWide.length() ? amfDllNameWide.c_str() : AMF_DLL_NAME);
     if(m_hDLLHandle == NULL)
     {
         return AMF_FAIL;

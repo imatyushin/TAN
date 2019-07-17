@@ -108,15 +108,19 @@ extern "C"
 //to allow external setting of AMF library name
 #if defined(AMF_LIBRARY_NAME)
 
-    #define AMF_INTERNAL_EXPAND(arg) #arg
-    #define AMF_INTERNAL_EXPAND1(arg) AMF_INTERNAL_EXPAND(arg)
-    #define AMF_INTERNAL_CONCAT(A, B) A ## B
-    #define AMF_INTERNAL_CONCAT1(A, B) AMF_INTERNAL_CONCAT(A, B)
+    //  todo: use environment variable 'AMF_DLL_NAME' to set shared library name instead of the following way
+    //
+    //  this way to set shared library name does not works with params
+    //  contining 'linux' '_win32' 'mac' parts
+    //  because these parts are evaluated by compiler macro preprocessor to '1' on the related platform
 
-    //#define AMF_DLL_NAME    AMF_INTERNAL_CONCAT1(L, AMF_LIBRARY_NAME/*AMF_INTERNAL_EXPAND1(AMF_LIBRARY_NAME)*/)
-    //#define AMF_DLL_NAMEA   /*AMF_INTERNAL_EXPAND1(*/AMF_LIBRARY_NAME/*)*/
-    #define AMF_DLL_NAME    AMF_INTERNAL_CONCAT1(L, AMF_LIBRARY_NAME)
-    #define AMF_DLL_NAMEA   AMF_INTERNAL_EXPAND1(AMF_LIBRARY_NAME)
+    #define AMF_INTERNAL_EXPAND(arg)    #arg
+    #define AMF_INTERNAL_EXPAND1(arg)   AMF_INTERNAL_EXPAND(arg)
+    #define AMF_INTERNAL_CONCAT(A, B)   A ## B
+    #define AMF_INTERNAL_CONCAT1(A, B)  AMF_INTERNAL_CONCAT(A, B)
+
+    #define AMF_DLL_NAME                AMF_INTERNAL_CONCAT1(L, AMF_INTERNAL_EXPAND1(AMF_LIBRARY_NAME))
+    #define AMF_DLL_NAMEA               AMF_INTERNAL_EXPAND1(AMF_LIBRARY_NAME)
 
 #else
     #if defined(_WIN32)
