@@ -32,6 +32,7 @@
 #include "IWavPlayer.h"
 #include "wav.h"
 #include "Timer.h"
+#include "Allocators.h"
 
 #include <memory>
 #include <string>
@@ -156,8 +157,16 @@ protected:
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     bool   mUseClMemBufs = false;
 
+    //attention:
+    //the following buffers must be 32-bit aligned to use AVX/SSE instructions
+
+    AllignedAllocator<float, 32>mInputFloatBufsStorage[MAX_SOURCES * 2];
     float *mInputFloatBufs[MAX_SOURCES * 2] = {nullptr};
-	float *mOutputFloatBufs[MAX_SOURCES * 2] = {nullptr};
+
+    AllignedAllocator<float, 32>mOutputFloatBufsStorage[MAX_SOURCES * 2];
+    float *mOutputFloatBufs[MAX_SOURCES * 2] = {nullptr};
+
+    AllignedAllocator<float, 32>mOutputMixFloatBufsStorage[STEREO_CHANNELS_COUNT];
     float *mOutputMixFloatBufs[2] = {nullptr};
 
 	cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};

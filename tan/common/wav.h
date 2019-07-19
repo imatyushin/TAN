@@ -133,6 +133,11 @@ struct WavContent
 	{
 		return std::chrono::milliseconds(int(1000.f * float(SamplesCount) / float(SamplesPerSecond)));
 	}
+	inline size_t
+				GetSampleSizeInBytes() const
+	{
+		return BitsPerSample / 8;
+	}
 
 	inline void Reset()
 	{

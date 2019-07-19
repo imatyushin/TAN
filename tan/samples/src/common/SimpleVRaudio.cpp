@@ -172,10 +172,8 @@ int Audio3D::Close()
     }
 
     SAFE_DELETE_ARR(mResponseBuffer);
-    for (int i = 0; i < MAX_SOURCES*2; i++){
-        SAFE_DELETE_ARR(mInputFloatBufs[i]);
-        SAFE_DELETE_ARR(mOutputFloatBufs[i]);
-
+    for (int i = 0; i < MAX_SOURCES*2; i++)
+    {
         if (mOCLResponses[i] == NULL) continue;
         clReleaseMemObject(mOCLResponses[i]);
         mOCLResponses[i] = NULL;
@@ -421,11 +419,13 @@ int Audio3D::Init
     // to optimize transfer to GPU
     mResponseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
 
+    //todo: use std::align(32, sizeof(__m256), out2, space)...
     for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
     {
         mResponses[idx] = mResponseBuffer + idx*m_fftLen;
-        mInputFloatBufs[idx] = new float[m_fftLen];
-        mOutputFloatBufs[idx] = new float[m_fftLen];
+
+        mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].Allocate(m_fftLen);
+        mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].Allocate(m_fftLen);
     }
 
     for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
@@ -437,7 +437,7 @@ int Audio3D::Init
 
     for (int i = 0; i < STEREO_CHANNELS_COUNT; i++)//Right and left channel after mixing
     {
-        mOutputMixFloatBufs[i] = new float[m_fftLen];
+        mOutputMixFloatBufs[i] = mOutputMixFloatBufsStorage[i].Allocate(m_fftLen);
         memset(mOutputMixFloatBufs[i], 0, sizeof(float)*m_fftLen);
     }
 
@@ -918,7 +918,8 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
     }
 
     if (m_useOCLOutputPipeline)
-    {   // OCL device memory objects are passed to the TANConvolution->Process method.
+    {
+        // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
         RETURN_IF_FAILED(m_spConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
@@ -966,7 +967,9 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
             outputFloatBufRight[src] = mOutputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        AMF_RESULT ret = m_spMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]);
+        AMF_RESULT ret(AMF_OK);
+
+        ret = m_spMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]);
         RETURN_IF_FALSE(ret == AMF_OK);
 
         ret = m_spMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]);
@@ -1032,12 +1035,13 @@ int Audio3D::ProcessProc()
 {
     //uint32_t bytesRecorded(0);
 
-    std::array<int16_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE> recordBuffer;
+    std::array<uint8_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t)> recordBuffer;
+    std::array<uint8_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t)> extractBuffer;
     std::array<int16_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE> outputBuffer;
 
     //FifoBuffer recFifo(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t));
-    //Fifo recordFifo;
-    //recordFifo.Reset(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * (mWavFiles[0].BitsPerSample / 8));
+    Fifo recordFifo;
+    recordFifo.Reset(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * mWavFiles[0].GetSampleSizeInBytes());
 
     int16_t *pWaves[MAX_SOURCES] = {nullptr};
     int16_t *pWaveStarts[MAX_SOURCES] = {nullptr};
@@ -1068,64 +1072,55 @@ int Audio3D::ProcessProc()
     double previousTimerValue(0.0);
     bool firstFrame(false);
 
-    uint32_t recordedBytes(0);
-
     while(!mStop)
     {
+        uint32_t bytes2Play(0);
+
         if(mSrc1EnableMic)
         {
-            //bytesRecorded = 0;
-
-            //while
-            //(
-            //    !mStop
-                //&&
-                //(recFifo.fifoLength() < mBufferSizeInBytes)
-                //recordFifo.
-            //)
-            //{
-
+            while
+            (
+                !mStop
+                &&
+                (recordFifo.GetQueueSize() < mBufferSizeInBytes)
+            )
+            {
                 // get some more:
-                recordedBytes = mPlayer->Record(
-                    (unsigned char *)&recordBuffer.front(),
-                    recordBuffer.size() * sizeof(recordBuffer[0])
+                uint32_t recordedBytes = mPlayer->Record(
+                    &recordBuffer.front(),
+                    recordBuffer.size()
                     );
 
-                /*recFifo.store(
-                    (char *)&recordBuffer.front(),
+                recordFifo.Write(
+                    &recordBuffer.front(),
                     recordedBytes
                     );
 
-                if(recordedSamplesCount < mBufferSizeInSamples)
-                {
-                    break;
-                }*/
-
                 //Sleep(5);
-                //std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
                 //std::this_thread::sleep_for(std::chrono::milliseconds(0));
-            //}
+            }
 
-            /*auto recordedBytes = recFifo.fifoLength();
-
-            recFifo.retrieve(
-                (char *)&recordBuffer.front(),
-                recordedBytes
-                );*/
-
-            if(recordedBytes)
+            if(!mStop)
             {
+                bytes2Play = uint32_t(std::min(recordFifo.GetQueueSize(), size_t(mBufferSizeInBytes)));
+
+                recordFifo.Read(
+                    &extractBuffer.front(),
+                    bytes2Play
+                    );
+
                 // [temporarily] duck the wave audio for mic audio:
                 int16_t *wavPtrTemp = pWaves[0];
-                pWaves[0] = &recordBuffer.front();
-                Process(&outputBuffer.front(), pWaves, recordedBytes);
+                pWaves[0] = (int16_t*)&extractBuffer.front();
+                Process(&outputBuffer.front(), pWaves, bytes2Play);
                 pWaves[0] = wavPtrTemp;
 
                 //to test
-                /**/
+                /** /
                 mPlayer->Play(
-                    (unsigned char *)&recordBuffer.front(),
-                    recordedBytes,
+                    &extractBuffer.front(),
+                    bytes2Extract,
                     false
                     );
                 /**/
@@ -1133,24 +1128,19 @@ int Audio3D::ProcessProc()
         }
         else
         {
+            //todo: this is not correct for common case, add size calculation
+            bytes2Play = mBufferSizeInBytes;
+
             Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
         }
 
-        continue;
+        //continue;
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
-        auto bytes2Play = mSrc1EnableMic
-            ? recordedBytes
-            : mBufferSizeInBytes
-            ;
         //memcpy(processed, &outputBuffer.front(), bytes2Play);
 
-        unsigned char *outputBufferData = (unsigned char *)&outputBuffer.front();
-
-        //todo: mBufferSizeInBytes could be too large at this point
-        //use actual filled size instead of mBufferSizeInBytes
-
         uint32_t bytesTotalPlayed(0);
+        uint8_t *outputBufferData = (uint8_t *)&outputBuffer.front();
 
         while(bytes2Play > 0 && !mStop)
         {

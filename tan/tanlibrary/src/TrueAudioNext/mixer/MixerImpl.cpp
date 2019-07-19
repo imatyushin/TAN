@@ -181,22 +181,8 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
         int n = numOfSamplesToProcess;
         while (n >= 8 && useSSE2)
         {
-            unsigned char a[32];
-            unsigned char b[32];
-
-            register __m256 *out1, *in1;
-            out1 = (__m256 *)a;
-            in1 = (__m256 *)b;
-
-            memcpy(out1, in1, 256/8);
-            *out1 = *in1;
-
-            register __m256 *out, *in;
-            out = (__m256 *)&ppBufferOutput[k];
-            in = (__m256 *)&ppBufferInput[idx][k];
-
-            *out = *in;
-
+            register __m256 *out((__m256 *)&ppBufferOutput[k]);
+            register __m256 *in((__m256 *)&ppBufferInput[idx][k]);
 
             *out = (idx == 0) ? *in : _mm256_add_ps(*out, *in);
 

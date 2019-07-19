@@ -56,6 +56,9 @@ private:
 #include <vector>
 #include <atomic>
 
+//two-threads frendly fifo
+//one thread - write
+//another thread - read
 class Fifo
 {
     std::atomic<size_t>
@@ -82,6 +85,8 @@ public:
         mBufferInPosition.store(0);
         mBufferOutPosition.store(0);
     }
+
+    inline size_t GetQueueSize() const {return mQueueSize.load();}
 
     uint32_t Write(const uint8_t *data, size_t size);
     uint32_t Read(uint8_t *outputBuffer, size_t size2Fill);
