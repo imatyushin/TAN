@@ -483,6 +483,7 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 		fhd.wave.fmt.info.nBitsPerSample != 32)
     {
         std::cerr << "Error: invalid bits per sample value" << std::endl;
+		fclose(fpIn);
 
         return false;
 	}
@@ -495,6 +496,7 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 	if(Data.size() != wavDataSize)
 	{
 		std::cerr << "Error: could not allocate memory for wav file" << std::endl;
+		fclose(fpIn);
 
 		return false;
 	}

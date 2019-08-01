@@ -320,18 +320,19 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     //AMF_RETURN_IF_FALSE(checkOpenCL2_XCompatibility(queue), AMF_NO_DEVICE, L"Device has no OpenCL 2.0 support.");
 
     // Setting the AMFContext device type
-    if (pAMFContext != nullptr)
+    if(pAMFContext)
     {
         int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU) ? AMF_CONTEXT_DEVICE_TYPE_GPU : AMF_CONTEXT_DEVICE_TYPE_CPU;
         pAMFContext->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
+
+        // Initializing the AMFContexts, and getting the AMFCompute from it
+        AMFCompute* pAMFCompute = NULL;
+        AMF_RESULT res = pAMFContext->InitOpenCL(queue);
+        AMF_RETURN_IF_FAILED(res, L"InitOpenCL() failed");
+        pAMFContext->GetCompute(AMF_MEMORY_OPENCL, &pAMFCompute);
+        AMF_RETURN_IF_FALSE(pAMFCompute != NULL, AMF_FAIL, L"Could not get the AMFCompute.");
+        pCompute = pAMFCompute;
     }
-    // Initializing the AMFContexts, and getting the AMFCompute from it
-    AMFCompute* pAMFCompute = NULL;
-    AMF_RESULT res = pAMFContext->InitOpenCL(queue);
-    AMF_RETURN_IF_FAILED(res, L"InitOpenCL() failed");
-    pAMFContext->GetCompute(AMF_MEMORY_OPENCL, &pAMFCompute);
-    AMF_RETURN_IF_FALSE(pAMFCompute != NULL, AMF_FAIL, L"Could not get the AMFCompute.");
-    pCompute = pAMFCompute;
 
     return AMF_OK;
 }
