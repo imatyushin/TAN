@@ -178,14 +178,15 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 100, devNames[k], NULL);
                 std::cout << "GPU device: " << devNames[k] << std::endl;
 
-                cl_device_topology_amd pciBusInfo;
+                throw "not supported";
+                /*cl_device_topology_amd pciBusInfo;
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
                 if (status == CL_SUCCESS){
                     fprintf(stdout, "   PCI bus: %d device: %d function: %d\n", pciBusInfo.pcie.bus, pciBusInfo.pcie.device, pciBusInfo.pcie.function);
                 }
                 cl_uint max_CUs = 0;
                 clGetDeviceInfo(devices[n], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &max_CUs, NULL);
-                fprintf(stdout, "   max compute units: %d\n", max_CUs);
+                fprintf(stdout, "   max compute units: %d\n", max_CUs);*/
             }
         }
 
@@ -366,8 +367,9 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
     cl_command_queue cmdQueue = NULL;
 
     // Create a command queue
-
-    if (flag != 0) {
+#if !defined(__APPLE__) && !defined(__MACOSX)
+    if (flag != 0)
+    {
         // use clCreateCommandQueueWithProperties to pass custom queue properties to driver:
         const cl_queue_properties cprops[] = {
             CL_QUEUE_PROPERTIES,
@@ -379,10 +381,13 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
         // OpenCL 2.0
         cmdQueue = clCreateCommandQueueWithProperties(context, device, cprops, &error);
     }
-    else {
+    else
+#else
+    {
         // OpenCL 1.2
         cmdQueue = clCreateCommandQueue(context, device, NULL, &error);
     }
+#endif
 
     return cmdQueue;
 }
@@ -642,7 +647,8 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
 
 
                     //hack extra stuff
-                    cl_device_topology_amd pciBusInfo;
+                    throw "not supported";
+                    /*cl_device_topology_amd pciBusInfo;
                     memset(&pciBusInfo, 0, sizeof(pciBusInfo));
 
                     status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
@@ -667,7 +673,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
 
                         }
                     }
-
+                    */
 
                     //{
                     ////    // hack wglGetCurrentContext needs OpenGL32.lib

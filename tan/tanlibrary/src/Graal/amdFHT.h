@@ -35,7 +35,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
+#endif
 #include <math.h>
 #include <numeric>
 #include <stdint.h>
@@ -43,7 +45,7 @@
 
 // http://www.elektronika.kvalitne.cz/ATMEL/necoteorie/transformation/AVRFHT/AVRFHT.html
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 */
 

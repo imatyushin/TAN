@@ -34,7 +34,7 @@
 #include "../Thread.h"
 
 
-#if defined (__linux)
+#if defined (__linux) || defined(__APPLE__) || defined(__MACOSX)
 
 #if defined(__GNUC__)
     //disable gcc warinings on STL code
@@ -47,7 +47,9 @@
 #include <algorithm>
 #include <dirent.h>
 #include <fnmatch.h>
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
+#endif
 #include <pwd.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -83,8 +85,8 @@ void perror(const char* errorModule)
     strerror_r(errno, buf, sizeof(buf));
     fprintf(stderr, "%s: %s", buf, errorModule);
 #else
-    char* err = strerror_r(errno, buf, sizeof(buf));
-    fprintf(stderr, "%s: %s", err, errorModule);
+    /*char* err = */strerror_r(errno, buf, sizeof(buf));
+    fprintf(stderr, "%s: %s", buf, errorModule);
 #endif
 
     exit(1);
@@ -92,7 +94,8 @@ void perror(const char* errorModule)
 
 amf_uint32 AMF_STD_CALL get_current_thread_id()
 {
-    return static_cast<amf_uint32>(pthread_self());
+    throw "Error: not implemented!";
+    //return static_cast<amf_uint64>(pthread_self());
 }
 
 // int clock_gettime(clockid_t clk_id, struct timespec *tp);
@@ -413,7 +416,8 @@ bool AMF_STD_CALL amf_delete_semaphore(amf_handle hsemaphore)
 //----------------------------------------------------------------------------------------
 bool AMF_STD_CALL amf_wait_for_semaphore(amf_handle hsemaphore, amf_ulong timeout)
 {
-    if(hsemaphore == NULL)
+    throw "Not implemented!";
+    /*if(hsemaphore == NULL)
     {
         return true;
     }
@@ -421,8 +425,8 @@ bool AMF_STD_CALL amf_wait_for_semaphore(amf_handle hsemaphore, amf_ulong timeou
     timespec wait_time; //absolute time
     clock_gettime(CLOCK_REALTIME, &wait_time);
 
-    wait_time.tv_sec += timeout / 1000;      /* Seconds */
-    wait_time.tv_nsec += (timeout - (timeout / 1000) * 1000) * 1000;     /* Nanoseconds [0 .. 999999999] */
+    wait_time.tv_sec += timeout / 1000;      /* Seconds * /
+    wait_time.tv_nsec += (timeout - (timeout / 1000) * 1000) * 1000;     /* Nanoseconds [0 .. 999999999] * /
 
     sem_t* semaphore = (sem_t*)hsemaphore;
     if(timeout != AMF_INFINITE)
@@ -432,7 +436,7 @@ bool AMF_STD_CALL amf_wait_for_semaphore(amf_handle hsemaphore, amf_ulong timeou
     else
     {
         return sem_wait(semaphore) == 0;
-    }
+    }*/
 }
 //----------------------------------------------------------------------------------------
 bool AMF_STD_CALL amf_release_semaphore(amf_handle hsemaphore, amf_long iCount, amf_long* iOldCount)
@@ -537,7 +541,8 @@ void AMF_STD_CALL amf_virtual_free(void* ptr)
 //----------------------------------------------------------------------------------------
 void* AMF_STD_CALL amf_aligned_alloc(size_t count, size_t alignment)
 {
-    return memalign(alignment, count);
+    throw "Not implpemented!";
+    //return memalign(alignment, count);
 }
 //----------------------------------------------------------------------------------------
 void AMF_STD_CALL amf_aligned_free(void* ptr)

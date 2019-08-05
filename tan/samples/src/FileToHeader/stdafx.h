@@ -15,7 +15,14 @@
 
 #else
 
+#include <errno.h>
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+#ifndef errno_t
 #define errno_t char
+#endif
+#endif
+
 errno_t fopen_s(FILE **f, const char *name, const char *mode);
 errno_t _wfopen_s(FILE **f, const wchar_t *name, const wchar_t *mode);
 

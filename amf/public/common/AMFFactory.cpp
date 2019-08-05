@@ -165,7 +165,7 @@ AMF_RESULT  AMFFactoryHelper::LoadExternalComponent(amf::AMFContext* pContext, c
     {
 #if defined(_WIN32)
          if (wcsicmp(it->m_DLL.c_str(), dll) == 0) // ignore case on Windows
-#elif defined(__linux) // Linux
+#elif defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
         if (wcscmp(it->m_DLL.c_str(), dll) == 0) // case sensitive on Linux
 #endif
         {
@@ -220,7 +220,7 @@ AMF_RESULT  AMFFactoryHelper::UnLoadExternalComponent(const wchar_t* dll)
     {
 #if defined(_WIN32)
          if (wcsicmp(it->m_DLL.c_str(), dll) == 0) // ignore case on Windows
-#elif defined(__linux) // Linux
+#elif defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
         if (wcscmp(it->m_DLL.c_str(), dll) == 0) // case sensitive on Linux
 #endif
         {

@@ -60,6 +60,9 @@ namespace amf
         virtual AMF_RESULT          AMF_STD_CALL SetCacheFolder(const wchar_t* path) = 0;
         virtual const wchar_t*      AMF_STD_CALL GetCacheFolder() = 0;
         virtual AMF_RESULT          AMF_STD_CALL GetDebug(AMFDebug** ppDebug) = 0;
+#if !defined(__APPLE__) && !defined(__MACOSX)
+        AMF_RESULT          (AMF_STD_CALL *CreateComponent)(AMFFactory* pThis, AMFContext* pContext, const wchar_t* id, AMFComponent** ppComponent);
+#endif
         virtual AMF_RESULT          AMF_STD_CALL GetTrace(AMFTrace** ppTrace) = 0;
         virtual AMF_RESULT          AMF_STD_CALL GetPrograms(AMFPrograms** ppPrograms) = 0;
    };
@@ -69,7 +72,6 @@ namespace amf
     typedef struct AMFFactoryVtbl
     {
         AMF_RESULT          (AMF_STD_CALL *CreateContext)(AMFFactory* pThis, AMFContext** ppContext);
-        AMF_RESULT          (AMF_STD_CALL *CreateComponent)(AMFFactory* pThis, AMFContext* pContext, const wchar_t* id, AMFComponent** ppComponent);
         AMF_RESULT          (AMF_STD_CALL *SetCacheFolder)(AMFFactory* pThis, const wchar_t* path);
         const wchar_t*      (AMF_STD_CALL *GetCacheFolder)(AMFFactory* pThis);
         AMF_RESULT          (AMF_STD_CALL *GetDebug)(AMFFactory* pThis, AMFDebug** ppDebug);
@@ -131,7 +133,7 @@ extern "C"
             #define AMF_DLL_NAME    L"amfrt32.dll"
             #define AMF_DLL_NAMEA   "amfrt32.dll"
         #endif
-    #elif defined(__linux__)
+    #elif defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
         #if defined(__x86_64__)
             #define AMF_DLL_NAME    L"libamfrt64.so.1"
             #define AMF_DLL_NAMEA   "libamfrt64.so.1"

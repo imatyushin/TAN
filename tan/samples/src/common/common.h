@@ -33,8 +33,12 @@
 
 #else
 
+#include <errno.h>
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #ifndef errno_t
 #define errno_t char
+#endif
 #endif
 
 #ifndef _WIN32

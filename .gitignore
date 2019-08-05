@@ -6,5 +6,8 @@
 /tan/samples/src/TrueAudioVR/Kernels/Fill.cl.h
 /tan/samples/src/TrueAudioVR/Kernels/GenerateRoomResponse.cl.h
 /tan/build/cmake/linux
+/tan/build/cmake/mac
 /tan/build/cmake/vs2015
 /thirdparty/portaudio/*
+/thirdparty/OpenCL-Headers/*
+.DS_Store

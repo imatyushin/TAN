@@ -33,7 +33,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
+#endif
 #include <math.h>
 #include <numeric>
 #include <stdint.h>
@@ -55,7 +57,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <windows.h>
 #else
 #include <sys/time.h>
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <linux/limits.h>
+#else
+#include <limits.h>
+#endif
 #include <unistd.h>
 #endif
 
@@ -140,7 +146,7 @@ namespace graal
 
 /**
  * graalVersionStr
- * struct to form 
+ * struct to form
  */
 static struct graalVersionStr
 {
@@ -692,7 +698,7 @@ static std::string getSdkVerStr()
 #else
 
     //todo: where is sdkVerStr defined?
-    #define sdkVerStr graalVerStr 
+    #define sdkVerStr graalVerStr
 
     sprintf(str, "AMD-APP-SDK-v%d.%d.%d%s%s (%d.%d)",
             sdkVerStr.major,
@@ -733,7 +739,7 @@ class GraalTimer
         };
 
         std::vector<Timer*> _timers;      /**< _timers vector to Timer objects */
-        
+
 
     public :
         double totalTime;                 /** total time taken */

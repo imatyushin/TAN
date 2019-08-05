@@ -21,7 +21,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <vector>
 #include <string>
 #include <fstream>
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
+#endif
 #include <cstring>
 
 /**

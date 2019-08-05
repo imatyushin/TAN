@@ -28,7 +28,9 @@
 //#include "OclKernels/GraalFHT.cl.h"
 #include "OclKernels/CLKernel_GraalFHT.h"
 
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
+#endif
 #include "public/common/Thread.h"
 #include "public/common/AMFFactory.h"           //AMF
 #include "../common/OCLHelper.h"
@@ -45,10 +47,10 @@
 #define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
 #endif
 #ifndef AMF_RETURN_IF_FAILED
-#define AMF_RETURN_IF_FAILED(exp, ...) 
+#define AMF_RETURN_IF_FAILED(exp, ...)
 #endif
 #ifndef AMF_ASSERT_OK
-#define AMF_ASSERT_OK(exp, ... /*optional format, args*/) 
+#define AMF_ASSERT_OK(exp, ... /*optional format, args*/)
 #endif
 
 namespace graal
@@ -57,12 +59,12 @@ namespace graal
 #if _MSC_VER <= 1800
     static double log2(double n)
     {
-        // log(n)/log(2) is log2.  
+        // log(n)/log(2) is log2.
         return log(n) / log(2.);
     }
 #endif
 
-CGraalConv:: CGraalConv( void ) 
+CGraalConv:: CGraalConv( void )
 {
     algorithm_ = ALG_UNI_HEAD_TAIL; // ALG_UNIFORMED;
     n_max_channels_ = 0;
@@ -106,7 +108,7 @@ CGraalConv:: CGraalConv( void )
     channels_map_ = NULL;
 // sets map
     sets_map_ = NULL;
-// history, input transformed data	
+// history, input transformed data
     history_transformed_ = NULL;
 // output data
     process2_output_staging_ = NULL;
@@ -148,7 +150,7 @@ CGraalConv:: CGraalConv( void )
 }
 
 
-CGraalConv:: ~CGraalConv( void ) 
+CGraalConv:: ~CGraalConv( void )
 {
     cleanup();
 }
@@ -224,17 +226,17 @@ CGraalConv::updateConv(
 
     }
 
-    ret = uploadConvControlMaps(_n_channels, 
+    ret = uploadConvControlMaps(_n_channels,
                                 _uploadIDs,     // upload set IDs
                                 _convIDs,       // kernel IDs
                                 _conv_lens);
 
 
-    ret = updateConvIntnl(_n_channels, 
+    ret = updateConvIntnl(_n_channels,
                         _uploadIDs,     // upload set IDs
                         _convIDs,       // kernel IDs
                         _conv_lens,
-                        _synchronous   // synchronoius call			
+                        _synchronous   // synchronoius call
                         );
 
     return ret;
@@ -244,23 +246,23 @@ CGraalConv::updateConv(
     /**
      * Upload kernels from arbitrary system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-int 
+int
 CGraalConv::updateConvHostPtrs(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const float** _conv_ptrs,  // arbitrary host ptrs
         const int * _conv_lens,
-        bool _synchronous   // synchronous call	
+        bool _synchronous   // synchronous call
         )
 {
     int ret = GRAAL_SUCCESS;
 
-    ret = uploadConvControlMaps(_n_channels, 
+    ret = uploadConvControlMaps(_n_channels,
                                 _uploadIDs,     // upload set IDs
                                 _convIDs,       // kernel IDs
                                 _conv_lens);
@@ -270,7 +272,7 @@ CGraalConv::updateConvHostPtrs(
     }
 
     ret = uploadConvHostPtrIntnl(
-                            _n_channels, 
+                            _n_channels,
                             _uploadIDs,     // upload set IDs
                             _convIDs,       // kernel IDs
                             _conv_ptrs,  // arbitrary host ptrs
@@ -281,11 +283,11 @@ CGraalConv::updateConvHostPtrs(
         return ret;
     }
 
-    ret = updateConvIntnl(_n_channels, 
+    ret = updateConvIntnl(_n_channels,
                         _uploadIDs,     // upload set IDs
                         _convIDs,       // kernel IDs
                         _conv_lens,
-                        _synchronous   // synchronoius call			
+                        _synchronous   // synchronoius call
                         );
 
 
@@ -295,18 +297,18 @@ CGraalConv::updateConvHostPtrs(
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
 int
 CGraalConv::updateConv(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const cl_mem* _ocl_mems,
         const int * _conv_lens,
-        bool _synchronous   // synchronoius call	
+        bool _synchronous   // synchronoius call
         )
 {
     int ret = GRAAL_SUCCESS;
@@ -339,35 +341,35 @@ CGraalConv::updateConv(
 
     }
 
-    if ( _synchronous ) 
+    if ( _synchronous )
     {
         clFinish(uploadQ);
     }
     return ret;
 }
 
-int 
+int
 CGraalConv:: updateConv(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const int * _conv_lens,
-        bool _synchronous   // synchronoius call			
+        bool _synchronous   // synchronoius call
         )
 {
     int ret = GRAAL_SUCCESS;
 
-    ret = uploadConvControlMaps(_n_channels, 
+    ret = uploadConvControlMaps(_n_channels,
                                 _uploadIDs,     // upload set IDs
                                 _convIDs,       // kernel IDs
                                 _conv_lens);
 
 
-    ret = updateConvIntnl(_n_channels, 
+    ret = updateConvIntnl(_n_channels,
                         _uploadIDs,     // upload set IDs
                         _convIDs,       // kernel IDs
                         _conv_lens,
-                        _synchronous   // synchronoius call			
+                        _synchronous   // synchronoius call
                         );
 
 
@@ -376,12 +378,12 @@ CGraalConv:: updateConv(
 
     /**
      * All kernels will be ready upon the return from the call
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
 
-int 
+int
 CGraalConv::finishUpdate(void)
 {
     int ret = GRAAL_SUCCESS;
@@ -491,7 +493,7 @@ CGraalConv:: getConvBuffers(int _n_channels, int *_uploadIDs, int *_convIDs, flo
     for( i = _n_channels - 1; i >= 0; i-- )
     {
         CABuf<float> *stg_buf = (CABuf<float> *)kernel_staging_[_uploadIDs[i]][_convIDs[i]];
-        
+
         _conv_ptrs[i] = stg_buf->mapA(graalQ_, CL_MAP_WRITE_INVALIDATE_REGION);
     }
 
@@ -509,7 +511,7 @@ CGraalConv:: getConvBuffers(
 {
     int ret = GRAAL_SUCCESS;
 
-    for(int i = 0; i < _n_channels; i++) 
+    for(int i = 0; i < _n_channels; i++)
     {
         CABuf<float> &stg_buf = *(CABuf<float> *)kernel_staging_[_uploadIDs[i]][_convIDs[i]];
         _ocl_mems[i] = stg_buf.getCLMem();
@@ -521,7 +523,7 @@ CGraalConv:: getConvBuffers(
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
 bool CGraalConv::checkForContiguousBuffers(
     int count,
-    const float** _conv_ptrs,  
+    const float** _conv_ptrs,
     const int * _conv_lens
     ) {
    if (count <= 1) //  don't need to do anything
@@ -541,14 +543,14 @@ bool CGraalConv::checkForContiguousBuffers(
 }
 #endif
 
-int 
+int
 CGraalConv::uploadConvHostPtrs(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const float** _conv_ptrs,  // arbitrary host ptrs
         const int * _conv_lens,
-        bool _synchronous   // synchronous call	
+        bool _synchronous   // synchronous call
         )
 {
     int ret = GRAAL_SUCCESS;
@@ -568,7 +570,7 @@ CGraalConv::uploadConvHostPtrs(
 
         CHECK_OPENCL_ERROR(ret, "upload failed.");
     }
-    else 
+    else
 #endif
     {
 
@@ -583,7 +585,7 @@ CGraalConv::uploadConvHostPtrs(
         }
     }
 
-    if ( _synchronous ) 
+    if ( _synchronous )
     {
         ret = sincUpload( );
     }
@@ -598,7 +600,7 @@ const int *_uploadIDs,     // upload set IDs
 const int *_convIDs,       // kernel IDs
 const cl_mem * _conv_ptrs,  // arbitrary cl_mem ptrs
 const int * _conv_lens,
-bool _synchronous   // synchronous call	
+bool _synchronous   // synchronous call
 )
 {
     int ret = GRAAL_SUCCESS;
@@ -625,7 +627,7 @@ bool _synchronous   // synchronous call
 
 int
 CGraalConv::process(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadID,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         float** _inputs,
@@ -654,7 +656,7 @@ CGraalConv::process(
     return ret;
 }
 
-int 
+int
 CGraalConv::process(
 		int _n_channels,
 		const int *_uploadID,     // upload set IDs
@@ -735,13 +737,13 @@ int CGraalConv::flush(amf_uint channelId, const bool synchronous)
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-int 
+int
 CGraalConv::getDevInputPtrs(
-        int _n_channels, 
+        int _n_channels,
         int _uploadID,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         float** _inputs
@@ -754,7 +756,7 @@ CGraalConv::getDevInputPtrs(
     CABuf<float> &inp_buf = *(CABuf<float> *)host_input_staging_[_uploadID];
     float * inp_buf_ptr = inp_buf.map(inQ, CL_MAP_WRITE_INVALIDATE_REGION);
 
-    for (int c = 0; c < _n_channels; c++ ) 
+    for (int c = 0; c < _n_channels; c++ )
     {
         int convId = _convIDs[c];
         _inputs[c] = inp_buf_ptr + convId * aligned_proc_bufffer_sz_;
@@ -766,13 +768,13 @@ CGraalConv::getDevInputPtrs(
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-int 
+int
 CGraalConv::processDevPtrs(
-        int _n_channels, 
+        int _n_channels,
         int _uploadID,     // upload set ID
         const int *_convIDs,       // kernel IDs
         float** _inputs,
@@ -824,7 +826,7 @@ CGraalConv::processIntrnl(
     cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
 
     {
-        // Copying the control and input data needed for the convolution engine, 
+        // Copying the control and input data needed for the convolution engine,
         // Non-blocking calls has replaced the previous blocking mapping.
 
         // upload channel map
@@ -930,7 +932,7 @@ CGraalConv::processIntrnl(
 
         break;
     case ALG_UNI_HEAD_TAIL:
-        
+
         if (_skip_stage != 1)
         {
 
@@ -965,7 +967,7 @@ CGraalConv::processIntrnl(
                         NULL);
                     CHECK_OPENCL_ERROR(status, "copy failed.");
                 }
-            } 
+            }
             else if (_output.mType == GRAAL_MEMORY_OPENCL)
             {
                 for (int c = 0; c < _n_channels; c++)
@@ -1028,9 +1030,9 @@ CGraalConv::processIntrnl(
 
 
 
-int 
+int
 CGraalConv:: uploadConvControlMaps(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const int * _conv_lens
@@ -1060,13 +1062,13 @@ CGraalConv:: uploadConvControlMaps(
 }
 
 
-int 
+int
 CGraalConv:: updateConvIntnl(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const int * _conv_lens,
-        bool _synchronous   // synchronoius call			
+        bool _synchronous   // synchronoius call
         )
 {
     int ret = GRAAL_SUCCESS;
@@ -1211,11 +1213,11 @@ CGraalConv:: updateConvIntnl(
     }
 #endif
 
-    if ( verify  ==1 || verify == 3) 
+    if ( verify  ==1 || verify == 3)
     {
         transf_buf.copyToHost(inQ);
         stg_buf.copyToHost(inQ);
-        size_t len = aligned_conv_sz_; 
+        size_t len = aligned_conv_sz_;
         float *ext_stg = new float[len];
         float * src_ptr = stg_buf.getSysMem();
         float * tgt_ptr = transf_buf.getSysMem();
@@ -1229,19 +1231,19 @@ CGraalConv:: updateConvIntnl(
 
 
             src_buf_ptr = src_ptr + (uploadId * n_max_channels_ + convId) * in_chnl_stride;
-            ext_buf_ptr = ext_stg; 
+            ext_buf_ptr = ext_stg;
             tgt_buf_ptr = tgt_ptr + (uploadId * n_max_channels_ + convId) * out_chnl_stride;
             memset(ext_stg, 0, len * sizeof(float));
 
             // src moves every block, second half padded with 0s
             for( int i = 0, k = 0, l = 0; i < n_test_loops; i++, l +=aligned_processing_sz_, k+=aligned_proc_bufffer_sz_)
             {
-                for ( int m = 0; m < aligned_proc_bufffer_sz_ && k + m < _conv_lens[j]; m++) 
+                for ( int m = 0; m < aligned_proc_bufffer_sz_ && k + m < _conv_lens[j]; m++)
                 {
                     ext_buf_ptr[l + m] = src_buf_ptr[k + m];
                 }
             }
- 
+
             for (int i = 0; i < n_test_loops; i++)
             {
                 err = FHT_verify((const __FLOAT__ *)ext_buf_ptr + aligned_processing_sz_ *i, (const __FLOAT__ *)tgt_buf_ptr + aligned_processing_sz_ *i,
@@ -1297,7 +1299,7 @@ CGraalConv:: resetConvState(
 
     CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
 
-    
+
     uint data_version_stride = aligned_conv_sz_ * n_max_channels_;
     uint data_channel_stride = aligned_conv_sz_;
     uint version_stride = n_max_channels_;
@@ -1339,11 +1341,11 @@ CGraalConv:: resetConvState(
     return(ret);
 }
 
-int 
+int
 CGraalConv:: getRoundCounter(int _uploadId, int _chnl_id)
 {
         int ret = (int)round_counter_;
-        if ( _uploadId > -1 ) 
+        if ( _uploadId > -1 )
         {
             CABuf<uint> &count_buf = *(CABuf<uint>*)round_counters_;
             ret = count_buf.getSysMem()[_uploadId * n_max_channels_ + _chnl_id];
@@ -1351,10 +1353,10 @@ CGraalConv:: getRoundCounter(int _uploadId, int _chnl_id)
         return(ret);
 }
 
-void 
+void
 CGraalConv:: incRoundCounter(int _uploadId, int _chnl_id)
 {
-        if ( _uploadId > -1 ) 
+        if ( _uploadId > -1 )
         {
             CABuf<uint> &count_buf = *(CABuf<uint>*)round_counters_;
             uint curr_round = count_buf.getSysMem()[_uploadId * n_max_channels_ + _chnl_id];
@@ -1608,9 +1610,9 @@ CGraalConv::processHead1(
 
 -----------------------------------------------------------------------------------------------*/
 
-int 
+int
 CGraalConv::processPush(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         int _prev_input
@@ -1793,7 +1795,7 @@ CGraalConv::processPush(
                 std::cout <<  "Process direct tarnsform mismatch: round " << (int)getRoundCounter(uploadId, convId) << " channel " << i << "\n";
 #endif
                 AMF_ASSERT_OK(AMF_UNEXPECTED, L"Process direct tarnsform mismatch: "
-                                              L"round %d channel %d", 
+                                              L"round %d channel %d",
                               (int)getRoundCounter(uploadId, convId), i);
                 break;
             }
@@ -1819,7 +1821,7 @@ CGraalConv::processPush(
 /*---------------------------------------------------------------------------------------------
 
 -----------------------------------------------------------------------------------------------*/
-int 
+int
 CGraalConv::processAccum(int _n_channels,
                         int _IR_bin_shift,
                         int _STR_bin_shift,
@@ -1851,7 +1853,7 @@ CGraalConv::processAccum(int _n_channels,
     uint store_version_stride = aligned_conv_sz_ * n_max_channels_;
     uint accum_version_stride = accum_stride_ * n_max_channels_;
     int n_arg = 0;
-    
+
 #ifdef TAN_SDK_EXPORTS
     if (headRun > 0)
     {
@@ -2024,9 +2026,9 @@ CGraalConv::processAccum(int _n_channels,
             ret = clEnqueueNDRangeKernel(inQ, CMADKernels_[1], 3, NULL, g_wk, l_wk, 0, NULL, NULL);
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"CMADKernels_[1] clEnqueueNDRangeKernel failed: " )
         } while (!last_tail);
-        // Pushing the jobs to be flushed from command buffer and be submitted to the device in a non-blocking way 
+        // Pushing the jobs to be flushed from command buffer and be submitted to the device in a non-blocking way
         clEnqueueReadBuffer(inQ, accum_buf.getCLMem(), CL_FALSE,0, 8 * sizeof(float), m_dataBuff, 0 , NULL, NULL);
-        
+
     }
 #else
         ret = clSetKernelArg(tailAccumKernel, n_arg++, sizeof(cl_mem), &accum_buf.getCLMem());
@@ -2068,7 +2070,7 @@ CGraalConv::processAccum(int _n_channels,
 
             CHECK_OPENCL_ERROR(ret, "kernel accumulator tail failed.");
 
-    
+
 
         } while (!last_tail);
     }
@@ -2089,9 +2091,9 @@ CGraalConv::processAccum(int _n_channels,
 /*---------------------------------------------------------------------------------------------
 
 -----------------------------------------------------------------------------------------------*/
-int 
+int
 CGraalConv::processPull(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         int _advance_time
@@ -2162,7 +2164,7 @@ CGraalConv::processPull(
     ret = clSetKernelArg(inverseTransformKernel_, n_arg++, sizeof(float), &scale);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: out_chnl_stride" )
     //@todo: why are we passing uint as a float??
-#pragma message("why are we passing uint as a float??") 
+#pragma message("why are we passing uint as a float??")
     ////////AMF_RETURN_IF_FAILED(
     ////////    inverseTransformKernel_->SetArgFloat(n_arg++, *reinterpret_cast<float*>(&counter_version_stride)));
     ret = clSetKernelArg(inverseTransformKernel_, n_arg++, sizeof(float), &counter_version_stride);        // inverse conv scale
@@ -2299,7 +2301,7 @@ CGraalConv::updateConvOCL(	 void* _stg_buf,  void *_transf_buf, int _conv_len, c
 // run direct FHT for the 1st stream
     int n_arg = 0;
 // direct FHT
-    
+
     int in_chnl_stride = max_conv_sz_;
     int out_chnl_stride = aligned_conv_sz_;
 
@@ -2345,11 +2347,11 @@ CGraalConv::updateConvOCL(	 void* _stg_buf,  void *_transf_buf, int _conv_len, c
 //	clFinish(clUploadQ_);
 #endif
 
-    if ( verify  == 1 || verify == 3) 
+    if ( verify  == 1 || verify == 3)
     {
         transf_buf.copyToHost(_uploadQ);
         stg_buf.copyToHost(_uploadQ);
-        size_t len = transf_buf.getLen(); 
+        size_t len = transf_buf.getLen();
         float *ext_stg = new float[len];
         memset(ext_stg, 0, len * sizeof(float));
         float * src_ptr = stg_buf.getSysMem();
@@ -2365,12 +2367,12 @@ CGraalConv::updateConvOCL(	 void* _stg_buf,  void *_transf_buf, int _conv_len, c
             // src moves every block, second half padded with 0s
             for( int i = 0, k = 0, l = 0; i < n_test_loops; i++, l +=aligned_processing_sz_, k+=aligned_proc_bufffer_sz_)
             {
-                for ( int j = 0; j < aligned_proc_bufffer_sz_ && k + j < _conv_len; j++) 
+                for ( int j = 0; j < aligned_proc_bufffer_sz_ && k + j < _conv_len; j++)
                 {
                     ext_buf_ptr[l + j] = src_buf_ptr[k + j];
                 }
             }
- 
+
             for (int i = 0; i < n_test_loops; i++)
             {
                 err = FHT_verify((const __FLOAT__ *)ext_buf_ptr + aligned_processing_sz_ *i, (const __FLOAT__ *)tgt_buf_ptr + aligned_processing_sz_ *i,
@@ -2385,7 +2387,7 @@ CGraalConv::updateConvOCL(	 void* _stg_buf,  void *_transf_buf, int _conv_len, c
 
             }
 
-    
+
 #ifdef _DEBUG_PRINTF
         if ( err == -1 )  {
             std::cout << "Kernel update verified: u=" << _uploadID << " c=" << _convID << " len=" <<_conv_len << "\n";
@@ -2401,7 +2403,7 @@ CGraalConv::updateConvOCL(	 void* _stg_buf,  void *_transf_buf, int _conv_len, c
 
 int
 CGraalConv::uploadConvHostPtrIntnl(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const float** _conv_ptrs,  // arbitrary host ptrs
@@ -2451,7 +2453,7 @@ CGraalConv::selectOptions(std::string & _kernel_file, std::string & _comp_option
     int log2_group_sz = static_cast<int>(ceil(log2((double)group_sz)));
     _comp_options = std::string("-cl-fp32-correctly-rounded-divide-sqrt ") + std::string("-D _K0_GROUP_SZ=") + std::to_string((long long)group_sz) + std::string(" -D _K0_LOG2_GROUP_SZ=") + std::to_string((long long)log2_group_sz) +
         std::string(" -D _K0_LOG2_N=") + std::to_string((long long)(processing_log2_ + 1)) + std::string(" -D _K0_N=") + std::to_string((long long)aligned_processing_sz_);
- 
+
 }
 int
 CGraalConv::selectUploadOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
@@ -2537,7 +2539,7 @@ CGraalConv::selectInverseFHTOptions(std::string & _kernel_file, std::string &ker
 }
 
 
-int 
+int
 CGraalConv::selectConvHead1Options(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
 {
     int ret = GRAAL_SUCCESS;
@@ -2562,7 +2564,7 @@ AMF_RESULT CGraalConv::zeroMemory(CABuf<float> *pBuf, amf_uint offset, amf_uint 
 #endif // TAN_SDK_EXPORTS
 
 int
-CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate 
+CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate
 #ifndef TAN_SDK_EXPORTS
     cl_context _clientContext,
     cl_device_id _clientDevice,
@@ -2649,7 +2651,7 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
 #endif
         kernel_staging_[i].resize(n_max_channels_);
         kernel_transformed_[i].resize(n_max_channels_);
-        for(int j = 0; j < n_max_channels_; j++) 
+        for(int j = 0; j < n_max_channels_; j++)
         {
             CASubBuf<float> *new_stg_buf = new CASubBuf<float>(*new_inp_union_buf);
             assert(new_stg_buf);
@@ -2671,8 +2673,8 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     // get fht lookup tables
     CABuf<float> * sincos = new CABuf<float>(CABufArgs);
     CABuf<short> * bit_reverse = new CABuf<short>(CABufArgs);
-    
-    FHTInit(&(sincos->getSysMem()), &(bit_reverse->getSysMem()), (FHT_FUNC *)&FHT_transformCPU_, aligned_processing_sz_); 
+
+    FHTInit(&(sincos->getSysMem()), &(bit_reverse->getSysMem()), (FHT_FUNC *)&FHT_transformCPU_, aligned_processing_sz_);
     sincos->setLen(aligned_processing_sz_);
     bit_reverse->setLen(aligned_processing_sz_);
 
@@ -2916,11 +2918,11 @@ CGraalConv::cleanup()
 
     }
 
-    if (m_headTailKernelEvent) { 
+    if (m_headTailKernelEvent) {
         clReleaseEvent(m_headTailKernelEvent);
-        m_headTailKernelEvent = NULL; 
+        m_headTailKernelEvent = NULL;
     }
-    if (m_pullKernelEvent) { 
+    if (m_pullKernelEvent) {
         clReleaseEvent(m_pullKernelEvent);
         m_pullKernelEvent = NULL;
     }
@@ -2995,7 +2997,7 @@ CGraalConv::cleanup()
         delete[] host_copy_resp_out_offset;
         host_copy_resp_out_offset = 0;
     }
-    
+
 #ifndef TAN_SDK_EXPORTS
     if (uploadKernel_)
     {
@@ -3069,27 +3071,27 @@ CGraalConv::cleanup()
 
 
 /*
-   This computes an in-place complex-to-complex FFT 
+   This computes an in-place complex-to-complex FFT
    x and y are the real and imaginary arrays of 2^m points.
    dir =  1 gives forward transform
-   dir = -1 gives reverse transform 
+   dir = -1 gives reverse transform
 */
 void fftCPU(short int dir,long m,cl_float *x,cl_float *y)
 {
    long n, i, i1, j, k, i2, l, l1, l2;
    double c1, c2, tx, ty, t1, t2, u1, u2, z;
 
-   // Calculate the number of points 
+   // Calculate the number of points
    n = 1;
-   for (i = 0;i < m;i++) 
+   for (i = 0;i < m;i++)
       n *= 2;
 
-   // Do the bit reversal 
+   // Do the bit reversal
    i2 = n >> 1;
    j = 0;
-   for (i = 0;i < n - 1;i++) 
+   for (i = 0;i < n - 1;i++)
    {
-      if (i < j) 
+      if (i < j)
       {
          tx = x[i];
          ty = y[i];
@@ -3107,24 +3109,24 @@ void fftCPU(short int dir,long m,cl_float *x,cl_float *y)
       j += k;
    }
 
-   // Compute the FFT 
-   c1 = -1.0; 
+   // Compute the FFT
+   c1 = -1.0;
    c2 = 0.0;
    l2 = 1;
-   for (l = 0;l < m;l++) 
+   for (l = 0;l < m;l++)
    {
       l1 = l2;
       l2 <<= 1;
-      u1 = 1.0; 
+      u1 = 1.0;
       u2 = 0.0;
       for (j = 0;j < l1;j++)
       {
-         for (i = j;i < n;i += l2) 
+         for (i = j;i < n;i += l2)
          {
             i1 = i + l1;
             t1 = u1 * x[i1] - u2 * y[i1];
             t2 = u1 * y[i1] + u2 * x[i1];
-            x[i1] = (cl_float)(x[i] - t1); 
+            x[i1] = (cl_float)(x[i] - t1);
             y[i1] = (cl_float)(y[i] - t2);
             x[i] += (cl_float)t1;
             y[i] += (cl_float)t2;
@@ -3134,7 +3136,7 @@ void fftCPU(short int dir,long m,cl_float *x,cl_float *y)
          u1 = z;
       }
       c2 = sqrt((1.0 - c1) / 2.0);
-      if (dir == 1) 
+      if (dir == 1)
          c2 = -c2;
       c1 = sqrt((1.0 + c1) / 2.0);
    }
@@ -3146,7 +3148,7 @@ void fftCPU(short int dir,long m,cl_float *x,cl_float *y)
          y[i] /= n;
       }
    }*/
-   
+
 }
 
 #endif

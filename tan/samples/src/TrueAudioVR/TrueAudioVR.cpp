@@ -24,7 +24,9 @@
 //
 
 #include "stdafx.h"
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <omp.h>
+#endif
 #include "cpucaps.h"
 #include "TrueAudioVR.h"
 

@@ -1,0 +1,7 @@
+============================QT Setup Instruction=====================
+
+1. Make sure you download OpenCL-Headers from https://github.com/KhronosGroup/OpenCL-Headers to this or another one directory
+2. Go to the Tan/tan/build/cmake folder
+3. Edit generate-mac.sh with actual OpenCL folders set to this
+4. Generate Makefiles by running generate-mac.sh script
+5. Build Tan library and examples

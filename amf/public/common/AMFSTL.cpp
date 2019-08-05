@@ -1,4 +1,4 @@
-// 
+//
 // Notice Regarding Standards.  AMD does not provide a license or sublicense to
 // any Intellectual Property Rights relating to any standards, including but not
 // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
@@ -6,9 +6,9 @@
 // (collectively, the "Media Technologies"). For clarity, you will pay any
 // royalties due for such third party technologies, which may include the Media
 // Technologies that are owed as a result of AMD providing the Software to you.
-// 
-// MIT license 
-// 
+//
+// MIT license
+//
 // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -47,7 +47,7 @@
 
 #pragma warning(disable: 4996)
 
-#if defined(__linux)
+#if defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
 extern "C"
 {
     extern int vscwprintf(const wchar_t* p_fmt, va_list p_args);
@@ -562,7 +562,7 @@ amf_string AMF_STD_CALL amf::amf_string_format(const char* format, ...)
 //----------------------------------------------------------------------------------------
 amf_wstring AMF_STD_CALL amf::amf_string_formatVA(const wchar_t* format, va_list args)
 {
-#if defined(__linux)
+#if defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
     //replace %s with %ls
     amf_wstring text(format);
     amf_wstring textReplaced;
@@ -583,7 +583,7 @@ amf_wstring AMF_STD_CALL amf::amf_string_formatVA(const wchar_t* format, va_list
     }
 
     format = textReplaced.c_str();
-#endif //#if defined(__linux)
+#endif //#if defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
     va_list argcopy;
 #ifdef _WIN32
     argcopy = args;
@@ -619,7 +619,7 @@ amf_string AMF_STD_CALL amf::amf_string_formatVA(const char* format, va_list arg
     vsnprintf(pBuf, size + 1, format, args);
     return pBuf;
 }
-#if defined(__linux)  && !defined(__ANDROID__)
+#if defined(__linux) || defined(__APPLE__) || defined(__MACOSX)  && !defined(__ANDROID__)
 int vscprintf(const char* format, va_list argptr)
 {
     char* p_tmp_buf;
@@ -1243,10 +1243,25 @@ extern "C"
 {
     int _wcsicmp(const wchar_t* s1, const wchar_t* s2)
     {
-        amf_wstring low_s1 = amf_ConvertStringToLower(s1);
-        amf_wstring low_s2 = amf_ConvertStringToLower(s2);
+        throw "Error: Not impemented!";
+        /*
+        amf_wstring low_s1 = s1;//amf_ConvertStringToLower(s1);
+        amf_wstring low_s2 = s2//amf_ConvertStringToLower(s2);
+
+        low_s1 = low_s1.
 
         return wcscmp(low_s1.c_str(), low_s2.c_str());
+
+        for(auto *firstChar = s1, secondChar = s2; *firstChar && *secondChar; ++firstChar, ++secondChar)
+        {
+            if(std::tolower(*firstChar) != std::tolower(*secondChar))
+            {
+                return false;
+            }
+        }
+        */
+
+        return true;
     }
 }
 #endif

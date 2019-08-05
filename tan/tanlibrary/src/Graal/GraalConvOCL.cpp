@@ -25,7 +25,9 @@
 #include "GraalConv.hpp"
 #include "GraalCLUtil/GraalCLUtil.hpp"
 #include "GraalConvOCL.hpp"
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
+#endif
 
 namespace graal
 {
@@ -38,7 +40,7 @@ CGraalConvOCL & getGraalOCL(void)
     return spGraalConvOCL;
 }
 
-CGraalConvOCL:: CGraalConvOCL( void ) 
+CGraalConvOCL:: CGraalConvOCL( void )
 #ifndef _DEBUG_PRINTF
     : queue_(0)
 #endif
@@ -54,7 +56,7 @@ CGraalConvOCL:: CGraalConvOCL( void )
 }
 
 
-CGraalConvOCL:: ~CGraalConvOCL( void ) 
+CGraalConvOCL:: ~CGraalConvOCL( void )
 {
     cleanup();
 }
@@ -71,7 +73,7 @@ CGraalConvOCL::setupCL(
 {
     cl_int status = GRAAL_SUCCESS;
 
-    if (++init_counter_ == 1) 
+    if (++init_counter_ == 1)
     {
         if (_context != 0)
         {
@@ -133,10 +135,10 @@ CGraalConvOCL::setupCL(
 }
 
 cl_kernel CGraalConvOCL:: getKernel(
-    std::string _kernel_id, 
+    std::string _kernel_id,
     std::string kernel_src,
     size_t kernel_src_size,
-    std::string _kernel_name, 
+    std::string _kernel_name,
     std::string _comp_options
 )
 {
@@ -145,11 +147,11 @@ cl_kernel CGraalConvOCL:: getKernel(
     std::string key = _kernel_id + "." + _comp_options;
     std::map<std::string,buildProgramData*>::iterator b;
     b = build_prog_map_.find(key);
-    if(b == build_prog_map_.end()) 
+    if(b == build_prog_map_.end())
     {
 // did not find the program
 // build it
-    // create a CL program using the kernel source 
+    // create a CL program using the kernel source
         buildProgramData *buildData = new buildProgramData;
         buildData->kernelId = _kernel_id;
         buildData->kernelSrc = kernel_src;
@@ -169,7 +171,7 @@ cl_kernel CGraalConvOCL:: getKernel(
     b = build_prog_map_.find(key);
 
     cl_program prog = b->second->program;
-        // get a kernel object handle for a kernel with the given name 
+        // get a kernel object handle for a kernel with the given name
     ret = clCreateKernel(prog, _kernel_name.c_str(), &status);
     CHECK_OPENCL_ERROR_MSG(status, "clCreateKernel failed.");
 
@@ -177,7 +179,7 @@ cl_kernel CGraalConvOCL:: getKernel(
 }
 
 
-int CGraalConvOCL:: cleanup() 
+int CGraalConvOCL:: cleanup()
 {
     int status = CL_SUCCESS;
     if (--init_counter_ == 0 )
@@ -185,12 +187,12 @@ int CGraalConvOCL:: cleanup()
 
         devices_.clear();
 
-        for(std::vector<GraalDeviceInfo*>::iterator i = device_infors_.begin(); i != device_infors_.end(); i++) 
+        for(std::vector<GraalDeviceInfo*>::iterator i = device_infors_.begin(); i != device_infors_.end(); i++)
         {
             delete *i;
         }
         device_infors_.clear();
-        
+
         for(std::map<std::string,buildProgramData*>::iterator b = build_prog_map_.begin(); b != build_prog_map_.end(); b++ )
         {
             delete b->second;
@@ -230,9 +232,9 @@ cl_command_queue CGraalConvOCL::getClQueue(cl_command_queue_properties * _prop, 
             }
         }
 
-        commandQueue = clCreateCommandQueueWithProperties(context_, 
-                                            devices_[_deviceId], 
-                                            _prop, 
+        commandQueue = clCreateCommandQueueWithProperties(context_,
+                                            devices_[_deviceId],
+                                            _prop,
                                             &status);
         //ASSERT_CL_RETURN(status, "clCreateCommandQueue failed.");
         if (status != CL_SUCCESS)
@@ -274,23 +276,23 @@ HSA_OCL_ConfigS * config = GetOclConfig(plan);
             setvalue_kernel = clCreateKernel(config->program[__UTIL_PROGRAM_INDEX__],  "SetValue", &err);
         }
         else {
-            printf("cannot create kernel SetValue \n"); 
+            printf("cannot create kernel SetValue \n");
         }
 
     err = -1;
     if ( setvalue_kernel ) {
 
         size_t local_work_size[1] = {256};
-        size_t global_work_size[1] = {(buf->len / sizeof(unsigned int))};	
+        size_t global_work_size[1] = {(buf->len / sizeof(unsigned int))};
         err = clSetKernelArg(setvalue_kernel, n_arg++, sizeof(cl_mem), &buf->mem);
         err |= clSetKernelArg(setvalue_kernel, n_arg++, sizeof(cl_int), &value);
-        err |= clEnqueueNDRangeKernel(commandQueue, setvalue_kernel , 1, NULL, global_work_size, local_work_size, 
+        err |= clEnqueueNDRangeKernel(commandQueue, setvalue_kernel , 1, NULL, global_work_size, local_work_size,
                    0, NULL, NULL);
 
         if(err != CL_SUCCESS) {
            printf("error setting value: %d\n", err);
         }
-        clReleaseKernel(setvalue_kernel); 
+        clReleaseKernel(setvalue_kernel);
     }
 
 
@@ -308,7 +310,7 @@ int err;
         printf("wrong data\n");
         return(-1);
     }
-  
+
     err = clEnqueueWriteBuffer(commandQueue, buf->mem, CL_TRUE,0, buf->len, sys, 0, NULL, NULL);
 
     if(err != CL_SUCCESS) {

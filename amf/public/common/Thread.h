@@ -1,4 +1,4 @@
-// 
+//
 // Notice Regarding Standards.  AMD does not provide a license or sublicense to
 // any Intellectual Property Rights relating to any standards, including but not
 // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
@@ -6,9 +6,9 @@
 // (collectively, the "Media Technologies"). For clarity, you will pay any
 // royalties due for such third party technologies, which may include the Media
 // Technologies that are owed as a result of AMD providing the Software to you.
-// 
-// MIT license 
-// 
+//
+// MIT license
+//
 // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -216,7 +216,7 @@ namespace amf
             const int m_maxReadThreads;
             AMFSemaphore m_readSemaphore;
             AMFCriticalSection m_writeCriticalSection;
-            ReadWriteResources() : 
+            ReadWriteResources() :
             m_maxReadThreads(10),
                 m_readSemaphore(m_maxReadThreads, m_maxReadThreads),
                 m_writeCriticalSection()
@@ -537,7 +537,7 @@ namespace amf
                 {
                     bStop = true;
                 }
-#if defined(__linux)
+#if defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
                 ///< HACK
                 ///< This amf_sleep(0) is required to emulate windows mutex behavior.
                 ///< In Windows release mutext causes some other waiting thread is receiving ownership of mutex.
@@ -646,7 +646,7 @@ namespace amf
             m_bCancel = false;
             amf_pts start = amf_high_precision_clock();
             amf_pts waited = 0;
-            int count = 0; 
+            int count = 0;
             while(!m_bCancel)
             {
                 count++;

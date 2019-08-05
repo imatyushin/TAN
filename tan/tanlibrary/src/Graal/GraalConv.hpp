@@ -74,7 +74,11 @@ double mach_absolute_time()
 #include <stdbool.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-//typedef  long long int __int 64;
+
+#if defined __APPLE || defined(__MACOSX)
+test
+#include <mach/mach_time.h>
+#endif
 
 #endif // !WIN32
 
@@ -148,7 +152,7 @@ class CGraalConv
      virtual ~CGraalConv(void);
     /**
      * Allocate and initialize convolution class
-     * 
+     *
      * @param n_max_channels		max number of channels tp be processed
      * @param max_conv_sz			max number of samples of IR
      * @param max_proc_buffer_sz	max size of the input buffers to be proccessed
@@ -199,7 +203,7 @@ class CGraalConv
 
     /**
      * Returns a array of library-managed OCL buffers
-     * 
+     *
      * @param n_channels				number of channels in the request
      * @param *uploadIDs				version id
      * @param *convIDs					channel id
@@ -219,7 +223,7 @@ class CGraalConv
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @param n_channels				number of channels in the request
      * @param *uploadIDs				version id
      * @param *convIDs					channel id
@@ -232,18 +236,18 @@ class CGraalConv
      */
 
      virtual int updateConv(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         const float** conv_ptrs,
         const int * conv_lens,
-        bool synchronous = false   // synchronoius call	
+        bool synchronous = false   // synchronoius call
         );
 
     /**
      * Upload kernels from arbitrary system pointers.
      * It's the slowest upload.
-     * 
+     *
      * @param n_channels				number of channels in the request
      * @param *uploadIDs				version id
      * @param *convIDs					channel id
@@ -256,18 +260,18 @@ class CGraalConv
      */
 
      virtual int updateConvHostPtrs(
-        int n_channels, 
-        const int *uploadIDs,     
-        const int *convIDs,      
+        int n_channels,
+        const int *uploadIDs,
+        const int *convIDs,
         const float** conv_ptrs,
         const int * conv_lens,
-        bool synchronous = false 
+        bool synchronous = false
         );
 
 
     /**
      * Upload kernels from client-managed OCL buffers.
-     * 
+     *
      * @param n_channels				number of channels in the request
      * @param *uploadIDs				version id
      * @param *convIDs					channel id
@@ -280,12 +284,12 @@ class CGraalConv
      */
 
      virtual int updateConv(
-        int n_channels,			
-        const int *uploadIDs,     
-        const int *convIDs,       
-        const cl_mem* ocl_buffers,	
-        const int * conv_lens,	
-        bool synchronous = false 
+        int n_channels,
+        const int *uploadIDs,
+        const int *convIDs,
+        const cl_mem* ocl_buffers,
+        const int * conv_lens,
+        bool synchronous = false
         );
 
 
@@ -293,8 +297,8 @@ class CGraalConv
      * Upload kernels from library-managed OCL buffers.
      * this is the fastest upload.
      * ocl buffers has to be obtain with the getConvBuffers interface.
-     * 
-     * 
+     *
+     *
      * @param n_channels				number of channels in the request
      * @param *uploadIDs				version id
      * @param *convIDs					channel id
@@ -306,16 +310,16 @@ class CGraalConv
      */
 
      virtual int updateConv(
-        int _n_channels, 
-        const int *_uploadIDs,     
-        const int *_convIDs,    
+        int _n_channels,
+        const int *_uploadIDs,
+        const int *_convIDs,
         const int * _conv_lens,
-        bool synchronous = false  
+        bool synchronous = false
         );
 
     /**
      * All previously uploaded IRs will be ready for use upon the return from the call
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
      virtual int finishUpdate(void);
@@ -363,7 +367,7 @@ class CGraalConv
 
     /**
      * Process audio blocks from arbitrary system pointers.
-     * 
+     *
      * @param n_channels				number of channels in the request
      * @param *uploadIDs				version id
      * @param *convIDs					channel id
@@ -377,7 +381,7 @@ class CGraalConv
      */
 
      virtual int process(
-        int n_channels, 
+        int n_channels,
         const int *uploadID,     // upload set IDs
         const int *convIDs,       // kernel IDs
         float** inputs,
@@ -430,12 +434,12 @@ class CGraalConv
 
 
     virtual int uploadConvHostPtrs(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         const float** conv_ptrs,  // arbitrary host ptrs
         const int * conv_lens,
-        bool synchronous = false   // synchronous call	
+        bool synchronous = false   // synchronous call
         );
 
     virtual int uploadConvGpuPtrs(
@@ -444,7 +448,7 @@ class CGraalConv
         const int *convIDs,       // kernel IDs
         const cl_mem * conv_ptrs,  // arbitrary host ptrs
         const int * conv_lens,
-        bool synchronous = false   // synchronous call	
+        bool synchronous = false   // synchronous call
         );
 
 
@@ -498,7 +502,7 @@ protected:
     void incRoundCounter(int _uploadId = -1, int _chnl_id = -1);
 
     /**
-     * OpenCL related initialisations. 
+     * OpenCL related initialisations.
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int setupCL( amf::AMFComputePtr pComputeConvolution,  amf::AMFComputePtr pComputeUpdate );
@@ -540,13 +544,13 @@ protected:
         upload control maps
     */
     int uploadConvControlMaps(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         const int * conv_lens
         );
 
-    
+
     /**
         upload in 1 shot, Graal managed OCL buffers
     */
@@ -556,24 +560,24 @@ protected:
         upload in a loop
     */
     int updateConvIntnl(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         const int *conv_lens,
-        bool _synchronous   // synchronoius call			
+        bool _synchronous   // synchronoius call
         );
 
     /*
         uitility, upload time domain data
     */
     int uploadConvHostPtrIntnl(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const float** _conv_ptrs,  // arbitrary host ptrs
         const int * _conv_lens
         );
-    
+
     enum GRAAL_MEMORY_TYPE
     {
         GRAAL_MEMORY_UNKNOWN = 0,
@@ -627,7 +631,7 @@ protected:
         push input into the pipeline
     */
     int processPush(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         int prev_input
@@ -651,7 +655,7 @@ protected:
 
 
     int processPull(
-        int _n_channels, 
+        int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         int advance_time);
@@ -674,7 +678,7 @@ protected:
     int n_upload_qs_;   // n IR upload queues 1
     int n_input_qs_;    // n process queues 2
     int n_accum_blocks_; // n blocks accumulated at one CMAD invokation
-    int n_stages_;    // classic  = 1, head tail 2 
+    int n_stages_;    // classic  = 1, head tail 2
 
 // intenal state
     int algorithm_;
@@ -707,9 +711,9 @@ protected:
 
     std::vector<std::vector<void*>> kernel_staging_;
     std::vector<std::vector<void*>> kernel_transformed_; // per channel
-    std::vector<void*> kernel_transformed_store_; // per set 
+    std::vector<void*> kernel_transformed_store_; // per set
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
-    std::vector<void*> kernel_input_store_; // per set 
+    std::vector<void*> kernel_input_store_; // per set
 #endif
     // kernel channel map
     void* kernel_channels_map_;
@@ -770,7 +774,7 @@ protected:
     cl_event m_pullKernelEvent;
     void * FHT_transformCPU_;
     float m_dataBuff[32];
-// verification/log 
+// verification/log
     int verify;
 };
 

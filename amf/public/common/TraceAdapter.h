@@ -1,4 +1,4 @@
-// 
+//
 // Notice Regarding Standards.  AMD does not provide a license or sublicense to
 // any Intellectual Property Rights relating to any standards, including but not
 // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
@@ -6,9 +6,9 @@
 // (collectively, the "Media Technologies"). For clarity, you will pay any
 // royalties due for such third party technologies, which may include the Media
 // Technologies that are owed as a result of AMD providing the Software to you.
-// 
-// MIT license 
-// 
+//
+// MIT license
+//
 // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -80,15 +80,15 @@ namespace amf
 *  Asynchronous - trace message go to thread local queues; separate thread passes them to writes
 *  Asynchronous mode offers no synchronization between working threads which are writing traces
 *  and high performance.
-*  Asynchronous mode is not enabled always as that dedicated thread (started in Media SDK module) cannot be 
+*  Asynchronous mode is not enabled always as that dedicated thread (started in Media SDK module) cannot be
 *  terminated safely. See msdn ExitProcess description: it terminates all threads without notifications.
-*  ExitProcess is called after exit from main() -> before module static variables destroyed and before atexit 
+*  ExitProcess is called after exit from main() -> before module static variables destroyed and before atexit
 *  notifiers are called -> no way to finish trace dedicated thread.
-*  
+*
 *  Therefore here is direct enable of asynchronous mode.
 *  AMFTraceEnableAsync(true) increases internal asynchronous counter by 1; AMFTraceEnableAsync(false) decreases by 1
 *  when counter becomes > 0 mode - switches to async; when becomes 0 - switches to sync
-*  
+*
 *  Tracer must be switched to sync mode before quit application, otherwise async writing thread will be force terminated by OS (at lease Windows)
 *  See MSDN ExitProcess article for details.
 *******************************************************************************
@@ -256,7 +256,7 @@ bool AMF_CDECL_CALL AMFAssertsEnabled();
 *   Indentation value is thread specific
 *******************************************************************************
 */
-void AMF_CDECL_CALL AMFTraceEnterScope(); 
+void AMF_CDECL_CALL AMFTraceEnterScope();
 /**
 *******************************************************************************
 *   AMFTraceExitScope
@@ -294,13 +294,13 @@ static const wchar_t* AMF_FACILITY = NULL;
 #if defined(_WIN32)
 #define AMFDebugBreak  {if(amf::AMFAssertsEnabled()) {__debugbreak();} \
 }                                                                                //{  }
-#elif defined(__linux)
+#elif defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
 //    #define AMFDebugBreak ((void)0)
 #define AMFDebugBreak  {if(amf::AMFAssertsEnabled()) {assert(0);} \
 }                                                                           //{  }
 #endif
 #else
-#define AMFDebugBreak 
+#define AMFDebugBreak
 #endif
 
 /**
@@ -321,7 +321,7 @@ inline amf_wstring __FormatMessage(int argsCount, const wchar_t* /*expression*/,
     // this version of __FormatMessage for case when descriptive message is provided with optional args
     if(argsCount <= 0)
     {
-        return amf_wstring(message); 
+        return amf_wstring(message);
     }
     else
     {
@@ -350,7 +350,7 @@ inline amf_wstring __FormatMessage(int argsCount, const wchar_t* /*expression*/,
 *   @brief
 *       Base generic macro: checks expression for success, if failed: trace error, debug break and return an error
 *
-*       return_result is a parameter to return to upper level, could be hard-coded or 
+*       return_result is a parameter to return to upper level, could be hard-coded or
 *           specified exp_res what means pass inner level error
 *******************************************************************************
 */
@@ -383,7 +383,7 @@ inline amf_wstring __FormatMessage(int argsCount, const wchar_t* /*expression*/,
             EXPAND(amf::AMFTraceW(AMF_UNICODE(__FILE__), __LINE__, level, scope, 0, message.c_str()) ); \
             AMFDebugBreak; \
         } \
-    } 
+    }
 
 /**
 *******************************************************************************
@@ -392,7 +392,7 @@ inline amf_wstring __FormatMessage(int argsCount, const wchar_t* /*expression*/,
 *   @brief
 *       Macro supporting cascade call function returning AMF_RESULT from another
 *
-*       return_result is a parameter to return to upper level, could be hard-coded or 
+*       return_result is a parameter to return to upper level, could be hard-coded or
 *           specified exp_res what means pass inner level error
 *******************************************************************************
 */
@@ -503,9 +503,9 @@ inline amf_wstring AMFFormatHResult(HRESULT result)  { return amf::amf_string_fo
 *   AMF_CALL
 *
 *   @brief
-*       Macro to call AMF_RESULT returning function from AMF_RESULT returning function 
+*       Macro to call AMF_RESULT returning function from AMF_RESULT returning function
 *
-*   It does: 
+*   It does:
 *       1) Trace (level == debug) function name (or message if specified)
 *       2) Indent trace
 *       3) Call function
@@ -678,7 +678,7 @@ extern "C"
     *       Returns previous setting
     *******************************************************************************
     */
-    amf_int32 AMF_CDECL_CALL  AMFTraceSetGlobalLevel(amf_int32 level); 
+    amf_int32 AMF_CDECL_CALL  AMFTraceSetGlobalLevel(amf_int32 level);
 
     /**
     *******************************************************************************
@@ -695,22 +695,22 @@ extern "C"
     *   AMFTraceSetWriterLevel
     *
     *   @brief
-    *       Sets trace level for writer 
+    *       Sets trace level for writer
     *
     *       Returns previous setting
     *******************************************************************************
     */
-    amf_int32 AMF_CDECL_CALL  AMFTraceSetWriterLevel(const wchar_t* writerID, amf_int32 level); 
+    amf_int32 AMF_CDECL_CALL  AMFTraceSetWriterLevel(const wchar_t* writerID, amf_int32 level);
 
     /**
     *******************************************************************************
     *   AMFTraceGetWriterLevel
     *
     *   @brief
-    *       Gets trace level for writer 
+    *       Gets trace level for writer
     *******************************************************************************
     */
-    amf_int32 AMF_CDECL_CALL  AMFTraceGetWriterLevel(const wchar_t* writerID); 
+    amf_int32 AMF_CDECL_CALL  AMFTraceGetWriterLevel(const wchar_t* writerID);
 
     /**
     *******************************************************************************
@@ -722,7 +722,7 @@ extern "C"
     *       Returns previous setting
     *******************************************************************************
     */
-    amf_int32 AMF_CDECL_CALL  AMFTraceSetWriterLevelForScope(const wchar_t* writerID, const wchar_t* scope, amf_int32 level); 
+    amf_int32 AMF_CDECL_CALL  AMFTraceSetWriterLevelForScope(const wchar_t* writerID, const wchar_t* scope, amf_int32 level);
 
     /**
     *******************************************************************************
@@ -732,7 +732,7 @@ extern "C"
     *       Gets trace level for writer and scope
     *******************************************************************************
     */
-    amf_int32 AMF_CDECL_CALL  AMFTraceGetWriterLevelForScope(const wchar_t* writerID, const wchar_t* scope); 
+    amf_int32 AMF_CDECL_CALL  AMFTraceGetWriterLevelForScope(const wchar_t* writerID, const wchar_t* scope);
 
     /**
     *******************************************************************************
