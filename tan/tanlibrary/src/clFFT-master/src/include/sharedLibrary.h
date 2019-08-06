@@ -45,23 +45,23 @@ inline void* LoadSharedLibrary( std::string unixPrefix, std::string libraryName,
 		std::cerr << ::dlerror( ) << std::endl;
 	}
 #elif defined(__APPLE__)
-  tstring appleName = unixPrefix;
-  appleName += libraryName += ".dylib";
-  void* fileHandle = ::dlopen( appleName.c_str( ), RTLD_NOW );
-  if( !quiet && !fileHandle )
-  {
-          std::cerr << ::dlerror( ) << std::endl;
-  }
+	std::string appleName = unixPrefix;
+	appleName += libraryName += ".dylib";
+	void* fileHandle = ::dlopen( appleName.c_str( ), RTLD_NOW );
+	if( !quiet && !fileHandle )
+	{
+		std::cerr << ::dlerror( ) << std::endl;
+	}
 #elif defined(__FreeBSD__)
-        tstring freebsdName = unixPrefix;
-        freebsdName += libraryName += ".so";
-        void* fileHandle = ::dlopen( freebsdName.c_str( ), RTLD_NOW );
-        if( !quiet && !fileHandle )
-        {
-                std::cerr << ::dlerror( ) << std::endl;
-        }
+	tstring freebsdName = unixPrefix;
+	freebsdName += libraryName += ".so";
+	void* fileHandle = ::dlopen( freebsdName.c_str( ), RTLD_NOW );
+	if( !quiet && !fileHandle )
+	{
+			std::cerr << ::dlerror( ) << std::endl;
+	}
 #else
-        #error "unsupported platform"
+	#error "unsupported platform"
 #endif
 
 	return fileHandle;

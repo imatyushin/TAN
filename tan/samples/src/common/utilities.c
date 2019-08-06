@@ -21,7 +21,9 @@
 //
 
 #include <math.h>
+#if !defined(__APPLE__) && !defined(__MACOSX)
 #include <omp.h>
+#endif
 
 int DirectConv(float * out, float * in, int index, int block_sz, float * kernel, int kernel_sz, int n_blocks)
 {
@@ -108,12 +110,12 @@ int GenRandomFilter(void * filter, int filter_ln) {
         {
             coeff[i] = (2.f * (float)rand() / (float)RAND_MAX - 1.0f);
         }
-#if 0		
+#if 0
         else
         {
             coeff[i] = 0;
         }
-        
+
 #endif
 //		norm2 += coeff[i] * coeff[i];
     }
@@ -144,7 +146,7 @@ void fillInput(	std::vector<float*> inputs,
     for(int i = 0; i < inputs.size(); i++)
     {
         GenRandomInput(inputs[i], proc_block_sz);
-        if ( verify == 1 ) 
+        if ( verify == 1 )
         {
             int index = (int)(p_count % n_input_accum_blcks[i]);
             InsertInput(input_accum[i], index, inputs[i], proc_block_sz);
@@ -241,7 +243,7 @@ void convUpload(
     {
     // library managed OCL buffers
 
-    // called to obtain ocl buffers from Graal before user upload conv into them 
+    // called to obtain ocl buffers from Graal before user upload conv into them
         fhtConv.getConvBuffers(n_channels,&upload_id[0], &kernel_id[0], &kernel_mems[0]);
         fhtConv.uploadConvHostPtrs(n_channels, &upload_id[0], &kernel_id[0], (const float**)&kernels_ptrs[0], &kernel_len[0], true);
 
@@ -259,7 +261,7 @@ void convUpload(
     }
     else if ( kernel_upload_buffers == 1 )
     {
-        // update from user managed OCL buffers 
+        // update from user managed OCL buffers
         fhtConv.updateConv(n_channels, &upload_id[0], &kernel_id[0], &kernel_mems[0], &kernel_len[0], true);
 
 //		fhtConv.finishUpdate();
@@ -281,8 +283,8 @@ void convUpload(
 //	pthread_mutex_unlock(&conv_updt_guard);
 
 
-    t1 = mach_absolute_time(); 
-    if ( upload_count > 0 ) 
+    t1 = mach_absolute_time();
+    if ( upload_count > 0 )
     {
         uploading_time += subtractTimes(t1, t0);
     }
@@ -400,7 +402,7 @@ void processingLoop(
 
     int n_real_rounds = 0;
 // precompute cpu version
-    if (ext_verify) 
+    if (ext_verify)
     {
         for (int c = 0; c < n_channels && !sample_mismatch; c++)
         {
@@ -446,7 +448,7 @@ void processingLoop(
                     }
                     break;
                 }
-                
+
             }
         }
     }
@@ -516,7 +518,7 @@ void processingLoop(
                 // new conv run, return data, previous input, advance the timer
                 fhtConv.process(n_channels, &process_upload_id[set][0], &process_kernel_id[set][0], &inputs[0][0], &outputs[set][0],1);
 #if 0
-                if (ext_verify) 
+                if (ext_verify)
                 {
                     int sample_mismatch = 0;
                     for( int c = 0; c < n_channels && !sample_mismatch; c++)
@@ -563,14 +565,14 @@ void processingLoop(
     pthread_mutex_unlock(&conv_updt_guard);
 
 
-    t1 = mach_absolute_time(); 
+    t1 = mach_absolute_time();
     if (n_actual_loops > 0 ) {
         processing_time += subtractTimes(t1, t0);
     }
 
     int print_interval = 100;
 #if 1
-    if (ext_verify) 
+    if (ext_verify)
     {
 
         for( int c = 0; c < n_channels && !sample_mismatch; c++)
@@ -590,7 +592,7 @@ void processingLoop(
         print_interval = 2;
     }
 #endif
-    if (!sample_mismatch && ( n_actual_loops % print_interval ) == 0 && n_actual_loops > 0 ) 
+    if (!sample_mismatch && ( n_actual_loops % print_interval ) == 0 && n_actual_loops > 0 )
     {
         printf("Passed set %d round %d\n", set, (int)n_actual_loops);
     }
@@ -602,7 +604,7 @@ void processingLoop(
 
     n_actual_loops++;
 }
-    
+
 
 
 
@@ -735,7 +737,7 @@ int method = 0;
         if ( !strcmp(argv[i], "-b_sz") && i < argc -1 && argv[i + 1] != 0) {
             block_size = atoi(argv[++i]);
         }
-        else 
+        else
         if (!strcmp(argv[i], "-alg") && i < argc - 1 && argv[i + 1] != 0) {
             method = atoi(argv[++i]);
         }
@@ -864,7 +866,7 @@ double transfer_time = 0;
     std::vector<std::vector<float*>> outputs(n_sets);
     std::vector<std::vector<float*>> outputs_v(n_sets);
 
-    
+
 
 // instantiate grral conv library
     if (fft)
@@ -926,7 +928,7 @@ double transfer_time = 0;
 
             upload_ctl.kernel_len[j][i] = (int)kern_ln;
 // host arbitrary pointers
-            if ( !process_dev_buffers ) 
+            if ( !process_dev_buffers )
             {
                 inputs[j][i] = (float*)malloc(proc_block_sz* sizeof(float));
                 outputs[j][i] = (float*)malloc(proc_block_sz* sizeof(float));
@@ -945,7 +947,7 @@ double transfer_time = 0;
     {
         for( int j = 0; j < n_sets; j++)
         {
-            for (int i = 0; i < upload_ctl.kernels_ptrs[j].size(); i++) 
+            for (int i = 0; i < upload_ctl.kernels_ptrs[j].size(); i++)
             {
                 upload_ctl.kernels_ptrs[j][i] = malloc(upload_ctl.kernel_len[j][i] * sizeof(float));
             }
@@ -1027,7 +1029,7 @@ double transfer_time = 0;
 //					pthread_mutex_unlock(&upload_ctl.conv_updt_guard[j]);
 
                 }
-                
+
                 if (!upload_ctl.single_threaded)
                 {
                     Sleep(0);

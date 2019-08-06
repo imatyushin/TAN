@@ -33,7 +33,11 @@
 #if defined(_WIN32)
 #include "../common/WASAPIPlayer.h"
 #else
+
+#if !defined(__MACOSX) && !defined(__APPLE__)
 #include "../common/AlsaPlayer.h"
+#endif
+
 #include "../common/PortPlayer.h"
 #endif
 
@@ -364,13 +368,17 @@ int Audio3D::Init
 
     //initialize hardware
     mPlayer.reset(
+#if defined(__MACOSX) || defined(__APPLE__)
+        static_cast<IWavPlayer *>(new PortPlayer())
+#else
+
 #ifdef ENABLE_PORTAUDIO
         playerType == "PortAudio"
             ? static_cast<IWavPlayer *>(new PortPlayer())
             :
 #ifdef _WIN32
                 static_cast<IWavPlayer *>(new WASAPIPlayer())
-#else
+#elif !defined(__MACOSX) && !defined(__APPLE__)
                 static_cast<IWavPlayer *>(new AlsaPlayer())
 #endif
 
@@ -378,8 +386,10 @@ int Audio3D::Init
 
 #ifdef _WIN32
         new WASAPIPlayer()
-#else
+#elif !defined(__MACOSX) && !defined(__APPLE__)
         new AlsaPlayer()
+#endif
+
 #endif
 
 #endif

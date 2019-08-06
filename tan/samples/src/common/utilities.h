@@ -21,6 +21,5 @@
 //
 
 #include <math.h>
-#include <omp.h>
 
 extern "C" int DirectConv(float * out, float * in, int index, int block_sz, float* kernel, int kernel_sz, int n_blocks);

@@ -160,15 +160,20 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
             fprintf(stdout, "clGetDeviceIDs returned error: %d\n", status);
         }
         status = clGetDeviceInfo(devices[0], CL_DRIVER_VERSION, sizeof(driverVersion), driverVersion, NULL);
-        if (status != CL_SUCCESS) {
+
+        if (status != CL_SUCCESS)
+        {
             fprintf(stdout, "clGetDeviceInfo returned error: %d\n", status);
         }
-        else {
+        else
+        {
             std::cout
                 << std::endl
                 << "Driver version: " << driverVersion << std::endl
                 << numDevices << " devices found" << std::endl
                 ;
+
+            numDevices = 0;
 
             for (unsigned int n = 0; n < numDevices && n < count; n++) {
                 int k = totalDevices + n;

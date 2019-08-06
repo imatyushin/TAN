@@ -94,7 +94,11 @@ if(WIN32)
   list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
 else()
   list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.cpp)
+
+if(NOT APPLE)
   list(APPEND SOURCE_EXE ../../../src/common/AlsaPlayer.cpp)
+endif()
+
 endif()
 
 set(
@@ -122,10 +126,17 @@ set(
 )
 
 if(WIN32)
+
   list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)
+
 else()
+
   list(APPEND HEADER_EXE ../../../src/common/PulsePlayer.h)
+
+if(NOT APPLE)
   list(APPEND HEADER_EXE ../../../src/common/AlsaPlayer.h)
+endif()
+
 endif()
 
 if(PortAudio_INCLUDE_DIRS)
@@ -185,8 +196,12 @@ find_package(Threads REQUIRED)
 target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
 
 target_link_libraries(RoomAcousticsQT "dl")
+
+if(NOT APPLE)
 target_link_libraries(RoomAcousticsQT "asound")
-target_link_libraries(RoomAcousticsQT "portaudio")
+endif()
+
+#target_link_libraries(RoomAcousticsQT "portaudio")
 
 endif()
 

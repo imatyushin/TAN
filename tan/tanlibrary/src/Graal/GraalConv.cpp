@@ -2601,6 +2601,9 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     AMFTraceInfo(AMF_FACILITY, L"Kernel storage size = %6.2fMB\n",
                  (float)(new_transf_union_buf->getLen() * sizeof(float)) / 1024 / 1024);
 
+    throw "not supported";
+    /*
+
 // kernel channels map
     CABuf<int> *krnl_chnls_map_buf = new CABuf<int>(CAUpdBufArgs);
     assert(krnl_chnls_map_buf);
@@ -2745,7 +2748,7 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
 // history, transformed input data cyclic array
     CABuf<float> *history_transform_buf = new CABuf<float>(CABufArgs);
     assert(history_transform_buf);
-	ret = history_transform_buf->create(n_max_channels_ *aligned_conv_sz_/* n_sets_*/,  0);
+	ret = history_transform_buf->create(n_max_channels_ *aligned_conv_sz_/* n_sets_* /,  0);
 	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(history_transform_buf, graalQ_);
     history_transformed_ = history_transform_buf;
@@ -2844,6 +2847,8 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     clFinish(m_pContextTAN->GetOpenCLConvQueue());
     clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
     return ret;
+    */
+    return AMF_FAIL;
 }
 
 

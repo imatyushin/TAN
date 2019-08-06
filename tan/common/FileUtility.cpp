@@ -7,7 +7,14 @@
 #include <Windows.h>
 #include <direct.h>
 #else
+
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <mach-o/dyld.h>
+#include <limits.h>
+#endif
+
 #include <unistd.h>
+
 #endif
 
 std::string getDirectorySeparator()
@@ -283,10 +290,51 @@ std::string getModuleFileName()
         throw std::string("GetModuleFileName() failed!");
     }
 #else
+
+#if defined(__APPLE__) || defined(__MACOSX)
+	uint32_t bufsize = MAX_PATH;
+
+	//0 means success
+	if(!!_NSGetExecutablePath(buffer, &bufsize))
+	{
+		throw std::string("_NSGetExecutablePath failed!");
+	}
+
+	/*
+	if (!module) { return std::string(); }
+	uint32_t count = _dyld_image_count();
+	for (uint32_t i = 0; i < count; ++i) {
+		const mach_header *header = _dyld_get_image_header(i);
+		if (!header) { break; }
+		char *code_ptr = NULL;
+		if ((header->magic & MH_MAGIC_64) == MH_MAGIC_64) {
+			uint64_t size;
+			code_ptr = getsectdatafromheader_64((const mach_header_64 *)header, SEG_TEXT, SECT_TEXT, &size);
+		} else {
+			uint32_t size;
+			code_ptr = getsectdatafromheader(header, SEG_TEXT, SECT_TEXT, &size);
+		}
+		if (!code_ptr) { continue; }
+		const uintptr_t slide = _dyld_get_image_vmaddr_slide(i);
+		const uintptr_t start = (const uintptr_t)code_ptr + slide;
+		Dl_info info;
+		if (dladdr((const void *)start, &info)) {
+			if (dlopen(info.dli_fname, RTLD_NOW) == module) {
+				return std::string(info.dli_fname);
+			}
+		}
+	}
+	return std::string();
+	*/
+#else
+
     if(-1 == readlink("/proc/self/exe", buffer, MAX_PATH))
     {
-        throw std::string("Error: readlink() failed!");
+		throw std::string("Error: readlink() failed!");
     }
+
+#endif
+
 #endif
 
 	return buffer;

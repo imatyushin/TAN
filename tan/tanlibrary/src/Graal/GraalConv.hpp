@@ -64,10 +64,11 @@ double mach_absolute_time()
     return(ret);
 }
 
+#else
 
-
-#else  // WIN32
-
+#if defined(__APPLE__) || defined(__MACOSX)
+#include <mach/mach_time.h>
+#endif
 
 #include<strings.h>
 #include <unistd.h>
@@ -75,23 +76,17 @@ double mach_absolute_time()
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#if defined __APPLE || defined(__MACOSX)
-test
-#include <mach/mach_time.h>
 #endif
 
-#endif // !WIN32
-
-#  include "public/common/TraceAdapter.h"
-#  define AMF_FACILITY L"GraalConv"
+#include "public/common/TraceAdapter.h"
+#define AMF_FACILITY L"GraalConv"
 
 #include "GraalConvOCL.hpp"
 
 #define __FLOAT__ float
 typedef unsigned int uint;
 
-static
-double subtractTimes(double endTime, double startTime)
+static double subtractTimes(double endTime, double startTime)
 {
     double difference = endTime - startTime;
     static double conversion = 0.0;

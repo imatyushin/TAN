@@ -42,7 +42,8 @@ struct BasicTimer
 
 #ifdef WIN32
 
-struct Timer
+struct Timer:
+    public BasicTimer
 {
     LARGE_INTEGER start, stop, freq;
 
@@ -69,7 +70,8 @@ public:
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-struct Timer
+struct Timer:
+    public BasicTimer
 {
     clock_serv_t clock;
     mach_timespec_t start, end;

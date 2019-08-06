@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "(lldb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/tan/build/cmake/linux/cmake-RoomAcousticQT-bin/RoomAcousticsQT",
+            "program": "${workspaceFolder}/tan/build/cmake/mac/cmake-RoomAcousticQT-bin/RoomAcousticsQT",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -19,7 +19,7 @@
                 }
             ],
             "externalConsole": false,
-            "MIMode": "gdb",
+            "MIMode": "lldb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
