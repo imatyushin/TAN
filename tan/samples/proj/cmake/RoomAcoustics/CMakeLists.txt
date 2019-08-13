@@ -27,6 +27,7 @@ if(WIN32)
     else()
       include_directories(${OpenCL_INCLUDE_DIRS})
       link_directories(${OpenCL_LIBRARY})
+      #ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
     endif()
 
     find_package(MFC REQUIRED)

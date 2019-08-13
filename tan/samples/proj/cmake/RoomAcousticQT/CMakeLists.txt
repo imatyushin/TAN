@@ -17,6 +17,8 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+
 find_package(OpenCL REQUIRED)
 if(NOT OpenCL_FOUND)
   message(FATAL_ERROR "Failed to find OpenCL")
@@ -24,6 +26,7 @@ if(NOT OpenCL_FOUND)
 else()
   include_directories(${OpenCL_INCLUDE_DIRS})
   link_directories(${OpenCL_LIBRARY})
+  #ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
 endif()
 
 # Find includes in corresponding build directories
@@ -43,13 +46,36 @@ endif()
 # name
 project(RoomAcousticsQT DESCRIPTION "RoomAcousticsQT")
 
-if(PortAudio_INCLUDE_DIRS)
-  message("PortAudio_INCLUDE_DIRS: " ${PortAudio_INCLUDE_DIRS})
-  message("PortAudio_LIBRARY: " ${PortAudio_LIBRARY})
+if(PortAudio_DIR)
+  message("PortAudio_DIR: " ${PortAudio_DIR})
 
-  include_directories(${PortAudio_INCLUDE_DIRS})
+  INCLUDE(ExternalProject)
+  ExternalProject_Add(
+    thirdparty_portaudio
+    SOURCE_DIR          ${PortAudio_DIR}
+    #GIT_REPOSITORY      https://git.assembla.com/portaudio.git
+    PREFIX              thirdparty_portaudio
+    #PREFIX              lib/external_portaudio
+    UPDATE_COMMAND      ""
+    #CONFIGURE_COMMAND   ${PortAudio_DIR}/configure
+    CONFIGURE_COMMAND   "" #cmake ${PortAudio_DIR} -G "Unix Makefiles"
+    BUILD_IN_SOURCE     0
+    #BUILD_COMMAND       make
+    BUILD_COMMAND       ""
+    INSTALL_COMMAND     "" #sudo make install
+    )
+
+  #ExternalProject_Get_Property(external_portaudio_configure BINARY_DIR)
+  #ExternalProject_Get_Property(external_portaudio_configure SOURCE_DIR)
+  #message("PortAudio BINARY_DIR: " ${BINARY_DIR})
+  #message("PortAudio SOURCE_DIR: " ${SOURCE_DIR})
+
+  add_subdirectory(${PortAudio_DIR} cmake-portaudio-bin EXCLUDE_FROM_ALL)
+  #add_dependencies(portaudio1 thirdparty_portaudio1)
 
   ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
+  include_directories(${PortAudio_DIR}/include)
+  #link_directories(${PortAudio_DIR}/lib/.libs)
 endif()
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
@@ -126,20 +152,16 @@ set(
 )
 
 if(WIN32)
-
   list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)
-
 else()
-
   list(APPEND HEADER_EXE ../../../src/common/PulsePlayer.h)
 
-if(NOT APPLE)
-  list(APPEND HEADER_EXE ../../../src/common/AlsaPlayer.h)
+  if(NOT APPLE)
+    list(APPEND HEADER_EXE ../../../src/common/AlsaPlayer.h)
+  endif()
 endif()
 
-endif()
-
-if(PortAudio_INCLUDE_DIRS)
+if(PortAudio_DIR)
   list(APPEND SOURCE_EXE ../../../src/common/PortPlayer.cpp)
   list(APPEND HEADER_EXE ../../../src/common/PortPlayer.h)
 endif()
@@ -186,27 +208,22 @@ target_link_libraries(RoomAcousticsQT ${OpenCL_LIBRARY})
 target_link_libraries(RoomAcousticsQT Qt5::Widgets)
 
 if(WIN32)
-
-target_link_libraries(RoomAcousticsQT "version.lib")
-target_link_libraries(RoomAcousticsQT "shlwapi.lib")
-
+  target_link_libraries(RoomAcousticsQT "version.lib")
+  target_link_libraries(RoomAcousticsQT "shlwapi.lib")
 else()
+  find_package(Threads REQUIRED)
+  target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
 
-find_package(Threads REQUIRED)
-target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
+  target_link_libraries(RoomAcousticsQT "dl")
 
-target_link_libraries(RoomAcousticsQT "dl")
-
-if(NOT APPLE)
-target_link_libraries(RoomAcousticsQT "asound")
+  if(NOT APPLE)
+    target_link_libraries(RoomAcousticsQT "asound")
+  endif()
 endif()
 
-#target_link_libraries(RoomAcousticsQT "portaudio")
-
-endif()
-
-if(PortAudio_INCLUDE_DIRS)
-  target_link_libraries(RoomAcousticsQT ${PortAudio_LIBRARY})
+if(PortAudio_DIR)
+  target_link_libraries(RoomAcousticsQT portaudio)
+  #target_link_libraries(RoomAcousticsQT portaudio-static
 endif()
 
 if(NOT WIN32)

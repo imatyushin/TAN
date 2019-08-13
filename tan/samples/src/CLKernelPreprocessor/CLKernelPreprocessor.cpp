@@ -51,6 +51,20 @@ int main(int argc, char* argv[])
 		    ? argv[2]
 			: "CLKernel_" + fileName + ".h"
 		);
+
+	//std::cout << "CURRENT: " << getCurrentDirectory() << " " << outputFileName << std::endl;
+	auto path2File(getPath2File(outputFileName));
+
+	if(path2File.length() && !checkFileExist(path2File))
+	{
+		if(!createPath(path2File))
+		{
+			std::cout << "Could not create path " << path2File << std::endl;
+
+			return 1;
+		}
+	}
+
 	std::wofstream outputStream(outputFileName);
 
 	if(outputStream.fail())

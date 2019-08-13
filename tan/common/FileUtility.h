@@ -32,10 +32,13 @@ std::string getFileVersionString(const std::string& filePath);
 //void getFileVersionAndDate(std::string &logMessage, char *version, size_t maxLength);
 
 std::string getPath2File(const std::string& fileNameWithPath);
+bool createPath(const std::string & path);
 std::string getFileNameWithExtension(const std::string& filePath);
 std::string getFileNameWithoutExtension(const std::string& filePath);
 std::string getFileExtension(const std::string& fileName);
-bool compareIgnoreCase(const std::string& first, const std::string& second);
+
 bool checkFileExist(const std::string& fileName);
+
+bool compareIgnoreCase(const std::string& first, const std::string& second);
 
 std::string getModuleFileName();

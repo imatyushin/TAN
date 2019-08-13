@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstring>
+#include <vector>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -14,6 +15,8 @@
 #endif
 
 #include <unistd.h>
+//#include <sys/types.h>
+#include <sys/stat.h>
 
 #endif
 
@@ -153,6 +156,70 @@ std::string getPath2File(const std::string& fileNameWithPath)
 	return (separatorPosition != std::string::npos)
 		? fileNameWithPath.substr(0, separatorPosition + 1)
 		: "";
+}
+
+//#include <iostream>
+
+bool createPath(const std::string & path)
+{
+	std::vector<std::string> directories;
+
+	auto component = getFileNameWithExtension(path);
+	auto otherPath = getPath2File(path);
+
+	if(!component.length() && otherPath.length())
+	{
+		component = otherPath;
+	}
+
+	//std::cout << "INCOME: [" << path << "] [" << component << "] [" << otherPath << "]" << std::endl;
+
+	for( ; component.length(); )
+	{
+		//std::cout << "PUSH:" << component << std::endl;
+
+		directories.push_back(component);
+
+		if(otherPath.length())
+		{
+			component = getFileNameWithExtension(otherPath);
+			otherPath = getPath2File(otherPath);
+
+			if(!component.length() && otherPath.length())
+			{
+				component = otherPath;
+			}
+		}
+		else
+		{
+			component.resize(0);
+		}
+	}
+
+	for
+	(
+		auto componentIterator(directories.rbegin());
+		componentIterator != directories.rend();
+		++componentIterator
+	)
+	{
+		auto directory(*componentIterator);
+
+		//std::cout << "CHECK: " << directory;
+
+		if(!checkFileExist(directory))
+		{
+			auto result(mkdir(directory.c_str(), 0777));
+			//errno != EEXIST
+
+			if(!result)
+			{
+				break;
+			}
+		}
+    }
+
+	return checkFileExist(path);
 }
 
 std::string getFileNameWithExtension(const std::string& filepath)

@@ -28,6 +28,7 @@ else()
   message("OpenCL found, headers path: " ${OpenCL_INCLUDE_DIRS} ", runtime library: " ${OpenCL_LIBRARY})
 	include_directories(${OpenCL_INCLUDE_DIRS})
   link_directories(${OpenCL_LIBRARY})
+  #ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
 endif()
 
 # name
