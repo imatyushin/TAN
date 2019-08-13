@@ -38,6 +38,8 @@
 
 #include <CL/cl_ext.h>
 
+#define CL_MEM_USE_PERSISTENT_MEM_AMD 1234567890 //random
+
 //to allow std::min usage
 #ifdef min
 #undef min
@@ -2602,7 +2604,6 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
                  (float)(new_transf_union_buf->getLen() * sizeof(float)) / 1024 / 1024);
 
     throw "not supported";
-    /*
 
 // kernel channels map
     CABuf<int> *krnl_chnls_map_buf = new CABuf<int>(CAUpdBufArgs);
@@ -2694,17 +2695,17 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     selectUploadOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(uploadKernel_, pComputeUpdate, this->m_pContextTAN->GetOpenCLGeneralQueue(),
                                         kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name);
+    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     selectUpload2Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(uploadKernel2_, pComputeUpdate, this->m_pContextTAN->GetOpenCLGeneralQueue(),
                                         kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name);
+    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     selectResetOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(resetKernel_, pComputeConvolution, graalQ_,
                                         kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name);
+    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     goit = GetOclKernel(m_copyWithPaddingKernel, pComputeUpdate, this->m_pContextTAN->GetOpenCLGeneralQueue(),
                                         "GraalFHT.cl", (const char*)GraalFHT, GraalFHTCount, "amdPadFFTBlock", comp_options);
@@ -2748,7 +2749,7 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
 // history, transformed input data cyclic array
     CABuf<float> *history_transform_buf = new CABuf<float>(CABufArgs);
     assert(history_transform_buf);
-	ret = history_transform_buf->create(n_max_channels_ *aligned_conv_sz_/* n_sets_* /,  0);
+	ret = history_transform_buf->create(n_max_channels_ *aligned_conv_sz_/* n_sets_*/,  0);
 	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(history_transform_buf, graalQ_);
     history_transformed_ = history_transform_buf;
@@ -2821,7 +2822,7 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     selectDirectFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(directTransformKernel_, pComputeConvolution, graalQ_,
                                         kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name);
+    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
 //	CMADKernels_
     std::vector<std::string> kernel_names;
@@ -2831,24 +2832,22 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     {
         goit = GetOclKernel(CMADKernels_[i], pComputeConvolution, graalQ_,
                                             kernel_file, kernel_src, kernel_src_size, kernel_names[i], comp_options);
-        AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_names[i]);
+        AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_names[i].c_str());
     }
 
     selectInverseFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(inverseTransformKernel_, pComputeConvolution, graalQ_,
                                         kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name);
+    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     selectConvHead1Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(convHead1_, pComputeConvolution, graalQ_,
                                         kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name);
+    AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     clFinish(m_pContextTAN->GetOpenCLConvQueue());
     clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
     return ret;
-    */
-    return AMF_FAIL;
 }
 
 

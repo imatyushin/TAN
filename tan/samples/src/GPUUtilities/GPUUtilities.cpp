@@ -45,6 +45,24 @@
 #define sprintf_s sprintf
 #endif
 
+#define CL_DEVICE_TOPOLOGY_AMD 0x4037
+                    struct cl_device_topology_amd
+                    {
+                        union hack1
+                        {
+                            unsigned char data[2048];
+
+                        };
+
+                        struct pcie_
+                        {
+                            uint32_t bus;
+                            uint32_t device;
+                            uint32_t function;
+                        };
+                        pcie_ pcie;
+                    };
+
 /* To Do: Check for GPU device not used by display....
 
 // Create CL context properties, add GLX context & handle to DC
@@ -184,14 +202,14 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 std::cout << "GPU device: " << devNames[k] << std::endl;
 
                 throw "not supported";
-                /*cl_device_topology_amd pciBusInfo;
+                cl_device_topology_amd pciBusInfo;
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
                 if (status == CL_SUCCESS){
                     fprintf(stdout, "   PCI bus: %d device: %d function: %d\n", pciBusInfo.pcie.bus, pciBusInfo.pcie.device, pciBusInfo.pcie.function);
                 }
                 cl_uint max_CUs = 0;
                 clGetDeviceInfo(devices[n], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &max_CUs, NULL);
-                fprintf(stdout, "   max compute units: %d\n", max_CUs);*/
+                fprintf(stdout, "   max compute units: %d\n", max_CUs);
             }
         }
 
@@ -649,11 +667,27 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                     deviceList[k].localMemSize = 0;
                     clGetDeviceInfo(devices[n], CL_DEVICE_LOCAL_MEM_SIZE, 100, &deviceList[k].localMemSize, NULL);
 
+                    #define CL_DEVICE_TOPOLOGY_AMD 0x4037
+                    struct cl_device_topology_amd
+                    {
+                        union hack1
+                        {
+                            unsigned char data[2048];
 
+                        };
+
+                        struct pcie_
+                        {
+                            uint32_t bus;
+                            uint32_t device;
+                            uint32_t function;
+                        };
+                        pcie_ pcie;
+                    };
 
                     //hack extra stuff
                     throw "not supported";
-                    /*cl_device_topology_amd pciBusInfo;
+                    cl_device_topology_amd pciBusInfo;
                     memset(&pciBusInfo, 0, sizeof(pciBusInfo));
 
                     status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
@@ -678,7 +712,6 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
 
                         }
                     }
-                    */
 
                     //{
                     ////    // hack wglGetCurrentContext needs OpenGL32.lib
