@@ -154,7 +154,7 @@ std::string getPath2File(const std::string& fileNameWithPath)
 	auto separatorPosition = fileNameWithPath.find_last_of(getDirectorySeparator());
 
 	return (separatorPosition != std::string::npos)
-		? fileNameWithPath.substr(0, separatorPosition + 1)
+		? fileNameWithPath.substr(0, separatorPosition/*  + 1 */)
 		: "";
 }
 
@@ -185,10 +185,10 @@ bool createPath(const std::string & path)
 			component = getFileNameWithExtension(otherPath);
 			otherPath = getPath2File(otherPath);
 
-			if(!component.length() && otherPath.length())
-			{
-				component = otherPath;
-			}
+			//if(!component.length() && otherPath.length() && component != otherPath)
+			//{
+			//	component = otherPath;
+			//}
 
 			std::cout << "comp:" << component << " other:" << otherPath << std::endl;
 		}
