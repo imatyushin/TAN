@@ -50,7 +50,10 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent)
 #ifdef _WIN32
 	ConfigUi.PlayerType->addItem(QString::fromUtf8("WASApi"));
 #else
-    ConfigUi.PlayerType->addItem(QString::fromUtf8("Alsa"));
+
+	#if !defined(__APPLE__) && !defined(__MACOSX)
+	ConfigUi.PlayerType->addItem(QString::fromUtf8("ALSA"));
+	#endif
 #endif
 
 #ifdef ENABLE_PORTAUDIO

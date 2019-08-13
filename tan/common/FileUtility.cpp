@@ -158,7 +158,7 @@ std::string getPath2File(const std::string& fileNameWithPath)
 		: "";
 }
 
-//#include <iostream>
+#include <iostream>
 
 bool createPath(const std::string & path)
 {
@@ -189,6 +189,8 @@ bool createPath(const std::string & path)
 			{
 				component = otherPath;
 			}
+
+			std::cout << "comp:" << component << " other:" << otherPath << std::endl;
 		}
 		else
 		{
