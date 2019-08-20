@@ -107,7 +107,7 @@ public:
     int Run();
 
 	// Stop audio engine:
-    int Stop();
+    bool Stop();
 
 protected:
     static bool useIntrinsics;

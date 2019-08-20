@@ -514,13 +514,14 @@ namespace amf
 
     bool AMFThreadObj::RequestStop()
     {
-        if(m_hThread)
-        {
-            return true;
-        }
+        //if(m_hThread)
+        //{
+        //    return true;
+        //}
         pthread_mutex_lock(&m_hMutex);
         m_bStopRequested = true;
         pthread_mutex_unlock(&m_hMutex);
+        
         return true;
     }
 

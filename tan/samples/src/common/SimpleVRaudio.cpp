@@ -274,7 +274,7 @@ int Audio3D::Init
     //useMicSource = true;
     //useCPU_Conv = true;
 
-    Close();
+    //Close();
 
     // shouldn't need this, they are radio buttons:
     if (useGPU_Conv) useCPU_Conv = false;
@@ -889,20 +889,16 @@ int Audio3D::Run()
     return 0;
 }
 
-int Audio3D::Stop()
+bool Audio3D::Stop()
 {
     mStop = true;
 
     mProcessThread.WaitCloseInfinite();
     mUpdateThread.WaitCloseInfinite();
 
-    if(mPlayer)
-    {
-        mPlayer->Close();
-        mPlayer.reset();
-    }
+    Close();
 
-    return 0;
+    return true;
 }
 
 int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)

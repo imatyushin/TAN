@@ -5,7 +5,7 @@
 #include "FileUtility.h"
 
 #include <time.h>
-
+#include <cmath>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -34,8 +34,11 @@ void RoomAcousticQT::initialize()
 {
 	initializeEnvironment();
 	initializeAudioEngine();
+	
 	initializeRoom();
 	initializeListener();
+	initializeAudioPositions();
+	
 	initializeDevice();
 }
 
@@ -179,16 +182,41 @@ void RoomAcousticQT::initializeRoom()
 	m_RoomDefinition.height = 4.0;
 	m_RoomDefinition.width = 6.0;
 	m_RoomDefinition.length = 10.0;
+
 	m_RoomDefinition.mFront.damp = DBTODAMP(2.0);
 	m_RoomDefinition.mBack.damp = DBTODAMP(6.0);
+	
 	m_RoomDefinition.mLeft.damp = m_RoomDefinition.mRight.damp = DBTODAMP(4.0);
 	m_RoomDefinition.mTop.damp = m_RoomDefinition.mBottom.damp = DBTODAMP(2.0);
+}
 
-	for (int idx = 0; idx < MAX_SOURCES; idx++) {
-		m_SoundSources[idx].speakerX = m_RoomDefinition.width / 2 + idx*m_RoomDefinition.width / MAX_SOURCES;
-		m_SoundSources[idx].speakerZ = float(m_RoomDefinition.width * 0.05);
+void RoomAcousticQT::initializeListener()
+{
+	m_Listener.earSpacing = float(0.16);
+	m_Listener.headX = float(m_RoomDefinition.width * .8);
+	m_Listener.headZ = float(m_RoomDefinition.length * .8);
+	m_Listener.headY = 1.75;
+	m_Listener.pitch = 0.0;
+	m_Listener.roll = 0.0;
+	m_Listener.yaw = 0.0;
+}
+
+void RoomAcousticQT::initializeAudioPositions()
+{
+	float radius = m_RoomDefinition.width / 2;
+
+	for(int idx = 0; idx < MAX_SOURCES; idx++) 
+	{
+		//original:
+		/*m_SoundSources[idx].speakerX = m_RoomDefinition.width / 2 + idx * m_RoomDefinition.width / MAX_SOURCES;
+		m_SoundSources[idx].speakerZ = float(m_RoomDefinition.width * 0.05);*/
+		m_SoundSources[idx].speakerX = m_Listener.headX + radius * std::sinf(idx);
+		m_SoundSources[idx].speakerZ = m_Listener.headZ + radius * std::cosf(idx);
+
+		
 		m_SoundSources[idx].speakerY = 1.75;
-		m_iSoundSourceEnable[idx] = 0;
+
+		mSoundSourceEnable[idx] = true;
 		mWavFileNamesInternal[idx].resize(0);
 	}
 
@@ -196,17 +224,6 @@ void RoomAcousticQT::initializeRoom()
 	{
 		m_iSoundSourceMap[i] = 0;
 	}
-}
-
-void RoomAcousticQT::initializeListener()
-{
-	m_Listener.earSpacing = float(0.16);
-	m_Listener.headX = float(m_RoomDefinition.width*.8);
-	m_Listener.headZ = float(m_RoomDefinition.length*.8);
-	m_Listener.headY = 1.75;
-	m_Listener.pitch = 0.0;
-	m_Listener.roll = 0.0;
-	m_Listener.yaw = 0.0;
 }
 
 void RoomAcousticQT::initializeDevice()
@@ -329,10 +346,12 @@ void RoomAcousticQT::portInfoToEngine()
 	// Remap the source name so that it maps the audio3D engine
 	int soundnameindex = 0;
 	m_iNumOfWavFileInternal = 0;
+	
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
 		mWavFileNamesInternal[soundnameindex].resize(0);
-		if(mWavFileNames[i].length() && m_iSoundSourceEnable[i])
+		
+		if(mWavFileNames[i].length() && mSoundSourceEnable[i])
 		{
 			mWavFileNamesInternal[soundnameindex] = mWavFileNames[i];
 			m_iSoundSourceMap[i] = soundnameindex;
@@ -366,9 +385,10 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 		RAelementList[i].name = new char[MAX_PATH];
 		attribute *streamAttribs = new attribute[2];
 		attributes_list.push_back(streamAttribs);
+		
 		streamAttribs[0].name = "on";
-		streamAttribs[0].value = &m_iSoundSourceEnable[i];
-		streamAttribs[0].fmt = 'i';
+		streamAttribs[0].value = &mSoundSourceEnable[i];
+		streamAttribs[0].fmt = 'b';
 
 		streamAttribs[1].name = "file";
 		//todo: verify
@@ -428,8 +448,6 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 		RAelementList[i].name = _Source;
 		RAelementList[i].nAttribs = 0;
 		RAelementList[i].attriblist = NULL;
-
-
 	}
 
 	// Initialize Listener Attributes
@@ -585,7 +603,7 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 	fputs("<!-- All dimensions in meters, damping in decibels -->\n", fpSaveFile);
 
 	fputs(" <Source1>\n", fpSaveFile);
-	fprintf(fpSaveFile, " <streamS1  on=\"%d\" file=\"%s\" />\n", m_iSoundSourceEnable[0], mWavFileNames[0].c_str());
+	fprintf(fpSaveFile, " <streamS1  on=\"%d\" file=\"%s\" />\n", mSoundSourceEnable[0] ? 1 : 0, mWavFileNames[0].c_str());
 	fprintf(fpSaveFile, "  <microphone enableMic=\"%d\" trackHeadPos=\"%d\" muteDirectPath=\"%d\" />\n",
 		mSrc1EnableMic, m_isrc1TrackHeadPos, m_isrc1MuteDirectPath);
 	fprintf(fpSaveFile, "  <positionS1 X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", m_SoundSources[0].speakerX, m_SoundSources[0].speakerY, m_SoundSources[0].speakerZ);
@@ -593,7 +611,7 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 
 	for (int i = 1; i < MAX_SOURCES; i++) {
 		fprintf(fpSaveFile, " <Source%d>\n", i + 1);
-		fprintf(fpSaveFile, " <streamS%d  on=\"%d\" file=\"%s\" />\n", i + 1, m_iSoundSourceEnable[i], mWavFileNames[i].c_str());
+		fprintf(fpSaveFile, " <streamS%d  on=\"%d\" file=\"%s\" />\n", i + 1, mSoundSourceEnable[i] ? 1 : 0, mWavFileNames[i].c_str());
 		fprintf(fpSaveFile, "  <positionS%d X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", i + 1, m_SoundSources[i].speakerX, m_SoundSources[i].speakerY, m_SoundSources[i].speakerZ);
 		fprintf(fpSaveFile, " </Source%d>\n", i + 1);
 	}
@@ -668,7 +686,9 @@ bool RoomAcousticQT::replaceSoundSource(const std::string& sourcename, int id)
 		m_SoundSources[id].speakerY = 0.0f;
 		m_SoundSources[id].speakerX = 0.0f;
 		m_SoundSources[id].speakerZ = 0.0f;
-		m_iSoundSourceEnable[id] = 0;
+		
+		mSoundSourceEnable[id] = true;
+
 		if (id == 0)
 		{
 			m_isrc1TrackHeadPos = 0;
@@ -705,7 +725,8 @@ bool RoomAcousticQT::removeSoundSource(int id)
 			m_SoundSources[id].speakerY = 0.0f;
 			m_SoundSources[id].speakerX = 0.0f;
 			m_SoundSources[id].speakerZ = 0.0f;
-			m_iSoundSourceEnable[id] = 0;
+			mSoundSourceEnable[id] = true;
+
 			if (id == 0)
 			{
 				m_isrc1TrackHeadPos = 0;
@@ -800,7 +821,7 @@ void RoomAcousticQT::updateAllSoundSourcesPosition()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
-		if (mWavFileNames[i].length() && m_iSoundSourceEnable[i] )
+		if(mWavFileNames[i].length() && mSoundSourceEnable[i])
 		{
 			updateSoundSourcePosition(i);
 		}
@@ -810,8 +831,37 @@ void RoomAcousticQT::updateAllSoundSourcesPosition()
 void RoomAcousticQT::updateSoundSourcePosition(int index)
 {
 	int i = m_iSoundSourceMap[index];
-	m_pAudioEngine->updateSourcePosition(i, m_SoundSources[index].speakerX,
-		m_SoundSources[index].speakerY, m_SoundSources[index].speakerZ);
+	m_pAudioEngine->updateSourcePosition(
+		i, 
+		m_SoundSources[index].speakerX,
+		m_SoundSources[index].speakerY, 
+		m_SoundSources[index].speakerZ
+		);
+}
+
+void RoomAcousticQT::UpdateSoundSourcesPositions()
+{
+	return;
+	for(int index = 0; index < MAX_SOURCES; index++)
+	{
+		if(mWavFileNames[index].length() && mSoundSourceEnable[index])
+		{
+			float deltaX = m_Listener.headX - m_SoundSources[index].speakerX;
+			float deltaZ = m_Listener.headZ - m_SoundSources[index].speakerZ;
+
+			float radius = std::sqrtf(deltaX * deltaX + deltaZ * deltaZ);
+
+			m_SoundSources[index].speakerX += 0.5;
+			m_SoundSources[index].speakerZ += 0.5;
+ 	
+			m_pAudioEngine->updateSourcePosition(
+				index, 
+				m_SoundSources[index].speakerX,
+				m_SoundSources[index].speakerY, 
+				m_SoundSources[index].speakerZ
+				);
+		}
+	}
 }
 
 void RoomAcousticQT::updateListenerPosition()

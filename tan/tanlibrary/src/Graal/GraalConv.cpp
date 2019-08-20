@@ -38,7 +38,11 @@
 
 #include <CL/cl_ext.h>
 
-#define CL_MEM_USE_PERSISTENT_MEM_AMD 1234567890 //random
+#if defined DEFINE_AMD_OPENCL_EXTENSION
+    #ifndef CL_MEM_USE_PERSISTENT_MEM_AMD
+        #define CL_MEM_USE_PERSISTENT_MEM_AMD       (1 << 6)
+    #endif
+#endif
 
 //to allow std::min usage
 #ifdef min
@@ -2575,7 +2579,7 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
 )
 {
     int ret = GRAAL_SUCCESS;
-    cl_queue_properties prop[] = { 0 };
+    //ivm: cl_queue_properties prop[] = { 0 };
 
 
     const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
@@ -2602,8 +2606,6 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
 #endif
     AMFTraceInfo(AMF_FACILITY, L"Kernel storage size = %6.2fMB\n",
                  (float)(new_transf_union_buf->getLen() * sizeof(float)) / 1024 / 1024);
-
-    throw "not supported";
 
 // kernel channels map
     CABuf<int> *krnl_chnls_map_buf = new CABuf<int>(CAUpdBufArgs);

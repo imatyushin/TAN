@@ -1338,8 +1338,8 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
     //int tId = GetThreadId(m_updThreadHandle);
     //tId = GetCurrentThreadId();
 
-
-    do {
+    do 
+    {
         // Wait for the time to start processing.
         m_procReadyForNewResponsesEvent.Lock();
         if (pThread->StopRequested()) {
@@ -1355,7 +1355,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
         {
             AMFLock lock(&m_sectAccum);
 
-             m_updateArgs.Pack(m_accumulatedArgs, m_iChannels);
+            m_updateArgs.Pack(m_accumulatedArgs, m_iChannels);
             m_copyArgs.Negate(m_accumulatedArgs, m_iChannels, m_idxFilter, m_idxUpdateFilter);
             m_accumulatedArgs.Clear(m_iChannels);
         }
@@ -1435,7 +1435,6 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                 RETURN_IF_FALSE(false, ret, AMF_NOT_IMPLEMENTED);
         }
 
-
         m_updateFinishedProcessing.SetEvent();
 
         continue;
@@ -1445,8 +1444,9 @@ ErrorHandling:
         m_updateFinishedProcessing.SetEvent();
 
     } while (!pThread->StopRequested());
+
     //hack
-    static bool finihsed = pThread->IsRunning();
+    static bool finished = pThread->IsRunning();
 }
 
 AMF_RESULT TANConvolutionImpl::VectorComplexMul(float *vA, float *vB, float *out, int count){

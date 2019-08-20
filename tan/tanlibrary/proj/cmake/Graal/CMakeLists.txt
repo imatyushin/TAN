@@ -15,7 +15,11 @@ else()
   message("OpenCL seems found in " ${OpenCL_INCLUDE_DIRS})
 	include_directories(${OpenCL_INCLUDE_DIRS})
   link_directories(${OpenCL_LIBRARY})
-  #ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
+  ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
+
+  if(DEFINE_AMD_OPENCL_EXTENSION)
+      ADD_DEFINITIONS(-DDEFINE_AMD_OPENCL_EXTENSION)
+  endif()
 endif()
 
 message("OpenCL_INCLUDE_DIRS: ${OpenCL_INCLUDE_DIRS}")

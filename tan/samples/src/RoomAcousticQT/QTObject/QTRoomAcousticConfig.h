@@ -12,6 +12,8 @@
 #include "../RoomAcousticQT.h"
 #include "QTRoomAcousticGraphic.h"
 
+class QTimer;
+
 class RoomAcousticQTConfig : public QMainWindow
 {
 	Q_OBJECT
@@ -125,6 +127,8 @@ private:
 	void startHeadSpinAnimation();
 	void stopHeadSpinAnimation();
 
+	void OnTimer();
+
 	Ui::RoomAcousticConfig ConfigUi;							// The main configuration ConfigUi
 	RoomAcousticQT m_RoomAcousticInstance;						// The main room acoustic instance
 
@@ -134,6 +138,8 @@ private:
 	int m_iCurrentSelectedSource = -1;
 	bool m_bDemoStarted = false;								// Flag that identifies the demo starting state
 	QTimeLine* m_pHeadAnimationTimeline;
+
+	QTimer *mTimer;
 };
 
 

@@ -45,23 +45,19 @@
 #define sprintf_s sprintf
 #endif
 
-#define CL_DEVICE_TOPOLOGY_AMD 0x4037
-                    struct cl_device_topology_amd
-                    {
-                        union hack1
-                        {
-                            unsigned char data[2048];
+#ifndef CL_DEVICE_TOPOLOGY_AMD
+    #define CL_DEVICE_TOPOLOGY_AMD 0x4037
+#endif
 
-                        };
+#if defined(DEFINE_AMD_OPENCL_EXTENSION)
 
-                        struct pcie_
-                        {
-                            uint32_t bus;
-                            uint32_t device;
-                            uint32_t function;
-                        };
-                        pcie_ pcie;
-                    };
+typedef union
+{
+    struct { cl_uint type; cl_uint data[5]; } raw;
+    struct { cl_uint type; cl_uchar unused[17]; cl_uchar bus; cl_uchar device; cl_uchar function; } pcie;
+} cl_device_topology_amd;
+
+#endif
 
 /* To Do: Check for GPU device not used by display....
 
@@ -191,7 +187,7 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 << numDevices << " devices found" << std::endl
                 ;
 
-            numDevices = 0;
+            //numDevices = 0;
 
             for (unsigned int n = 0; n < numDevices && n < count; n++) {
                 int k = totalDevices + n;
@@ -201,7 +197,7 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 100, devNames[k], NULL);
                 std::cout << "GPU device: " << devNames[k] << std::endl;
 
-                throw "not supported";
+                //ivm: throw "not supported";
                 cl_device_topology_amd pciBusInfo;
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
                 if (status == CL_SUCCESS){
@@ -686,7 +682,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                     };
 
                     //hack extra stuff
-                    throw "not supported";
+                    //ivm: throw "not supported";
                     cl_device_topology_amd pciBusInfo;
                     memset(&pciBusInfo, 0, sizeof(pciBusInfo));
 

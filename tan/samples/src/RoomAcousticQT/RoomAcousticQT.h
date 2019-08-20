@@ -27,7 +27,7 @@ public:
 
 	void initialize();															// Initialize the Room Acoustic
 	int start();																// Start the demo
-	void stop();																// Stop the demo
+	void stop();												// Stop the demo
 
 	void loadConfiguration(const std::string& xmlfilename);						// Load the configuration from the xml file
 	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
@@ -57,11 +57,17 @@ public:
 	void updateRoomDamping();
 	AmdTrueAudioVR* getAMDTrueAudioVR();
 	TANConverterPtr getTANConverter();
+
+	void UpdateSoundSourcesPositions();
+	
 private:
 	void initializeEnvironment();												// Initialize TAN DLL
 	void initializeAudioEngine();												// Initialize TAN Audio3D Engine
+	
 	void initializeRoom();														// Initialize TAN Room definition
 	void initializeListener();													// Initialize TAN listener profile
+	void initializeAudioPositions();
+
 	void initializeDevice();													// Initialize TAN device (Convolution, FFT, etc.)
 	bool parseElement(char *start, char *end, struct element *elem);			// Function used to parse XML file. Used in load configruation
 	bool findElement(char **start, char **end, const char *name);						// Function used to parse XML file
@@ -80,9 +86,10 @@ public:
 	RoomDefinition m_RoomDefinition;									// Roombox definition, contains damping and dimension
 	StereoListener m_Listener;											// Listener configuration
 	int m_iHeadAutoSpin = 0;
+	
 	/*Sound Source*/
 	MonoSource m_SoundSources[MAX_SOURCES];								// All of the sound sources
-	int m_iSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
+	bool mSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
 	int m_iSoundSourceMap[MAX_SOURCES];
 	int m_bSrcTrackHead[MAX_SOURCES];
 	bool mSrc1EnableMic = false;

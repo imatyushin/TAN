@@ -9,14 +9,35 @@
 #include <QTableWidgetItem>
 #include <QList>
 #include <QMessageBox>
+#include <QTimer>
 
 #include <iostream>
 #include <cstring>
 
-RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent)
-	: QMainWindow(parent)
+RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent): 
+    QMainWindow(parent)
 {
 	ConfigUi.setupUi(this);
+
+	mTimer = new QTimer(this);
+
+	QObject::connect(
+		mTimer, 
+		&QTimer::timeout, 
+		[this]()
+		{
+			if(m_bDemoStarted)
+			{
+				m_RoomAcousticInstance.UpdateSoundSourcesPositions();
+
+				for(int index(0); index < MAX_SOURCES; ++index)
+				{
+					updateSoundSourceGraphics(m_iCurrentSelectedSource);
+				}
+			}
+		}
+		);
+	mTimer->start(250);
 
 	// Initialize source table
 	ConfigUi.SourcesTable->setRowCount(MAX_SOURCES);
@@ -94,7 +115,8 @@ void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 			ConfigUi.CB_TrackHead->isChecked() ? m_RoomAcousticInstance.m_isrc1TrackHeadPos = 1 : m_RoomAcousticInstance.m_isrc1TrackHeadPos = 0;
 			m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked();
 		}
-		ConfigUi.CB_SoundSourceEnable->isChecked() ? m_RoomAcousticInstance.m_iSoundSourceEnable[sound_id] = 1 : m_RoomAcousticInstance.m_iSoundSourceEnable[sound_id] = 0;
+
+		m_RoomAcousticInstance.mSoundSourceEnable[sound_id] = ConfigUi.CB_SoundSourceEnable->isChecked();
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerX = ConfigUi.SB_SoundPositionX->value();
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerY = ConfigUi.SB_SoundPositionY->value();
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerZ = ConfigUi.SB_SoundPositionZ->value();
@@ -125,7 +147,7 @@ void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 		m_iLastClickedRow = item->row();
 		ConfigUi.RemoveSoundSourceButton->setEnabled(true);
 		ConfigUi.CB_SoundSourceEnable->setEnabled(true);
-		ConfigUi.CB_SoundSourceEnable->setChecked(m_RoomAcousticInstance.m_iSoundSourceEnable[id]);
+		ConfigUi.CB_SoundSourceEnable->setChecked(m_RoomAcousticInstance.mSoundSourceEnable[id]);
 		update_sound_position(id, m_RoomAcousticInstance.m_SoundSources[id].speakerX,
 			m_RoomAcousticInstance.m_SoundSources[id].speakerY,
 			m_RoomAcousticInstance.m_SoundSources[id].speakerZ);
@@ -175,11 +197,11 @@ void RoomAcousticQTConfig::updateSoundsourceNames()
 			if (i >= m_RoomAcousticInstance.m_iNumOfWavFile)
 			{
 				display_name += " <Disabled>";
-				m_RoomAcousticInstance.m_iSoundSourceEnable[i] = false;
+				m_RoomAcousticInstance.mSoundSourceEnable[i] = false;
 			}
 			else
 			{
-				m_RoomAcousticInstance.m_iSoundSourceEnable[i] = true;
+				m_RoomAcousticInstance.mSoundSourceEnable[i] = true;
 			}
 			item->setText(QString::fromStdString(display_name));
 
@@ -428,10 +450,12 @@ void RoomAcousticQTConfig::updateSoundSourceGraphics(int index)
 {
 	if (m_RoomAcousticInstance.mWavFileNames[index].length())
 	{
-		m_RoomAcousticGraphic->update_sound_source_position(index,
+		m_RoomAcousticGraphic->update_sound_source_position(
+			index,
 			m_RoomAcousticInstance.m_SoundSources[index].speakerX,
 			m_RoomAcousticInstance.m_SoundSources[index].speakerY,
-			m_RoomAcousticInstance.m_SoundSources[index].speakerZ);
+			m_RoomAcousticInstance.m_SoundSources[index].speakerZ
+			);
 	}
 }
 
@@ -497,14 +521,25 @@ void RoomAcousticQTConfig::updateListnerGraphics()
 
 void RoomAcousticQTConfig::addSoundsourceGraphics(int index)
 {
-	m_RoomAcousticGraphic->update_sound_source_position(index,
+	m_RoomAcousticGraphic->update_sound_source_position(
+		index,
 		m_RoomAcousticInstance.m_SoundSources[index].speakerX,
 		m_RoomAcousticInstance.m_SoundSources[index].speakerY,
-		m_RoomAcousticInstance.m_SoundSources[index].speakerZ);
-	QObject::connect(m_RoomAcousticGraphic->m_pSoundSource[index], &RoomAcousticSoundSourceGraphics::top_view_position_changed,
-		this, &RoomAcousticQTConfig::update_sound_position_top_view);
-	QObject::connect(m_RoomAcousticGraphic->m_pSoundSource[index], &RoomAcousticSoundSourceGraphics::current_selection_changed,
-		this, &RoomAcousticQTConfig::table_selection_changed);
+		m_RoomAcousticInstance.m_SoundSources[index].speakerZ
+		);
+
+	QObject::connect(
+		m_RoomAcousticGraphic->m_pSoundSource[index],
+		&RoomAcousticSoundSourceGraphics::top_view_position_changed,
+		this,
+		&RoomAcousticQTConfig::update_sound_position_top_view
+		);
+	QObject::connect(
+		m_RoomAcousticGraphic->m_pSoundSource[index],
+		&RoomAcousticSoundSourceGraphics::current_selection_changed,
+		this,
+		&RoomAcousticQTConfig::table_selection_changed
+		);
 }
 
 void RoomAcousticQTConfig::addListenerGraphics()
@@ -651,7 +686,7 @@ void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int stage)
 			std::string new_name = m_RoomAcousticInstance.mWavFileNames[m_iCurrentSelectedSource];
 			new_name += " <Disabled>";
 
-			m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource] = 0;
+			m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = false;
 			QTableWidgetItem* item = ConfigUi.SourcesTable->item(m_iCurrentSelectedSource, 0);
 			item->setText(QString::fromStdString(new_name));
 		}
@@ -660,7 +695,7 @@ void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int stage)
 			// Current sound source is enabled
 			std::string new_name = m_RoomAcousticInstance.mWavFileNames[m_iCurrentSelectedSource];
 
-			m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource] = 1;
+			m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = true;
 			QTableWidgetItem* item = ConfigUi.SourcesTable->item(m_iCurrentSelectedSource, 0);
 			item->setText(QString::fromStdString(new_name));
 		}
@@ -788,7 +823,8 @@ void RoomAcousticQTConfig::on_SB_SoundPositionX_valueChanged(double value)
 	{
 		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerX = value;
 		updateSoundSourceGraphics(m_iCurrentSelectedSource);
-		if (this->m_bDemoStarted && m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource])
+
+		if(m_bDemoStarted && m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource])
 		{
 			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
 		}
@@ -802,7 +838,8 @@ void RoomAcousticQTConfig::on_SB_SoundPositionY_valueChanged(double value)
 	{
 		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerY = value;
 		updateSoundSourceGraphics(m_iCurrentSelectedSource);
-		if (this->m_bDemoStarted && m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource])
+		
+		if(m_bDemoStarted && m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource])
 		{
 			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
 		}
@@ -815,7 +852,8 @@ void RoomAcousticQTConfig::on_SB_SoundPositionZ_valueChanged(double value)
 	{
 		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerZ = value;
 		updateSoundSourceGraphics(m_iCurrentSelectedSource);
-		if (this->m_bDemoStarted && m_RoomAcousticInstance.m_iSoundSourceEnable[m_iCurrentSelectedSource])
+
+		if(m_bDemoStarted && m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource])
 		{
 			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
 		}
@@ -1252,10 +1290,10 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 		tr("WAV File (*.wav)")
 		);
 
-	QList<QTableWidgetItem*> selected_sources = ConfigUi.SourcesTable->selectedItems();
+	/*QList<QTableWidgetItem*> selected_sources = ConfigUi.SourcesTable->selectedItems();
 
 	// Try to add sound source without selecting empty slots
-	if (selected_sources.isEmpty())
+	if (selected_sources.isEmpty())*/
 	{
 		for (int i = 0; i < fileNames.size(); i++)
 		{
@@ -1263,7 +1301,7 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 			addSoundsourceGraphics(index);
 		}
 	}
-	// Try to repleace a sound source
+	/*// Try to replace a sound source
 	else
 	{
 		for (int i = 0; i < fileNames.size(); i++)
@@ -1275,7 +1313,8 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 			selected_sources.pop_front();
 			if (selected_sources.size() <= 0) break;
 		}
-	}
+	}*/
+
 	updateSoundsourceNames();
 	updateAllSoundSourceGraphics();
 }
