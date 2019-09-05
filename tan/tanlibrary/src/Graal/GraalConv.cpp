@@ -3048,12 +3048,14 @@ CGraalConv::cleanup()
 
     if (graalTailQ_)
     {
+        printf("Queue release %llX\r\n", graalTailQ_);
         clReleaseCommandQueue(graalTailQ_);
     }
     graalTailQ_ = NULL;
 
     if (own_queue_ && graalQ_)
     {
+        printf("Queue release %llX\r\n", graalQ_);
         clReleaseCommandQueue(graalQ_);
     }
 

@@ -55,20 +55,47 @@ private:
 #include <cstring>
 #include <vector>
 #include <atomic>
+#include <mutex>
+#include <thread>
+#include <iostream>
 
 //two-threads frendly fifo
 //one thread - write
 //another thread - read
 class Fifo
 {
-    std::atomic<size_t>
+    //std::atomic<size_t>
+    size_t
                     mQueueSize;
-    std::atomic<size_t>
+    //std::atomic<size_t>
+    size_t
                     mBufferInPosition;
-    std::atomic<size_t>
+    //std::atomic<size_t>
+    size_t
                     mBufferOutPosition;
     std::vector<uint8_t>
                     mBuffer;
+
+    /*inline size_t   GetQueueSize() const
+    {
+        std::lock_guard<std::mutex> lock(mLockMutex);
+
+        return mQueueSize;
+    }
+
+    inline size_t   GetBufferInPosition() const
+    {
+        std::lock_guard<std::mutex> lock(mLockMutex);
+
+        return mBufferInPosition;
+    }
+
+    inline size_t   GetBufferOutPosition() const
+    {
+        std::lock_guard<std::mutex> lock(mLockMutex);
+
+        return mBufferOutPosition;
+    }*/
 
 public:
     Fifo():
@@ -78,15 +105,8 @@ public:
     {
     }
 
-    void Reset(size_t newSize)
-    {
-        mBuffer.resize(newSize);
-        mQueueSize.store(0);
-        mBufferInPosition.store(0);
-        mBufferOutPosition.store(0);
-    }
-
-    inline size_t GetQueueSize() const {return mQueueSize.load();}
+    void Reset(size_t newSize);
+    size_t GetQueueSize() const;
 
     uint32_t Write(const uint8_t *data, size_t size);
     uint32_t Read(uint8_t *outputBuffer, size_t size2Fill);

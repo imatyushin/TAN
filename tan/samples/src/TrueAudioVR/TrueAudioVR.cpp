@@ -264,18 +264,15 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     m_length = convolutionLength;
     m_samplesPerSecond = samplesPerSecond;
 
-
-    if (cmdQueue != 0){
+    if (cmdQueue != 0)
+    {
         clRetainCommandQueue(cmdQueue);
+        printf("Queue %llX +1\r\n", cmdQueue);
     }
-
-    return;
 }
 
-TrueAudioVRimpl::~TrueAudioVRimpl(){
-
-
-    return;
+TrueAudioVRimpl::~TrueAudioVRimpl()
+{
 }
 
 
@@ -1144,6 +1141,7 @@ void TrueAudioVRimpl::Release()
 
     if (m_cmdQueue)
     {
+        printf("Queue release %llX\r\n", m_cmdQueue);
         clReleaseCommandQueue(m_cmdQueue);
         m_cmdQueue = NULL;
     }

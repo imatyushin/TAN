@@ -110,9 +110,12 @@ target_link_libraries(TrueAudioVR ${OpenCL_LIBRARY})
 target_link_libraries(TrueAudioVR amf)
 
 if(NOT WIN32)
-target_compile_options(TrueAudioVR PUBLIC -mavx2)
-target_compile_options(TrueAudioVR PUBLIC -mfma)
-target_compile_options(TrueAudioVR PUBLIC -msse4.2)
-target_compile_options(TrueAudioVR PUBLIC -Wpsabi)
-target_compile_options(TrueAudioVR PUBLIC -g) #todo: to Debug only
+  target_compile_options(TrueAudioVR PUBLIC -mavx2)
+  target_compile_options(TrueAudioVR PUBLIC -mfma)
+  target_compile_options(TrueAudioVR PUBLIC -msse4.2)
+  target_compile_options(TrueAudioVR PUBLIC -g) #todo: to Debug only
+  
+  if(NOT APPLE)
+    target_compile_options(TrueAudioVR PUBLIC -Wpsabi)
+  endif()
 endif()

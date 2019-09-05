@@ -63,7 +63,10 @@ struct clCommQueue_deleter
 	template <class T> void operator()(T* clQueueObj)
 	{
 		if( clQueueObj != NULL )
+		{
+			printf("Queue release %llX\r\n", clQueueObj);
 			OPENCL_V_THROW( clReleaseCommandQueue( clQueueObj ), "Error: In clReleaseCommandQueue\n" );
+		}
 	};
 };
 
@@ -281,8 +284,11 @@ public:
 			}
 
 			cl_int status = 0;
-			queue	= std::unique_ptr< _cl_command_queue, clCommQueue_deleter >(
-					::clCreateCommandQueue( context.get( ), device_id[ 0 ], commandQueueFlags, &status ) );
+			queue = std::unique_ptr< _cl_command_queue, clCommQueue_deleter >(
+				::clCreateCommandQueue( context.get( ), device_id[ 0 ], commandQueueFlags, &status ) 
+				);
+			printf("Queue created %llX\r\n", queue);
+
 			OPENCL_V_THROW( status, "Creating Command Queue ( ::clCreateCommandQueue() )" );
 
 			// make the new buffer

@@ -481,7 +481,10 @@ int cleanupCL( cl_context* context, cl_command_queue* commandQueue,
     releaseOpenCLMemBuffer( numBuffersOut, outputBuffer);
 
     if( *commandQueue != NULL )
+    {
+        printf("Queue release %llX\r\n", commandQueue);
         OPENCL_V_THROW( clReleaseCommandQueue( *commandQueue ), "Error: In clReleaseCommandQueue\n" );
+    }
 
     if( *context != NULL )
         OPENCL_V_THROW( clReleaseContext( *context ), "Error: In clReleaseContext\n" );
@@ -525,6 +528,7 @@ void createOpenCLCommandQueue( cl_context& context,
 {
     cl_int status = 0;
     commandQueue = ::clCreateCommandQueue( context, devices[0], commandQueueFlags, &status );
+    printf("Queue created %llX\r\n", commandQueue);
     OPENCL_V_THROW( status, "Creating Command Queue ( ::clCreateCommandQueue() )" );
 
     createOpenCLMemoryBuffer( context, bufferSizeBytesIn,  numBuffersIn,  clMemBufferIn,  CL_MEM_READ_WRITE);

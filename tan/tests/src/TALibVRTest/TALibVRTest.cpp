@@ -184,6 +184,8 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
 	const cl_queue_properties cprops[1] = { 0 };
 	cmdQueue = clCreateCommandQueueWithProperties(context, devices[deviceId], cprops, &error);
 #endif
+    printf("Queue created %llX\r\n", cmdQueue);
+
     clReleaseDevice(devices[deviceId]);
     clReleaseContext(context);
 
@@ -197,6 +199,9 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
     else {
         fprintf(stdout, "RT Queue NOT created.\n");
     }
+
+    printf("Queue created %llX\r\n", cmdQueue);
+
     return cmdQueue;
 }
 

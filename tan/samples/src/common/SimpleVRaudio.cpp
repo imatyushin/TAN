@@ -175,7 +175,6 @@ int Audio3D::Close()
         m_pTAVR = nullptr;
     }
 
-    SAFE_DELETE_ARR(mResponseBuffer);
     for (int i = 0; i < MAX_SOURCES*2; i++)
     {
         if (mOCLResponses[i] == NULL) continue;
@@ -216,6 +215,8 @@ int Audio3D::Close()
     m_spTANContext2.Release();
     m_spTANContext1.Release();
 
+    /*
+    why this called here too? queues was released inside convolution processor first!
     if (mCmdQueue1 != NULL){
         clReleaseCommandQueue(mCmdQueue1);
     }
@@ -225,6 +226,7 @@ int Audio3D::Close()
     if (mCmdQueue3 != NULL && mCmdQueue3 != mCmdQueue2){
         clReleaseCommandQueue(mCmdQueue3);
     }
+    */
 
     mCmdQueue1 = NULL;
     mCmdQueue2 = NULL;
@@ -271,14 +273,21 @@ int Audio3D::Init
     const std::string &     playerType
 )
 {
+    useGPU_Conv = useGPU_IRGen = false;
+    useCPU_Conv = useCPU_IRGen = true;
+
     //useMicSource = true;
     //useCPU_Conv = true;
 
     //Close();
 
     // shouldn't need this, they are radio buttons:
-    if (useGPU_Conv) useCPU_Conv = false;
-    if (useGPU_IRGen) useCPU_IRGen = false;
+    //if (useGPU_Conv) useCPU_Conv = false;
+    //if (useGPU_IRGen) useCPU_IRGen = false;
+
+    //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
+    //m_useOCLOutputPipeline = useGPU_Conv || useGPU_IRGen;
+    m_useOCLOutputPipeline = true;
 
     //m_useCpuConv = useCPU_Conv;
     //m_useCpuIRGen = useCPU_IRGen;
@@ -427,12 +436,13 @@ int Audio3D::Init
 
     // allocate responses in one block
     // to optimize transfer to GPU
-    mResponseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
+    //mResponseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
+    mResponseBuffer = mResponseBufferStorage.Allocate(mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT);
 
     //todo: use std::align(32, sizeof(__m256), out2, space)...
     for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
     {
-        mResponses[idx] = mResponseBuffer + idx*m_fftLen;
+        mResponses[idx] = mResponseBuffer + idx * m_fftLen;
 
         mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].Allocate(m_fftLen);
         mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].Allocate(m_fftLen);
@@ -488,11 +498,9 @@ int Audio3D::Init
             );
     }
 
-    //// Allocate RT-Queues
+    // Allocate RT-Queues
     {
         mCmdQueue1 = mCmdQueue2 = mCmdQueue3 = nullptr;
-        unsigned int refCountQ1 = 0;
-        unsigned int refCountQ2 = 0;
 
         int32_t flagsQ1 = 0;
         int32_t flagsQ2 = 0;
@@ -523,6 +531,18 @@ int Audio3D::Init
     #endif // RTQ_ENABLED
 
             CreateGpuCommandQueues(devIdx_Conv, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
+
+            clRetainCommandQueue(mCmdQueue1);
+            clRetainCommandQueue(mCmdQueue2);
+
+            /*for(int i = 0; i < 128; ++i)
+            {
+                clReleaseCommandQueue(mCmdQueue1);
+
+                std::cout << "rel " << i << std::endl;
+            }
+
+            return -1;*/
 
             if(devIdx_Conv == devIdx_IRGen && useGPU_IRGen)
             {
@@ -621,9 +641,6 @@ int Audio3D::Init
         delete(m_pTAVR);
         m_pTAVR = NULL;
     }
-
-    //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
-    m_useOCLOutputPipeline = useGPU_Conv || useGPU_IRGen;
 
     if (useGPU_IRGen && useGPU_Conv)
     {
@@ -925,6 +942,7 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
 
     if (m_useOCLOutputPipeline)
     {
+        /**/
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
@@ -956,6 +974,7 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
         cl_int clErr = clEnqueueReadBuffer(m_spTANContext1->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
              0, sampleCountBytes, pOut, NULL, NULL, NULL);
         RETURN_IF_FALSE(clErr == CL_SUCCESS);
+        /**/
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
@@ -1076,7 +1095,7 @@ int Audio3D::ProcessProc()
     auto *processed = &mStereoProcessedBuffer.front();
 
     double previousTimerValue(0.0);
-    bool firstFrame(false);
+    bool firstFrame(true);
 
     while(!mStop)
     {
@@ -1150,19 +1169,20 @@ int Audio3D::ProcessProc()
 
         while(bytes2Play > 0 && !mStop)
         {
-            if(!mRealtimeTimer.IsStarted())
+            //if(!mRealtimeTimer.IsStarted())
             {
-                mRealtimeTimer.Start();
-                firstFrame = true;
+                //mRealtimeTimer.Start();
+                //firstFrame = true;
             }
 
-            double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
+            //double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
 
             if
             (
                 firstFrame
                 ||
-                ((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
+                true
+                //((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
             )
             {
                 auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
@@ -1171,7 +1191,7 @@ int Audio3D::ProcessProc()
                 outputBufferData += bytesPlayed;
                 bytes2Play -= bytesPlayed;
 
-                previousTimerValue = timerValue;
+                //previousTimerValue = timerValue;
                 firstFrame = false;
             }
             else

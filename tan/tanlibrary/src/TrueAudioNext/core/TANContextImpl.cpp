@@ -173,10 +173,15 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     m_oclGeneralDeviceId = 0;
     m_oclConvDeviceId = 0;
 
-    if (m_oclGeneralQueue) {
+    if (m_oclGeneralQueue)
+    {
+        printf("Release TANContext queue %llX\r\n", m_oclGeneralQueue);
         clReleaseCommandQueue(m_oclGeneralQueue);
     }
-    if (m_oclConvQueue) {
+    
+    if (m_oclConvQueue)
+    {
+        printf("Release TANContext queue %llX", m_oclConvQueue);
         clReleaseCommandQueue(m_oclConvQueue);
     }
 
@@ -249,10 +254,12 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
                             L"could not retrieve the device ids from context");
     cl_int error;
     m_oclConvQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
+    printf("Queue created %llX\r\n", m_oclConvQueue);
     AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
                         L"cannot create the conv command queue");
 
     m_oclGeneralQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
+    printf("Queue created %llX\r\n", m_oclGeneralQueue);
     AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
                         L"cannot create the general command queue");
 
@@ -306,11 +313,22 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     if (!pQueue)
         return AMF_OK;
 
-    AMFContextPtr& pAMFContext = (queueType == eConvQueue) ? m_pContextConvolutionAMF : m_pContextGeneralAMF;
-    cl_context& clContext = (queueType == eConvQueue) ? m_oclConvContext : m_oclGeneralContext;
-    cl_device_id& device = (queueType == eConvQueue) ? m_oclConvDeviceId : m_oclGeneralDeviceId;
-    cl_command_queue& queue = (queueType == eConvQueue) ? m_oclConvQueue : m_oclGeneralQueue;
-    AMFComputePtr& pCompute = (queueType == eConvQueue) ? m_pComputeConvolution : m_pComputeGeneral;
+    AMFContextPtr& pAMFContext = (queueType == eConvQueue) 
+        ? m_pContextConvolutionAMF 
+        : m_pContextGeneralAMF;
+    cl_context& clContext = (queueType == eConvQueue) 
+        ? m_oclConvContext 
+        : m_oclGeneralContext;
+    cl_device_id& device = (queueType == eConvQueue) 
+        ? m_oclConvDeviceId 
+        : m_oclGeneralDeviceId;
+    cl_command_queue& queue = (queueType == eConvQueue) 
+        ? m_oclConvQueue 
+        : m_oclGeneralQueue;
+    
+    AMFComputePtr& pCompute = (queueType == eConvQueue) 
+        ? m_pComputeConvolution 
+        : m_pComputeGeneral;
     queue = pQueue;
 
     clGetCommandQueueInfo(queue, CL_QUEUE_DEVICE, sizeof(device), &device, NULL);

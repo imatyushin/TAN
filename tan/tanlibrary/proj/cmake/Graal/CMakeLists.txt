@@ -144,9 +144,12 @@ target_link_libraries(Graal amf)
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
-target_compile_options(Graal PUBLIC -mavx2)
-target_compile_options(Graal PUBLIC -mfma)
-target_compile_options(Graal PUBLIC -msse4.2)
-target_compile_options(Graal PUBLIC -Wpsabi)
-target_compile_options(Graal PUBLIC -g) #todo: to Debug only
+  target_compile_options(Graal PUBLIC -mavx2)
+  target_compile_options(Graal PUBLIC -mfma)
+  target_compile_options(Graal PUBLIC -msse4.2)
+  target_compile_options(Graal PUBLIC -g) #todo: to Debug only
+
+  if(NOT APPLE)
+    target_compile_options(Graal PUBLIC -Wpsabi)
+  endif()
 endif()

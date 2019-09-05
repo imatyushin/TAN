@@ -183,9 +183,12 @@ set_target_properties(
   )
 
 if(NOT WIN32)
-target_compile_options(TrueAudioNext PUBLIC -mavx2)
-target_compile_options(TrueAudioNext PUBLIC -mfma)
-target_compile_options(TrueAudioNext PUBLIC -msse4.2)
-target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
-target_compile_options(TrueAudioNext PUBLIC -g) #todo: to Debug only
+  target_compile_options(TrueAudioNext PUBLIC -mavx2)
+  target_compile_options(TrueAudioNext PUBLIC -mfma)
+  target_compile_options(TrueAudioNext PUBLIC -msse4.2)
+  target_compile_options(TrueAudioNext PUBLIC -g) #todo: to Debug only
+  
+  if(NOT APPLE)
+    target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
+  endif()
 endif()

@@ -234,6 +234,9 @@ if(NOT WIN32)
   target_compile_options(RoomAcousticsQT PUBLIC -mavx2)
   target_compile_options(RoomAcousticsQT PUBLIC -mfma)
   target_compile_options(RoomAcousticsQT PUBLIC -msse4.2)
-  target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
   target_compile_options(RoomAcousticsQT PUBLIC -g) #todo: to Debug only
+  
+  if(NOT APPLE)
+    target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
+  endif()
 endif()

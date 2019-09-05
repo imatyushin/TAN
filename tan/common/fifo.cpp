@@ -216,11 +216,35 @@ void FifoBuffer::flush(){
 }
 
 //
+std::mutex mLockMutex;
+
+void Fifo::Reset(size_t newSize)
+{
+    std::lock_guard<std::mutex> lock(mLockMutex);
+    
+    mBuffer.resize(newSize);
+    //mQueueSize.store(0);
+    mQueueSize = 0;
+    //mBufferInPosition.store(0);
+    mBufferInPosition = 0;
+    //mBufferOutPosition.store(0);
+    mBufferOutPosition = 0;
+}
+
+size_t Fifo::GetQueueSize() const 
+{
+    std::lock_guard<std::mutex> lock(mLockMutex);
+    
+    return mQueueSize/*.load()*/;
+}
+
 uint32_t Fifo::Write(const uint8_t *data, size_t size)
 {
-    auto bufferDataSize(mQueueSize.load());
-    auto bufferInPosition(mBufferInPosition.load());
-    auto bufferOutPosition(mBufferOutPosition.load());
+    std::lock_guard<std::mutex> lock(mLockMutex);
+
+    auto bufferDataSize(mQueueSize/*.load()*/);
+    auto bufferInPosition(mBufferInPosition/*.load()*/);
+    auto bufferOutPosition(mBufferOutPosition/*.load()*/);
 
     //std::cout << "play position: " << bufferInPosition << " (" << mBuffer.size() << ") " << std::endl;
 
@@ -249,7 +273,7 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
         if(bufferDataSize + size2Write > mBuffer.size())
         {
-            int i =0;
+            int i = 0;
             ++i;
         }
 
@@ -291,10 +315,10 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
         bufferInPosition = 0;
     }
 
-    mBufferInPosition.store(bufferInPosition);
+    mBufferInPosition = /*.store*/(bufferInPosition);
     //std::cout << "play end, new position: " << bufferInPosition << " played: " << sizeWritten << std::endl;
 
-    if(mQueueSize.load() + sizeWritten > mBuffer.size())
+    if(mQueueSize/*.load()*/ + sizeWritten > mBuffer.size())
     {
         int i =0;
         ++i;
@@ -307,9 +331,11 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
 uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 {
-    auto bufferDataSize(mQueueSize.load());
-    auto bufferInPosition(mBufferInPosition.load());
-    auto bufferOutPosition(mBufferOutPosition.load());
+    std::lock_guard<std::mutex> lock(mLockMutex);
+
+    auto bufferDataSize(mQueueSize/*.load()*/);
+    auto bufferInPosition(mBufferInPosition/*.load()*/);
+    auto bufferOutPosition(mBufferOutPosition/*.load()*/);
 
     auto tailSize(
         bufferInPosition == bufferOutPosition
@@ -390,7 +416,7 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
         bufferOutPosition = 0;
     }*/
 
-    mBufferOutPosition.store(bufferOutPosition);
+    mBufferOutPosition = /*.store*/(bufferOutPosition);
     mQueueSize -= sizeFilled;
 
     return sizeFilled;

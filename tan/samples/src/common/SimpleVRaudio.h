@@ -131,7 +131,7 @@ protected:
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
 	std::vector<WavContent>     mWavFiles;
 
-    Timer                       mRealtimeTimer;
+    //Timer                       mRealtimeTimer;
 
     uint32_t                    mMaxSamplesCount = 0;
     std::vector<int16_t>        mStereoProcessedBuffer;
@@ -152,7 +152,9 @@ protected:
     bool mSrc1TrackHeadPos = false;
     bool mSrc1MuteDirectPath = false;
 
+    AllignedAllocator<float, 32>mResponseBufferStorage;
 	float *mResponseBuffer = nullptr;
+    
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     bool   mUseClMemBufs = false;

@@ -92,9 +92,12 @@ add_library(
 set_property(TARGET clFFT-master PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
-target_compile_options(clFFT-master PUBLIC -mavx2)
-target_compile_options(clFFT-master PUBLIC -mfma)
-target_compile_options(clFFT-master PUBLIC -msse4.2)
-target_compile_options(clFFT-master PUBLIC -Wpsabi)
-target_compile_options(clFFT-master PUBLIC -g) #todo: to Debug only
+  target_compile_options(clFFT-master PUBLIC -mavx2)
+  target_compile_options(clFFT-master PUBLIC -mfma)
+  target_compile_options(clFFT-master PUBLIC -msse4.2)
+  target_compile_options(clFFT-master PUBLIC -g) #todo: to Debug only
+  
+  if(NOT APPLE)
+    target_compile_options(clFFT-master PUBLIC -Wpsabi)
+  endif()
 endif()
