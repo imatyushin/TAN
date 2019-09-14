@@ -139,6 +139,18 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 vendor,
                 NULL);
 
+            char version[128] = {0};
+
+            clGetPlatformInfo(
+                platforms[i],
+                CL_PLATFORM_VERSION,
+                sizeof(version),
+                version,
+                NULL
+                );
+            printf("OpenCL version for device %s: %s", vendor, version);
+
+
             if (status != CL_SUCCESS) {
                 fprintf(stdout, "clGetPlatformInfo returned error: %d\n", status);
                 continue;
