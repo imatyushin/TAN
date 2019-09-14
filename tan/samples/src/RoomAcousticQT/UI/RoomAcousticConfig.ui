@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1800</width>
-    <height>1033</height>
+    <height>1008</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -556,6 +556,18 @@
           <layout class="QHBoxLayout" name="horizontalLayout_9">
            <item>
             <widget class="QGroupBox" name="groupBox_7">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>250</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="title">
               <string>Dimensions (m)</string>
              </property>
@@ -916,6 +928,24 @@
                 <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_5">
                   <item>
+                   <layout class="QVBoxLayout" name="verticalLayout_9">
+                    <item>
+                     <widget class="QRadioButton" name="CL_CPU">
+                      <property name="text">
+                       <string>CL/CPU</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="CL_GPU">
+                      <property name="text">
+                       <string>CL/GPU</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
                    <widget class="QLabel" name="label_18">
                     <property name="layoutDirection">
                      <enum>Qt::LeftToRight</enum>
@@ -1261,7 +1291,7 @@
      <x>0</x>
      <y>0</y>
      <width>1800</width>
-     <height>25</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

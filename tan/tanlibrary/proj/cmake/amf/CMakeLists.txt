@@ -98,6 +98,7 @@ if(NOT WIN32)
   target_compile_options(amf PUBLIC -mfma)
   target_compile_options(amf PUBLIC -msse4.2)
   target_compile_options(amf PUBLIC -g) #todo: to Debug only
+  
   if(NOT APPLE)
     target_compile_options(amf PUBLIC -Wpsabi)
   endif()

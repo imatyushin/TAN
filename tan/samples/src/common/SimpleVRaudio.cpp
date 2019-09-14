@@ -175,7 +175,6 @@ int Audio3D::Close()
         m_pTAVR = nullptr;
     }
 
-    SAFE_DELETE_ARR(mResponseBuffer);
     for (int i = 0; i < MAX_SOURCES*2; i++)
     {
         if (mOCLResponses[i] == NULL) continue;
@@ -213,9 +212,11 @@ int Audio3D::Close()
     m_spConvolution.Release();
     m_spConverter.Release();
     m_spMixer.Release();
-    m_spTANContext2.Release();
-    m_spTANContext1.Release();
+    mTANRoomContext.Release();
+    mTANConvolutionContext.Release();
 
+    /*
+    why this called here too? queues was released inside convolution processor first!
     if (mCmdQueue1 != NULL){
         clReleaseCommandQueue(mCmdQueue1);
     }
@@ -225,6 +226,7 @@ int Audio3D::Close()
     if (mCmdQueue3 != NULL && mCmdQueue3 != mCmdQueue2){
         clReleaseCommandQueue(mCmdQueue3);
     }
+    */
 
     mCmdQueue1 = NULL;
     mCmdQueue2 = NULL;
@@ -250,41 +252,52 @@ int Audio3D::Init
 	int                     bufferSizeInSamples,
 
     bool                    useGPU_Conv,
+    bool                    useGPU_ConvQueue,
     int                     devIdx_Conv,
+
 #ifdef RTQ_ENABLED
 	bool                    useHPr_Conv,
     bool                    useRTQ_Conv,
     int                     cuRes_Conv,
-#endif // RTQ_ENABLED
+#endif
+
     bool                    useGPU_IRGen,
+    bool                    useGPU_IRGenQueue,
     int                     devIdx_IRGen,
+
 #ifdef RTQ_ENABLED
 	bool                    useHPr_IRGen,
     bool                    useRTQ_IRGen,
     int                     cuRes_IRGen,
-#endif // RTQ_ENABLED
+#endif
+
     amf::TAN_CONVOLUTION_METHOD
                             convMethod,
-    bool                    useCPU_Conv,
-    bool                    useCPU_IRGen,
 
     const std::string &     playerType
 )
 {
-    //useMicSource = true;
-    //useCPU_Conv = true;
+    if(useGPU_ConvQueue && !useGPU_Conv)
+    {
+        std::cerr
+            << "Error: GPU queues must be used only with OpenCL Convolution processing!"
+            << std::endl;
 
-    //Close();
+        return -1;
+    }
 
-    // shouldn't need this, they are radio buttons:
-    if (useGPU_Conv) useCPU_Conv = false;
-    if (useGPU_IRGen) useCPU_IRGen = false;
+    if(useGPU_IRGenQueue && !useGPU_IRGen)
+    {
+        std::cerr
+            << "Error: GPU queues must be used only with OpenCL Convolution processing!"
+            << std::endl;
 
-    //m_useCpuConv = useCPU_Conv;
-    //m_useCpuIRGen = useCPU_IRGen;
-    //m_useGpuConv = useGPU_Conv;
-	//m_useGpuIRGen = useGPU_IRGen;
+        return -1;
+    }
 
+    //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
+    m_useOCLOutputPipeline = useGPU_Conv || useGPU_IRGen;
+    
     mSrc1EnableMic = useMicSource;
     mSrc1TrackHeadPos = trackHeadPos;
 
@@ -427,12 +440,13 @@ int Audio3D::Init
 
     // allocate responses in one block
     // to optimize transfer to GPU
-    mResponseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
+    //mResponseBuffer = new float[mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT];
+    mResponseBuffer = mResponseBufferStorage.Allocate(mWavFiles.size() * m_fftLen * STEREO_CHANNELS_COUNT);
 
     //todo: use std::align(32, sizeof(__m256), out2, space)...
     for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
     {
-        mResponses[idx] = mResponseBuffer + idx*m_fftLen;
+        mResponses[idx] = mResponseBuffer + idx * m_fftLen;
 
         mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].Allocate(m_fftLen);
         mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].Allocate(m_fftLen);
@@ -488,17 +502,15 @@ int Audio3D::Init
             );
     }
 
-    //// Allocate RT-Queues
+    // Allocate RT-Queues
     {
         mCmdQueue1 = mCmdQueue2 = mCmdQueue3 = nullptr;
-        unsigned int refCountQ1 = 0;
-        unsigned int refCountQ2 = 0;
-
+        
         int32_t flagsQ1 = 0;
         int32_t flagsQ2 = 0;
 
-        //if (useGPU_Conv || useGPU_IRGen)
-        if(useGPU_Conv || useCPU_Conv )
+        //CL convolution on GPU
+        if(useGPU_Conv && useGPU_ConvQueue)
         {
     #ifdef RTQ_ENABLED
 
@@ -523,13 +535,20 @@ int Audio3D::Init
     #endif // RTQ_ENABLED
 
             CreateGpuCommandQueues(devIdx_Conv, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
+            
+            //to does not rewrite existing deallocation sources
+            //todo: use CL queue smartpointers
+            clRetainCommandQueue(mCmdQueue1);
+            clRetainCommandQueue(mCmdQueue2);
 
-            if(devIdx_Conv == devIdx_IRGen && useGPU_IRGen)
+            if((devIdx_Conv == devIdx_IRGen) && useGPU_IRGen)
             {
                 mCmdQueue3 = mCmdQueue2;
             }
         }
-        else if(useCPU_Conv)
+
+        //CL convolution on CPU
+        else if(useGPU_Conv && !useGPU_ConvQueue)
         {
     #ifdef RTQ_ENABLED
             // For " core "reservation" on CPU" -ToDo test and enable
@@ -543,40 +562,49 @@ int Audio3D::Init
             }
     #endif // RTQ_ENABLED
 
-            if (devIdx_Conv == devIdx_IRGen && useCPU_IRGen)
+            //CL room on CPU
+            if((devIdx_Conv == devIdx_IRGen) && !useGPU_IRGenQueue)
             {
                 mCmdQueue3 = mCmdQueue2;
             }
         }
 
-        if(mCmdQueue3 == NULL)
+        //room queue not yet created
+        if(!mCmdQueue3)
         {
-            if (useGPU_IRGen)
+            //CL over GPU
+            if(useGPU_IRGenQueue)
             {
                 CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
             }
-            else if (useCPU_IRGen)
+            //CL over CPU
+            else
             {
                 CreateCpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
             }
         }
     }
 
-    // Create TAN objects.
-    RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &m_spTANContext1));
+    RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext));
+    RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext));
 
-    if (useGPU_Conv || useCPU_Conv) {
-        RETURN_IF_FAILED(m_spTANContext1->InitOpenCL(mCmdQueue1, mCmdQueue2));
-    }
-
-    RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &m_spTANContext2));
-    if (useGPU_IRGen || useCPU_IRGen) {
-        RETURN_IF_FAILED(m_spTANContext2->InitOpenCL(mCmdQueue3, mCmdQueue3));
-    }
-
-    RETURN_IF_FAILED(TANCreateConvolution(m_spTANContext1, &m_spConvolution));
-    if (!useGPU_Conv && !useCPU_Conv) // don't use OpenCL at all
+    //convolution over OpenCL
+    if(useGPU_Conv) 
     {
+        RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
+    }
+
+    //room processing over OpenCL
+    if(useGPU_IRGen) 
+    {
+        RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
+    }
+
+    RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &m_spConvolution));
+    
+    //don't use OpenCL at all
+    if(!useGPU_Conv) 
+    {        
         /*
         // ensures compatible with old room acoustic
 		if(convMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
@@ -608,13 +636,13 @@ int Audio3D::Init
             );
     }
 
-    RETURN_IF_FAILED(TANCreateConverter(m_spTANContext2, &m_spConverter));
+    RETURN_IF_FAILED(TANCreateConverter(mTANRoomContext, &m_spConverter));
     RETURN_IF_FAILED(m_spConverter->Init());
 
-    RETURN_IF_FAILED(TANCreateMixer(m_spTANContext2, &m_spMixer));
+    RETURN_IF_FAILED(TANCreateMixer(mTANRoomContext, &m_spMixer));
 	RETURN_IF_FAILED(m_spMixer->Init(mBufferSizeInSamples, mWavFiles.size()));
 
-    RETURN_IF_FAILED(TANCreateFFT(m_spTANContext2, &m_spFft));
+    RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &m_spFft));
     RETURN_IF_FAILED(m_spFft->Init());
 
     if (m_pTAVR != NULL) {
@@ -622,10 +650,8 @@ int Audio3D::Init
         m_pTAVR = NULL;
     }
 
-    //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
-    m_useOCLOutputPipeline = useGPU_Conv || useGPU_IRGen;
-
-    if (useGPU_IRGen && useGPU_Conv)
+    //CL over GPU for both Convolution and Room processing
+    if(useGPU_ConvQueue && useGPU_IRGenQueue)
     {
         //if (mCmdQueue3 == NULL){
         //    CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, NULL);
@@ -637,21 +663,26 @@ int Audio3D::Init
 
         clGetCommandQueueInfo(mCmdQueue3, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_IR, NULL);
         clGetCommandQueueInfo(mCmdQueue2, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_Conv, NULL);
-        if (context_IR == context_Conv) {
-            for (int i = 0; i < mWavFiles.size() * 2; i++){
+        
+        if(context_IR == context_Conv) 
+        {
+            for(int i = 0; i < mWavFiles.size() * 2; i++)
+            {
                 mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, m_fftLen * sizeof(float), NULL, &status);
             }
+
             //HACK out for test
             mUseClMemBufs = true;
         }
+
         // Initialize CL output buffers,
-        if(useGPU_Conv)
+        //if(useGPU_Conv) already?
         {
             cl_int clErr;
 
             // First create a big cl_mem buffer then create small sub-buffers from it
             mOutputMainCLbuf = clCreateBuffer(
-                m_spTANContext1->GetOpenCLContext(),
+                mTANConvolutionContext->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
                 mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
                 nullptr,
@@ -690,7 +721,7 @@ int Audio3D::Init
             for (int idx = 0; idx < 2; idx++)
             {
                 mOutputMixCLBufs[idx] = clCreateBuffer(
-                    m_spTANContext1->GetOpenCLContext(),
+                    mTANConvolutionContext->GetOpenCLContext(),
                     CL_MEM_READ_WRITE,
                     mBufferSizeInBytes,
                     nullptr,
@@ -714,7 +745,7 @@ int Audio3D::Init
             // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
             // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
             mOutputShortBuf = clCreateBuffer(
-                m_spTANContext1->GetOpenCLContext(),
+                mTANConvolutionContext->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
                 mBufferSizeInBytes,
                 nullptr,
@@ -734,17 +765,19 @@ int Audio3D::Init
 
     CreateAmdTrueAudioVR(
         &m_pTAVR,
-        m_spTANContext2,
+        mTANRoomContext,
         m_spFft,
         mCmdQueue3,
         48000, //todo: other frequencies?
         m_fftLen
         );
 
-    if (useGPU_IRGen){
+    if(useGPU_IRGenQueue)
+    {
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
-    else {
+    else 
+    {
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
 
@@ -925,6 +958,7 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
 
     if (m_useOCLOutputPipeline)
     {
+        /**/
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
@@ -953,9 +987,10 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
             mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-        cl_int clErr = clEnqueueReadBuffer(m_spTANContext1->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
+        cl_int clErr = clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
              0, sampleCountBytes, pOut, NULL, NULL, NULL);
         RETURN_IF_FALSE(clErr == CL_SUCCESS);
+        /**/
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
@@ -1076,7 +1111,7 @@ int Audio3D::ProcessProc()
     auto *processed = &mStereoProcessedBuffer.front();
 
     double previousTimerValue(0.0);
-    bool firstFrame(false);
+    bool firstFrame(true);
 
     while(!mStop)
     {
@@ -1150,19 +1185,20 @@ int Audio3D::ProcessProc()
 
         while(bytes2Play > 0 && !mStop)
         {
-            if(!mRealtimeTimer.IsStarted())
+            //if(!mRealtimeTimer.IsStarted())
             {
-                mRealtimeTimer.Start();
-                firstFrame = true;
+                //mRealtimeTimer.Start();
+                //firstFrame = true;
             }
 
-            double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
+            //double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
 
             if
             (
                 firstFrame
                 ||
-                ((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
+                true
+                //((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
             )
             {
                 auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
@@ -1171,7 +1207,7 @@ int Audio3D::ProcessProc()
                 outputBufferData += bytesPlayed;
                 bytes2Play -= bytesPlayed;
 
-                previousTimerValue = timerValue;
+                //previousTimerValue = timerValue;
                 firstFrame = false;
             }
             else

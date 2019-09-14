@@ -386,7 +386,8 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
     cl_command_queue cmdQueue = NULL;
 
     // Create a command queue
-#if !defined(__APPLE__) && !defined(__MACOSX)
+#if CL_TARGET_OPENCL_VERSION >= 200
+nnn
     if (flag != 0)
     {
         // use clCreateCommandQueueWithProperties to pass custom queue properties to driver:
@@ -407,6 +408,8 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
         cmdQueue = clCreateCommandQueue(context, device, NULL, &error);
     }
 #endif
+
+    printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", cmdQueue, error);
 
     return cmdQueue;
 }
@@ -648,6 +651,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                     deviceList[k].maxReservableComputeUnits = 0;
                     cl_context context = clCreateContext(contextProps, 1, &deviceList[k].devId, NULL, NULL, &error);
                     cl_command_queue queue = clCreateCommandQueue(context, deviceList[k].devId, NULL, &error);
+                    printf("Queue created %llX\r\n", queue);
                     getAMFdeviceProperties(queue, &deviceList[k].maxReservableComputeUnits);
 
 

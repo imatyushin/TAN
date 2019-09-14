@@ -19,6 +19,14 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 {
 	ConfigUi.setupUi(this);
 
+	ConfigUi.CL_RoomGPU->setEnabled(false);
+	ConfigUi.CL_ConvolutionGPU->setEnabled(false);
+	ConfigUi.CL_RoomCPU->setEnabled(false);
+	ConfigUi.CL_ConvolutionCPU->setEnabled(false);
+
+	ConfigUi.CL_RoomCPU->setChecked(true);
+	ConfigUi.CL_ConvolutionCPU->setChecked(true);
+
 	mTimer = new QTimer(this);
 
 	QObject::connect(
@@ -345,6 +353,9 @@ void RoomAcousticQTConfig::updateRoomDefinitionToInstance()
 	m_RoomAcousticInstance.m_RoomDefinition.mBottom.damp = DBTODAMP(ConfigUi.SB_RoomDampBottom->value());
 	m_RoomAcousticInstance.m_RoomDefinition.mFront.damp = DBTODAMP(ConfigUi.SB_RoomDampFront->value());
 	m_RoomAcousticInstance.m_RoomDefinition.mBack.damp = DBTODAMP(ConfigUi.SB_RoomDampBack->value());
+
+	m_RoomAcousticInstance.mCLRoomOverGPU = ConfigUi.CL_RoomGPU->isChecked();
+	m_RoomAcousticInstance.mCLConvolutionOverGPU = ConfigUi.CL_ConvolutionGPU->isChecked();
 }
 
 void RoomAcousticQTConfig::printConfiguration()
@@ -925,7 +936,7 @@ void RoomAcousticQTConfig::on_SB_HeadPositionZ_valueChanged(double value)
 
 void RoomAcousticQTConfig::on_CB_UseGPU4Room_currentIndexChanged(int index)
 {
-	if (index == 0)
+	if(index == 0)
 	{
 		// Running in CPU mode
 		ConfigUi.RB_DEF4Room->setChecked(true);
@@ -937,9 +948,18 @@ void RoomAcousticQTConfig::on_CB_UseGPU4Room_currentIndexChanged(int index)
 		ConfigUi.SB_RoomCU->setEnabled(false);
 #endif // RTQ_ENABLED
 
+		ConfigUi.CL_RoomGPU->setEnabled(false);
+		ConfigUi.CL_RoomCPU->setEnabled(false);
+		
+		ConfigUi.CL_RoomCPU->setChecked(true);
 	}
 	else
 	{
+		ConfigUi.CL_RoomGPU->setEnabled(true);
+		ConfigUi.CL_RoomCPU->setEnabled(true);
+		
+		ConfigUi.CL_RoomGPU->setChecked(true);
+
 		// Running in GPU mode
 		// enable queue selection
 		ConfigUi.RoomQueueGroup->setEnabled(true);
@@ -951,13 +971,19 @@ void RoomAcousticQTConfig::on_CB_UseGPU4Room_currentIndexChanged(int index)
 		// set default queue
 		ConfigUi.RB_DEF4Room->setChecked(true);
 	}
+
 	this->m_RoomAcousticInstance.m_iRoomDeviceID = index;
 }
 
 void RoomAcousticQTConfig::on_CB_UseGPU4Conv_currentIndexChanged(int index)
 {
-	if (index == 0)
+	if(index == 0)
 	{
+		ConfigUi.CL_ConvolutionGPU->setEnabled(false);
+		ConfigUi.CL_ConvolutionCPU->setEnabled(false);
+		
+		ConfigUi.CL_ConvolutionCPU->setChecked(true);
+
 		// Running in CPU mode
 		ConfigUi.RB_DEF4Conv->setChecked(true);
 		// disable queue selection
@@ -971,6 +997,11 @@ void RoomAcousticQTConfig::on_CB_UseGPU4Conv_currentIndexChanged(int index)
 	}
 	else
 	{
+		ConfigUi.CL_ConvolutionGPU->setEnabled(true);
+		ConfigUi.CL_ConvolutionCPU->setEnabled(true);
+		
+		ConfigUi.CL_ConvolutionGPU->setChecked(true);
+
 		// Running in GPU mode
 		// disable queue selection
 		ConfigUi.ConvQueueGroup->setEnabled(true);

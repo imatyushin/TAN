@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1800</width>
+    <width>1680</width>
     <height>1008</height>
    </rect>
   </property>
@@ -549,7 +549,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_10">
+         <widget class="QGroupBox" name="CL_RoomGpu">
           <property name="title">
            <string>Room</string>
           </property>
@@ -914,7 +914,22 @@
                  </layout>
                 </item>
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_5"/>
+                 <layout class="QHBoxLayout" name="horizontalLayout_5">
+                  <item>
+                   <widget class="QRadioButton" name="CL_RoomGPU">
+                    <property name="text">
+                     <string>CL/GPU</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QRadioButton" name="CL_RoomCPU">
+                    <property name="text">
+                     <string>CL/CPU</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                </layout>
               </item>
@@ -1055,6 +1070,13 @@
              <layout class="QHBoxLayout" name="horizontalLayout_12">
               <item>
                <layout class="QGridLayout" name="gridLayout_6">
+                <item row="0" column="2">
+                 <widget class="QRadioButton" name="CL_ConvolutionGPU">
+                  <property name="text">
+                   <string>CL/GPU</string>
+                  </property>
+                 </widget>
+                </item>
                 <item row="0" column="1">
                  <widget class="QComboBox" name="CB_UseGPU4Conv">
                   <item>
@@ -1088,6 +1110,13 @@
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QRadioButton" name="CL_ConvolutionCPU">
+                  <property name="text">
+                   <string>CL/CPU</string>
                   </property>
                  </widget>
                 </item>
@@ -1188,8 +1217,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1800</width>
-     <height>25</height>
+     <width>1680</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

@@ -19,19 +19,7 @@ enable_language(CXX)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-find_package(OpenCL REQUIRED)
-if(NOT OpenCL_FOUND)
-  message(FATAL_ERROR "Failed to find OpenCL")
-  return()
-else()
-  include_directories(${OpenCL_INCLUDE_DIRS})
-  link_directories(${OpenCL_LIBRARY})
-  ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
-
-  if(DEFINE_AMD_OPENCL_EXTENSION)
-      ADD_DEFINITIONS(-DDEFINE_AMD_OPENCL_EXTENSION)
-  endif()
-endif()
+include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -234,6 +222,9 @@ if(NOT WIN32)
   target_compile_options(RoomAcousticsQT PUBLIC -mavx2)
   target_compile_options(RoomAcousticsQT PUBLIC -mfma)
   target_compile_options(RoomAcousticsQT PUBLIC -msse4.2)
-  target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
   target_compile_options(RoomAcousticsQT PUBLIC -g) #todo: to Debug only
+  
+  if(NOT APPLE)
+    target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
+  endif()
 endif()

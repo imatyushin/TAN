@@ -123,6 +123,9 @@ public:
 #endif // RTQ_ENABLED
 
 	std::string mPlayerName;
+	
+	bool mCLRoomOverGPU = false;
+	bool mCLConvolutionOverGPU = false;
 
 private:
 	std::string mWavFileNamesInternal[MAX_SOURCES];							// Internal wav file name, used to pass valid source file into Audio3D engine

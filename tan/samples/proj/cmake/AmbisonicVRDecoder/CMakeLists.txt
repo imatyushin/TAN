@@ -17,19 +17,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-find_package(OpenCL REQUIRED)
-if(NOT OpenCL_FOUND)
-	message(SEND_ERROR "Failed to find OpenCL")
-	return()
-else()
-	include_directories(${OpenCL_INCLUDE_DIRS})
-  link_directories(${OpenCL_LIBRARY})
-  ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
-
-  if(DEFINE_AMD_OPENCL_EXTENSION)
-      ADD_DEFINITIONS(-DDEFINE_AMD_OPENCL_EXTENSION)
-  endif()
-endif()
+include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
 
 # name
 project(AmbisonicVRDecoder DESCRIPTION "AmbisonicVRDecoder")

@@ -7,23 +7,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-find_package(OpenCL REQUIRED)
-if(NOT OpenCL_FOUND)
-	message(SEND_ERROR "Failed to find OpenCL")
-	return()
-else()
-  message("OpenCL seems found in " ${OpenCL_INCLUDE_DIRS})
-	include_directories(${OpenCL_INCLUDE_DIRS})
-  link_directories(${OpenCL_LIBRARY})
-  ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
-
-  if(DEFINE_AMD_OPENCL_EXTENSION)
-      ADD_DEFINITIONS(-DDEFINE_AMD_OPENCL_EXTENSION)
-  endif()
-endif()
-
-message("OpenCL_INCLUDE_DIRS: ${OpenCL_INCLUDE_DIRS}")
-message("OpenCL_LIBRARY: ${OpenCL_LIBRARY}")
+include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
 
 # cl kernel preprocessor
 include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
@@ -144,9 +128,12 @@ target_link_libraries(Graal amf)
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
-target_compile_options(Graal PUBLIC -mavx2)
-target_compile_options(Graal PUBLIC -mfma)
-target_compile_options(Graal PUBLIC -msse4.2)
-target_compile_options(Graal PUBLIC -Wpsabi)
-target_compile_options(Graal PUBLIC -g) #todo: to Debug only
+  target_compile_options(Graal PUBLIC -mavx2)
+  target_compile_options(Graal PUBLIC -mfma)
+  target_compile_options(Graal PUBLIC -msse4.2)
+  target_compile_options(Graal PUBLIC -g) #todo: to Debug only
+
+  if(NOT APPLE)
+    target_compile_options(Graal PUBLIC -Wpsabi)
+  endif()
 endif()

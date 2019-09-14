@@ -78,24 +78,28 @@ public:
         int                     fftLen,
         int                     bufSize,
 
-        bool                    useGPU_Conv/* = true*/,
-        int                     devIdx_Conv/* = 0*/,
+        bool                    useGPU_Conv,
+        bool                    useGPU_ConvQueue,
+        int                     devIdx_Conv,
+
 #ifdef RTQ_ENABLED
-		bool                    useHPr_Conv/* = false*/,
-        bool                    useRTQ_Conv/* = false*/,
-        int                     cuRes_Conv/* = 0*/,
+		bool                    useHPr_Conv,
+        bool                    useRTQ_Conv,
+        int                     cuRes_Conv,
 #endif // RTQ_ENABLED
-        bool                    useGPU_IRGen/* = true*/,
-        int                     devIdx_IRGen/* = 0*/,
+
+        bool                    useGPU_IRGen,
+        bool                    useCPU_IRGenQueue,
+        int                     devIdx_IRGen,
+
 #ifdef RTQ_ENABLED
-		bool                    useHPr_IRGen/* = false*/,
-        bool                    useRTQ_IRGen/* = false*/,
-        int                     cuRes_IRGen/* = 0*/,
+		bool                    useHPr_IRGen,
+        bool                    useRTQ_IRGen,
+        int                     cuRes_IRGen,
 #endif
+
         amf::TAN_CONVOLUTION_METHOD
-                                convMethod/* = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD*/,
-        bool                    useCPU_Conv/* = false*/,
-        bool                    useCPU_IRGen/* = false*/,
+                                convMethod,
 
         const std::string &     playerType
         );
@@ -131,13 +135,14 @@ protected:
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
 	std::vector<WavContent>     mWavFiles;
 
-    Timer                       mRealtimeTimer;
+    //Timer                       mRealtimeTimer;
 
     uint32_t                    mMaxSamplesCount = 0;
     std::vector<int16_t>        mStereoProcessedBuffer;
 
-	TANContextPtr m_spTANContext1;
-	TANContextPtr m_spTANContext2;
+	TANContextPtr mTANConvolutionContext;
+	TANContextPtr mTANRoomContext;
+
 	TANConvolutionPtr m_spConvolution;
 	TANConverterPtr m_spConverter;
     TANMixerPtr m_spMixer;
@@ -152,7 +157,9 @@ protected:
     bool mSrc1TrackHeadPos = false;
     bool mSrc1MuteDirectPath = false;
 
+    AllignedAllocator<float, 32>mResponseBufferStorage;
 	float *mResponseBuffer = nullptr;
+    
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     bool   mUseClMemBufs = false;

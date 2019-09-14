@@ -83,19 +83,26 @@ int RoomAcousticQT::start()
 		m_iBufferSize,
 
 		m_iuseGPU4Conv,
+		mCLRoomOverGPU,
 		convolutiondevice,
 
 #ifdef RTQ_ENABLED
-		m_iuseMPr4Conv,m_iuseRTQ4Conv, m_iConvolutionCUCount,
+		m_iuseMPr4Conv,
+		m_iuseRTQ4Conv, 
+		m_iConvolutionCUCount,
 #endif // RTQ_ENABLED
-		m_iuseGPU4Room, Roomdevice,
-#ifdef RTQ_ENABLED
-		m_iuseMPr4Room,m_iuseRTQ4Room, m_iRoomCUCount,
-#endif
-		m_eConvolutionMethod,
 
-		false,
-		false,
+		m_iuseGPU4Room, 
+		Roomdevice,
+		mCLConvolutionOverGPU,
+
+#ifdef RTQ_ENABLED
+		m_iuseMPr4Room,
+		m_iuseRTQ4Room, 
+		m_iRoomCUCount,
+#endif
+
+		m_eConvolutionMethod,
 
 		mPlayerName
 		);
