@@ -8,6 +8,7 @@
 /tan/build/cmake/linux
 /tan/build/cmake/mac
 /tan/build/cmake/vs2015
+/tan/build/cmake/vs2017
 /thirdparty/portaudio/*
 /thirdparty/OpenCL-Headers/*
 .DS_Store
