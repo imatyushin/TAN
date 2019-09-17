@@ -31,14 +31,15 @@
 #include <CL/cl.h>
 
 #if defined(_WIN32)
-#include "../common/WASAPIPlayer.h"
+    #include "../common/WASAPIPlayer.h"
 #else
-
-#if !defined(__MACOSX) && !defined(__APPLE__)
-#include "../common/AlsaPlayer.h"
+	#if !defined(__MACOSX) && !defined(__APPLE__)
+		#include "../common/AlsaPlayer.h"
+	#endif
 #endif
 
-#include "../common/PortPlayer.h"
+#ifdef ENABLE_PORTAUDIO
+	#include "../common/PortPlayer.h"
 #endif
 
 #include <immintrin.h>

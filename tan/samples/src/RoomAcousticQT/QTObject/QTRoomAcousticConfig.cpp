@@ -40,7 +40,7 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 
 				for(int index(0); index < MAX_SOURCES; ++index)
 				{
-					updateSoundSourceGraphics(m_iCurrentSelectedSource);
+					//updateSoundSourceGraphics(m_iCurrentSelectedSource);
 				}
 			}
 		}

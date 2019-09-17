@@ -152,6 +152,7 @@ endif()
 if(PortAudio_DIR)
   list(APPEND SOURCE_EXE ../../../src/common/PortPlayer.cpp)
   list(APPEND HEADER_EXE ../../../src/common/PortPlayer.h)
+  message("PortAudio support injected to project")
 endif()
 
 set(
