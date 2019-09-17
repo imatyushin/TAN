@@ -22,6 +22,8 @@
 #include "fifo.h"
 #include <memory.h>
 
+#include <algorithm>
+
 // #define BE_THREAD_SAFE
 
 unsigned int FifoBuffer::fifoLength()

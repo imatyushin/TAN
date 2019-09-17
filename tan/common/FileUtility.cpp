@@ -172,11 +172,11 @@ bool createPath(const std::string & path)
 		component = otherPath;
 	}
 
-	//std::cout << "INCOME: [" << path << "] [" << component << "] [" << otherPath << "]" << std::endl;
+	std::cout << "INCOME: [" << path << "] [" << component << "] [" << otherPath << "]" << std::endl;
 
 	for( ; component.length(); )
 	{
-		//std::cout << "PUSH:" << component << std::endl;
+		std::cout << "PUSH:" << component << std::endl;
 
 		directories.push_back(component);
 
@@ -207,17 +207,40 @@ bool createPath(const std::string & path)
 	{
 		auto directory(*componentIterator);
 
-		//std::cout << "CHECK: " << directory;
+		std::cout << "CHECK: " << directory << std::endl;
 
 		if(!checkFileExist(directory))
 		{
-			auto result(mkdir(directory.c_str(), 0777));
-			//errno != EEXIST
+			std::cout << "CREATE: " << directory << std::endl;
 
-			if(!result)
+#ifndef _WIN32
+
+			auto result(
+				mkdir(
+					directory.c_str(), 0777
+					)
+				);
+
+			if (!result)
 			{
 				break;
 			}
+
+#else
+
+			auto result(
+				_mkdir(
+					directory.c_str()
+				)
+				);
+
+			//if (!result)
+			//{
+			//	break;
+			//}
+#endif
+			std::cout << "Result: " << result << std::endl;
+			
 		}
     }
 
