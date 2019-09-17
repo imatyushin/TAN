@@ -111,8 +111,6 @@ set(
 if(WIN32)
   list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
 else()
-  list(APPEND SOURCE_EXE ../../../src/common/PulsePlayer.cpp)
-
 if(NOT APPLE)
   list(APPEND SOURCE_EXE ../../../src/common/AlsaPlayer.cpp)
 endif()
@@ -146,8 +144,6 @@ set(
 if(WIN32)
   list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)
 else()
-  list(APPEND HEADER_EXE ../../../src/common/PulsePlayer.h)
-
   if(NOT APPLE)
     list(APPEND HEADER_EXE ../../../src/common/AlsaPlayer.h)
   endif()
