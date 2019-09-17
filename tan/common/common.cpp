@@ -22,8 +22,9 @@
 #include "common.h"
 
 #include <math.h>
+
 #if !defined(__APPLE__) && !defined(__MACOSX)
-#include <omp.h>
+    #include <omp.h>
 #endif
 
 int DirectConv(float * out, float * in, int index, int block_sz, float * kernel, int kernel_sz, int n_blocks)

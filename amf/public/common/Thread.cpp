@@ -29,20 +29,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#include "Thread.h"
 
 #if defined(_WIN32)
-#include <process.h>
+    #include <process.h>
 #else
-#include <pthread.h>
+    #include <pthread.h>
 #endif
-#include "Thread.h"
 
 #if defined(METRO_APP)
     #include <ppl.h>
     #include <ppltasks.h>
 #endif
-
-
 
 namespace amf
 {
@@ -521,7 +519,7 @@ namespace amf
         pthread_mutex_lock(&m_hMutex);
         m_bStopRequested = true;
         pthread_mutex_unlock(&m_hMutex);
-        
+
         return true;
     }
 

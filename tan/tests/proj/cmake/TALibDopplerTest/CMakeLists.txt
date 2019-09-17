@@ -35,7 +35,9 @@ include_directories(../../../../../tan)
 # sources
 set(
   SOURCE_EXE
+  ../../../../common/common.cpp
   ../../../../common/wav.cpp
+  ../../../../common/StringUtility.cpp
 
   ../../../src/TALibDopplerTest/stdafx.cpp
   ../../../src/TALibDopplerTest/TALibDopplerTest.cpp
@@ -43,7 +45,10 @@ set(
 
 set(
   HEADER_EXE
+  ../../../../common/common.h
   ../../../../common/wav.h
+  ../../../../common/StringUtility.h
+
   ../../../src/TALibDopplerTest/stdafx.h
   ../../../src/TALibDopplerTest/targetver.h
   )
@@ -55,5 +60,6 @@ add_executable(
   ${HEADER_EXE}
   )
 
+target_link_libraries(TALibDopplerTest TrueAudioVR)
 target_link_libraries(TALibDopplerTest TrueAudioNext)
 target_link_libraries(TALibDopplerTest GPUUtilities)

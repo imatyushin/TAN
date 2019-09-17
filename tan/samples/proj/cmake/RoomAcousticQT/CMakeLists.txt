@@ -88,7 +88,6 @@ set(
   SOURCE_EXE
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
-  ../../../src/common/common.cpp
   ../../../src/common/GpuUtils.cpp
   ../../../src/common/SimpleVRaudio.cpp
   ../../../src/common/utilities.c
@@ -99,6 +98,7 @@ set(
   ../../../../common/wav.cpp
   ../../../../common/fifo.cpp
   ../../../../common/cpucaps.cpp
+  ../../../../common/common.cpp
 
   ../../../src/RoomAcousticQT/main.cpp
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp
@@ -122,7 +122,6 @@ set(
 
   ../../../../common/fifo.h
 
-  ../../../src/common/common.h
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h
   ../../../src/common/SimpleVRaudio.h
@@ -135,6 +134,7 @@ set(
   ../../../../common/RegisterBrowser.h
   ../../../../common/wav.h
   ../../../../common/cpucaps.h
+  ../../../../common/common.h
 
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
@@ -220,7 +220,7 @@ if(NOT WIN32)
   target_compile_options(RoomAcousticsQT PUBLIC -mfma)
   target_compile_options(RoomAcousticsQT PUBLIC -msse4.2)
   target_compile_options(RoomAcousticsQT PUBLIC -g) #todo: to Debug only
-  
+
   if(NOT APPLE)
     target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
   endif()

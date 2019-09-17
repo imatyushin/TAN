@@ -461,12 +461,12 @@ void mangleFileName(
     if (strchr(baseFileName, '.'))
     {
         std::strncpy(resFileName, /*resFileNameLen,*/ baseFileName, strchr(baseFileName, '.') - baseFileName);
-        strcat_s(resFileName, resFileNameLen, suffix);
-        strcat_s(resFileName, resFileNameLen, strchr(baseFileName, '.'));
+        std::strncat(resFileName, suffix, resFileNameLen);
+        std::strncat(resFileName, strchr(baseFileName, '.'), resFileNameLen);
     }
     else {
         std::strncpy(resFileName, /*resFileNameLen,*/ baseFileName, strlen(baseFileName) + 1);
-        strcat_s(resFileName, resFileNameLen, suffix);
+        std::strncat(resFileName, suffix, resFileNameLen);
     }
 }
 
@@ -580,11 +580,14 @@ int main(int argc, char* argv[])
 	// Open TrueAudioVR DLL:
 	AmdTrueAudioVR *taVR = NULL;
 	AmdTrueAudioVR *taTVR = NULL;
+
+#ifdef _WIN32
 	HMODULE TanVrDll;
 	TanVrDll = LoadLibraryA("TrueAudioVR.dll");
 	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
 	CREATEVR CreateAmdTrueAudioVR = nullptr;
 	CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+#endif
 
 	//taVR = new AmdTrueAudioVR(pContext, pFft, cmdQueue, static_cast<float>(SamplesPerSec), convolutionLength);
 	CreateAmdTrueAudioVR(&taVR, pContext, pFft, cmdQueue, static_cast<float>(SamplesPerSec), convolutionLength);

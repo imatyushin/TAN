@@ -36,7 +36,6 @@ set(
   SOURCE_EXE
   ../../../src/AmbisonicVRDecoder/AmbisonicVRDecoder.cpp
 
-  ../../../src/common/WASAPIPlayer.cpp
   ../../../../common/wav.cpp
   )
 
@@ -44,7 +43,6 @@ set(
   HEADER_EXE
   ../../../../tanlibrary/include/TrueAudioNext.h
 
-  ../../../src/common/WASAPIPlayer.h
   ../../../../common/wav.h
 
   #stdafx.h
@@ -58,4 +56,5 @@ add_executable(
   ${HEADER_EXE}
   )
 
+target_link_libraries(AmbisonicVRDecoder TrueAudioVR)
 target_link_libraries(AmbisonicVRDecoder TrueAudioNext)

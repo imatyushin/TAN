@@ -40,7 +40,6 @@ if(WIN32)
   #add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 endif()
 
-
 #libraries
 add_subdirectory(../../tanlibrary/proj/cmake/amf cmake-amf-bin)
 add_subdirectory(../../tanlibrary/proj/cmake/Graal cmake-Graal-bin)
@@ -48,7 +47,7 @@ add_subdirectory(../../tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
 add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
 
 #tests
-#add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
+add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
 #add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
 #add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
 #add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)

@@ -30,22 +30,19 @@
 #include <cctype>
 
 #ifdef _WIN32
-
 #else
+    #include <errno.h>
 
-#include <errno.h>
+    #if !defined(__APPLE__) && !defined(__MACOSX)
+        #ifndef errno_t
+            #define errno_t char
+        #endif
+    #endif
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
-#ifndef errno_t
-#define errno_t char
-#endif
-#endif
+    #ifndef _WIN32
+        #define sscanf_s sscanf
+        #define sprintf_s sprintf
+    #endif
 
-#ifndef _WIN32
-#define sscanf_s sscanf
-#define sprintf_s sprintf
-#endif
-
-errno_t fopen_s(FILE **f, const char *name, const char *mode);
-
+    errno_t fopen_s(FILE **f, const char *name, const char *mode);
 #endif

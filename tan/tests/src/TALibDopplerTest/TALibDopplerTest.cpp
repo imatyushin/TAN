@@ -1,20 +1,43 @@
-// TALibVRTest.cpp : Defines the entry point for the console application.
-//
 #include "stdafx.h"
 
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "common.h"
 #include "wav.h"
+#include "FileUtility.h"
+#include "StringUtility.h"
+
+#include "tanlibrary/include/TrueAudioNext.h"
 #include "samples/src/TrueAudioVR/TrueAudioVR.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 
-#include <memory.h>
-#include <process.h>
-#include <math.h>
-
 #include <vector>
-#include <omp.h>
 #include <iostream>
 #include <cstring>
+
+#include <memory.h>
+#include <math.h>
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+    #include <omp.h>
+#endif
+
+#if defined(_WIN32)
+    #include <process.h>
+#else
+    #include <pthread.h>
+#endif
+
+#if defined(METRO_APP)
+    #include <ppl.h>
+    #include <ppltasks.h>
+#endif
+
+#include <errno.h>
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+  #ifndef errno_t
+    #define errno_t char
+  #endif
+#endif
 
 struct attribute {
     char *name;
@@ -413,12 +436,13 @@ void mangleFileName(
     if (strchr(baseFileName, '.'))
     {
         std::strncpy(resFileName, /*resFileNameLen,*/ baseFileName, strchr(baseFileName, '.') - baseFileName);
-        strcat_s(resFileName, resFileNameLen, suffix);
-        strcat_s(resFileName, resFileNameLen, strchr(baseFileName, '.'));
+        std::strncat(resFileName, suffix, resFileNameLen);
+        std::strncat(resFileName, strchr(baseFileName, '.'), resFileNameLen);
     }
-    else {
+    else
+    {
         std::strncpy(resFileName, /*resFileNameLen,*/ baseFileName, strlen(baseFileName) + 1);
-        strcat_s(resFileName, resFileNameLen, suffix);
+        std::strncat(resFileName, suffix, resFileNameLen);
     }
 }
 
@@ -432,10 +456,10 @@ int main(int argc, char* argv[])
 
     waveFileNames[0] = new char[MAX_PATH + 4];
 
-	int SamplesPerSec = 48000;
-	int BitsPerSample = 16;
-	int NChannels = 2;
-    long NSamples = 0;
+	uint32_t SamplesPerSec = 48000;
+	uint16_t BitsPerSample = 16;
+	uint16_t NChannels = 2;
+    uint32_t NSamples = 0;
     unsigned char *pSamples = NULL;
     float **pfSamples = NULL;
 
@@ -470,8 +494,10 @@ int main(int argc, char* argv[])
         sscanf(argv[4], "%d", &maxbounces);
     }
 
-    if (argc >= 6){
-        if (strnicmp(argv[5], "GPU",3) == 0){
+    if(argc >= 6)
+    {
+        if(!compareIgnoreCase(argv[5], "GPU"))
+        {
             gpu = true;
         }
     }
@@ -503,8 +529,8 @@ int main(int argc, char* argv[])
     ears.roll = roll;
     ears.yaw = yaw;
 
+    ReadWaveFile(inFileName, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSamples, &pfSamples);
 
-    ReadWaveFile(inFileName, &SamplesPerSec, &BitsPerSample, &NChannels, &NSamples, &pSamples, &pfSamples);
 
     float *pfOutput[2];
     pfOutput[0] = new float[NSamples];
@@ -562,11 +588,14 @@ int main(int argc, char* argv[])
 	// Open TrueAudioVR DLL:
 	AmdTrueAudioVR *taVR = NULL;
 	AmdTrueAudioVR *taTVR = NULL;
+
+#ifdef _WIN32
 	HMODULE TanVrDll;
 	TanVrDll = LoadLibraryA("TrueAudioVR.dll");
 	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
 	CREATEVR CreateAmdTrueAudioVR = nullptr;
 	CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+#endif
 
 	CreateAmdTrueAudioVR(&taVR, pContext, pFft, cmdQueue, static_cast<float>(SamplesPerSec), convolutionLength);
 

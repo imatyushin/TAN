@@ -140,11 +140,13 @@ void Ambi2Stereo::buildCompositeHRTFs(TANContext *pTANContext)
    float p = 0.5; // Cardiod
    float W0 = p*sqrt(2.0);
 
-   HMODULE TanVrDll;
-   TanVrDll = LoadLibraryA("TrueAudioVR.dll");
-   typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
-   CREATEVR CreateAmdTrueAudioVR = nullptr;
-   CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+#ifdef _WIN32
+    HMODULE TanVrDll;
+    TanVrDll = LoadLibraryA("TrueAudioVR.dll");
+    typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
+    CREATEVR CreateAmdTrueAudioVR = nullptr;
+    CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+#endif
 
    AmdTrueAudioVR *tanVR;
    CreateAmdTrueAudioVR(&tanVR, pTANContext, pFFT, NULL, 44100, ICO_HRTF_LEN);
@@ -371,13 +373,12 @@ int main(int argc, char* argv[])
     sscanf(argv[aIdx++], "%f", &hRotationSpeed);
     sscanf(argv[aIdx++], "%f", &vRotationSpeed);
 
-
-    int SamplesPerSec, BitsPerSample, NChannels;
-    long NSamples;
+    uint16_t BitsPerSample, NChannels;
+    uint32_t SamplesPerSec, NSamples;
     unsigned char *pSsamples;
     float **Samples;
 
-    ReadWaveFile(infile, &SamplesPerSec, &BitsPerSample, &NChannels, &NSamples, &pSsamples, &Samples);
+    ReadWaveFile(infile, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSsamples, &Samples);
 
     if (NChannels != 4){
         puts("input must be 4 channel 1st order ambisonic stream of (W,X,Y,Z) \n");
