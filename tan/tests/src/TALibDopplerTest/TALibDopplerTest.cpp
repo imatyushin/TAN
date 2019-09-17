@@ -33,7 +33,7 @@
 
 #include <errno.h>
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
+#if !defined _WIN32 && !defined(__APPLE__) && !defined(__MACOSX)
   #ifndef errno_t
     #define errno_t char
   #endif
