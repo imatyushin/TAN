@@ -534,13 +534,13 @@ bool WavContent::Convert2Stereo16Bit()
 		return true;
 	}
 
-	/*if(ChannelsCount > 2)
+	if(ChannelsCount > 2)
 	{
 		std::cerr << "Error: not supported conversion!" << std::endl;
 
 		return false;
-	}* /
-	std::vector<uint8_t> floatBuffer(sizeof(float) * 2 * SamplesCount /*+ 1* /, 0);
+	}
+	std::vector<uint8_t> floatBuffer(sizeof(float) * 2 * SamplesCount, 0);
 
 	switch(BitsPerSample)
 	{
