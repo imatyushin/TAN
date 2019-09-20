@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include "common.h"
 #include "wav.h"
 #include "FileUtility.h"
 #include "StringUtility.h"
@@ -29,14 +28,6 @@
 #if defined(METRO_APP)
     #include <ppl.h>
     #include <ppltasks.h>
-#endif
-
-#include <errno.h>
-
-#if !defined _WIN32 && !defined(__APPLE__) && !defined(__MACOSX)
-  #ifndef errno_t
-    #define errno_t char
-  #endif
 #endif
 
 struct attribute {

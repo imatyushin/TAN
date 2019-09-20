@@ -34,11 +34,14 @@ set(
   SOURCE_EXE
   ../../../src/Ambisonic1stOrderEncoder/Ambisonic1stOrderEncoder.cpp
 
+  ../../../../common/FileUtility.cpp
   ../../../../common/wav.cpp
   )
 
 set(
   HEADER_EXE
+
+  ../../../../common/FileUtility.h
   ../../../../common/wav.h
   )
 

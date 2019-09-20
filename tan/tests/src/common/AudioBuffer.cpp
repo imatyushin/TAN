@@ -1,7 +1,6 @@
 #include "AudioBuffer.h"
 #include "assert.h"
 #include "wav.h"
-#include "common.h"
 
 #include <iostream>
 #include <algorithm>
@@ -409,7 +408,7 @@ AMF_RESULT Audiobuffer::verifyChannelConverterResult(Audiobuffer& _output, float
 				input_index += this->m_iStep;
 			}
 			else if (dataOut[i] != 0) {
-				// Data should be zeroed-out otherwise	
+				// Data should be zeroed-out otherwise
 				printf("Error in item = %d \n", i);
 				failed = true;
 			}
@@ -528,7 +527,7 @@ AMF_RESULT Audiobuffer::compareWith(Audiobuffer& ref, Audiobuffer** diff)
 	//Audiobuffer* ret = new Audiobuffer(m_eBufferType, m_iSize, m_iStep, m_iNumOfChannel);
 	if (ref.m_eBufferType == eFloat)
 	{
-		
+
 
 		float** thisbuffer = getFloatTypeBuffer();
 		float** refbuffer = ref.getFloatTypeBuffer();
@@ -552,7 +551,7 @@ AMF_RESULT Audiobuffer::compareWith(Audiobuffer& ref, Audiobuffer** diff)
 	}
 	if (ref.m_eBufferType == eShort)
 	{
-		
+
 	}
 
 	return AMF_OK;
@@ -599,7 +598,7 @@ Audiobuffer* Audiobuffer::convolutewith(Audiobuffer* _input) const
 				if (i1 >= 0 && i1<this->m_iSize)
 					tmp = tmp + (A[i1] * B[j]);
 				i1 = i1 - 1;
-				
+
 			}
 			C[i] = tmp;
 		}

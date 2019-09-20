@@ -5,55 +5,46 @@
 
 // If you wish to build your application for a previous Windows platform, include WinSDKVer.h and
 // set the _WIN32_WINNT macro to the platform you wish to support before including SDKDDKVer.h.
-
-#include <SDKDDKVer.h>
+#ifdef _WIN32
+  #include <SDKDDKVer.h>
+#endif
 
 #include <memory.h>
-#include <process.h>
 #include <math.h>
-#include <vector>
-#include <omp.h>
-#include <memory>
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+    #include <omp.h>
+#endif
+
+#if defined(_WIN32)
+    #include <process.h>
+#else
+    #include <pthread.h>
+#endif
+
+#if defined(METRO_APP)
+    #include <ppl.h>
+    #include <ppltasks.h>
+#endif
 
 #include "tanlibrary/include/TrueAudioNext.h"
 using namespace amf;
 
+#include "FileUtility.h"
 #include "wav.h"
-#include "samples/src/common/utilities.h"
+
+#include "utilities.h"
+
 #include "samples/src/GPUUtilities/GpuUtilities.h"
-const UINT c_modesCnt = 2;
-
-static
-int DirectConv(float * out, float * in, int index, int block_sz, float * kernel, int kernel_sz, int n_blocks)
-{
-	int ret = 0;
-	int b, j, c;
-	int in_sz = n_blocks* block_sz;
-#pragma omp parallel for private(j,c)
-	for (b = 0; b < block_sz; b++) {
-		out[b] = 0;
-		double o = 0;
-		// limited by real kernel length
-		for (j = index * block_sz + b, c = 0; c < kernel_sz; c++, j--) {
-			j = (j < 0) ? in_sz - 1 : j;
-
-			o += in[j] * kernel[c];
-
-		}
-
-		out[b] = (float)o;
-	}
-
-	return ret;
-}
-
+const uint32_t c_modesCnt = 2;
 
 int main(int argc, char* argv[])
 {
-	errno_t errno;
-	FILE *fpLog = NULL;
-	char logfname[] = "TALibTestConvolutionLog.html";
-	errno = fopen_s(&fpLog, logfname, "w+");
+	//comment out unused code:
+	//errno_t errno;
+	//FILE *fpLog = NULL;
+	//char logfname[] = "TALibTestConvolutionLog.html";
+	//errno = fopen_s(&fpLog, logfname, "w+");
 
     char *infilename = NULL;// = "bip5chan.wav";
     char *respName = NULL;// = "rev5chan.wav";
@@ -62,14 +53,16 @@ int main(int argc, char* argv[])
     FILE *fpConfig = NULL;
 
 	int blockLength = 256;
-	int SamplesPerSec, resSamplesPerSec;
-	int BitsPerSample, resBitsPerSample;
-	int NChannels, NResChannels;
-	long NSamples, NResSamples;
+
+	uint32_t SamplesPerSec, resSamplesPerSec;
+	uint16_t BitsPerSample, resBitsPerSample;
+	uint16_t NChannels, NResChannels;
+	uint32_t NSamples, NResSamples;
 	unsigned char *pSamples;
 	unsigned char *pResponse;
 	float **pfSamples = NULL;
 	float **pfResponse = NULL;
+
 	bool gpu = 0;
 
     if (argc < 5 || !(!strcmp(argv[1], "gpu") || !strcmp(argv[1], "cpu")))
@@ -104,8 +97,8 @@ int main(int argc, char* argv[])
 		printf("GPU \n");
 	}
 
-    ReadWaveFile(infilename, &SamplesPerSec, &BitsPerSample, &NChannels, &NSamples, &pSamples, &pfSamples);
-    ReadWaveFile(respName, &resSamplesPerSec, &resBitsPerSample, &NResChannels, &NResSamples, &pResponse, &pfResponse);
+    ReadWaveFile(infilename, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSamples, &pfSamples);
+    ReadWaveFile(respName, resSamplesPerSec, resBitsPerSample, NResChannels, NResSamples, &pResponse, &pfResponse);
 
 	if (SamplesPerSec != resSamplesPerSec || BitsPerSample != resBitsPerSample || NChannels != NResChannels) {
 		printf("format of source [%dHz:%dbits:%dchans] and response [%dHz:%dbits:%dchans] don't match!\n", SamplesPerSec, BitsPerSample, NChannels, resSamplesPerSec, resBitsPerSample, NResChannels);

@@ -1,7 +1,6 @@
 #include "RoomAcousticQT.h"
 #include "samples/src/common/GpuUtils.h"
 #include "samples/src//TrueAudioVR/TrueAudioVR.h"
-#include "../common/common.h"
 #include "FileUtility.h"
 
 #include <time.h>
@@ -88,17 +87,17 @@ int RoomAcousticQT::start()
 
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Conv,
-		m_iuseRTQ4Conv, 
+		m_iuseRTQ4Conv,
 		m_iConvolutionCUCount,
 #endif // RTQ_ENABLED
 
-		m_iuseGPU4Room, 
+		m_iuseGPU4Room,
 		Roomdevice,
 		mCLConvolutionOverGPU,
 
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Room,
-		m_iuseRTQ4Room, 
+		m_iuseRTQ4Room,
 		m_iRoomCUCount,
 #endif
 

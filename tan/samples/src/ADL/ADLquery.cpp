@@ -9,8 +9,7 @@
 #if defined (LINUX)
 #include "include/adl_sdk.h"
 #include <dlfcn.h>	//dyopen, dlsym, dlclose
-#include <errno.h> // fopen_s
-#include <stdlib.h>	
+#include <stdlib.h>
 #include <string.h>	//memeset
 
 // Linux equivalent of sprintf_s
@@ -55,23 +54,6 @@ void __stdcall ADL_Main_Memory_Free(void** lpBuffer)
 }
 
 enum	COMMAND	{ NONE, GETALL, GETMODE, SETMODE, INFOOVER, SETOVER, GETLIST, GENERATE, BIOSINFO };
-
-#if defined (LINUX)
-// Linux equivalent function of fopen_s
-int fopen_s(FILE ** file, const char *filename, const char *mode)
-{
-    if (NULL == file)
-        return EINVAL;
-
-    (*file) = fopen(filename, mode);
-
-    if (NULL != *file)
-        return 0;
-    else
-        return errno;
-}
-
-#endif
 
 #if defined (LINUX)
 void *hDLL;		// Handle to .so library
@@ -242,7 +224,7 @@ int ADLQueryAdapterInfo(ADLAdapterInfo *adapterInfo, int listLen){
 
         memset(&gcInfo, 0, sizeof(gcInfo));
         ADL_Adapter_GCoreInfo_Get(NULL, i, &gcInfo);
-        
+
         adapterInfo[i].numCUs = gcInfo.iNumCUs;
 
     }

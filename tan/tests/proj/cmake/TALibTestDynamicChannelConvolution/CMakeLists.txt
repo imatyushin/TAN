@@ -26,6 +26,7 @@ include_directories(../../../../../amf)
 include_directories(../../../../../tan)
 
 include_directories(../../../../common)
+include_directories(../../../../samples/src/common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -36,15 +37,19 @@ ADD_DEFINITIONS(-D_UNICODE)
 set(
   SOURCE_EXE
   ../../../src/TAlibTestDynamicChannelConvolution/TALibTestDynamicChannelConvolution.cpp
+
   ../../../../samples/src/common/utilities.c
 
+  ../../../../common/FileUtility.cpp
   ../../../../common/wav.cpp
   )
 
 set(
   HEADER_EXE
-  ../../../../samples/src/common/utilities.h
+  ../../../../common/FileUtility.h
   ../../../../common/wav.h
+
+  ../../../../samples/src/common/utilities.h
   )
 
 # create binary

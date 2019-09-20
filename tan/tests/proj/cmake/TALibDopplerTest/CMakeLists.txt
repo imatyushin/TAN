@@ -35,9 +35,9 @@ include_directories(../../../../../tan)
 # sources
 set(
   SOURCE_EXE
-  ../../../../common/common.cpp
-  ../../../../common/wav.cpp
+  ../../../../common/FileUtility.cpp
   ../../../../common/StringUtility.cpp
+  ../../../../common/wav.cpp
 
   ../../../src/TALibDopplerTest/stdafx.cpp
   ../../../src/TALibDopplerTest/TALibDopplerTest.cpp
@@ -45,9 +45,9 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../common/common.h
-  ../../../../common/wav.h
+  ../../../../common/FileUtility.h
   ../../../../common/StringUtility.h
+  ../../../../common/wav.h
 
   ../../../src/TALibDopplerTest/stdafx.h
   ../../../src/TALibDopplerTest/targetver.h

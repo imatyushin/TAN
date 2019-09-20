@@ -36,6 +36,8 @@ include_directories(../../../../../tan)
 set(
   SOURCE_EXE
   ../../../../samples/src/common/utilities.c
+
+  ../../../../common/FileUtility.cpp
   ../../../../common/wav.cpp
 
   ../../../src/TALibTestConvolution/TALibTestConvolution.cpp
@@ -43,8 +45,11 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../samples/src/common/utilities.h
+
+  ../../../../common/FileUtility.h
   ../../../../common/wav.h
+
+  ../../../../samples/src/common/utilities.h
   )
 
 # create binary

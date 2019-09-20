@@ -3,15 +3,23 @@
 #include <string>
 
 #ifdef _WIN32
-
-#include <Windows.h>
-
+  #include <Windows.h>
 #else
+  #include <errno.h>
+  #include <stdio.h>
 
-#ifndef MAX_PATH
-#define MAX_PATH 254
-#endif
+  #ifndef MAX_PATH
+    #define MAX_PATH 254
+  #endif
 
+  #if !defined(__APPLE__) && !defined(__MACOSX)
+	#ifndef errno_t
+	  #define errno_t char
+	#endif
+  #endif
+
+  #define sscanf_s sscanf
+  #define sprintf_s sprintf
 #endif
 
 struct FileVersion
@@ -42,3 +50,7 @@ bool checkFileExist(const std::string& fileName);
 bool compareIgnoreCase(const std::string& first, const std::string& second);
 
 std::string getModuleFileName();
+
+#ifndef _WIN32
+  errno_t fopen_s(FILE **f, const char *name, const char *mode);
+#endif

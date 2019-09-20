@@ -9,7 +9,3 @@
 #endif
 
 #endif
-
-#ifndef _WIN32
-	#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode)))==NULL
-#endif

@@ -34,12 +34,15 @@ set(
   SOURCE_EXE
   ../../../src/Ambisonic1stOrderDecoder/Ambisonic1stOrderDecoder.cpp
 
+  ../../../../common/FileUtility.cpp
   ../../../../common/wav.cpp
   )
 
 set(
   HEADER_EXE
-  #targetver.h
+
+  ../../../../common/FileUtility.h
+  ../../../../common/wav.h
   )
 
 # create binary

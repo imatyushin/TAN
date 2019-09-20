@@ -240,7 +240,7 @@ bool createPath(const std::string & path)
 			//}
 #endif
 			std::cout << "Result: " << result << std::endl;
-			
+
 		}
     }
 
@@ -442,3 +442,21 @@ std::string getModuleFileName()
 		: str;
 	*/
 }
+
+#ifndef _WIN32
+
+// Linux equivalent function of fopen_s
+errno_t fopen_s(FILE **file, const char *filename, const char *mode)
+{
+    if (NULL == file)
+        return EINVAL;
+
+    (*file) = fopen(filename, mode);
+
+    if (NULL != *file)
+        return 0;
+    else
+        return errno;
+}
+
+#endif

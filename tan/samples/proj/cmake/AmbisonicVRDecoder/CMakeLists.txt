@@ -36,6 +36,7 @@ set(
   SOURCE_EXE
   ../../../src/AmbisonicVRDecoder/AmbisonicVRDecoder.cpp
 
+  ../../../../common/FileUtility.cpp
   ../../../../common/wav.cpp
   )
 
@@ -43,10 +44,8 @@ set(
   HEADER_EXE
   ../../../../tanlibrary/include/TrueAudioNext.h
 
+  ../../../../common/FileUtility.h
   ../../../../common/wav.h
-
-  #stdafx.h
-  #targetver.h
   )
 
 # create binary

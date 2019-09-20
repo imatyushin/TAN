@@ -16,7 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef GRAALFILE_HPP_
 #define GRAALFILE_HPP_
 
-#include "Utilities.h"
+#include "FileUtility.h"
 
 #include <vector>
 #include <string>
@@ -95,7 +95,7 @@ class GraalFile
         {
             FILE *output = NULL;
 
-	    if(fopen_s(&output, fileName, "wb"))
+	        if(fopen_s(&output, fileName, "wb"))
             {
                 return GRAAL_FAILURE;
             }

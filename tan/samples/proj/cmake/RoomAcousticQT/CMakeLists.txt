@@ -98,7 +98,6 @@ set(
   ../../../../common/wav.cpp
   ../../../../common/fifo.cpp
   ../../../../common/cpucaps.cpp
-  ../../../../common/common.cpp
 
   ../../../src/RoomAcousticQT/main.cpp
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp
@@ -134,7 +133,6 @@ set(
   ../../../../common/RegisterBrowser.h
   ../../../../common/wav.h
   ../../../../common/cpucaps.h
-  ../../../../common/common.h
 
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
