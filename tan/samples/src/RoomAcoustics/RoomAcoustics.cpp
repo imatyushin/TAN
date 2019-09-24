@@ -371,10 +371,7 @@ BOOL CTALibVRDemoApp::InitInstance()
             // initialize audio engine:
             m_pAudioVR = new Audio3D();
 
-			int err = m_pAudioVR->Init(
-				dllPath, 
-				
-				room, dlg.nFiles, dlg.waveFileNames, dlg.convolutionLength, dlg.bufferSize,
+			int err = m_pAudioVR->init(dllPath, room, dlg.nFiles, dlg.waveFileNames, dlg.convolutionLength, dlg.bufferSize,
                 //dlg.useGPU4Conv, dlg.convDevIdx, 
                 (dlg.exModeConv & OCL_GPU), dlg.convDevIdx,
 #ifdef RTQ_ENABLED

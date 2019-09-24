@@ -22,6 +22,8 @@
 
 #include "audiovr.h"
 #include "gpuutils.h"
+#include "Utilities.h"
+
 #include <time.h>
 #include <process.h>
 #include <AclAPI.h>
@@ -35,7 +37,7 @@
 #ifndef ERROR_MESSAGE
 
 #ifdef _WIN32
-#define ERROR_MESSAGE(message) ::MessageBoxA(0, #x, "Error", MB_OK)
+#define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
 #else
 #define ERROR_MESSAGE(message) std::cerr << "Error: " << message << std::endl
 #endif
@@ -229,7 +231,8 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     ears.yaw = 0.0;
 
     //To Do skip missing files / handle error?
-    for (int idx = 0; idx < nFiles; idx++){
+    for (int idx = 0; idx < nFiles; idx++)
+	{
         Player.ReadWaveFile(inFiles[idx], &nSamples[idx], &pBuffers[idx]);
     }
 

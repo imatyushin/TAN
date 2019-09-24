@@ -73,7 +73,6 @@ if(WIN32)
       ../../../src/RoomAcoustics/RoomAcoustics.rc
 
       ../../../src/common/GpuUtils.cpp
-      ../../../src/common/SimpleVRaudio.cpp
       ../../../src/common/WASAPIPlayer.cpp
 
       ../../../../common/wav.cpp
@@ -82,6 +81,8 @@ if(WIN32)
       ../../../src/RoomAcoustics/RoomAcoustics.cpp
       ../../../src/RoomAcoustics/RoomAcousticsDlg.cpp
       ../../../src/RoomAcoustics/RoomWindow.cpp
+      ../../../src/RoomAcoustics/AudioVR.cpp
+
       ../../../src/RoomAcoustics/stdafx.cpp
 
       #excluded
@@ -106,6 +107,8 @@ if(WIN32)
       ../../../src/RoomAcoustics/RoomAcoustics.h
       ../../../src/RoomAcoustics/RoomAcousticsDlg.h
       ../../../src/RoomAcoustics/RoomWindow.h
+      ../../../src/RoomAcoustics/AudioVR.h
+
       ../../../src/RoomAcoustics/stdafx.h
       ../../../src/RoomAcoustics/targetver.h
 

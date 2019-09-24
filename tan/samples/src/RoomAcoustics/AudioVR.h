@@ -22,10 +22,12 @@
 
 #include "wav.h"
 #include "fifo.h"
-#include "wasapiutils.h"
-#include "tan/TrueAudioNext.h"
+//#include "wasapiutils.h"
+#  include "tanlibrary/include/TrueAudioNext.h" //TAN
 #include "..\TrueAudioVR\trueaudiovr.h"
 #include "maxlimits.h"
+#include "IWavPlayer.h"
+
 #include <Windows.h>
 
 //#define MAXFILES 3
@@ -62,8 +64,8 @@ private:
     bool running = false;
     bool stop = false;
 
+	std::unique_ptr<IWavPlayer> mPlayer;
 
-    WASAPIUtils Player;
 	int m_nFiles;
     long nSamples[MAX_SOURCES];
 	unsigned char *pBuffers[MAX_SOURCES];
