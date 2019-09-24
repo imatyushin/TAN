@@ -29,12 +29,12 @@
 	#error "include 'stdafx.h' before including this file for PCH"
 #endif
 
+#include "RoomWindow.h"
 
 #include "tanlibrary/include/TrueAudioNext.h"       //TAN
 
 #include "../TrueAudioVR/trueaudiovr.h"
-#include "../common/WasApiUtils.h"
-#include "RoomWindow.h"
+#include "../common/WASAPIPlayer.h"
 #include "../common/simplevraudio.h"
 
 #include "resource.h"		// main symbols
@@ -68,7 +68,7 @@ protected:
     static void _cdecl updatePositionsThreadProc(void * p);
 
 protected:
-    WASAPIUtils Player;
+	std::unique_ptr<IWavPlayer> Player;
 
     long nSamples[MAXFILES];
     unsigned char *pBuffers[MAXFILES];

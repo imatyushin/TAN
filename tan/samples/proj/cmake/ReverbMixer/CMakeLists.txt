@@ -72,8 +72,7 @@ set(
 set(
   HEADER_EXE
 
-  ../../../src/common/WASAPIUtils.h
-
+  ../../../src/common/WASAPIPlayer.h
   ../../../../common/wav.h
 
   ../../../src/ReverbMixer/ReverbProcessor.h

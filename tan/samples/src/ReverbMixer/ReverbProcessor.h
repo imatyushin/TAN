@@ -1,6 +1,6 @@
 #pragma once
 #include "tanlibrary/include/TrueAudioNext.h"
-#include "samples/src/common/WASAPIUtils.h"
+#include "samples/src/common/WASAPIPlayer.h"
 #include "CL/cl.h"
 #include <vector>
 #include <thread>
@@ -45,8 +45,8 @@ public:
 		SAVE_DELETE_BUFFER(m_pInternalProcessedFilterFDBuffer, m_iNumOfChannels);
 		SAVE_DELETE_BUFFER(m_pfConvolutionInputBufferFloat, m_iNumOfChannels);
 		SAVE_DELETE_BUFFER(m_pfConvolutionOutputBuffer, m_iNumOfChannels);		
-		m_WASAPIPlayer.wasapiRelease();
-
+		
+		m_WASAPIPlayer->Close();
 	};
 	/**
 	 * \brief Play input file with filter applied
@@ -120,7 +120,7 @@ public:
 	AMF_RESULT				generate10BandEQFilterTD(float in[10], int sampleRate, float*** output, size_t sizeInLog2, size_t numOfChannel);
 	AMF_RESULT				fillAllPassFilterFD(float** input, size_t sizeInFloatPerChannel, size_t numOfChannel);
 	AMF_RESULT				fill10BandEQFilterFD(float in[10], int sampleRate, float** output, size_t sizeInComplexLog2, size_t numOfChannel);
-	AMF_RESULT				getWAVFileInfo(char* FilePath, int *pSamplesPerSec, int *pBitsPerSample, int *pNChannels, long *pNSamples);
+	AMF_RESULT				getWAVFileInfo(const char* FilePath, uint32_t & samplesPerSec, uint16_t & bitsPerSample, uint16_t & nChannels, uint32_t & nSamples);
 private:
 	int						playerPlayInternal();
 	AMF_RESULT				recorderStartInternel();
@@ -165,8 +165,11 @@ private:
 	size_t						m_iConvolutionLengthInSample = 0;
 	size_t						m_iNumOfChannels = 0;
 
-	WASAPIUtils					m_WASAPIPlayer;
-	WASAPIUtils					m_WASAPIRecorder;
+	//WASAPIPlayer				m_WASAPIPlayer;
+	//WASAPIPlayer				m_WASAPIRecorder;
+	std::unique_ptr<IWavPlayer> m_WASAPIPlayer;
+	std::unique_ptr<IWavPlayer> m_WASAPIRecorder;
+
 	std::thread*				m_threadProcessing = nullptr;
 	std::thread*				m_threadRecord = nullptr;
 	FILE*						m_pDiskBuffer = nullptr;

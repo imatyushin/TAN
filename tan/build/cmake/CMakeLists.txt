@@ -34,10 +34,11 @@ add_subdirectory(../../samples/proj/cmake/CLKernelPreprocessor cmake-CLKernelPre
 add_subdirectory(../../samples/proj/cmake/FileToHeader cmake-FileToHeader-bin)
 add_subdirectory(../../samples/proj/cmake/TrueAudioVR cmake-TrueAudioVR-bin)
 add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bin)
+
 if(WIN32)
   #add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
-  #add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
-  #add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
+  add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
+  add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 endif()
 
 #libraries

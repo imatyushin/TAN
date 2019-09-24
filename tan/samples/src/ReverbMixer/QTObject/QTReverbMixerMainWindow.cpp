@@ -13,19 +13,17 @@ void ReverbMixer::on_actionLoad_Source_triggered()
 	{
 		m_UIMainWindow.LE_InputSourceDisplay->setText(m_sSourceFilePath);
 		m_UIMainWindow.statusbar->showMessage(m_sSourceFilePath + " Loaded");
-		int SampleRate = 0;
-		int BitPerSample = 0;
-		int NumOfChannel = 0;
-		long TotalNumberOfSample = 0;
-		char* filepathCtr;
-		std::string filepathSTDString = m_sSourceFilePath.toStdString();
-		filepathCtr = new char[filepathSTDString.size() + 1];
-		strcpy(filepathCtr, filepathSTDString.c_str());
-		m_ReverbProcessor.getWAVFileInfo(filepathCtr, &SampleRate, &BitPerSample, &NumOfChannel, &TotalNumberOfSample);
-		m_UIMainWindow.LE_SourceSampleRate->setText(QString::number(SampleRate));
-		m_UIMainWindow.LE_BitsPerSample->setText(QString::number(BitPerSample));
-		m_UIMainWindow.LE_NumOfChannel->setText(QString::number(NumOfChannel));
-		delete[] filepathCtr;
+		uint32_t SampleRate = 0;
+		uint16_t BitPerSample = 0;
+		uint16_t NumOfChannel = 0;
+		uint32_t TotalNumberOfSample = 0;
+		
+		if(AMF_OK == m_ReverbProcessor.getWAVFileInfo(m_sSourceFilePath.toUtf8(), SampleRate, BitPerSample, NumOfChannel, TotalNumberOfSample))
+		{
+			m_UIMainWindow.LE_SourceSampleRate->setText(QString::number(SampleRate));
+			m_UIMainWindow.LE_BitsPerSample->setText(QString::number(BitPerSample));
+			m_UIMainWindow.LE_NumOfChannel->setText(QString::number(NumOfChannel));
+		}
 	}
 }
 

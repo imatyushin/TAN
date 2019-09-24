@@ -100,7 +100,8 @@ if(WIN32)
       ../../../src/common/GpuUtils.h
       ../../../src/common/maxlimits.h
       ../../../src/common/SimpleVRaudio.h
-      ../../../src/common/WASAPIUtils.h
+      ../../../src/common/WASAPIPlayer.h
+      
       ../../../src/RoomAcoustics/Resource.h
       ../../../src/RoomAcoustics/RoomAcoustics.h
       ../../../src/RoomAcoustics/RoomAcousticsDlg.h

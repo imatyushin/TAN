@@ -140,12 +140,14 @@ AMF_RESULT ReverbProcessor::playerProcessToWAV(char* inWAVFile, char* outWAVFile
 	short *pOut;
 	short *pWaves;
 	size_t totalNumOfBytes = 0;
-	int samplePerSec = 0;
-	int bitPerSample = 0;
-	int numOfChannel = 0;
-	long nOfSample = 0;
+	
+	uint32_t samplePerSec = 0;
+	uint16_t bitPerSample = 0;
+	uint16_t numOfChannel = 0;
+	uint32_t nOfSample = 0;
 	float** pfile;
-	ReadWaveFile(inWAVFile, &samplePerSec, &bitPerSample, &numOfChannel, &nOfSample, &m_pInputRawBuffer, &pfile);
+	ReadWaveFile(inWAVFile, samplePerSec, bitPerSample, numOfChannel, nOfSample, &m_pInputRawBuffer, &pfile);
+
 	totalNumOfBytes = nOfSample * sizeof(short) * numOfChannel; // stereo short samples
 	size_t totalNumOfShort = nOfSample * numOfChannel;
 	pWaves = (short *)(m_pInputRawBuffer);
@@ -213,7 +215,15 @@ AMF_RESULT ReverbProcessor::recorderInit(size_t SamplesPerSec)
 	streaminfo.NumOfChannels = 2;
 	streaminfo.SamplesPerSec = SamplesPerSec;// 48000;
 	UINT bufferSize, frameSize;
-	STD_RETURN_IF_NOT_ZERO(m_WASAPIRecorder.wasapiInit(&streaminfo, &m_WASAPIRecorder.bufferSize, &m_WASAPIRecorder.frameSize, AUDCLNT_SHAREMODE_SHARED, true), "Failed to initialize recorder", AMF_FAIL);
+
+	m_WASAPIRecorder.reset(new WASAPIPlayer());
+	
+	//STD_RETURN_IF_NOT_ZERO(m_WASAPIRecorder.wasapiInit(&streaminfo, &m_WASAPIRecorder.bufferSize, &m_WASAPIRecorder.frameSize, AUDCLNT_SHAREMODE_SHARED, true), "Failed to initialize recorder", AMF_FAIL);
+	if(PlayerError::OK != m_WASAPIRecorder->Init(2, 16, SamplesPerSec, false, true))
+	{
+		return AMF_FAIL;
+	}
+
 	return AMF_OK;
 }
 
@@ -232,10 +242,12 @@ AMF_RESULT ReverbProcessor::recorderStart(char* outputWAVName)
 			delete m_threadRecord;
 			m_threadRecord = nullptr;
 		}
-		if (m_WASAPIRecorder.audioClient == nullptr)
+
+		if (!m_WASAPIRecorder)
 		{
 			STD_RETURN_IF_NOT_ZERO(recorderInit(48000), "Failed to intialize record device", AMF_FAIL);
 		}
+
 		m_threadRecord = new std::thread(&ReverbProcessor::recorderStartInternel, this);
 	}
 	return AMF_OK;
@@ -269,11 +281,13 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 	long bytesPerChannel = 0;
 	unsigned char* output_char = nullptr;
 	float** output_float_temp = nullptr;
-	int samplePerSec = 0;
-	int bitPerSample = 0;
-	int channelcount = 0;
-	long sampleCount = 0;
-	if(ReadWaveFile(FilePath, &samplePerSec, &bitPerSample, &channelcount, &sampleCount, &output_char, &output_float_temp))
+
+	uint32_t samplePerSec = 0;
+	uint16_t bitPerSample = 0;
+	uint16_t channelcount = 0;
+	uint32_t sampleCount = 0;
+
+	if(ReadWaveFile(FilePath, samplePerSec, bitPerSample, channelcount, sampleCount, &output_char, &output_float_temp))
 	{
 		float** bufferTD = new float*[channelcount];
 		float** bufferFD = new float*[channelcount];
@@ -287,8 +301,18 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 		if(bitPerSample == 16)
 		{
 			short* output_short = (short*)output_char;
-			for (int chan = 0; chan < channelcount; chan++) {
-				AMF_RETURN_IF_FAILED(m_pTANConverter->Convert(output_short + chan, channelcount, (std::min)((long)m_iFilterLengthInFloat / 2,sampleCount), bufferTD[chan], 2, 1.f), "Failed to execute tan convert\n");
+
+			int a = std::min(3, 4);
+
+			for (int chan = 0; chan < channelcount; chan++) 
+			{
+				AMF_RETURN_IF_FAILED(m_pTANConverter->Convert(
+					output_short + chan, 
+					channelcount, 
+					(std::min)((uint32_t)m_iFilterLengthInFloat / 2, sampleCount), 
+					bufferTD[chan], 2, 1.f), 
+					"Failed to execute tan convert\n"
+					);
 			}
 		}
 		else if(bitPerSample == 32)
@@ -515,12 +539,17 @@ int ReverbProcessor::playerPlayInternal()
 		int bytes2Play = chunkSizeInBytes;
 		unsigned char *pData;
 		pData = (unsigned char *)pOut;
-		while (bytes2Play > 0) {
-			bytesPlayed = m_WASAPIPlayer.Play(pData, bytes2Play, false);
+
+		while(bytes2Play > 0) 
+		{
+			//bytesPlayed = m_WASAPIPlayer.Play(pData, bytes2Play, false);
+			bytesPlayed = m_WASAPIPlayer->Play(pData, bytes2Play, false);
+
 			bytes2Play -= bytesPlayed;
 			pData += bytesPlayed;
 			std::this_thread::sleep_for(std::chrono::milliseconds(2));
 		}
+
 		bytesPlayed = chunkSizeInBytes;
 		pWaves += bytesPlayed / m_iNumOfChannels;
 		if (pWaves - pWaveStarts + chunkSizeInBytes / sizeof(short) > totalNumOfBytes){
@@ -528,7 +557,9 @@ int ReverbProcessor::playerPlayInternal()
 		}
 	}
 	delete[]pOut;
-	m_WASAPIPlayer.wasapiRelease();
+
+	m_WASAPIPlayer->Close();
+
 	return 0;
 }
 
@@ -540,7 +571,9 @@ AMF_RESULT ReverbProcessor::recorderStartInternel()
 	RtlSecureZeroMemory(tempBuffer, tempBufferSize);
 	while (m_bIsRecording)
 	{
-		recordedBytes = m_WASAPIRecorder.Record(tempBuffer, tempBufferSize);
+		//recordedBytes = m_WASAPIRecorder.Record(tempBuffer, tempBufferSize);
+		recordedBytes = m_WASAPIRecorder->Record(tempBuffer, tempBufferSize);
+
 		STD_RETURN_IF_FALSE(fwrite(tempBuffer, 1, recordedBytes, m_pDiskBuffer) == recordedBytes, "Failed to write to disk", AMF_FAIL);
 		m_iNumOfValidBytesInDiskBuffer += recordedBytes;
 		std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -554,12 +587,21 @@ int ReverbProcessor::loadWAVFile(char* FilePath)
 		delete m_pInputRawBuffer;
 	HRESULT res;
 	res = CoInitialize(NULL);
-    WavError queueErrors = m_WASAPIPlayer.ReadWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
-	m_iInputSizeInFloatPerChannel = m_iInputSizeInBytesPerChannel / sizeof(float);
-	if (WavError::FileNotFound == queueErrors) {
-		//todo: reimplement
-        return E_FAIL;
+
+	uint16_t BitsPerSample, NChannels;
+	uint32_t SamplesPerSec, NSamples;
+	unsigned char *pSsamples;
+	float **Samples;
+
+	if(!ReadWaveFile(FilePath, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSsamples, &Samples))
+	{
+		return E_FAIL;
 	}
+    
+	//WavError queueErrors = m_WASAPIPlayer.ReadWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
+	m_iInputSizeInBytesPerChannel = (BitsPerSample / 8) * NSamples;
+	m_iInputSizeInFloatPerChannel = m_iInputSizeInBytesPerChannel / sizeof(float);
+	
 	return 0;
 }
 
@@ -831,21 +873,26 @@ AMF_RESULT ReverbProcessor::generate10BandEQFilterTD(float in[10], int sampleRat
 	return AMF_OK;
 }
 
-AMF_RESULT ReverbProcessor::getWAVFileInfo(char* FilePath, int* pSamplesPerSec, int* pBitsPerSample, int* pNChannels, long* pNSamples)
+AMF_RESULT ReverbProcessor::getWAVFileInfo(const char* FilePath, uint32_t & samplesPerSec, uint16_t & bitsPerSample, uint16_t & nChannels, uint32_t & nSamples)
 {
 	if (FilePath == nullptr)
 	{
 		return AMF_FAIL;
 	}
+
 	unsigned char* file;
 	float** pfile;
-	ReadWaveFile(FilePath, pSamplesPerSec, pBitsPerSample, pNChannels, pNSamples, &file, &pfile);
-	for (int i = 0; i < *pNChannels; i++)
+
+	ReadWaveFile(FilePath, samplesPerSec, bitsPerSample, nChannels, nSamples, &file, &pfile);
+
+	for (int i = 0; i < nChannels; i++)
 	{
 		delete pfile[i];
 	}
+
 	delete[]pfile;
 	delete[]file;
+
 	return AMF_OK;
 }
 
