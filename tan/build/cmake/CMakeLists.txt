@@ -38,7 +38,7 @@ add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bi
 if(WIN32)
   #add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
   add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
-  add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
+  #add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 endif()
 
 #libraries
