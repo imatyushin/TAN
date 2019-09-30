@@ -40,9 +40,9 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
 include_directories(../../../../common)
-
 include_directories(../../../../../amf)
 include_directories(../../../../../tan)
+include_directories(../../../src/common)
 
 include_directories(../../../src/ReverbMixer)
 include_directories(../../../src/ReverbMixer/UI)
@@ -59,7 +59,6 @@ set(
 
   ../../../src/common/GpuUtils.cpp
 
-  ../../../src/common/WASAPIPlayer.cpp
   ../../../../common/wav.cpp
 
   ../../../src/ReverbMixer/ReverbMixer.cpp
@@ -72,12 +71,33 @@ set(
 set(
   HEADER_EXE
 
-  ../../../src/common/WASAPIPlayer.h
   ../../../../common/wav.h
 
   ../../../src/ReverbMixer/ReverbProcessor.h
   #../../../src/ReverbMixer/stdafx.h
   )
+
+if(WIN32)
+  list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
+else()
+  if(NOT APPLE)
+    list(APPEND SOURCE_EXE ../../../src/common/AlsaPlayer.cpp)
+  endif()
+endif()
+
+if(WIN32)
+  list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)
+else()
+  if(NOT APPLE)
+    list(APPEND HEADER_EXE ../../../src/common/AlsaPlayer.h)
+  endif()
+endif()
+
+if(PortAudio_DIR)
+  list(APPEND SOURCE_EXE ../../../src/common/PortPlayer.cpp)
+  list(APPEND HEADER_EXE ../../../src/common/PortPlayer.h)
+  message("PortAudio support injected to project")
+endif()
 
 set(
   UI_FILES

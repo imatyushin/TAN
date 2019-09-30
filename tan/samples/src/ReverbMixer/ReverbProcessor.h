@@ -1,7 +1,11 @@
 #pragma once
+
 #include "tanlibrary/include/TrueAudioNext.h"
-#include "samples/src/common/WASAPIPlayer.h"
-#include "CL/cl.h"
+#include "IWavPlayer.h"
+
+#include <CL/cl.h>
+
+
 #include <vector>
 #include <thread>
 
@@ -176,7 +180,7 @@ private:
 	size_t						m_iNumOfValidBytesInDiskBuffer = 0;
 	char*						m_cpRecordWAVFileName = nullptr;
 
-	static unsigned _stdcall processThreadStub(void * ptr);
+	//static unsigned _stdcall processThreadStub(void * ptr);
 private: //TAN modules
 	void TANteardown();
 	amf::TANContextPtr m_pTANContext;

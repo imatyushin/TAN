@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "CL/cl.h"
+#include <CL/cl.h>
 
 #include "public/include/core/Interface.h"
 #include "public/include/core/Data.h"

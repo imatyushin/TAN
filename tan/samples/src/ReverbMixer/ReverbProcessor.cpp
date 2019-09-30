@@ -6,14 +6,16 @@
 #include "samples/src/common/GpuUtils.h"
 #include "wav.h"
 
-#include "CL/cl.h"
+#include <CL/cl.h>
 
 #include <algorithm>
 #include <chrono>
 #include <thread>
 
-#include <AclAPI.h>
-#include <process.h>
+#ifdef _WIN32
+  #include <AclAPI.h>
+  #include <process.h>
+#endif
 
 #define AMF_RETURN_IF_FAILED(x,y) \
 { \
@@ -209,14 +211,34 @@ int ReverbProcessor::addFilterFD(float** filter, AMF_RESULT* AMFErr)
 
 AMF_RESULT ReverbProcessor::recorderInit(size_t SamplesPerSec)
 {
-	STREAMINFO          streaminfo;
-	memset(&streaminfo, 0, sizeof(STREAMINFO));
-	streaminfo.bitsPerSample = 16;
-	streaminfo.NumOfChannels = 2;
-	streaminfo.SamplesPerSec = SamplesPerSec;// 48000;
-	UINT bufferSize, frameSize;
+	//STREAMINFO          streaminfo;
+	//memset(&streaminfo, 0, sizeof(STREAMINFO));
+	//streaminfo.bitsPerSample = 16;
+	//streaminfo.NumOfChannels = 2;
+	//streaminfo.SamplesPerSec = SamplesPerSec;// 48000;
+	//UINT bufferSize, frameSize;
 
-	m_WASAPIRecorder.reset(new WASAPIPlayer());
+	m_WASAPIRecorder.reset(
+#if defined(__MACOSX) || defined(__APPLE__)
+        static_cast<IWavPlayer *>(new PortPlayer())
+#else
+
+  #ifdef ENABLE_PORTAUDIO
+        static_cast<IWavPlayer *>(new PortPlayer())
+  #else
+            
+    #ifdef _WIN32
+	    static_cast<IWavPlayer *>(new WASAPIPlayer())
+    #elif !defined(__MACOSX) && !defined(__APPLE__)
+        static_cast<IWavPlayer *>(new AlsaPlayer())
+	#else
+	    nullptr //no unsopported players
+	#endif
+
+  #endif
+
+#endif
+		);
 	
 	//STD_RETURN_IF_NOT_ZERO(m_WASAPIRecorder.wasapiInit(&streaminfo, &m_WASAPIRecorder.bufferSize, &m_WASAPIRecorder.frameSize, AUDCLNT_SHAREMODE_SHARED, true), "Failed to initialize recorder", AMF_FAIL);
 	if(PlayerError::OK != m_WASAPIRecorder->Init(2, 16, SamplesPerSec, false, true))
@@ -338,7 +360,13 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 			for (size_t i = 0; i < m_iNumOfChannels; i++)
 			{
 				outputFD[i] = new float[m_iFilterLengthInFloat];
+
+#ifdef _WIN32
 				RtlZeroMemory(outputFD[i], sizeof(float)*m_iFilterLengthInFloat);
+#else
+				std::memset(outputFD[i], 0, sizeof(float)*m_iFilterLengthInFloat);
+#endif
+				
 				outputFD[i][0] = 1.0f;
 			}
 			if(channelcount == 1)
@@ -896,11 +924,11 @@ AMF_RESULT ReverbProcessor::getWAVFileInfo(const char* FilePath, uint32_t & samp
 	return AMF_OK;
 }
 
-unsigned ReverbProcessor::processThreadStub(void* ptr)
-{
-	ReverbProcessor *p = static_cast<ReverbProcessor*> (ptr);
-	return p->playerPlayInternal();
-}
+//unsigned ReverbProcessor::processThreadStub(void* ptr)
+//{
+//	ReverbProcessor *p = static_cast<ReverbProcessor*> (ptr);
+//	return p->playerPlayInternal();
+//}
 
 void ReverbProcessor::TANteardown()
 {
