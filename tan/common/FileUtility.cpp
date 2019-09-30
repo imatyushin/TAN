@@ -176,9 +176,6 @@ void getFileVersionAndDate(wchar_t *logMessage, char *version, size_t maxLength)
 }
 */
 
-#include <iostream>
-#include <windows.h>
-
 std::string getPath2File(const std::string& fileNameWithPath)
 {
 	std::string foundSeparator;

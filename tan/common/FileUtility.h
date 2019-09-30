@@ -33,7 +33,7 @@ struct FileVersion
 
 std::vector<std::string> getDirectorySeparatorVariants();
 size_t getDefaultSeparatorIndex();
-size_t getLastSeparatorPosition(const std::string & path, std::string & foundSeparator = std::string());
+size_t getLastSeparatorPosition(const std::string & path, std::string & foundSeparator);
 
 std::string getCurrentDirectory();
 bool setCurrentDirectory(const std::string& directoryName);
