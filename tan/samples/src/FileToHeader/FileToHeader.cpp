@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 	//std::cout << "CURRENT: " << getCurrentDirectory() << " " << outputFileName << std::endl;
 	auto path2File(getPath2File(outputFileName));
 
-	if(path2File.length() && !checkFileExist(path2File))
+	if(path2File.length() && !checkDirectoryExist(path2File))
 	{
 		if(!createPath(path2File))
 		{
