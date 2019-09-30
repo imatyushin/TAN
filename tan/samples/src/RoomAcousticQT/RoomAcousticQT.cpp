@@ -743,16 +743,12 @@ bool RoomAcousticQT::removeSoundSource(int id)
 			// Clean file name
 			mWavFileNames[id].resize(0);
 			m_iNumOfWavFile--;
-		}
-		else
-		{
-			return false;
+
+			return true;
 		}
 	}
-	else
-	{
-		return false;
-	}
+	
+	return false;
 }
 
 /*TODO: Need to rework this function for potential epislon comparison*/
@@ -821,6 +817,8 @@ amf::TAN_CONVOLUTION_METHOD RoomAcousticQT::getConvMethodFlag(const std::string&
 		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED;
 	if (_name == "FHT UINFORM HEAD TAIL")
 		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL;
+
+	return TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 }
 
 void RoomAcousticQT::updateAllSoundSourcesPosition()

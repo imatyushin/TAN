@@ -20,15 +20,39 @@
 
 #endif
 
-std::string getDirectorySeparator()
+#include <sys/types.h>
+#include <sys/stat.h>
+
+std::vector<std::string> getDirectorySeparatorVariants()
 {
-	return
+	return {
 #ifdef _WIN32
-	   "\\"
-#else
-	   "/"
+		   "\\",
 #endif
-		;
+			"/"
+		};
+}
+
+size_t getDefaultSeparatorIndex()
+{
+	return 0;
+}
+
+size_t getLastSeparatorPosition(const std::string & path, std::string & foundSeparator)
+{
+	for(const auto & variant : getDirectorySeparatorVariants())
+	{
+		auto lastPosition = path.rfind(variant);
+
+		if(lastPosition != std::string::npos)
+		{
+			foundSeparator = variant;
+
+			return lastPosition;
+		}
+	}
+
+	return std::string::npos;
 }
 
 std::string getCurrentDirectory()
@@ -57,9 +81,12 @@ bool setCurrentDirectory(const std::string& directoryName)
 
 std::string joinPaths(const std::string & left, const std::string & right)
 {
-	auto separator(getDirectorySeparator());
+	std::string foundSeparator;
+	auto leftSeparatorPosition(getLastSeparatorPosition(left, foundSeparator));
 
-	return left + (left.rfind(separator) == (left.size() - separator.length()) ? right : separator + right);
+	bool separatorAtEnd(leftSeparatorPosition != std::string::npos && leftSeparatorPosition == (left.size() - foundSeparator.length()));
+
+	return left + (separatorAtEnd ? right : getDirectorySeparatorVariants()[getDefaultSeparatorIndex()] + right);
 }
 
 FileVersion getFileVersion(const std::string& filepath)
@@ -149,19 +176,29 @@ void getFileVersionAndDate(wchar_t *logMessage, char *version, size_t maxLength)
 }
 */
 
+#include <iostream>
+#include <windows.h>
+
 std::string getPath2File(const std::string& fileNameWithPath)
 {
-	auto separatorPosition = fileNameWithPath.find_last_of(getDirectorySeparator());
+	std::string foundSeparator;
+	auto separatorPosition(getLastSeparatorPosition(fileNameWithPath, foundSeparator));
 
-	return (separatorPosition != std::string::npos)
-		? fileNameWithPath.substr(0, separatorPosition/*  + 1 */)
-		: "";
+	auto path2File(
+		(separatorPosition != std::string::npos)
+			? fileNameWithPath.substr(0, separatorPosition/*  + 1 */)
+			: ""
+		);
+
+	//std::cout << "path to file [" << fileNameWithPath << "] is [" << path2File << "]" << std::endl;
+
+	return path2File;
 }
-
-#include <iostream>
 
 bool createPath(const std::string & path)
 {
+	//std::cout << "create path: " << path << std::endl;
+	
 	std::vector<std::string> directories;
 
 	auto component = getFileNameWithExtension(path);
@@ -172,11 +209,11 @@ bool createPath(const std::string & path)
 		component = otherPath;
 	}
 
-	std::cout << "INCOME: [" << path << "] [" << component << "] [" << otherPath << "]" << std::endl;
+	//std::cout << "INCOME: [" << path << "] [" << component << "] [" << otherPath << "]" << std::endl;
 
 	for( ; component.length(); )
 	{
-		std::cout << "PUSH:" << component << std::endl;
+		//std::cout << "PUSH:" << component << std::endl;
 
 		directories.push_back(component);
 
@@ -190,7 +227,7 @@ bool createPath(const std::string & path)
 			//	component = otherPath;
 			//}
 
-			std::cout << "comp:" << component << " other:" << otherPath << std::endl;
+			//std::cout << "comp:" << component << " other:" << otherPath << std::endl;
 		}
 		else
 		{
@@ -207,11 +244,11 @@ bool createPath(const std::string & path)
 	{
 		auto directory(*componentIterator);
 
-		std::cout << "CHECK: " << directory << std::endl;
+		//std::cout << "check directory exists: " << directory << std::endl;
 
-		if(!checkFileExist(directory))
+		if(!checkDirectoryExist(directory))
 		{
-			std::cout << "CREATE: " << directory << std::endl;
+			//std::cout << "directory does not exist: " << directory << std::endl;
 
 #ifndef _WIN32
 
@@ -221,10 +258,10 @@ bool createPath(const std::string & path)
 					)
 				);
 
-			if (!result)
-			{
-				break;
-			}
+			//if (!result)
+			//{
+			//	break;
+			//}
 
 #else
 
@@ -239,25 +276,22 @@ bool createPath(const std::string & path)
 			//	break;
 			//}
 #endif
-			std::cout << "Result: " << result << std::endl;
-
+			//std::cout << "Result: " << result << std::endl;
 		}
     }
 
-	return checkFileExist(path);
+	return checkDirectoryExist(path);
 }
 
 std::string getFileNameWithExtension(const std::string& filepath)
 {
-	auto lastSeparatorPosition = filepath.rfind(
-		getDirectorySeparator(),
-		filepath.length()
-	   	);
+	std::string foundSeparator;
+	auto lastSeparatorPosition = getLastSeparatorPosition(filepath, foundSeparator);
 
 	if(std::string::npos != lastSeparatorPosition)
 	{
 		return filepath.substr(
-			lastSeparatorPosition + 1,
+			lastSeparatorPosition + foundSeparator.length(),
 			std::string::npos
 			);
 	}
@@ -267,14 +301,16 @@ std::string getFileNameWithExtension(const std::string& filepath)
 
 std::string getFileNameWithoutExtension(const std::string& filepath)
 {
-	size_t seppos = filepath.rfind(getDirectorySeparator());
-	size_t dotpos = filepath.rfind('.');
+	std::string foundSeparator;
+	auto lastSeparatorPosition = getLastSeparatorPosition(filepath, foundSeparator);
 
-	if((std::string::npos != dotpos) && ((std::string::npos == seppos) || (dotpos > seppos)))
+	size_t dotPosition = filepath.rfind('.');
+
+	if((std::string::npos != dotPosition) && ((std::string::npos == lastSeparatorPosition) || (dotPosition > lastSeparatorPosition)))
 	{
-		return std::string::npos == seppos
-			? filepath.substr(0, dotpos - 1)
-			: filepath.substr((seppos + 1), dotpos - seppos - 1)
+		return std::string::npos == lastSeparatorPosition
+			? filepath.substr(0, dotPosition - 1)
+			: filepath.substr(lastSeparatorPosition + foundSeparator.length(), dotPosition - lastSeparatorPosition - foundSeparator.length())
 			;
 	}
 
@@ -298,12 +334,27 @@ bool checkFileExist(const std::string& filename)
 	if (FILE *file = fopen(filename.c_str(), "r"))
 	{
 		fclose(file);
+
 		return true;
 	}
 	else
 	{
 		return false;
 	}
+}
+
+bool checkDirectoryExist(const std::string& path)
+{
+	struct stat statInfo = { 0 };
+
+	auto pathStat = stat(path.c_str(), &statInfo);
+	
+	if(pathStat)
+	{
+		return false;
+	}
+
+	return statInfo.st_mode & S_IFDIR;
 }
 
 /*bool isDirExist(const std::string& path)
@@ -324,53 +375,6 @@ bool checkFileExist(const std::string& filename)
     return (info.st_mode & S_IFDIR) != 0;
 #endif
 }*/
-
-/*
-bool makePath(const std::string& path)
-{
-	int createError =
-
-#if defined(_WIN32)
-		_mkdir(path.c_str())
-#else
-		mkdir(path.c_str(), 0755)
-#endif
-		;
-
-    if(!createError)
-	{
-        return true;
-	}
-
-    switch(errno)
-    {
-    case ENOENT:
-        {
-            int pos = path.find_last_of('/');
-            if (pos == std::string::npos)
-#if defined(_WIN32)
-                pos = path.find_last_of('\\');
-            if (pos == std::string::npos)
-#endif
-                return false;
-            if (!makePath( path.substr(0, pos) ))
-                return false;
-        }
-
-#if defined(_WIN32)
-        return 0 == _mkdir(path.c_str());
-#else
-        return 0 == mkdir(path.c_str(), mode);
-#endif
-
-    case EEXIST:
-        return true;
-
-    default:
-        return false;
-    }
-}
-*/
 
 std::string getModuleFileName()
 {

@@ -52,10 +52,12 @@ int main(int argc, char* argv[])
 			: "CLKernel_" + fileName + ".h"
 		);
 
-	//std::cout << "CURRENT: " << getCurrentDirectory() << " " << outputFileName << std::endl;
 	auto path2File(getPath2File(outputFileName));
 
-	if(path2File.length() && !checkFileExist(path2File))
+	//std::cout << "current path: [" << getCurrentDirectory() << "]" << std::endl;
+	//std::cout << "PTF: " << path2File << std::endl;
+
+	if(path2File.length() && !checkDirectoryExist(path2File))
 	{
 		if(!createPath(path2File))
 		{

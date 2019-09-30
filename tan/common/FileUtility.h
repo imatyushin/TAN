@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
   #include <Windows.h>
@@ -30,7 +31,10 @@ struct FileVersion
 	int m_RevisionVersion = 0;
 };
 
-std::string getDirectorySeparator();
+std::vector<std::string> getDirectorySeparatorVariants();
+size_t getDefaultSeparatorIndex();
+size_t getLastSeparatorPosition(const std::string & path, std::string & foundSeparator = std::string());
+
 std::string getCurrentDirectory();
 bool setCurrentDirectory(const std::string& directoryName);
 std::string joinPaths(const std::string & left, const std::string & right);
@@ -46,6 +50,7 @@ std::string getFileNameWithoutExtension(const std::string& filePath);
 std::string getFileExtension(const std::string& fileName);
 
 bool checkFileExist(const std::string& fileName);
+bool checkDirectoryExist(const std::string& path);
 
 bool compareIgnoreCase(const std::string& first, const std::string& second);
 
