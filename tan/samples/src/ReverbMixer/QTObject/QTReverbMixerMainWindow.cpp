@@ -1,7 +1,11 @@
 #include "QTReverbMixerMainWindow.h"
+
+#include "FileUtility.h"
+
 #include "QFileDialog"
 #include "QMessageBox"
 #include "QTSaveResponse.h"
+
 #include <cmath>
 
 #define SHOW_MESSAGE_IF_AMF_FAIL(AMFErr, Message) if(AMFErr == AMF_FAIL){m_UIMainWindow.statusbar->showMessage(Message);}
@@ -398,7 +402,9 @@ void ReverbMixer::adjustEqualizerFilterSize(size_t numOfChannel, size_t sizePerC
 		for (size_t i = 0; i < numOfChannel; i++)
 		{
 			m_pEqualizerFilter[i] = new float[sizePerChannelInComplex * 2];
-			RtlSecureZeroMemory(m_pEqualizerFilter[i], sizePerChannelInComplex * 2 * sizeof(float));
+			
+			//RtlSecureZeroMemory(m_pEqualizerFilter[i], sizePerChannelInComplex * 2 * sizeof(float));
+			std::memset(m_pEqualizerFilter[i], 0, sizePerChannelInComplex * 2 * sizeof(float));
 		}
 	}
 	m_iNumOfChannel = numOfChannel;

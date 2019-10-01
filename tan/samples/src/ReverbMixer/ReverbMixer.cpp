@@ -4,6 +4,8 @@
 #include <QtWidgets/QApplication>
 #include "ReverbProcessor.h"
 
+#include "FileUtility.h"
+
 //#define PROCESSOR_TEST
 
 int main(int argc, char* argv[])

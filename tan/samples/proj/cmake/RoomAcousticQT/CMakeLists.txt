@@ -57,17 +57,10 @@ if(PortAudio_DIR)
     INSTALL_COMMAND     "" #sudo make install
     )
 
-  #ExternalProject_Get_Property(external_portaudio_configure BINARY_DIR)
-  #ExternalProject_Get_Property(external_portaudio_configure SOURCE_DIR)
-  #message("PortAudio BINARY_DIR: " ${BINARY_DIR})
-  #message("PortAudio SOURCE_DIR: " ${SOURCE_DIR})
-
   add_subdirectory(${PortAudio_DIR} cmake-portaudio-bin EXCLUDE_FROM_ALL)
-  #add_dependencies(portaudio1 thirdparty_portaudio1)
-
+  
   ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
   include_directories(${PortAudio_DIR}/include)
-  #link_directories(${PortAudio_DIR}/lib/.libs)
 endif()
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
@@ -210,7 +203,7 @@ endif()
 
 if(PortAudio_DIR)
   target_link_libraries(RoomAcousticsQT portaudio)
-  #target_link_libraries(RoomAcousticsQT portaudio-static
+  #target_link_libraries(RoomAcousticsQT portaudio-static)
 endif()
 
 if(NOT WIN32)

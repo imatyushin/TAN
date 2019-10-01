@@ -88,6 +88,7 @@ namespace amf
         TAN_CONVOLUTION_METHOD_TIME_DOMAIN,                 // pure time domain convolution. Processes from 1 to length samples at a time.
         TAN_CONVOLUTION_METHOD_FFT_UINFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
         TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,  // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_INVALID_METHOD = 100
     };
 
     // Per-channel buffer flags.

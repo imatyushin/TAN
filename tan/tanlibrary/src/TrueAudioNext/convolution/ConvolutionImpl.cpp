@@ -1,4 +1,4 @@
-﻿//
+//
 // Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -66,12 +66,13 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConvolution(
     TANContextImplPtr contextImpl(pContext);
     *ppConvolution = new TANConvolutionImpl(pContext);
     (*ppConvolution)->Acquire();
+    
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
 TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     :m_pContextTAN(pContextTAN)
-    ,m_eConvolutionMethod(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED)
+    ,m_eConvolutionMethod(TAN_CONVOLUTION_INVALID_METHOD)
     ,m_iLengthInSamples(0)
     ,m_iBufferSizeInSamples(0)
     ,m_iChannels(0)
@@ -80,9 +81,12 @@ TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     ,m_doHeadTailXfade(0)
 {
     TANContextImplPtr contextImpl(pContextTAN);
+    
     m_pUpdateContextAMF = contextImpl->GetGeneralCompute();
     m_pProcContextAMF = contextImpl->GetConvolutionCompute();
+    
     m_xFadeStarted.SetEvent();
+    
     // CPU processing case.
     if (!m_pProcContextAMF)
     {

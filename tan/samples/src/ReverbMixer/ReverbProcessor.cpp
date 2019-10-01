@@ -4,13 +4,27 @@
 #include "ReverbProcessor.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 #include "samples/src/common/GpuUtils.h"
+#include "FileUtility.h"
 #include "wav.h"
+
+#if defined(_WIN32)
+    #include "../common/WASAPIPlayer.h"
+#else
+	#if !defined(__MACOSX) && !defined(__APPLE__)
+		#include "../common/AlsaPlayer.h"
+	#endif
+#endif
+
+#ifdef ENABLE_PORTAUDIO
+	#include "../common/PortPlayer.h"
+#endif
 
 #include <CL/cl.h>
 
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <cmath>
 
 #ifdef _WIN32
   #include <AclAPI.h>
@@ -285,13 +299,17 @@ AMF_RESULT ReverbProcessor::recorderStop()
 		size_t outputBufferSizeInBytes = m_iNumOfValidBytesInDiskBuffer;
 		size_t sampleSizeInBits = sizeof(short) * 8;
 		short* outputBuffer = new short[outputBufferSizeInSample * 2];
-		RtlSecureZeroMemory(outputBuffer, outputBufferSizeInBytes);
+
+		//RtlSecureZeroMemory(outputBuffer, outputBufferSizeInBytes);
+		std::memset(outputBuffer, 0, outputBufferSizeInBytes);
+		
 		fseek(m_pDiskBuffer, 0, SEEK_SET);
 		STD_RETURN_IF_FALSE(fread(outputBuffer, 1, outputBufferSizeInBytes, m_pDiskBuffer) == outputBufferSizeInBytes,
 			"Failed to retrived buffer from disk", AMF_FAIL);
 		STD_RETURN_IF_FALSE(WriteWaveFileS(m_cpRecordWAVFileName, 48000, 2, sampleSizeInBits,outputBufferSizeInSample, outputBuffer),
 			"Failed to write to wav", AMF_FAIL);
 		IF_NOT_NULL_DELETE(m_threadRecord);
+
 		resetDiskBuffer();
 	}
 	return AMF_OK;
@@ -317,8 +335,10 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 		{
 			bufferFD[i] = new float[m_iFilterLengthInFloat];
 			bufferTD[i] = new float[m_iFilterLengthInFloat];
-			RtlZeroMemory(bufferFD[i], sizeof(float)*m_iFilterLengthInFloat);
-			RtlZeroMemory(bufferTD[i], sizeof(float)*m_iFilterLengthInFloat);
+			//RtlZeroMemory(bufferFD[i], sizeof(float)*m_iFilterLengthInFloat);
+			std::memset(bufferFD[i], 0, sizeof(float)*m_iFilterLengthInFloat);
+			//RtlZeroMemory(bufferTD[i], sizeof(float)*m_iFilterLengthInFloat);
+			std::memset(bufferTD[i], 0, sizeof(float)*m_iFilterLengthInFloat);
 		}
 		if(bitPerSample == 16)
 		{
@@ -482,8 +502,10 @@ AMF_RESULT ReverbProcessor::processFilter()
 	AMF_RESULT AMFErr;
 	for (int i = 0; i < m_iNumOfChannels; i++)
 	{
-		RtlSecureZeroMemory(m_pInternalProcessedFilterFDBuffer[i],m_iFilterLengthInFloat * sizeof(float));
-		RtlSecureZeroMemory(m_pInternalProcessedFilterTDBuffer[i], m_iFilterLengthInFloat * sizeof(float));
+		//RtlSecureZeroMemory(m_pInternalProcessedFilterFDBuffer[i],m_iFilterLengthInFloat * sizeof(float));
+		std::memset(m_pInternalProcessedFilterFDBuffer[i], 0, m_iFilterLengthInFloat * sizeof(float));
+		//RtlSecureZeroMemory(m_pInternalProcessedFilterTDBuffer[i], m_iFilterLengthInFloat * sizeof(float));
+		std::memset(m_pInternalProcessedFilterTDBuffer[i], 0, m_iFilterLengthInFloat * sizeof(float));
 	}
 
 	if (m_vFDFilterList.size() == 1)
@@ -554,10 +576,14 @@ int ReverbProcessor::playerPlayInternal()
 	pOut = new short[FILTER_SAMPLE_RATE];
 	memset(pOut, 0, FILTER_SAMPLE_RATE * sizeof(short));
 
+	#ifdef _WIN32
+
 	// upgrade our windows process and thread priorities:
 	SetSecurityInfo(GetCurrentProcess(), SE_WINDOW_OBJECT, PROCESS_SET_INFORMATION, 0, 0, 0, 0);
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+
+	#endif
 
 	size_t chunkSizeInBytes = m_iConvolutionLengthInSample * m_iNumOfChannels * sizeof(short);
 
@@ -596,7 +622,10 @@ AMF_RESULT ReverbProcessor::recorderStartInternel()
 	size_t tempBufferSize = 48000;
 	size_t recordedBytes = 0;
 	unsigned char* tempBuffer = new unsigned char[tempBufferSize];
-	RtlSecureZeroMemory(tempBuffer, tempBufferSize);
+
+	//RtlSecureZeroMemory(tempBuffer, tempBufferSize);
+	std::memset(tempBuffer, 0, tempBufferSize);
+	
 	while (m_bIsRecording)
 	{
 		//recordedBytes = m_WASAPIRecorder.Record(tempBuffer, tempBufferSize);
@@ -613,8 +642,6 @@ int ReverbProcessor::loadWAVFile(char* FilePath)
 {
 	if (m_pInputRawBuffer != nullptr)
 		delete m_pInputRawBuffer;
-	HRESULT res;
-	res = CoInitialize(NULL);
 
 	uint16_t BitsPerSample, NChannels;
 	uint32_t SamplesPerSec, NSamples;
@@ -623,7 +650,7 @@ int ReverbProcessor::loadWAVFile(char* FilePath)
 
 	if(!ReadWaveFile(FilePath, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSsamples, &Samples))
 	{
-		return E_FAIL;
+		return -1;
 	}
     
 	//WavError queueErrors = m_WASAPIPlayer.ReadWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
@@ -647,7 +674,7 @@ unsigned ReverbProcessor::getNextPowOf2_32Bit(unsigned int a)
 
 float ReverbProcessor::db2Mag(float db)
 {
-	return pow(10.0f, db / 10.0f);
+	return std::pow(10.0f, db / 10.0f);
 }
 
 AMF_RESULT ReverbProcessor::processInput(short* in, short* out, size_t bufferSizeInBytes)
@@ -686,15 +713,22 @@ void ReverbProcessor::adjustInternalFilterBuffer(size_t sizeInComplex, size_t nu
 		{
 			m_pInternalProcessedFilterFDBuffer[channelID] = new float[requireSizeInFloat];
 			m_pInternalProcessedFilterTDBuffer[channelID] = new float[requireSizeInFloat];
-			RtlSecureZeroMemory(m_pInternalProcessedFilterFDBuffer[channelID], requireSizeInFloat*sizeof(float));
-			RtlSecureZeroMemory(m_pInternalProcessedFilterTDBuffer[channelID], requireSizeInFloat*sizeof(float));
+			
+			//RtlSecureZeroMemory(m_pInternalProcessedFilterFDBuffer[channelID], requireSizeInFloat*sizeof(float));
+			std::memset(m_pInternalProcessedFilterFDBuffer[channelID], 0, requireSizeInFloat*sizeof(float));
+
+			//RtlSecureZeroMemory(m_pInternalProcessedFilterTDBuffer[channelID], requireSizeInFloat*sizeof(float));
+			std::memset(m_pInternalProcessedFilterTDBuffer[channelID], 0, requireSizeInFloat*sizeof(float));
 		}
+
 		generateAllPassFilterFD(&m_pALLPassBuffer, requireSizeInFloat, numOfChannels);
 	}
+
 	m_iNumOfFilterBufferChannels = numOfChannels;
 	m_iFilterLengthInFloat = requireSizeInFloat;
 	m_iFilterLengthInComplexLog2 = 0;
 	m_iFilterLengthInComplex = sizeInComplex;
+	
 	size_t temp = 1;
 	while (temp < sizeInComplex)
 	{
@@ -721,8 +755,12 @@ void ReverbProcessor::adjustInternalInputBuffer(size_t sizeInFloat, size_t numOf
 		{
 			m_pfConvolutionInputBufferFloat[channelID] = new float[sizeInFloat];
 			m_pfConvolutionOutputBuffer[channelID] = new float[sizeInFloat];
-			RtlSecureZeroMemory(m_pfConvolutionInputBufferFloat[channelID], sizeInFloat * sizeof(float));
-			RtlSecureZeroMemory(m_pfConvolutionOutputBuffer[channelID], sizeInFloat * sizeof(float));
+			
+			//RtlSecureZeroMemory(m_pfConvolutionInputBufferFloat[channelID], sizeInFloat * sizeof(float));
+			std::memset(m_pfConvolutionInputBufferFloat[channelID], 0, sizeInFloat * sizeof(float));
+
+			//RtlSecureZeroMemory(m_pfConvolutionOutputBuffer[channelID], sizeInFloat * sizeof(float));
+			std::memset(m_pfConvolutionOutputBuffer[channelID], 0, sizeInFloat * sizeof(float));
 		}
 		m_iNumOfConvBufferChannels = numOfChannels;
 	}
@@ -732,8 +770,11 @@ void ReverbProcessor::zeroInternelInOutBuffer()
 {
 	for (size_t i = 0; i < m_iNumOfChannels; i++)
 	{
-		RtlSecureZeroMemory(m_pfConvolutionInputBufferFloat[i], m_pInternalInOutBufferSizeInfloat * sizeof(float));
-		RtlSecureZeroMemory(m_pfConvolutionOutputBuffer[i], m_pInternalInOutBufferSizeInfloat * sizeof(float));
+		//RtlSecureZeroMemory(m_pfConvolutionInputBufferFloat[i], m_pInternalInOutBufferSizeInfloat * sizeof(float));
+		std::memset(m_pfConvolutionInputBufferFloat[i], 0, m_pInternalInOutBufferSizeInfloat * sizeof(float));
+		
+		//RtlSecureZeroMemory(m_pfConvolutionOutputBuffer[i], m_pInternalInOutBufferSizeInfloat * sizeof(float));
+		std::memset(m_pfConvolutionOutputBuffer[i], 0, m_pInternalInOutBufferSizeInfloat * sizeof(float));
 	}
 }
 
@@ -893,7 +934,10 @@ AMF_RESULT ReverbProcessor::generate10BandEQFilterTD(float in[10], int sampleRat
 	for (int i = 0; i < numOfChannel; i++)
 	{
 		FilterTDC[i] = new float[sizeInfloats];
-		RtlSecureZeroMemory(FilterTDC[i], sizeInfloats * sizeof(float));
+		
+		//RtlSecureZeroMemory(FilterTDC[i], sizeInfloats * sizeof(float));
+		std::memset(FilterTDC[i], 0, sizeInfloats * sizeof(float));
+
 		memcpy(FilterTDC[i], FilterTD, sizeInfloats * sizeof(float));
 	}
 	delete[]FilterTD;

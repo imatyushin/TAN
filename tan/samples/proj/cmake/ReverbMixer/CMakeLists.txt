@@ -36,6 +36,16 @@ endif()
 # name
 project(ReverbMixer DESCRIPTION "ReverbMixer")
 
+if(PortAudio_DIR)
+  ExternalProject_Get_Property(thirdparty_portaudio install_dir)
+  message("portaudio install_dir: " ${install_dir})
+
+  #add_subdirectory(${PortAudio_DIR} cmake-portaudio-bin EXCLUDE_FROM_ALL)
+  
+  ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
+  include_directories(${PortAudio_DIR}/include)
+endif()
+
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
@@ -59,6 +69,9 @@ set(
 
   ../../../src/common/GpuUtils.cpp
 
+  ../../../../common/FileUtility.cpp
+  ../../../../common/StringUtility.cpp
+  ../../../../common/fifo.cpp
   ../../../../common/wav.cpp
 
   ../../../src/ReverbMixer/ReverbMixer.cpp
@@ -71,6 +84,9 @@ set(
 set(
   HEADER_EXE
 
+  ../../../../common/FileUtility.h
+  ../../../../common/StringUtility.h
+  ../../../../common/fifo.h
   ../../../../common/wav.h
 
   ../../../src/ReverbMixer/ReverbProcessor.h
@@ -123,6 +139,11 @@ add_executable(
   ${UI_HEADERS}
   ${MOC_HEADERS}
   )
+
+if(PortAudio_DIR)
+  target_link_libraries(ReverbMixer portaudio)
+  #target_link_libraries(ReverbMixer portaudio-static)
+endif()
 
 target_link_libraries(ReverbMixer amf)
 target_link_libraries(ReverbMixer TrueAudioNext)
