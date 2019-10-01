@@ -118,6 +118,8 @@ bool WindowsRegister::getValueNames()
 			return false;
 		}
 	}
+
+	return true;
 }
 
 void WindowsRegister::printSubKeyInfo()
@@ -195,9 +197,8 @@ WindowsRegister* WindowsRegister::getSubKey(std::string subkey)
 }
 
 std::string WindowsRegister::getStringValue(std::string valuename)
-{
-	
-	for(int i = 0 ; i < m_iNumOfValue; i++)
+{	
+	for(int i = 0; i < m_iNumOfValue; i++)
 	{
 		if(!strcmp(m_cpValueNames[i],valuename.c_str()))
 		{
@@ -213,18 +214,19 @@ std::string WindowsRegister::getStringValue(std::string valuename)
 				NULL,
 				&size);
 
-			if(type != REG_SZ)
-			{
-				return std::string();
-			}
-			else
+			if(type == REG_SZ)
 			{
 				char* ret = new char[size];
 				RegGetValue(m_RegisterKey, NULL, valuename.c_str(), RRF_RT_REG_SZ, NULL, ret, &size);
+
 				return std::string(ret);
 			}
+
+			break;
 		}
 	}
+
+	return std::string();
 }
 
 bool WindowsRegister::hasSubKey(std::string subkey)
