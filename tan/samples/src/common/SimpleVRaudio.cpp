@@ -1184,7 +1184,7 @@ int Audio3D::ProcessProc()
         uint32_t bytesTotalPlayed(0);
         uint8_t *outputBufferData = (uint8_t *)&outputBuffer.front();
 
-        while(bytes2Play > 0 && !mStop)
+        while(bytes2Play && !mStop)
         {
             //if(!mRealtimeTimer.IsStarted())
             {

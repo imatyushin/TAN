@@ -62,6 +62,8 @@ struct IWavPlayer
     virtual ~IWavPlayer() {};
     virtual std::string GetPlayerName() const = 0;
 
+	virtual uint16_t GetSampleSizeInBytes() const = 0;
+
     virtual PlayerError Init(
         uint16_t    channelsCount,
         uint16_t    bitsPerSample,
@@ -71,7 +73,7 @@ struct IWavPlayer
         ) = 0;
     virtual void Close() = 0;
 
-    virtual uint32_t Play(uint8_t * buffer, uint32_t size, bool mute) = 0;
+    virtual uint32_t Play(uint8_t * buffer, uint32_t sizeInBytes, bool mute) = 0;
     virtual uint32_t Record(uint8_t * buffer, uint32_t size) = 0;
 
     //todo: think about to add

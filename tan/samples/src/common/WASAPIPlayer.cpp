@@ -29,19 +29,6 @@ IAudioEndpointVolume *g_pEndptVol = NULL;
 
 WASAPIPlayer::WASAPIPlayer()
 {
-    mStartedRender = false;
-    mStartedCapture = false;
-    mInitializedRender = false;
-    mInitializedCapture = false;
-    devRender = devCapture = NULL;
-
-    devRender = NULL;
-    devCapture = NULL;
-    devEnum = NULL;
-    audioClient = NULL;
-    renderClient = NULL;
-    audioCapClient = NULL;
-    captureClient = NULL;
 }
 
 WASAPIPlayer::~WASAPIPlayer()
@@ -58,43 +45,38 @@ PlayerError WASAPIPlayer::Init
     bool        record
 )
 {
+	mChannelsCount = channelsCount;
+	mBitsPerSample = bitsPerSample;
+	mSamplesPerSecond = samplesPerSecond;
+
     HRESULT hr;
 
     REFERENCE_TIME bufferDuration = (BUFFER_SIZE_8K);//(SIXTH_SEC_BUFFER_SIZE); //(MS100_BUFFER_SIZE); // (ONE_SEC_BUFFER_SIZE);
 
-    WAVEFORMATEXTENSIBLE mixFormat;
+	WAVEFORMATEXTENSIBLE mixFormat = { 0 };
 
     /* PCM audio */
     mixFormat.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-
     /* Default is 44100 */
     mixFormat.Format.nSamplesPerSec = samplesPerSecond;
-
     /* Default is 2 channels */
-    mixFormat.Format.nChannels = (WORD) channelsCount;
-
+    mixFormat.Format.nChannels = (WORD)channelsCount;
     /* Default is 16 bit */
-    mixFormat.Format.wBitsPerSample = (WORD) bitsPerSample;
-
+    mixFormat.Format.wBitsPerSample = (WORD)bitsPerSample;
     mixFormat.Format.cbSize = sizeof(mixFormat) - sizeof(WAVEFORMATEX);
-
     /* nChannels * bitsPerSample / BitsPerByte (8) = 4 */
     mixFormat.Format.nBlockAlign = (WORD)(channelsCount * bitsPerSample / 8);
-
     /* samples per sec * blockAllign */
     mixFormat.Format.nAvgBytesPerSec = samplesPerSecond * (channelsCount * bitsPerSample / 8);
-
     mixFormat.dwChannelMask = KSAUDIO_SPEAKER_STEREO;
     mixFormat.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
     mixFormat.Samples.wValidBitsPerSample = 16;
 
     /* Let's see if this is supported */
-    WAVEFORMATEX* format = NULL;
+    WAVEFORMATEX* format = nullptr;
     format = (WAVEFORMATEX*) &mixFormat;
 
-    frameSize = (format->nChannels * format->wBitsPerSample / 8);
-
-    hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **) &devEnum);
+    hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **) &mDevEnum);
     if (FAILED(hr))
     {
         //"Failed getting MMDeviceEnumerator."
@@ -108,19 +90,18 @@ PlayerError WASAPIPlayer::Init
             return PlayerError::OK;
         }
 
-        devCapture = NULL;
-        audioCapClient = NULL;
-        hr = devEnum->GetDefaultAudioEndpoint(eCapture, eConsole, &devCapture);
+        hr = mDevEnum->GetDefaultAudioEndpoint(eCapture, eConsole, &mDevCapture);
         LOGERROR(hr, "Failed to getdefaultaudioendpoint for Capture.");
-        if (devCapture) {
-            hr = devCapture->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&audioCapClient);
+
+        if (mDevCapture) {
+            hr = mDevCapture->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&mAudioCapClient);
             LOGERROR(hr, "Failed capture activate.");
         }
-        captureClient = NULL;
-        if (audioCapClient){
-            hr = audioCapClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
+        
+		if (mAudioCapClient){
+            hr = mAudioCapClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
             if (hr != S_OK) {
-                hr = audioCapClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, bufferDuration, 0, format, NULL);
+                hr = mAudioCapClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, bufferDuration, 0, format, NULL);
             }
             
             if (FAILED(hr))
@@ -129,14 +110,14 @@ PlayerError WASAPIPlayer::Init
                 return PlayerError::PCMError;
             }
             
-            hr = audioCapClient->GetService(__uuidof(IAudioCaptureClient), (void **)&captureClient);
+            hr = mAudioCapClient->GetService(__uuidof(IAudioCaptureClient), (void **)&mCaptureClient);
             if (FAILED(hr))
             {
                 //"Failed getting captureClient"
                 return PlayerError::PCMError;
             }
             
-            hr = audioCapClient->GetBufferSize(&bufferSize);
+            hr = mAudioCapClient->GetBufferSize(&mBufferSize);
             if (FAILED(hr))
             {
                 //"Failed getting BufferSize"
@@ -153,9 +134,7 @@ PlayerError WASAPIPlayer::Init
             return PlayerError::OK;
         }
 
-        devRender = NULL;
-        audioClient = NULL;
-        hr = devEnum->GetDefaultAudioEndpoint(eRender, eConsole, &devRender);
+        hr = mDevEnum->GetDefaultAudioEndpoint(eRender, eConsole, &mDevRender);
         //FAILONERROR(hr, "Failed to getdefaultaudioendpoint for Render.");
         if (FAILED(hr))
         {
@@ -163,8 +142,8 @@ PlayerError WASAPIPlayer::Init
             return PlayerError::PCMError;
         }
 
-        if (devRender) {
-            hr = devRender->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&audioClient);
+        if (mDevRender) {
+            hr = mDevRender->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&mAudioClient);
             //FAILONERROR(hr, "Failed render activate.");
             if (FAILED(hr))
             {
@@ -174,7 +153,7 @@ PlayerError WASAPIPlayer::Init
         }
         if(!muteInit)
         {
-            hr = devRender->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void **)&g_pEndptVol);
+            hr = mDevRender->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void **)&g_pEndptVol);
             //FAILONERROR(hr, "Failed Mute Init.");
             if (FAILED(hr))
             {
@@ -184,9 +163,10 @@ PlayerError WASAPIPlayer::Init
 
             muteInit =1;
         }
-       hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
+
+       hr = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
         if (hr != S_OK) {
-            hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, bufferDuration, 0, format, NULL);
+            hr = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, bufferDuration, 0, format, NULL);
         }
         //FAILONERROR(hr, "Failed audioClient->Initialize");
         if (FAILED(hr))
@@ -195,7 +175,7 @@ PlayerError WASAPIPlayer::Init
             return PlayerError::PCMError;
         }
 
-        hr = audioClient->GetService(__uuidof(IAudioRenderClient), (void **) &renderClient);
+        hr = mAudioClient->GetService(__uuidof(IAudioRenderClient), (void **) &mRenderClient);
         //FAILONERROR(hr, "Failed getting renderClient");
         if (FAILED(hr))
         {
@@ -203,7 +183,7 @@ PlayerError WASAPIPlayer::Init
             return PlayerError::PCMError;
         }
 
-        hr = audioClient->GetBufferSize(&bufferSize);
+        hr = mAudioClient->GetBufferSize(&mBufferSize);
         //FAILONERROR(hr, "Failed getting BufferSize");
         if (FAILED(hr))
         {
@@ -222,91 +202,108 @@ void WASAPIPlayer::Close()
 {
     // Reset system timer
     //timeEndPeriod(1);
-    if (audioClient)
-        audioClient->Stop();
-    SAFE_RELEASE(renderClient);
-    SAFE_RELEASE(audioClient);
-    SAFE_RELEASE(devRender);
-    SAFE_RELEASE(devCapture);
-    SAFE_RELEASE(devEnum);
+    if (mAudioClient)
+        mAudioClient->Stop();
+
+    SAFE_RELEASE(mRenderClient);
+    SAFE_RELEASE(mAudioClient);
+    SAFE_RELEASE(mDevRender);
+    SAFE_RELEASE(mDevCapture);
+    SAFE_RELEASE(mDevEnum);
+
 	mInitializedRender = false;
 	mInitializedCapture = false;
 }
 
-uint32_t WASAPIPlayer::Play(uint8_t * buffer2Play, uint32_t size, bool mute)
+uint32_t WASAPIPlayer::Play(uint8_t * buffer2Play, uint32_t sizeInBytes, bool mute)
 {
-    if (audioClient == NULL || renderClient==NULL)
+	if(!mAudioClient || !mRenderClient)
         return 0;
 
-    HRESULT hr;
-    UINT padding = 0;
-    UINT availableFreeBufferSize = 0;
-    UINT frames;
-    CHAR *buffer = NULL;
+	HRESULT hr;
+    
+	UINT paddingFrames = 0;
+    hr = mAudioClient->GetCurrentPadding(&paddingFrames);
+	if(FAILED(hr))
+	{
+		return 0;
+	}
 
-    hr = audioClient->GetCurrentPadding(&padding);
-    FAILONERROR(hr, "Failed getCurrentPadding");
+	UINT availableFreeBufferSizeInFrames = sizeInBytes / GetSampleSizeInBytes() - paddingFrames;
 
-    availableFreeBufferSize = size - padding;
+	UINT frames2Copy = min(availableFreeBufferSizeInFrames, sizeInBytes / GetSampleSizeInBytes());
 
-    frames = min(availableFreeBufferSize/frameSize, size/frameSize);
+	BYTE *buffer = nullptr;
+	hr = mRenderClient->GetBuffer(frames2Copy, &buffer);
+	if(FAILED(hr))
+	{
+		return 0;
+	}
 
-    hr = renderClient->GetBuffer(frames, (BYTE **) &buffer);
-    FAILONERROR(hr, "Failed getBuffer");
+	if(mute)
+	{
+		memset(buffer, 0, (frames2Copy * GetSampleSizeInBytes()));
+	}
+	else
+	{
+		memcpy(buffer, buffer2Play, (frames2Copy * GetSampleSizeInBytes()));
+	}
 
-    if (mute)
-        memset(buffer, 0, (frames*frameSize));
-    else
-        memcpy(buffer, buffer2Play, (frames*frameSize));
+    hr = mRenderClient->ReleaseBuffer(frames2Copy, NULL);
+	if(FAILED(hr))
+	{
+		return 0;
+	}
 
-    hr = renderClient->ReleaseBuffer(frames, NULL);
-    FAILONERROR(hr, "Failed releaseBuffer");
-
-    if (!mStartedRender)
+    if(!mStartedRender)
     {
         mStartedRender = TRUE;
-        audioClient->Start();
+        mAudioClient->Start();
     }
 
-    return (frames*frameSize);
+    return (frames2Copy * GetSampleSizeInBytes());
 }
 
 uint32_t WASAPIPlayer::Record(uint8_t * buffer, uint32_t size)
 {
-    /*if (captureClient == NULL)
+    if(!mCaptureClient)
         return 0;
 
     HRESULT hr;
-    UINT32 frames;
-    CHAR *buffer = NULL;
-
-    if (!mStartedCapture)
+    
+    if(!mStartedCapture)
     {
         mStartedCapture = TRUE;
-        hr = audioCapClient->Start();
+        hr = mAudioCapClient->Start();
     }
 
     //hr = audioClient->GetCurrentPadding(&padding);
-    hr = captureClient->GetNextPacketSize(&frames);
-    FAILONERROR(hr, "Failed GetNextPacketSize");
-    if (frames == 0) {
-        return frames;
-    }
+	UINT32 frames(0);
+	hr = mCaptureClient->GetNextPacketSize(&frames);
+    if(FAILED(hr) || !frames)
+	{
+		return 0;
+	}
 
-    frames = min(frames, size / frameSize);
+	frames = min(frames, size / GetSampleSizeInBytes());
 
-
-    DWORD flags;
+	BYTE *data = NULL;
+	DWORD flags(0);
     //UINT64 DevPosition;
     //UINT64 QPCPosition;
-    hr = captureClient->GetBuffer( (BYTE **)&buffer, &frames, &flags, NULL, NULL );
-    FAILONERROR(hr, "Failed getBuffer");
+    hr = mCaptureClient->GetBuffer((BYTE **)&data, &frames, &flags, NULL, NULL );
+    if(FAILED(hr))
+	{
+		return 0;
+	}
 
-    memcpy(pOutputBuffer, buffer, (frames*frameSize));
+    memcpy(buffer, data, frames * GetSampleSizeInBytes());
 
-    hr = captureClient->ReleaseBuffer(frames);
-    FAILONERROR(hr, "Failed releaseBuffer");
+    hr = mCaptureClient->ReleaseBuffer(frames);
+	if(FAILED(hr))
+	{
+		return 0;
+	}
 
-    return  (frames*frameSize);*/
-    return 0;
+	return frames * GetSampleSizeInBytes();
 }

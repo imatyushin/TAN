@@ -69,7 +69,15 @@ public:
     PortPlayer();
     virtual ~PortPlayer();
 
-    std::string     GetPlayerName() const override {return "PortAudio";}
+    std::string     GetPlayerName() const override 
+	{
+		return "PortAudio";
+	}
+
+	uint16_t		GetSampleSizeInBytes() const override
+	{
+		return mChannelsCount * mBitsPerSample / 8;
+	}
 
     PlayerError     Init
     (
@@ -82,5 +90,5 @@ public:
     void            Close() override;
 
     uint32_t        Record(uint8_t * buffer, uint32_t size) override;
-    uint32_t        Play(uint8_t * buffer, uint32_t size, bool mute) override;
+    uint32_t        Play(uint8_t * buffer, uint32_t sizeInBytes, bool mute) override;
 };

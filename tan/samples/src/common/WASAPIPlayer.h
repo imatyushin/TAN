@@ -38,29 +38,34 @@ class WASAPIPlayer:
   public IWavPlayer
 {
 protected:
-    uint16_t mChannelsCount;
-    uint16_t mBitsPerSample;
-    uint32_t mSamplesPerSecond;
+    uint16_t mChannelsCount = 0;
+    uint16_t mBitsPerSample = 0;
+    uint32_t mSamplesPerSecond = 0;
 
-    IMMDevice *devRender;
-    IMMDevice *devCapture;
-    IMMDeviceEnumerator *devEnum;
-    IAudioClient *audioClient;
-    IAudioRenderClient *renderClient;
-    IAudioClient *audioCapClient;
-    IAudioCaptureClient *captureClient;
-    UINT frameSize;
-    UINT32 bufferSize;
-    bool mStartedRender;
-    bool mStartedCapture;
-    bool mInitializedRender;
-    bool mInitializedCapture;
+    IMMDevice *mDevRender = nullptr;
+    IMMDevice *mDevCapture = nullptr;
+    IMMDeviceEnumerator *mDevEnum = nullptr;
+    IAudioClient *mAudioClient = nullptr;
+    IAudioRenderClient *mRenderClient = nullptr;
+    IAudioClient *mAudioCapClient = nullptr;
+    IAudioCaptureClient *mCaptureClient = nullptr;
+	uint32_t mBufferSize = 0;
+
+    bool mStartedRender = false;
+    bool mStartedCapture = false;
+    bool mInitializedRender = false;
+    bool mInitializedCapture = false;
 
 public:
     WASAPIPlayer();
     virtual ~WASAPIPlayer();
 
     std::string GetPlayerName() const override { return "WASAPI"; }
+
+	uint16_t GetSampleSizeInBytes() const override
+	{
+		return mChannelsCount * mBitsPerSample / 8;
+	}
 
     virtual PlayerError Init(
         uint16_t    channelsCount,
@@ -71,7 +76,7 @@ public:
     ) override;
     virtual void Close() override;
 
-    virtual uint32_t Play(uint8_t * buffer, uint32_t size, bool mute) override;
+    virtual uint32_t Play(uint8_t * buffer, uint32_t sizeInBytes, bool mute) override;
     virtual uint32_t Record(uint8_t * buffer, uint32_t size) override;
 };
 
