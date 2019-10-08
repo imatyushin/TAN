@@ -1,4 +1,4 @@
-============================QT Setup Instruction=====================
+============================OpenCL Setup Instructions=====================
 1. OpenCL headers are not added as submodule inside OpenCL-Headers directory
 2. To download it go to TAN root directory and type "git submodule update --init"
 3. Make sure you have OpenCL-Headers downloaded or cloned via zip

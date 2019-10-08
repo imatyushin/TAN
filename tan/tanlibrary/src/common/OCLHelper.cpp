@@ -37,7 +37,7 @@ bool GetOclKernel
     resultKernel = nullptr;
 
     ///First: Try to load kernel via AMF interface
-    if(false && nullptr != device)
+    if(device)
     {
         std::wstring wKernelId(toWideString(kernelID));
         amf::AMF_KERNEL_ID amfKernelID = -1;
@@ -45,7 +45,7 @@ bool GetOclKernel
         amf::AMFPrograms *pPrograms(nullptr);
         g_AMFFactory.GetFactory()->GetPrograms(&pPrograms);
 
-        if(nullptr != pPrograms)
+        if(pPrograms)
         {
             AMF_RESULT result(
                 pPrograms->RegisterKernelSource(
@@ -73,8 +73,8 @@ bool GetOclKernel
         }
     }
 
-    //seconf: try to load kernel via OpenCL interface
-    if(nullptr != c_queue )
+    //second: try to load kernel via OpenCL interface
+    if(c_queue)
     {
         cl_kernel ret = 0;
 
@@ -114,7 +114,7 @@ bool GetOclKernel
                 {
                     resultKernel = clCreateKernel(program, kernelName.c_str(), &status);
 
-                    if((CL_SUCCESS == status) && (nullptr != resultKernel))
+                    if((CL_SUCCESS == status) && resultKernel)
                     {
                         return true;
                     }

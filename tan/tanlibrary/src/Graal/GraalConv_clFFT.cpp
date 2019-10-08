@@ -154,8 +154,9 @@ int CGraalConv_clFFT::initializeConv(
     m_pContextTAN = pContextTAN;
     AMF_RETURN_IF_INVALID_POINTER(m_pContextTAN);
 
-    AMF_RETURN_IF_INVALID_POINTER(pConvolution);
-    AMF_RETURN_IF_INVALID_POINTER(pUpdate);
+    //ivm: this pointer could be null in case of run without AMF
+    //AMF_RETURN_IF_INVALID_POINTER(pConvolution);
+    //AMF_RETURN_IF_INVALID_POINTER(pUpdate);
 #endif
 
     n_max_channels_ = _n_max_channels;
@@ -191,10 +192,9 @@ int CGraalConv_clFFT::initializeConv(
 
 
 int
-CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate )
+CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate)
 {
     int ret = GRAAL_SUCCESS;
-
 
 #ifndef TAN_SDK_EXPORTS
     // need to be the first call to set the device, context in CGraalConvOCL
@@ -203,6 +203,8 @@ CGraalConv_clFFT::setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFCompu
     clientContext_ = graal::getGraalOCL().getClContext();
     cl_queue_properties prop[] = { 0 };
     clientQ_ = graal::getGraalOCL().getClQueue(prop, 0);
+#else
+    CGraalConv::setupCL(pComputeConvolution, pComputeUpdate);
 #endif
 
     clIRInputBuf.resize(n_max_channels_);

@@ -32,7 +32,7 @@
             "name": "(lldb) Mac OSX Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/tan/build/cmake/mac/cmake-RoomAcousticQT-bin/RoomAcousticsQT",
+            "program": "${workspaceFolder}/tan/build/cmake/mac-gnumake/cmake-RoomAcousticQT-bin/RoomAcousticsQT",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

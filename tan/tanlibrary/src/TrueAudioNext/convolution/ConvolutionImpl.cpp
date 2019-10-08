@@ -1110,7 +1110,9 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED;
 
         int ret = graalConv->initializeConv(
-            m_pContextTAN, m_pProcContextAMF, m_pUpdateContextAMF,
+            m_pContextTAN,
+            m_pProcContextAMF,
+            m_pUpdateContextAMF,
             m_iChannels,
             (int)m_length,
             (int)m_iBufferSizeInSamples,

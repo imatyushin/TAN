@@ -128,9 +128,6 @@ CGraalConvOCL::setupCL(
 #endif // _DEBUG_PRINTF
     }
 
-
-
-
     return status;
 }
 

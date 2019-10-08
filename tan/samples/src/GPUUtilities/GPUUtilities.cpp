@@ -209,7 +209,6 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 100, devNames[k], NULL);
                 std::cout << "GPU device: " << devNames[k] << std::endl;
 
-                //ivm: throw "not supported";
                 cl_device_topology_amd pciBusInfo;
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
                 if (status == CL_SUCCESS){
@@ -698,7 +697,6 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                     };
 
                     //hack extra stuff
-                    //ivm: throw "not supported";
                     cl_device_topology_amd pciBusInfo;
                     memset(&pciBusInfo, 0, sizeof(pciBusInfo));
 

@@ -197,7 +197,10 @@ int CGraalConv::initializeConv(
 
     conv_log2_ = static_cast<int>(ceil(log2((double)aligned_conv_sz_)));
 
-    int ret = setupCL(pConvolution, pUpdate
+    int ret = setupCL(
+        pConvolution,
+        pUpdate
+
 #ifndef TAN_SDK_EXPORTS
         _clientContext,
         _clientDevice,
@@ -2569,18 +2572,19 @@ AMF_RESULT CGraalConv::zeroMemory(CABuf<float> *pBuf, amf_uint offset, amf_uint 
 }
 #endif // TAN_SDK_EXPORTS
 
-int
-CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate
+int CGraalConv::setupCL
+(
+    amf::AMFComputePtr  pComputeConvolution, 
+    amf::AMFComputePtr  pComputeUpdate
+
 #ifndef TAN_SDK_EXPORTS
-    cl_context _clientContext,
-    cl_device_id _clientDevice,
-    cl_command_queue _clientQ
+    cl_context          _clientContext,
+    cl_device_id        _clientDevice,
+    cl_command_queue    _clientQ
 #endif
 )
 {
     int ret = GRAAL_SUCCESS;
-    //ivm: cl_queue_properties prop[] = { 0 };
-
 
     const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
     cl_command_queue graalQ_ = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue() );
@@ -2705,12 +2709,30 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     selectResetOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    goit = GetOclKernel(resetKernel_, pComputeConvolution, graalQ_,
-                                        kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    
+    goit = GetOclKernel(
+        resetKernel_, 
+        pComputeConvolution, 
+        graalQ_,
+        kernel_file,
+        kernel_src, 
+        kernel_src_size, 
+        kernel_name, 
+        comp_options
+        );
+
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
-    goit = GetOclKernel(m_copyWithPaddingKernel, pComputeUpdate, this->m_pContextTAN->GetOpenCLGeneralQueue(),
-                                        "GraalFHT.cl", (const char*)GraalFHT, GraalFHTCount, "amdPadFFTBlock", comp_options);
+    goit = GetOclKernel(
+        m_copyWithPaddingKernel,
+        pComputeUpdate,
+        this->m_pContextTAN->GetOpenCLGeneralQueue(),
+        "GraalFHT.cl",
+        (const char*)GraalFHT,
+        GraalFHTCount,
+        "amdPadFFTBlock",
+        comp_options
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", "amdPadFFTBlock");
 
     cl_command_queue iniQ = graalQ_;
@@ -2822,33 +2844,69 @@ CGraalConv::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr p
     }
 
     selectDirectFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    goit = GetOclKernel(directTransformKernel_, pComputeConvolution, graalQ_,
-                                        kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    
+    goit = GetOclKernel(
+        directTransformKernel_,
+        pComputeConvolution,
+        graalQ_,
+        kernel_file,
+        kernel_src,
+        kernel_src_size,
+        kernel_name,
+        comp_options
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
 //	CMADKernels_
     std::vector<std::string> kernel_names;
     selectFHT_CMADOptions(kernel_file, kernel_src, kernel_src_size, kernel_names, comp_options);
     CMADKernels_.resize(kernel_names.size());
+    
     for(int i = 0; i < CMADKernels_.size(); i++)
     {
-        goit = GetOclKernel(CMADKernels_[i], pComputeConvolution, graalQ_,
-                                            kernel_file, kernel_src, kernel_src_size, kernel_names[i], comp_options);
+        goit = GetOclKernel(
+            CMADKernels_[i],
+            pComputeConvolution,
+            graalQ_,
+            kernel_file,
+            kernel_src,
+            kernel_src_size,
+            kernel_names[i],
+            comp_options
+            );
         AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_names[i].c_str());
     }
 
     selectInverseFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    goit = GetOclKernel(inverseTransformKernel_, pComputeConvolution, graalQ_,
-                                        kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    
+    goit = GetOclKernel(
+        inverseTransformKernel_,
+        pComputeConvolution,
+        graalQ_,
+        kernel_file,
+        kernel_src,
+        kernel_src_size,
+        kernel_name,
+        comp_options
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     selectConvHead1Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    goit = GetOclKernel(convHead1_, pComputeConvolution, graalQ_,
-                                        kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    goit = GetOclKernel(
+        convHead1_,
+        pComputeConvolution,
+        graalQ_,
+        kernel_file,
+        kernel_src,
+        kernel_src_size,
+        kernel_name,
+        comp_options
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     clFinish(m_pContextTAN->GetOpenCLConvQueue());
     clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
+    
     return ret;
 }
 

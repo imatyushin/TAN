@@ -94,8 +94,11 @@ void perror(const char* errorModule)
 
 amf_uint32 AMF_STD_CALL get_current_thread_id()
 {
+#ifndef __APPLE__
+    return static_cast<amf_uint64>(pthread_self());
+#else
     throw "Error: not implemented!";
-    //return static_cast<amf_uint64>(pthread_self());
+#endif
 }
 
 // int clock_gettime(clockid_t clk_id, struct timespec *tp);
@@ -416,8 +419,8 @@ bool AMF_STD_CALL amf_delete_semaphore(amf_handle hsemaphore)
 //----------------------------------------------------------------------------------------
 bool AMF_STD_CALL amf_wait_for_semaphore(amf_handle hsemaphore, amf_ulong timeout)
 {
-    throw "Not implemented!";
-    /*if(hsemaphore == NULL)
+#ifndef __APPLE__
+    if(hsemaphore == NULL)
     {
         return true;
     }
@@ -425,8 +428,8 @@ bool AMF_STD_CALL amf_wait_for_semaphore(amf_handle hsemaphore, amf_ulong timeou
     timespec wait_time; //absolute time
     clock_gettime(CLOCK_REALTIME, &wait_time);
 
-    wait_time.tv_sec += timeout / 1000;      /* Seconds * /
-    wait_time.tv_nsec += (timeout - (timeout / 1000) * 1000) * 1000;     /* Nanoseconds [0 .. 999999999] * /
+    wait_time.tv_sec += timeout / 1000;      /* Seconds */
+    wait_time.tv_nsec += (timeout - (timeout / 1000) * 1000) * 1000;     /* Nanoseconds [0 .. 999999999] */
 
     sem_t* semaphore = (sem_t*)hsemaphore;
     if(timeout != AMF_INFINITE)
@@ -436,7 +439,10 @@ bool AMF_STD_CALL amf_wait_for_semaphore(amf_handle hsemaphore, amf_ulong timeou
     else
     {
         return sem_wait(semaphore) == 0;
-    }*/
+    }
+#else
+    throw "Error: not implemented!";
+#endif
 }
 //----------------------------------------------------------------------------------------
 bool AMF_STD_CALL amf_release_semaphore(amf_handle hsemaphore, amf_long iCount, amf_long* iOldCount)
@@ -541,8 +547,11 @@ void AMF_STD_CALL amf_virtual_free(void* ptr)
 //----------------------------------------------------------------------------------------
 void* AMF_STD_CALL amf_aligned_alloc(size_t count, size_t alignment)
 {
-    throw "Not implpemented!";
-    //return memalign(alignment, count);
+#ifndef __APPLE__
+    return memalign(alignment, count);
+#else
+    throw "Error: not implemented!";
+#endif
 }
 //----------------------------------------------------------------------------------------
 void AMF_STD_CALL amf_aligned_free(void* ptr)
