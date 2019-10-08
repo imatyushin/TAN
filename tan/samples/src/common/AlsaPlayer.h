@@ -30,17 +30,22 @@ class AlsaPlayer:
     public IWavPlayer
 {
 protected:
-    snd_pcm_t *mPCMHandle;
-    uint32_t mUpdatePeriod;
-    uint8_t mChannelsCount;
-    uint16_t mBitsPerSample;
-    uint32_t mSamplesPerSecond;
+    snd_pcm_t       *mPCMHandle;
+    uint32_t        mUpdatePeriod;
+    uint8_t         mChannelsCount;
+    uint16_t        mBitsPerSample;
+    uint32_t        mSamplesPerSecond;
 
 public:
     AlsaPlayer();
     virtual ~AlsaPlayer();
 
-    std::string GetPlayerName() const override { return "ALSA"; }
+    std::string     GetPlayerName() const override { return "ALSA"; }
+
+    uint16_t		GetSampleSizeInBytes() const override
+	{
+		return mChannelsCount * mBitsPerSample / 8;
+	}
 
     PlayerError Init(
         uint16_t    channelsCount,
