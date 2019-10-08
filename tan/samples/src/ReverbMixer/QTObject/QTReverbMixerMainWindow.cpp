@@ -7,6 +7,7 @@
 #include "QTSaveResponse.h"
 
 #include <cmath>
+#include <cstring>
 
 #define SHOW_MESSAGE_IF_AMF_FAIL(AMFErr, Message) if(AMFErr == AMF_FAIL){m_UIMainWindow.statusbar->showMessage(Message);}
 

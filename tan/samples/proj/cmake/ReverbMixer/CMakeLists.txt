@@ -149,3 +149,17 @@ target_link_libraries(ReverbMixer amf)
 target_link_libraries(ReverbMixer TrueAudioNext)
 target_link_libraries(ReverbMixer GPUUtilities)
 target_link_libraries(ReverbMixer Qt5::Widgets)
+
+if(WIN32)
+  target_link_libraries(ReverbMixer "version.lib")
+  target_link_libraries(ReverbMixer "shlwapi.lib")
+else()
+  find_package(Threads REQUIRED)
+  target_link_libraries(ReverbMixer ${CMAKE_THREAD_LIBS_INIT})
+
+  target_link_libraries(ReverbMixer "dl")
+
+  if(NOT APPLE)
+    target_link_libraries(ReverbMixer "asound")
+  endif()
+endif()
