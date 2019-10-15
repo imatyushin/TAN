@@ -77,7 +77,6 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     amf_size buffer_size,
     int num_channels
 	)
-
 {
     AMFLock lock(&m_sect);
     m_bufferSize = buffer_size;

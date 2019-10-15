@@ -88,7 +88,7 @@ public:
     }
 };*/
 
-class CGraalConv_clFFT : public CGraalConv
+class CGraalConv_clFFT: public CGraalConv
 {
     public:
     /**
@@ -323,9 +323,15 @@ private:
 
     int getRoundCounter(int set, int ch) override
     {
-        return roundCounter_[ch][set];
+        int ret = (int)round_counter_;
+        
+        if(set > -1)
+        {
+            ret = roundCounter_[ch][set];
+        }
+        
+        return ret;
     }
-
 
     uint n_max_channels_;
     int max_conv_sz_;			//the largest impulse response size

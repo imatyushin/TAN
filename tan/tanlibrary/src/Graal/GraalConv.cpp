@@ -161,15 +161,16 @@ CGraalConv:: ~CGraalConv( void )
     cleanup();
 }
 
-
-
 int CGraalConv::initializeConv(
 #ifdef TAN_SDK_EXPORTS
     amf::TANContextPtr &pContextTAN,
     amf::AMFComputePtr &pConvolution,
     amf::AMFComputePtr &pUpdate,
 #endif
-    int _n_max_channels, int _max_conv_sz, int _max_proc_buffer_sz, int _n_sets,
+    int _n_max_channels, 
+    int _max_conv_sz, 
+    int _max_proc_buffer_sz, 
+    int _n_sets,
     int _algorithm
 #ifndef TAN_SDK_EXPORTS
     ,
@@ -2587,7 +2588,7 @@ int CGraalConv::setupCL
     int ret = GRAAL_SUCCESS;
 
     const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
-    cl_command_queue graalQ_ = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue() );
+    cl_command_queue graalQ_ = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
 
 #  define CABufArgs Ctxt
 #  define CAUpdBufArgs Ctxt

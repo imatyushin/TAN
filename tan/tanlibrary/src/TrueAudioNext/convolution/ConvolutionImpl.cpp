@@ -1117,15 +1117,19 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             (int)m_length,
             (int)m_iBufferSizeInSamples,
             N_FILTER_STATES,
-            isPartitionedMethod ? graal::ALG_UNIFORMED : graal::ALG_UNI_HEAD_TAIL);
-        if (ret == GRAAL_EXPECTED_FAILURE) {
+            isPartitionedMethod ? graal::ALG_UNIFORMED : graal::ALG_UNI_HEAD_TAIL
+            );
+
+        if(ret == GRAAL_EXPECTED_FAILURE) 
+        {
             return AMF_OPENCL_FAILED;
         }
-        else if (ret == GRAAL_NOT_ENOUGH_GPU_MEM)
+        else if(ret == GRAAL_NOT_ENOUGH_GPU_MEM)
         {
             return AMF_OUT_OF_MEMORY;
         }
-        else if (ret != GRAAL_SUCCESS) {
+        else if(ret != GRAAL_SUCCESS) 
+        {
             return AMF_UNEXPECTED;
         }
 

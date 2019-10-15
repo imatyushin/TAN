@@ -38,7 +38,13 @@
 #endif
 
 #ifndef AMF_RETURN_IF_FALSE
-#define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
+  #define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
+#endif
+
+#if defined DEFINE_AMD_OPENCL_EXTENSION
+    #ifndef CL_MEM_USE_PERSISTENT_MEM_AMD
+        #define CL_MEM_USE_PERSISTENT_MEM_AMD       (1 << 6)
+    #endif
 #endif
 
 const int debug = 0;
@@ -141,7 +147,7 @@ int CGraalConv_clFFT::initializeConv(
     int _max_conv_sz,
     int _max_proc_buffer_sz,
     int _n_sets,
-    int algorithm
+    int _algorithm
 #ifndef TAN_SDK_EXPORTS
     ,
     cl_context _clientContext,
@@ -150,6 +156,27 @@ int CGraalConv_clFFT::initializeConv(
 #endif
 )
 {
+    /*
+    CGraalConv::initializeConv(
+#ifdef TAN_SDK_EXPORTS
+        pContextTAN,
+        pConvolution,
+        pUpdate,
+#endif
+        _n_max_channels,
+        _max_conv_sz,
+        _max_proc_buffer_sz,
+        _n_sets,
+        _algorithm
+#ifndef TAN_SDK_EXPORTS
+        ,
+        _clientContext,
+        _clientDevice,
+        _clientQ
+#endif
+        );
+    */
+
 #ifdef TAN_SDK_EXPORTS
     m_pContextTAN = pContextTAN;
     AMF_RETURN_IF_INVALID_POINTER(m_pContextTAN);
@@ -159,16 +186,38 @@ int CGraalConv_clFFT::initializeConv(
     //AMF_RETURN_IF_INVALID_POINTER(pUpdate);
 #endif
 
+    ///////////
     n_max_channels_ = _n_max_channels;
     n_sets_ = _n_sets;
     n_input_blocks_ = 2;
-    block_sz_ = 1 << static_cast<uint>(ceil(log2((double)_max_proc_buffer_sz)));
-    align_padding_sz_ = static_cast<int>(block_sz_) - _max_proc_buffer_sz;
+
+    algorithm_ = (_algorithm == ALG_ANY) ? ALG_UNI_HEAD_TAIL : _algorithm; // ALG_UNIFORMED;
+
+    max_proc_buffer_sz_ = _max_proc_buffer_sz;
+    block_sz_ = 1 << static_cast<uint>(ceil(log2((double)max_proc_buffer_sz_)));
     double_block_sz_ = 2 * block_sz_;
+
     num_blocks_ = static_cast<int>((_max_conv_sz + block_sz_ - 1) / block_sz_);
-    round_counter_ = 0;
+
+    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);    
+    aligned_proc_bufffer_sz_ = static_cast<int>(max_proc_buffer_sz_);
+    aligned_processing_sz_ = aligned_proc_bufffer_sz_ * 2;
+    
+    //max_conv_sz_ = ((_max_conv_sz + 1023) / 1024 ) * 1024;
     max_conv_sz_ = num_blocks_ * block_sz_;
-    aligned_proc_bufffer_sz_ = static_cast<int>(max_proc_buffer_sz_ = _max_proc_buffer_sz);
+
+    processing_log2_ = static_cast<int>(ceil(log2((double)max_proc_buffer_sz_)));
+
+    //align_padding_sz_ = aligned_proc_bufffer_sz_ - max_proc_buffer_sz_;
+    align_padding_sz_ = static_cast<int>(block_sz_) - max_proc_buffer_sz_;
+
+    n_aligned_proc_blocks_ = (max_conv_sz_ + aligned_proc_bufffer_sz_ - 1) / aligned_proc_bufffer_sz_;
+    aligned_conv_sz_ = (n_aligned_proc_blocks_ * aligned_processing_sz_ * n_components_);
+
+    conv_log2_ = static_cast<int>(ceil(log2((double)aligned_conv_sz_)));
+    ///////////
+
+    round_counter_ = 0;
 
     //Setup the data formats
     if (use_hermitian)
@@ -204,7 +253,7 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     cl_queue_properties prop[] = { 0 };
     clientQ_ = graal::getGraalOCL().getClQueue(prop, 0);
 #else
-    CGraalConv::setupCL(pComputeConvolution, pComputeUpdate);
+    //CGraalConv::setupCL(pComputeConvolution, pComputeUpdate);
 #endif
 
     clIRInputBuf.resize(n_max_channels_);
@@ -337,6 +386,27 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
                                     "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
                                       "amdSigHistoryInsertMultiChan", "");
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdSigHistoryInsertMultiChan");
+
+    /////////////////
+    cl_command_queue graalQ_ = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
+
+    // channels map
+    CABuf<int> *chnls_map_buf = new CABuf<int>(CABufArgs);
+    assert(chnls_map_buf);
+	ret = chnls_map_buf->create(n_sets_ * n_max_channels_,  CL_MEM_USE_PERSISTENT_MEM_AMD);
+	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
+    initBuffer(chnls_map_buf, graalQ_);
+    channels_map_ = chnls_map_buf;
+
+    // sets map
+    CABuf<int> *sets_map_buf = new CABuf<int>(CABufArgs);
+    assert(sets_map_buf);
+	ret = sets_map_buf->create(n_sets_ * n_max_channels_,  CL_MEM_USE_PERSISTENT_MEM_AMD);
+	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
+    initBuffer(sets_map_buf, graalQ_);
+    sets_map_ = sets_map_buf;
+    /////////////////
+
     return 0;
 }
 
