@@ -89,7 +89,7 @@ TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANCreateContext(
         (int)GET_SUBMINOR_VERSION(version),
         (int)GET_BUILD_VERSION(version));
 
-    AMFTraceInfo(L"TANContext", L"TAN SDK version %d.%d.%d.%d\n",
+    AMFTraceInfo(L"TANContext", L"\nTAN SDK version %d.%d.%d.%d\n",
         (int)GET_MAJOR_VERSION(version),
         (int)GET_MINOR_VERSION(version),
         (int)GET_SUBMINOR_VERSION(version),

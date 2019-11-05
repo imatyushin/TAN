@@ -19,7 +19,7 @@ enable_language(CXX)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -66,10 +66,11 @@ endif()
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
-include_directories(../../../../../amf)
-include_directories(../../../../../tan)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/tan)
+
 include_directories(../../../src/common)
-include_directories(../../../../common)
+include_directories(${TAN_ROOT}/utils/common)
 
 include_directories(../../../src/RoomAcousticQT/QTObject)
 

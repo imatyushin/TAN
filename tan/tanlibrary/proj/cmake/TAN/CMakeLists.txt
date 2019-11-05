@@ -17,7 +17,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # cl kernel preprocessor
 include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
@@ -25,7 +25,7 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 # name
 project(TrueAudioNext VERSION 1.0.0 DESCRIPTION "TAN")
 
-include_directories(../../../../common)
+include_directories(${TAN_ROOT}/utils/common)
 
 #
 ADD_DEFINITIONS(-DLEGACY_COPYING=1)
@@ -38,8 +38,8 @@ ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
 ADD_DEFINITIONS(-D_DEBUG)
 
-include_directories(../../../../../amf)
-include_directories(../../../..)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/utils/common)
 
 # sources
 set(

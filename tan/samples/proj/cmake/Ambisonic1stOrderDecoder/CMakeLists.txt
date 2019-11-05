@@ -17,12 +17,12 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # name
 project(Ambisonic1stOrderDecoder DESCRIPTION "Ambisonic1stOrderDecoder")
 
-include_directories(../../../../common)
+include_directories(${TAN_ROOT}/utils/common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)

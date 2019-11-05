@@ -17,12 +17,12 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # name
 project(CLKernelPreprocessor DESCRIPTION "CLKernelPreprocessor")
 
-include_directories(../../../../common)
+include_directories(../../../common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -35,8 +35,8 @@ set(
   ../../../src/CLKernelPreprocessor/CLKernelPreprocessor.cpp
   ../../../src/CLKernelPreprocessor/stdafx.cpp
 
-  ../../../../common/FileUtility.cpp
-  ../../../../common/StringUtility.cpp
+  ../../../common/FileUtility.cpp
+  ../../../common/StringUtility.cpp
   )
 
 set(
@@ -44,8 +44,8 @@ set(
   ../../../src/CLKernelPreprocessor/stdafx.h
   ../../../src/CLKernelPreprocessor/targetver.h
 
-  ../../../../common/FileUtility.h
-  ../../../../common/StringUtility.h
+  ../../../common/FileUtility.h
+  ../../../common/StringUtility.h
   )
 
 # create binary

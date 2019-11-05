@@ -20,7 +20,7 @@ enable_language(CXX)
 # name
 project(FileToHeader DESCRIPTION "FileToHeader")
 
-include_directories(../../../../common)
+include_directories(../../../common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -33,8 +33,8 @@ set(
   ../../../src/FileToHeader/FileToHeader.cpp
   ../../../src/FileToHeader/stdafx.cpp
 
-  ../../../../common/FileUtility.cpp
-  ../../../../common/StringUtility.cpp
+  ../../../common/FileUtility.cpp
+  ../../../common/StringUtility.cpp
   )
 
 set(
@@ -42,8 +42,8 @@ set(
   ../../../src/FileToHeader/stdafx.h
   ../../../src/FileToHeader/targetver.h
 
-  ../../../../common/FileUtility.h
-  ../../../../common/StringUtility.h
+  ../../../common/FileUtility.h
+  ../../../common/StringUtility.h
   )
 
 # create binary

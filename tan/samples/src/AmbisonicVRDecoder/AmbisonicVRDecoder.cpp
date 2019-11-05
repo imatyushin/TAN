@@ -21,7 +21,7 @@
 //
 // Ambisonic1stOrderDecoder.cpp : Defines the entry point for the console application.
 //
-#include "../../../tanlibrary/include/TrueAudioNext.h"
+#include "tanlibrary/include/TrueAudioNext.h"
 #include "../TrueAudioVR/TrueAudioVR.h"
 #include "wav.h"
 

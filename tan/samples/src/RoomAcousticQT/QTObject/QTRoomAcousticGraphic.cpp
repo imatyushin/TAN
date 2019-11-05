@@ -52,7 +52,7 @@ void RoomAcousticListenerGraphics::mouseMoveEvent(QGraphicsSceneMouseEvent* even
 	float x = event->scenePos().x();
 	float y = event->scenePos().y();
 #ifdef _DEBUG
-	qInfo("Listener postion: %f, %f", x, y);
+	qInfo("\nListener postion: %f, %f", x, y);
 #endif
 	emit top_view_position_changed(-(this->x()) / ROOMSCALE, (this->y()) / ROOMSCALE);
 	QGraphicsItemGroup::mouseMoveEvent(event);
@@ -165,7 +165,7 @@ void RoomAcousticSoundSourceGraphics::mouseMoveEvent(QGraphicsSceneMouseEvent* e
 	float x = event->scenePos().x();
 	float y = event->scenePos().y();
 #ifdef _DEBUG
-	qInfo("Source %d postion: %f, %f", this->m_iIndex, x, y);
+	qInfo("\nSource %d postion: %f, %f", this->m_iIndex, x, y);
 #endif
 	if (!m_pTrackHead)
 		emit top_view_position_changed(m_iIndex, -(this->x()) / ROOMSCALE, (this->y()) / ROOMSCALE);

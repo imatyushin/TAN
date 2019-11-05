@@ -373,28 +373,28 @@ void RoomAcousticQTConfig::printConfiguration()
 	}
 
 	// Print Listener configuration
-	qInfo("Head Position: %f,%f,%f. Pitch: %f, Yaw: %f, Roll: %f",
+	qInfo("Head Position: %f,%f,%f.\nPitch: %f, Yaw: %f, Roll: %f",
 		this->m_RoomAcousticInstance.m_Listener.headX,this->m_RoomAcousticInstance.m_Listener.headY,
 		this->m_RoomAcousticInstance.m_Listener.headZ,this->m_RoomAcousticInstance.m_Listener.pitch,
 		this->m_RoomAcousticInstance.m_Listener.yaw, this->m_RoomAcousticInstance.m_Listener.roll);
-	qInfo("Head Configuration: Auto Spin: %d, Track Head: %d, Ear Spacing: %f", this->m_RoomAcousticInstance.m_iHeadAutoSpin,
+	qInfo("\nHead Configuration: Auto Spin: %d, Track Head: %d, Ear Spacing: %f", this->m_RoomAcousticInstance.m_iHeadAutoSpin,
 		this->m_RoomAcousticInstance.m_isrc1TrackHeadPos, this->m_RoomAcousticInstance.m_Listener.earSpacing);
 
 	// Print Room Infomation
-	qInfo("Room Definition: width: %f, Height: %f, Length: %f", m_RoomAcousticInstance.m_RoomDefinition.width,
+	qInfo("\nRoom Definition: width: %f, Height: %f, Length: %f", m_RoomAcousticInstance.m_RoomDefinition.width,
 		m_RoomAcousticInstance.m_RoomDefinition.height, m_RoomAcousticInstance.m_RoomDefinition.length);
-	qInfo("Wall Damping factors: Left: %f, Right: %f, Front: %f, Back: %f, Top: %f, Botton: %f",
+	qInfo("\nWall Damping factors: Left: %f, Right: %f, Front: %f, Back: %f, Top: %f, Botton: %f",
 		this->m_RoomAcousticInstance.m_RoomDefinition.mLeft.damp, this->m_RoomAcousticInstance.m_RoomDefinition.mRight.damp,
 		this->m_RoomAcousticInstance.m_RoomDefinition.mFront.damp, this->m_RoomAcousticInstance.m_RoomDefinition.mBack.damp,
 		this->m_RoomAcousticInstance.m_RoomDefinition.mTop.damp, this->m_RoomAcousticInstance.m_RoomDefinition.mBottom.damp);
 
 	// Print Convolution Infomation
-	qInfo("Convolution length: %d, Buffer sieze: %d", this->m_RoomAcousticInstance.m_iConvolutionLength, this->m_RoomAcousticInstance.m_iBufferSize);
+	qInfo("\nConvolution length: %d, Buffer sieze: %d", this->m_RoomAcousticInstance.m_iConvolutionLength, this->m_RoomAcousticInstance.m_iBufferSize);
 #ifdef RTQ_ENABLED
-	qInfo("Convolution Running On: %d, Normal queue: %d, Medium Queue: %d, RTQ: %d, CUS: %d", this->m_RoomAcousticInstance.m_iuseGPU4Conv,
+	qInfo("\nConvolution Running On: %d, Normal queue: %d, Medium Queue: %d, RTQ: %d, CUS: %d", this->m_RoomAcousticInstance.m_iuseGPU4Conv,
 		this->m_RoomAcousticInstance.m_iuseGPU4Conv, this->m_RoomAcousticInstance.m_iuseMPr4Conv, this->m_RoomAcousticInstance.m_iuseRTQ4Conv,
 		this->m_RoomAcousticInstance.m_iConvolutionCUCount);
-	qInfo("Room Running On: %d, Normal queue: %d, Medium Queue: %d, RTQ: %d, CUS: %d", this->m_RoomAcousticInstance.m_iuseGPU4Room,
+	qInfo("\nRoom Running On: %d, Normal queue: %d, Medium Queue: %d, RTQ: %d, CUS: %d", this->m_RoomAcousticInstance.m_iuseGPU4Room,
 		this->m_RoomAcousticInstance.m_iuseGPU4Room, this->m_RoomAcousticInstance.m_iuseMPr4Room, this->m_RoomAcousticInstance.m_iuseRTQ4Room,
 		this->m_RoomAcousticInstance.m_iRoomCUCount);
 #endif // RTQ_ENABLED

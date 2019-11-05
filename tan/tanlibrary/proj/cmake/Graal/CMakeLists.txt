@@ -7,10 +7,10 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # cl kernel preprocessor
-include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
+include(../../../../../utils/cmake/CLKernelPreprocessor.cmake)
 
 #cl-helper
 #SET(clHelper_DIR ../../../../../OpenCLHelper/clHelper)
@@ -32,9 +32,9 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 #  ../../../src/Graal/GraalUtil.cl
 #  )
 
-include_directories(../../../../../amf)
-include_directories(../../../..)
-include_directories(../../../../common)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_ROOT}/utils/common)
 
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DCLFFT_EXPORTS)

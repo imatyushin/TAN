@@ -663,7 +663,7 @@ void TrueAudioVRimpl::generateRoomResponse(RoomDefinition room, MonoSource sound
         nL = (nL > maxBounces) ? maxBounces : nL;
     }
 
-    printf("Computing %d x %d x %d = %d reflections ...", nW, nH, nL, nW*nH*nL);
+    printf("\nComputing %d x %d x %d = %d reflections ...", nW, nH, nL, nW*nH*nL);
 
     if (m_executionMode == VRExecutionMode::GPU)
     {

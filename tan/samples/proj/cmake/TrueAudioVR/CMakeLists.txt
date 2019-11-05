@@ -17,7 +17,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # cl kernel to hex header
 include(../../../../samples/proj/cmake/FileToHeader/FileToHeader.cmake)
@@ -31,9 +31,9 @@ ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
-include_directories(../../../../../amf)
+include_directories(${AMF_HOME}/amf)
 include_directories(../../../..)
-include_directories(../../../../common)
+include_directories(${TAN_ROOT}/utils/common)
 
 # sources
 set(

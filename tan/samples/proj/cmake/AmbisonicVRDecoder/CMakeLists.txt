@@ -17,14 +17,14 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # name
 project(AmbisonicVRDecoder DESCRIPTION "AmbisonicVRDecoder")
 
-include_directories(../../../../../amf)
-include_directories(../../../../../tan)
-include_directories(../../../../common)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_ROOT}/utils/common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)

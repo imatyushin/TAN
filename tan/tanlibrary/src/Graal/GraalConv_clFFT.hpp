@@ -19,10 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-
+#pragma once
 #ifndef GRAALCONV_CLFFT_H_
-#define GRAALCONF_CLFFT_H_
+#define GRAALCONV_CLFFT_H_
 
 #include <CL/cl.h>
 #include "tanlibrary/src/clFFT-master/src/include/clFFT.h"

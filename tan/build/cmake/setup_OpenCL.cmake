@@ -9,8 +9,6 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 get_property(OpenCL_FOUND GLOBAL PROPERTY OpenCL_FOUND)
 
 if(NOT OpenCL_FOUND)
-  message("Start OpenCL search...")
-
   find_package(OpenCL REQUIRED)
 
   if(NOT OpenCL_FOUND)
@@ -37,11 +35,11 @@ endif()
 get_property(OpenCL_INCLUDE_DIR GLOBAL PROPERTY OpenCL_INCLUDE_DIR)
 get_property(OpenCL_LIBRARY GLOBAL PROPERTY OpenCL_LIBRARY)
 
-message("")
-message("OpenCL already found, the following pathes will be used for ${CMAKE_CURRENT_SOURCE_DIR}:")
-message("OpenCL include dir: ${OpenCL_INCLUDE_DIR}")
-message("OpenCL linking library: ${OpenCL_LIBRARY}")
-message("")
+#message("")
+#message("OpenCL found, the following pathes will be used for ${CMAKE_CURRENT_SOURCE_DIR}:")
+#message("OpenCL include dir: ${OpenCL_INCLUDE_DIR}")
+#message("OpenCL linking library: ${OpenCL_LIBRARY}")
+#message("")
 
 include_directories(${OpenCL_INCLUDE_DIR})
 link_directories(${OpenCL_LIBRARY})

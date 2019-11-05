@@ -23,7 +23,7 @@
 #include "wav.h"
 #include "fifo.h"
 //#include "wasapiutils.h"
-#  include "tanlibrary/include/TrueAudioNext.h" //TAN
+#include "tanlibrary/include/TrueAudioNext.h" //TAN
 #include "..\TrueAudioVR\trueaudiovr.h"
 #include "maxlimits.h"
 #include "IWavPlayer.h"

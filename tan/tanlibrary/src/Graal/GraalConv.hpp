@@ -40,15 +40,13 @@
 #include <BaseTsd.h>
 
 #include "public/common/thread.h"
+#include "public/include/core/Compute.h"
+#include "public/include/core/Context.h"
+//#include "public/common/TraceAdapter.h"
 
-#  include "tanlibrary/include/TrueAudioNext.h"
+#include "tanlibrary/include/TrueAudioNext.h"
 
-#  include "public/include/core/Compute.h"
-#  include "public/include/core/Context.h"
-
-//#  include "public/common/TraceAdapter.h"
 //#  define AMF_FACILITY L"GraalConv"
-
 
 typedef unsigned int uint;
 

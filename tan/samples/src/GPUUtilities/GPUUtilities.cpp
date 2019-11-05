@@ -26,8 +26,10 @@
 //
 #include "stdafx.h"
 #include "GpuUtilities.h"
-#include "../../../../amf/public/include/core/Context.h"
-#include "../../../../amf/public/common/AMFFactory.h"
+
+#include "public/include/core/Context.h"
+#include "public/common/AMFFactory.h"
+
 #include "../ADL/ADLQuery.h"
 
 #include <stdio.h>

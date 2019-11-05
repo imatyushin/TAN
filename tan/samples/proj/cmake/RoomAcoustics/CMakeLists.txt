@@ -20,7 +20,7 @@ if(WIN32)
 
     enable_language(CXX)
 
-    include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+    include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
     find_package(MFC REQUIRED)
     if(NOT MFC_FOUND)
@@ -31,10 +31,11 @@ if(WIN32)
     # name
     project(RoomAcoustics DESCRIPTION "RoomAcoustics")
 
-    include_directories(../../../../../amf)
-    include_directories(../../../../../tan)
+    include_directories(${AMF_HOME}/amf)
+    include_directories(${TAN_ROOT}/tan)
+
     include_directories(../../../src/common)
-    include_directories(../../../../common)
+    include_directories(${TAN_ROOT}/utils/common)
 
     ADD_DEFINITIONS(-DRTQ_ENABLED)
     set(CMAKE_MFC_FLAG 1)
