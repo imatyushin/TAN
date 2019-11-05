@@ -36,16 +36,16 @@ set(
   SOURCE_EXE
   ../../../src/AmbisonicVRDecoder/AmbisonicVRDecoder.cpp
 
-  ../../../../common/FileUtility.cpp
-  ../../../../common/wav.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
   )
 
 set(
   HEADER_EXE
   ../../../../tanlibrary/include/TrueAudioNext.h
 
-  ../../../../common/FileUtility.h
-  ../../../../common/wav.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/wav.h
   )
 
 # create binary

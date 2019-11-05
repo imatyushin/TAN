@@ -35,7 +35,7 @@ ADD_DEFINITIONS(-D_UNICODE)
 # sources
 set(
   SOURCE_EXE
-  ../../../../common/wav.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
 
   ../../../src/TALibVRTest/stdafx.cpp
   ../../../src/TALibVRTest/TALibVRTest.cpp
@@ -43,7 +43,7 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../common/wav.h
+  ${TAN_ROOT}/utils/common/wav.h
   ../../../src/TALibVRTest/stdafx.h
   ../../../src/TALibVRTest/targetver.h
   )

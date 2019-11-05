@@ -21,6 +21,7 @@ if(WIN32)
     enable_language(CXX)
 
     include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+    include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
     find_package(MFC REQUIRED)
     if(NOT MFC_FOUND)
@@ -76,8 +77,8 @@ if(WIN32)
       ../../../src/common/GpuUtils.cpp
       ../../../src/common/WASAPIPlayer.cpp
 
-      ../../../../common/wav.cpp
-      ../../../../common/fifo.cpp
+      ${TAN_ROOT}/utils/common/wav.cpp
+      ${TAN_ROOT}/utils/common/fifo.cpp
 
       ../../../src/RoomAcoustics/RoomAcoustics.cpp
       ../../../src/RoomAcoustics/RoomAcousticsDlg.cpp
@@ -95,9 +96,9 @@ if(WIN32)
 
       ../../../../tanlibrary/include/TrueAudioNext.h
 
-      ../../../../common/cpucaps.h
-      ../../../../common/wav.h
-      ../../../../common/fifo.h
+      ${TAN_ROOT}/utils/common/cpucaps.h
+      ${TAN_ROOT}/utils/common/wav.h
+      ${TAN_ROOT}/utils/common/fifo.h
 
       ../../../src/common/GpuUtils.h
       ../../../src/common/maxlimits.h
@@ -125,7 +126,7 @@ if(WIN32)
       ${HEADER_EXE}
       )
 
-    target_link_libraries(RoomAcoustics amf)
+    target_link_libraries(RoomAcoustics ${AMF_NAME})
     target_link_libraries(RoomAcoustics TrueAudioNext)
     target_link_libraries(RoomAcoustics "version.lib")
     target_link_libraries(RoomAcoustics ${OpenCL_LIBRARY})

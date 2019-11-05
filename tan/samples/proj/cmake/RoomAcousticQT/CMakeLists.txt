@@ -20,6 +20,7 @@ enable_language(CXX)
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -86,12 +87,12 @@ set(
   ../../../src/common/SimpleVRaudio.cpp
   ../../../src/common/utilities.c
 
-  ../../../../common/FileUtility.cpp
-  ../../../../common/StringUtility.cpp
-  ../../../../common/RegisterBrowser.cpp
-  ../../../../common/wav.cpp
-  ../../../../common/fifo.cpp
-  ../../../../common/cpucaps.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/RegisterBrowser.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
+  ${TAN_ROOT}/utils/common/fifo.cpp
+  ${TAN_ROOT}/utils/common/cpucaps.cpp
 
   ../../../src/RoomAcousticQT/main.cpp
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp
@@ -113,7 +114,7 @@ endif()
 set(
   HEADER_EXE
 
-  ../../../../common/fifo.h
+  ${TAN_ROOT}/utils/common/fifo.h
 
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h
@@ -122,11 +123,11 @@ set(
   ../../../src/common/WasAPI.h
   ../../../src/common/IWavPlayer.h
 
-  ../../../../common/FileUtility.h
-  ../../../../common/StringUtility.h
-  ../../../../common/RegisterBrowser.h
-  ../../../../common/wav.h
-  ../../../../common/cpucaps.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
+  ${TAN_ROOT}/utils/common/RegisterBrowser.h
+  ${TAN_ROOT}/utils/common/wav.h
+  ${TAN_ROOT}/utils/common/cpucaps.h
 
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
@@ -181,7 +182,7 @@ add_executable(
   ${RCC_SOURCES}
   )
 
-target_link_libraries(RoomAcousticsQT amf)
+target_link_libraries(RoomAcousticsQT ${AMF_NAME})
 target_link_libraries(RoomAcousticsQT TrueAudioNext)
 target_link_libraries(RoomAcousticsQT TrueAudioVR)
 target_link_libraries(RoomAcousticsQT GPUUtilities)

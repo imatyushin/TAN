@@ -11,7 +11,7 @@ enable_language(CXX)
 get_property(AMF_NAME GLOBAL PROPERTY AMF_NAME)
 
 if(NOT AMF_NAME)
-  #set_property(GLOBAL PROPERTY AMF_NAME amf)
+  #set_property(GLOBAL PROPERTY AMF_NAME ${AMF_NAME})
   message(FATAL_ERROR "Error: proprietary AMF project name not set!")
 endif()
 

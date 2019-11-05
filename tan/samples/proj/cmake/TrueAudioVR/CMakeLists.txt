@@ -18,6 +18,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 enable_language(CXX)
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # cl kernel to hex header
 include(../../../../samples/proj/cmake/FileToHeader/FileToHeader.cmake)
@@ -40,7 +41,7 @@ set(
   SOURCE_LIB
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
-  ../../../../common/cpucaps.cpp
+  ${TAN_ROOT}/utils/common/cpucaps.cpp
   )
 
 if(WIN32)
@@ -58,7 +59,7 @@ set(
   ../../../src/TrueAudioVR/targetver.h
   ../../../src/TrueAudioVR/TrueAudioVR.h
 
-  ../../../../common/cpucaps.h
+  ${TAN_ROOT}/utils/common/cpucaps.h
   )
 
 # create library
@@ -95,7 +96,7 @@ generateCLKernelHeader(
 
 # linking
 target_link_libraries(TrueAudioVR ${OpenCL_LIBRARY})
-target_link_libraries(TrueAudioVR amf)
+target_link_libraries(TrueAudioVR ${AMF_NAME})
 
 if(NOT WIN32)
   target_compile_options(TrueAudioVR PUBLIC -mavx2)

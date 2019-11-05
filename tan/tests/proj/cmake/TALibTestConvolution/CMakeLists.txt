@@ -37,8 +37,8 @@ set(
   SOURCE_EXE
   ../../../../samples/src/common/utilities.c
 
-  ../../../../common/FileUtility.cpp
-  ../../../../common/wav.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
 
   ../../../src/TALibTestConvolution/TALibTestConvolution.cpp
   )
@@ -46,8 +46,8 @@ set(
 set(
   HEADER_EXE
 
-  ../../../../common/FileUtility.h
-  ../../../../common/wav.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/wav.h
 
   ../../../../samples/src/common/utilities.h
   )

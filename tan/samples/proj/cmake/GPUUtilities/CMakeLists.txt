@@ -21,6 +21,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 enable_language(CXX)
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # name
 project(GPUUtilities DESCRIPTION "GPUUtilities")
@@ -66,7 +67,7 @@ add_library(
   )
 
 # linking
-target_link_libraries(GPUUtilities amf)
+target_link_libraries(GPUUtilities ${AMF_NAME})
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
 target_compile_options(GPUUtilities PUBLIC -g) #todo: to Debug only

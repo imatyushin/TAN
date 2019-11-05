@@ -8,9 +8,10 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 enable_language(CXX)
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
-# cl kernel preprocessor
-include(../../../../../utils/cmake/CLKernelPreprocessor.cmake)
+#cl kernel preprocessor
+include(${TAN_ROOT}/utils/cmake/CLKernelPreprocessor.cmake)
 
 #cl-helper
 #SET(clHelper_DIR ../../../../../OpenCLHelper/clHelper)
@@ -123,7 +124,7 @@ generateCLKernel(
 
 add_dependencies(Graal CLKernelPreprocessor)
 
-target_link_libraries(Graal amf)
+target_link_libraries(Graal ${AMF_NAME})
 
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 

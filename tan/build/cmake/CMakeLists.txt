@@ -41,10 +41,9 @@ add_subdirectory(${TAN_ROOT}/utils/proj/cmake/CLKernelPreprocessor cmake-CLKerne
 add_subdirectory(${TAN_ROOT}/utils/proj/cmake/FileToHeader cmake-FileToHeader-bin)
 
 #libraries
-#add_subdirectory(../../tanlibrary/proj/cmake/amf cmake-amf-bin)
 add_subdirectory(../../tanlibrary/proj/cmake/Graal cmake-Graal-bin)
-#add_subdirectory(../../tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
-#add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
+add_subdirectory(../../tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
+add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
 
 #examples
 #add_subdirectory(../../samples/proj/cmake/GPUUtilities cmake-GPUUtilities-bin)
@@ -55,7 +54,6 @@ add_subdirectory(../../tanlibrary/proj/cmake/Graal cmake-Graal-bin)
 #add_subdirectory(../../samples/proj/cmake/TrueAudioVR cmake-TrueAudioVR-bin)
 #add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bin)
 #add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
-
 if(WIN32)
   #not implemented yet: add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
   #migration to new player not yet done: add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)

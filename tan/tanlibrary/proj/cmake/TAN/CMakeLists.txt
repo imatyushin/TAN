@@ -18,13 +18,16 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 enable_language(CXX)
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
-# cl kernel preprocessor
-include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
+#cl kernel preprocessor
+include(${TAN_ROOT}/utils/cmake/CLKernelPreprocessor.cmake)
 
 # name
 project(TrueAudioNext VERSION 1.0.0 DESCRIPTION "TAN")
 
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/tan)
 include_directories(${TAN_ROOT}/utils/common)
 
 #
@@ -38,17 +41,14 @@ ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
 ADD_DEFINITIONS(-D_DEBUG)
 
-include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/utils/common)
-
 # sources
 set(
   SOURCE_LIB
 
   ../../../src/common/OCLHelper.cpp
 
-  ../../../../common/StringUtility.cpp
-  ../../../../common/cpucaps.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/cpucaps.cpp
 
   ../../../src/TrueAudioNext/converter/ConverterImpl.cpp
   ../../../src/TrueAudioNext/convolution/ConvolutionImpl.cpp
@@ -155,7 +155,7 @@ generateCLKernel(
 
 # linking
 target_link_libraries(TrueAudioNext ${OpenCL_LIBRARY})
-target_link_libraries(TrueAudioNext amf)
+target_link_libraries(TrueAudioNext ${AMF_NAME})
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
 

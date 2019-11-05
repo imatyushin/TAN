@@ -18,6 +18,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 enable_language(CXX)
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -70,10 +71,10 @@ set(
 
   ../../../src/common/GpuUtils.cpp
 
-  ../../../../common/FileUtility.cpp
-  ../../../../common/StringUtility.cpp
-  ../../../../common/fifo.cpp
-  ../../../../common/wav.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/fifo.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
 
   ../../../src/ReverbMixer/ReverbMixer.cpp
   ../../../src/ReverbMixer/ReverbProcessor.cpp
@@ -85,10 +86,10 @@ set(
 set(
   HEADER_EXE
 
-  ../../../../common/FileUtility.h
-  ../../../../common/StringUtility.h
-  ../../../../common/fifo.h
-  ../../../../common/wav.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
+  ${TAN_ROOT}/utils/common/fifo.h
+  ${TAN_ROOT}/utils/common/wav.h
 
   ../../../src/ReverbMixer/ReverbProcessor.h
   #../../../src/ReverbMixer/stdafx.h
@@ -146,7 +147,7 @@ if(PortAudio_DIR)
   #target_link_libraries(ReverbMixer portaudio-static)
 endif()
 
-target_link_libraries(ReverbMixer amf)
+target_link_libraries(ReverbMixer ${AMF_NAME})
 target_link_libraries(ReverbMixer TrueAudioNext)
 target_link_libraries(ReverbMixer GPUUtilities)
 target_link_libraries(ReverbMixer Qt5::Widgets)

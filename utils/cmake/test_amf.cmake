@@ -7,11 +7,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 get_property(AMF_HOME GLOBAL PROPERTY AMF_HOME)
-
 if(NOT AMF_HOME)
   message("")
-  message(SEND_ERROR "Error: AMF not configured!")
+  message(SEND_ERROR "Error: AMF_HOME are not set for ${CMAKE_CURRENT_SOURCE_DIR}!")
   return()
 endif()
 
-message("AMF configured")
+get_property(AMF_NAME GLOBAL PROPERTY AMF_NAME)
+if(NOT AMF_NAME)
+  message("")
+  message(SEND_ERROR "Error: AMF_NAME not configured in ${CMAKE_CURRENT_SOURCE_DIR}!")
+  return()
+endif()
+
+message("AMF configured successfully")
