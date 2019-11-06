@@ -8,8 +8,9 @@
 #include "targetver.h"
 
 #include <stdio.h>
-#include <tchar.h>
 
-
-
-// TODO: reference additional headers your program requires here
+#ifdef WIN32
+  #include <tchar.h>
+  #include <d3d9.h>
+  #include <d3d11.h>
+#endif

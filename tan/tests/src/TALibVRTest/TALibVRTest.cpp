@@ -3,18 +3,28 @@
 #include "stdafx.h"
 
 #include "tanlibrary/include/TrueAudioNext.h"
-#include "wav.h"
 #include "samples/src/TrueAudioVR/TrueAudioVR.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 
-#include <memory.h>
-#include <process.h>
-#include <math.h>
-#include <omp.h>
+#include "FileUtility.h"
+#include "wav.h"
 
 #include <vector>
 #include <iostream>
 #include <cstring>
+
+#include <memory.h>
+#include <math.h>
+#include <assert.h>
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+  #include <omp.h>
+#endif
+
+#ifdef _WIN32
+  #include <AclAPI.h>
+  #include <process.h>
+#endif
 
 struct attribute {
     char *name;
@@ -123,7 +133,7 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
             // Retrieve device
         cl_uint numDevices = 0;
         clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices );
-        _ASSERT( numDevices > 0 );
+        assert( numDevices > 0 );
         if ( numDevices == 0 )
         {
             fprintf(stdout, "Cannot find any GPU devices!\n");
@@ -156,7 +166,11 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
     devices = (cl_device_id*)malloc(cb);
     clGetContextInfo(context, CL_CONTEXT_DEVICES, cb, devices, NULL);
 
+#ifdef _WIN32
     SetEnvironmentVariableA("GPU_USE_SHARED_CONTEXT", "0");
+#else
+    putenv("GPU_USE_SHARED_CONTEXT=0");
+#endif
 
     // Allocate RT-Queues
     int deviceId = 0;
@@ -181,8 +195,14 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
         cmdQueue = clCreateCommandQueueWithProperties(context, devices[deviceId], cprops, &error);
     }
 #else
-	const cl_queue_properties cprops[1] = { 0 };
-	cmdQueue = clCreateCommandQueueWithProperties(context, devices[deviceId], cprops, &error);
+
+    #if CL_TARGET_OPENCL_VERSION >= 200
+	  const cl_queue_properties cprops[1] = { 0 };
+	  cmdQueue = clCreateCommandQueueWithProperties(context, devices[deviceId], cprops, &error);
+    #else
+      cmdQueue = clCreateCommandQueue(context, devices[deviceId], NULL, &error);
+    #endif
+
 #endif
     printf("Queue created %llX\r\n", cmdQueue);
 

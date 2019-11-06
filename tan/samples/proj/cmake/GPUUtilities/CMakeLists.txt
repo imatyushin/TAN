@@ -26,6 +26,8 @@ include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 # name
 project(GPUUtilities DESCRIPTION "GPUUtilities")
 
+include_directories(${AMF_HOME}/amf)
+
 #
 ADD_DEFINITIONS(-D_USRDLL)
 ADD_DEFINITIONS(-DGPUUTILITIES_EXPORTS)
@@ -34,7 +36,7 @@ ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
 if(NOT WIN32)
-ADD_DEFINITIONS(-DLINUX)
+  ADD_DEFINITIONS(-DLINUX)
 endif()
 
 # sources

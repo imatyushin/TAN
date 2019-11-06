@@ -36,6 +36,7 @@ ADD_DEFINITIONS(-D_UNICODE)
 set(
   SOURCE_EXE
   ${TAN_ROOT}/utils/common/wav.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
 
   ../../../src/TALibVRTest/stdafx.cpp
   ../../../src/TALibVRTest/TALibVRTest.cpp
@@ -44,6 +45,8 @@ set(
 set(
   HEADER_EXE
   ${TAN_ROOT}/utils/common/wav.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+
   ../../../src/TALibVRTest/stdafx.h
   ../../../src/TALibVRTest/targetver.h
   )
@@ -55,5 +58,6 @@ add_executable(
   ${HEADER_EXE}
   )
 
-  target_link_libraries(TALibVRTest TrueAudioNext)
-  target_link_libraries(TALibVRTest GPUUtilities)
+target_link_libraries(TALibVRTest TrueAudioNext)
+target_link_libraries(TALibVRTest GPUUtilities)
+target_link_libraries(TALibVRTest TrueAudioVR)

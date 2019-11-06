@@ -21,7 +21,7 @@ include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # cl kernel to hex header
-include(../../../../samples/proj/cmake/FileToHeader/FileToHeader.cmake)
+include(${TAN_ROOT}/utils/cmake/FileToHeader.cmake)
 
 # name
 project(TrueAudioVR DESCRIPTION "TrueAudioVR")

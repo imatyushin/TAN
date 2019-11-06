@@ -400,7 +400,7 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
 
     // Create a command queue
 #if CL_TARGET_OPENCL_VERSION >= 200
-nnn
+
     if (flag != 0)
     {
         // use clCreateCommandQueueWithProperties to pass custom queue properties to driver:
