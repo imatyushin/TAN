@@ -22,16 +22,18 @@
 // THE SOFTWARE.
 //
 
-
-#include <Windows.h>
 #include <stdio.h>
 #include <string.h>
-#include <io.h>
-#include <CL/cl.h>
-#include "../../../samples/src/gpuutilities/gpuutilities.h"
-//#include "../../../../amf/public/include/core/Context.h"
-//#include "../../../../amf/public/common/AMFFactory.h"
 
+#include <CL/cl.h>
+#include "../../../samples/src/GPUUtilities/GpuUtilities.h"
+//#include "public/include/core/Context.h"
+//#include "public/common/AMFFactory.h"
+
+#ifdef _WIN32
+  #include <Windows.h>
+  #include <io.h>
+#endif
 
 /*
 cl_device_id devId;
@@ -58,27 +60,34 @@ int main(int argc, char* argv[])
 
     printf("%s, Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.",argv[0]);
 
-    HMODULE GPUUtilitiesDll = NULL;
-    typedef int(__cdecl *listTanDevicesAndCapsType)(TanDeviceCapabilities **devList, unsigned int *count);
-    listTanDevicesAndCapsType listTanDevicesAndCaps = nullptr;
-
     TanDeviceCapabilities *devCapsList = NULL;
-    unsigned int count = 0;
+    int count = 0;
 
-    GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
-    if (NULL != GPUUtilitiesDll)
-    {
-        listTanDevicesAndCaps = (listTanDevicesAndCapsType)GetProcAddress(GPUUtilitiesDll, "listTanDevicesAndCaps");
-        if (NULL != listTanDevicesAndCaps)
+    #ifdef _WIN32
+        HMODULE GPUUtilitiesDll = NULL;
+        typedef int(__cdecl *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
+        listGpuDeviceNamesType listGpuDeviceNames = nullptr;
+
+        GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
+        if (NULL != GPUUtilitiesDll)
         {
-            int result = listTanDevicesAndCaps(&devCapsList, &count);
+            listTanDevicesAndCaps = (listTanDevicesAndCapsType)GetProcAddress(GPUUtilitiesDll, "listTanDevicesAndCaps");
+            if (NULL != listTanDevicesAndCaps)
+            {
+                int result = listTanDevicesAndCaps(&devCapsList, &count);
+            }
+            else
+            {
+                MessageBoxA(NULL, "NOT FOUND listGpuDeviceNames", "GPUUtils...", MB_ICONERROR);
+            }
         }
-
-    }
-    else {
-        printf("Unable to load GPUUtilities.dll!\n");
-        return -1;
-    }
+        else
+        {
+            MessageBoxA( NULL, "NOT FOUND GPUUtilities.dll", "GPUUtils...", MB_ICONERROR );
+        }
+    #else
+        int result = listTanDevicesAndCaps(&devCapsList, &count);
+    #endif
 
     for (int i = 0; i < count; i++){
 

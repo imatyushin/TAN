@@ -52,4 +52,4 @@ add_executable(
   )
 
 #target_link_libraries(TanDeviceResourcesTest TrueAudioNext)
-#target_link_libraries(TanDeviceResourcesTest GPUUtilities)
+target_link_libraries(TanDeviceResourcesTest GPUUtilities)
