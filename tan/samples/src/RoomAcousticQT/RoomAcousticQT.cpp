@@ -50,15 +50,18 @@ int RoomAcousticQT::start()
 	portInfoToEngine();
 	// Since cpu's device id is 0 in this demo, we need to decrease the device id if
 	// you want to run GPU
-	int convolutiondevice = m_iConvolutionDeviceID;
-	int Roomdevice = m_iRoomDeviceID;
-	if (m_iuseGPU4Conv)
+	int convolutionDeviceIndex = m_iConvolutionDeviceID;
+	int roomDeviceIndex = m_iRoomDeviceID;
+
+	//becouse indices must be zero based?
+	if(m_iuseGPU4Conv)
 	{
-		convolutiondevice--;
+		convolutionDeviceIndex--;
 	}
-	if (m_iuseGPU4Room)
+
+	if(m_iuseGPU4Room)
 	{
-		Roomdevice--;
+		roomDeviceIndex--;
 	}
 
 	std::vector<std::string> fileNames;
@@ -82,8 +85,8 @@ int RoomAcousticQT::start()
 		m_iBufferSize,
 
 		m_iuseGPU4Conv,
-		mCLRoomOverGPU,
-		convolutiondevice,
+		mCLConvolutionOverGPU,
+		convolutionDeviceIndex,
 
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Conv,
@@ -92,8 +95,8 @@ int RoomAcousticQT::start()
 #endif // RTQ_ENABLED
 
 		m_iuseGPU4Room,
-		Roomdevice,
-		mCLConvolutionOverGPU,
+		mCLRoomOverGPU,
+		roomDeviceIndex,
 
 #ifdef RTQ_ENABLED
 		m_iuseMPr4Room,
