@@ -23,7 +23,7 @@ include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 project(AmbisonicVRDecoder DESCRIPTION "AmbisonicVRDecoder")
 
 include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_HEADERS})
 include_directories(${TAN_ROOT}/utils/common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
@@ -42,7 +42,7 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../tanlibrary/include/TrueAudioNext.h
+  ${TAN_HEADERS}/TrueAudioNext.h
 
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/wav.h

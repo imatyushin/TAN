@@ -30,7 +30,7 @@ ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 
 include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_HEADERS})
 
 # sources
 set(

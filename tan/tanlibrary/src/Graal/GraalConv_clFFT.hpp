@@ -24,7 +24,7 @@
 #define GRAALCONV_CLFFT_H_
 
 #include <CL/cl.h>
-#include "tanlibrary/src/clFFT-master/src/include/clFFT.h"
+#include "clFFT.h"
 #include "GraalConv.hpp"
 #include "GraalConvOCL.hpp"
 #include <string>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 #include "IWavPlayer.h"
 
 #include <CL/cl.h>

@@ -23,7 +23,7 @@
 
 #include <cstdint>
 
-#include "tanlibrary/include/TrueAudioNext.h"       //TAN
+#include "TrueAudioNext.h"       //TAN
 #include "../TrueAudioVR/TrueAudioVR.h"
 
 #include "fifo.h"

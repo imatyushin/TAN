@@ -24,15 +24,15 @@
 #include "TANTraceAndDebug.h"
 
 
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/common/TraceAdapter.h"         //AMF
 #include "public/common/AMFFactory.h"           //AMF
 
 
-#include "tanlibrary/src/clFFT-master/src/include/clFFT.h"
+#include "clFFT.h"
 
 typedef unsigned int uint;
-#include "tanlibrary/src/Graal/GraalConv.hpp"
+#include "GraalConv.hpp"
 
 #ifndef MAKE_FULL_VERSION
 #define MAKE_FULL_VERSION(VERSION_MAJOR, VERSION_MINOR, VERSION_RELEASE, VERSION_BUILD_NUM)    ( (amf_uint64(VERSION_MAJOR) << 48ull) | (amf_uint64(VERSION_MINOR) << 32ull) | (amf_uint64(VERSION_RELEASE) << 16ull)  | amf_uint64(VERSION_BUILD_NUM))
@@ -78,7 +78,6 @@ TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANCreateContext(
     }
 
     AMF_ASSERT_OK(res, L"AMF Factory Failed to initialize");
-
 
     //TOD when new version is needed version checking should be extended
     AMF_RETURN_IF_FALSE(

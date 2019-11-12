@@ -116,7 +116,7 @@ namespace amf
     //----------------------------------------------------------------------------------------------
     // TANConvolution interface
     //----------------------------------------------------------------------------------------------
-    class TANConvolution : virtual public AMFPropertyStorageEx
+    class TANConvolution: virtual public AMFPropertyStorageEx
     {
     public:
         AMF_DECLARE_IID(0x99d46c18, 0xc92, 0x40bd, 0x8a, 0xc7, 0x1c, 0x30, 0xf7, 0xe4, 0xeb, 0xcb)
@@ -295,11 +295,7 @@ namespace amf
     //----------------------------------------------------------------------------------------------
     // smart pointer
     //----------------------------------------------------------------------------------------------
-    typedef AMFInterfacePtr_T<TANConvolution> TANConvolutionPtr;
-
-
-
-
+    typedef AMFInterfacePtr_T<TANIIRfilter> TANIIRfilterPtr;
 
 
     //----------------------------------------------------------------------------------------------
@@ -625,4 +621,3 @@ extern "C"
     TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANSetCacheFolder(const wchar_t* path);
     TAN_SDK_LINK const wchar_t*     AMF_CDECL_CALL TANGetCacheFolder();
 }
-

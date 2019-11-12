@@ -31,7 +31,7 @@ project(TanDeviceResourcesTest DESCRIPTION "TanDeviceResourcesTest")
 #endif()
 
 include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_HEADERS})
 
 # sources
 set(

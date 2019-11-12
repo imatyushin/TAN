@@ -24,7 +24,7 @@
 ///-------------------------------------------------------------------------
 #pragma once
 
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/common/PropertyStorageImpl.h"  //AMF
 #include "public/include/core/Context.h"        //AMF
 
@@ -42,17 +42,19 @@ namespace amf
         AMF_BEGIN_INTERFACE_MAP
             AMF_INTERFACE_ENTRY(TANContext)
             AMF_INTERFACE_CHAIN_ENTRY(AMFInterfaceImpl< AMFPropertyStorageImpl <TANContext> >)
-            AMF_END_INTERFACE_MAP
+        AMF_END_INTERFACE_MAP
 
-            //TANContext interface
-            AMF_RESULT AMF_STD_CALL Terminate() override;
+        //TANContext interface
+        AMF_RESULT AMF_STD_CALL Terminate() override;
         AMF_RESULT AMF_STD_CALL InitOpenCL(cl_context pContext) override;
-        AMF_RESULT AMF_STD_CALL InitOpenCL(cl_command_queue pGeneralQueue,
-            cl_command_queue pConvolutionQueue) override;
+        AMF_RESULT AMF_STD_CALL InitOpenCL(
+            cl_command_queue pGeneralQueue,
+            cl_command_queue pConvolutionQueue
+            ) override;
 
-        cl_context   AMF_STD_CALL GetOpenCLContext() override;
-        cl_command_queue	AMF_STD_CALL	GetOpenCLGeneralQueue() override;
-        cl_command_queue	AMF_STD_CALL	GetOpenCLConvQueue() override;
+        cl_context AMF_STD_CALL GetOpenCLContext() override;
+        cl_command_queue AMF_STD_CALL GetOpenCLGeneralQueue() override;
+        cl_command_queue AMF_STD_CALL GetOpenCLConvQueue() override;
 
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }
@@ -81,8 +83,6 @@ namespace amf
         AMFComputePtr               m_pComputeConvolution;
         AMFComputeDevicePtr         m_pGeneralDeviceAMF;
         AMFComputeDevicePtr         m_pConvolutionDeviceAMF;
-
-
 
         bool m_clfftInitialized;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.

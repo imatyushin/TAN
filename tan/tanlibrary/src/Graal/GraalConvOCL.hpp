@@ -33,7 +33,7 @@
 
 //#include "OclKernels/GraalUtil.cl.h"
 #include "OclKernels/CLKernel_GraalUtil.h"
-#include "tanlibrary/include/TrueAudioNext.h" //TAN
+#include "TrueAudioNext.h" //TAN
 
 #include "public/include/core/Compute.h"      //AMF
 #include "public/include/core/Context.h"      //AMF

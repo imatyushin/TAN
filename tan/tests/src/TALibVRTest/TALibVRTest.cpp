@@ -2,7 +2,7 @@
 //
 #include "stdafx.h"
 
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 #include "samples/src/TrueAudioVR/TrueAudioVR.h"
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 

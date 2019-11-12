@@ -24,10 +24,12 @@ include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 include(${TAN_ROOT}/utils/cmake/CLKernelPreprocessor.cmake)
 
 # name
-project(TrueAudioNext VERSION 1.0.0 DESCRIPTION "TAN")
+project(TrueAudioNext VERSION 1.0.0 DESCRIPTION "TrueAudioNext")
 
 include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_HEADERS})
+include_directories(${TAN_ROOT}/tan/tanlibrary/src/clFFT-master/src/include)
+include_directories(${TAN_ROOT}/tan/tanlibrary/src/Graal)
 include_directories(${TAN_ROOT}/utils/common)
 
 #
@@ -70,7 +72,8 @@ endif()
 set(
   HEADER_LIB
 
-  ../../../include/TrueAudioNext.h
+  ${TAN_HEADERS}/TrueAudioNext.h
+
   ../../../src/common/OCLHelper.h
   ../../../src/TrueAudioNext/converter/ConverterImpl.h
   #../../../src/TrueAudioNext/convolution/CLKernel_ConvolutionTD.h
@@ -167,7 +170,7 @@ set_target_properties(
   TrueAudioNext
   PROPERTIES
   PUBLIC_HEADER
-  ../../../include/TrueAudioNext.h
+  ${TAN_HEADERS}/TrueAudioNext.h
   )
 
 if(NOT WIN32)

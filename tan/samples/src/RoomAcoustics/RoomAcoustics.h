@@ -31,7 +31,7 @@
 
 #include "RoomWindow.h"
 
-#include "tanlibrary/include/TrueAudioNext.h"       //TAN
+#include "TrueAudioNext.h"       //TAN
 
 #include "../TrueAudioVR/trueaudiovr.h"
 #include "../common/WASAPIPlayer.h"

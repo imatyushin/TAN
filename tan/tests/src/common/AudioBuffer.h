@@ -1,4 +1,4 @@
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 
 #define MAJOR_RATIO_12 1.25
 #define MAJOR_RATIO_23 1.2

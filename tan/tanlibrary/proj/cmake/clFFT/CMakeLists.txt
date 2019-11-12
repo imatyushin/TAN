@@ -10,13 +10,11 @@ enable_language(CXX)
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 include_directories(${AMF_HOME}/amf)
-include_directories(../../../../..)
 include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/tanlibrary/src/clFFT-master/src/include)
 
 # library name
 project(clFFT-master)
-
-include_directories(../../../src/clFFT-master/src/include)
 
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)

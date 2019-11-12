@@ -22,6 +22,7 @@ project(TAN DESCRIPTION "TAN")
 
 get_filename_component(ABSOLUTE_PATH "${PROJECT_SOURCE_DIR}/../../../" ABSOLUTE)
 set(TAN_ROOT ${ABSOLUTE_PATH})
+include(${TAN_ROOT}/utils/cmake/test_TAN.cmake)
 message("TAN_ROOT: ${TAN_ROOT}")
 
 #setup opencl
@@ -30,6 +31,20 @@ include(setup_OpenCL.cmake)
 if(NOT OpenCL_FOUND)
   message(SEND_ERROR "Error: Could not setup OpenCL")
   return()
+endif()
+
+#switch between CL or AMF TAN variants
+if(TAN_AMF AND TAN_OPENCL)
+  message(SEND_ERROR "Error: TAN/AMF anf TAN/CL could not be used simultaneously!")
+  return()
+elseif(TAN_AMF)
+  message("TAN/AMF will be used")
+  set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include/amf)
+  ADD_DEFINITIONS(-DTAN_AMF)
+else()
+  message("TAN/CL will be used")
+  set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include/opencl)
+  ADD_DEFINITIONS(-DTAN_CL)
 endif()
 
 #choose amf library to use
@@ -41,9 +56,9 @@ add_subdirectory(${TAN_ROOT}/utils/proj/cmake/CLKernelPreprocessor cmake-CLKerne
 add_subdirectory(${TAN_ROOT}/utils/proj/cmake/FileToHeader cmake-FileToHeader-bin)
 
 #libraries
-add_subdirectory(../../tanlibrary/proj/cmake/Graal cmake-Graal-bin)
-add_subdirectory(../../tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
-add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/Graal cmake-Graal-bin)
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/TrueAudioNext cmake-TrueAudioNext-bin)
 
 #examples
 add_subdirectory(../../samples/proj/cmake/GPUUtilities cmake-GPUUtilities-bin)

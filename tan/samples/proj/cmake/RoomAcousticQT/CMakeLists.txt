@@ -68,7 +68,7 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
 include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_HEADERS})
 
 include_directories(../../../src/common)
 include_directories(${TAN_ROOT}/utils/common)

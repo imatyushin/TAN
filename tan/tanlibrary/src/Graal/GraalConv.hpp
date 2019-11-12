@@ -44,7 +44,7 @@
 #include "public/include/core/Context.h"
 //#include "public/common/TraceAdapter.h"
 
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 
 //#  define AMF_FACILITY L"GraalConv"
 

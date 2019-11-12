@@ -1,4 +1,4 @@
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 #include <ctime>
 
 amf_uint random(int maxVal)

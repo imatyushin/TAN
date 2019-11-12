@@ -13,28 +13,9 @@ include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 #cl kernel preprocessor
 include(${TAN_ROOT}/utils/cmake/CLKernelPreprocessor.cmake)
 
-#cl-helper
-#SET(clHelper_DIR ../../../../../OpenCLHelper/clHelper)
-# this builds the clHelper library (optional, if you want
-# to manually access the globally generated symbols)
-#ADD_SUBDIRECTORY(${clHelper_DIR} cmake-clHelper-bin)
-# specify include paths for #include's in opencl files:
-#OPENCL_INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
-
-# compile some opencl kernels. This properly preprocessor-exapands
-# and test-compiles the given .cl files (once to asm, once to llvm),
-# and puts the preprocessor-expanded code (as a char[] array)
-# into dedicated .c files (that can be accessed through the
-# implicit EMBEDDED_OPENCL_KERNELS variable
-#COMPILE_OPENCL(
-#  ../../../src/Graal/amdFFT_conv_kernels.cl
-#  ../../../src/Graal/amdFIR_kernels.cl
-#  ../../../src/Graal/GraalFHT.cl
-#  ../../../src/Graal/GraalUtil.cl
-#  )
-
 include_directories(${AMF_HOME}/amf)
-include_directories(${TAN_ROOT}/tan)
+include_directories(${TAN_HEADERS})
+include_directories(${TAN_ROOT}/tan/tanlibrary/src/clFFT-master/src/include)
 include_directories(${TAN_ROOT}/utils/common)
 
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)

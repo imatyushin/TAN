@@ -23,7 +23,7 @@
 ///  @brief  TANMixer interface implementation
 ///-------------------------------------------------------------------------
 #pragma once
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF

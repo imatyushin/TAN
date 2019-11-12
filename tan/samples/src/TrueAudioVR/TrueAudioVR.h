@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 
-#include "tanlibrary/include/TrueAudioNext.h"       //TAN
+#include "TrueAudioNext.h"       //TAN
 using namespace amf;
 
 #include "public/include/core/Result.h"

@@ -1,8 +1,3 @@
-// GPUUtilities.cpp : Defines the exported functions for the DLL application.
-//
-
-#include "stdafx.h"
-
 //
 // Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
 //

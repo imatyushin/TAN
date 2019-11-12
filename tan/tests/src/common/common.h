@@ -1,4 +1,4 @@
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 
 #define QUEUE_NORMAL_QUEUE 0
 

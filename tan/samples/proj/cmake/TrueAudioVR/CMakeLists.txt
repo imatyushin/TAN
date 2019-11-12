@@ -33,8 +33,8 @@ ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
 include_directories(${AMF_HOME}/amf)
-include_directories(../../../..)
 include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_HEADERS})
 
 # sources
 set(

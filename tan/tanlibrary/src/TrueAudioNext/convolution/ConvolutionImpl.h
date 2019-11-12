@@ -23,13 +23,13 @@
 ///  @brief  TANConvolutionImpl interface implementation
 ///-------------------------------------------------------------------------
 #pragma once
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF
 
-#include "tanlibrary/src/Graal/GraalConv.hpp"
-#include "tanlibrary/src/Graal/GraalConv_clFFT.hpp"
+#include "GraalConv.hpp"
+#include "GraalConv_clFFT.hpp"
 #ifdef AMF_FACILITY
 #  undef AMF_FACILITY
 #endif

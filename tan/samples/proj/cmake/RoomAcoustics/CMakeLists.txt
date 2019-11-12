@@ -33,7 +33,7 @@ if(WIN32)
     project(RoomAcoustics DESCRIPTION "RoomAcoustics")
 
     include_directories(${AMF_HOME}/amf)
-    include_directories(${TAN_ROOT}/tan)
+    include_directories(${TAN_HEADERS})
 
     include_directories(../../../src/common)
     include_directories(${TAN_ROOT}/utils/common)
@@ -94,7 +94,7 @@ if(WIN32)
     set(
       HEADER_EXE
 
-      ../../../../tanlibrary/include/TrueAudioNext.h
+      ${TAN_HEADERS}/TrueAudioNext.h
 
       ${TAN_ROOT}/utils/common/cpucaps.h
       ${TAN_ROOT}/utils/common/wav.h

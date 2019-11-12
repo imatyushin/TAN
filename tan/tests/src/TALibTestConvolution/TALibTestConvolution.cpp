@@ -27,7 +27,7 @@
     #include <ppltasks.h>
 #endif
 
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 using namespace amf;
 
 #include "FileUtility.h"
