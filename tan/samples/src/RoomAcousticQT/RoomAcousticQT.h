@@ -5,20 +5,6 @@
 
 #define MAX_DEVICES 10
 
-struct attribute {
-	std::string name;
-	void *value;
-	char fmt; // f, i, s
-};
-
-struct element {
-	std::string name;
-	int nAttribs;
-	struct attribute *attriblist;
-	int nElements;
-	struct element *elemList;
-};
-
 class RoomAcousticQT
 {
 public:
@@ -27,7 +13,7 @@ public:
 
 	void initialize();															// Initialize the Room Acoustic
 	int start();																// Start the demo
-	void stop();												// Stop the demo
+	void stop();																// Stop the demo
 
 	void loadConfiguration(const std::string& xmlfilename);						// Load the configuration from the xml file
 	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
@@ -92,9 +78,10 @@ public:
 	bool mSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
 	int m_iSoundSourceMap[MAX_SOURCES];
 	int m_bSrcTrackHead[MAX_SOURCES];
+
 	bool mSrc1EnableMic = false;
-	int m_isrc1MuteDirectPath = 0;
 	int m_isrc1TrackHeadPos = 0;
+
 	/*Device*/
 	char* m_cpDeviceName[MAX_DEVICES];									// Device names
 	int m_iDeviceCount = 0;												// Device count
@@ -103,9 +90,9 @@ public:
 		amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 	int m_iConvolutionLength = 0;
 	int m_iBufferSize = 0;
-	int m_iConvolutionDeviceID = 0;
 
 	int m_iuseGPU4Conv = 0;
+	int m_iConvolutionDeviceID = 0;
 	int m_iuseMPr4Conv = 0;
 #ifdef RTQ_ENABLED
 	int m_iConvolutionCUCount = 0;

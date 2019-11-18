@@ -4,6 +4,7 @@
 #include "FileUtility.h"
 
 #include <time.h>
+#include <ctime>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -19,6 +20,7 @@
 #endif
 
 #include <QStandardPaths>
+#include <QSettings>
 
 RoomAcousticQT::RoomAcousticQT()
 {
@@ -246,6 +248,7 @@ void RoomAcousticQT::initializeDevice()
 	m_iDeviceCount = listGpuDeviceNamesWrapper(m_cpDeviceName, MAX_DEVICES);
 }
 
+/*
 bool RoomAcousticQT::parseElement(char* start, char* end, element* elem)
 {
 	bool ok = false;
@@ -349,6 +352,7 @@ bool RoomAcousticQT::findElement(char** start, char** end, const char* name)
 	}
 	return found;
 }
+*/
 
 void RoomAcousticQT::portInfoToEngine()
 {
@@ -372,289 +376,183 @@ void RoomAcousticQT::portInfoToEngine()
 
 void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 {
-	// Creating internal structre and prepare for xml loading
-	// attribute src1PosAttribs[3] = { { "X", &m_SoundSources->speakerX, 'f' }, { "Y", &srcY[0], 'f' }, { "Z", &srcZ[0], 'f' } };
-	element RAelementList[MAX_SOURCES + 3];
-	std::vector<attribute*> attributes_list;
-	std::vector<element*> elements_list;
-	for (int i = 0; i < MAX_SOURCES; i++)
+	QSettings settings(xmlfilename.c_str(), QSettings::IniFormat);
+	settings.sync();
+
+	//settings.setValue("MAIN/About", "This document was created by AMD RoomAcousticsDemo");
+	//settings.setValue("MAIN/Notes", "All dimensions in meters, damping in decibels");
+
+	/*{
+		time_t dt = {0};
+		struct tm *lt = localtime(&dt);
+
+		char buffer[MAX_PATH] = {0};
+		std::snprintf(buffer,
+			MAX_PATH,
+			"%4d/%02d/%02d %02d:%02d:%02d",
+			2000 + (lt->tm_year % 100), 
+			1 + lt->tm_mon,
+			lt->tm_mday, 
+			lt->tm_hour, 
+			lt->tm_min, 
+			lt->tm_sec
+			);
+
+		settings.setValue(
+			"MAIN/Сreated",
+			buffer
+			);
+	};*/
+
+	m_iNumOfWavFile = settings.value("MAIN/Sources").toInt();
+
+	for(int waveFileIndex(0); waveFileIndex < m_iNumOfWavFile; ++waveFileIndex)
 	{
-		attribute* srcPosAttribs = new attribute[3];
-		attributes_list.push_back(srcPosAttribs);
-		srcPosAttribs[0].name = "X";
-		srcPosAttribs[0].value = &(m_SoundSources[i].speakerX);
-		srcPosAttribs[0].fmt = 'f';
-		srcPosAttribs[1].name = "Y";
-		srcPosAttribs[1].value = &(m_SoundSources[i].speakerY);
-		srcPosAttribs[1].fmt = 'f';
-		srcPosAttribs[2].name = "Z";
-		srcPosAttribs[2].value = &(m_SoundSources[i].speakerZ);
-		srcPosAttribs[2].fmt = 'f';
+		auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
-		RAelementList[i].name = new char[MAX_PATH];
-		attribute *streamAttribs = new attribute[2];
-		attributes_list.push_back(streamAttribs);
-
-		streamAttribs[0].name = "on";
-		streamAttribs[0].value = &mSoundSourceEnable[i];
-		streamAttribs[0].fmt = 'b';
-
-		streamAttribs[1].name = "file";
-		//todo: verify
-		streamAttribs[1].value = &mWavFileNames[i][0];
-		streamAttribs[1].fmt = 's';
-		element *src = nullptr;
-
-		if (i == 0){
-			src = new element[3];
-			elements_list.push_back(src);
-			attribute* src1MicAttribs = new attribute[3];
-			attributes_list.push_back(src1MicAttribs);
-			src1MicAttribs[0].name = "enableMic";
-			src1MicAttribs[0].value = &mSrc1EnableMic;
-			src1MicAttribs[0].fmt = 'i';
-			src1MicAttribs[1].name = "trackHeadPos";
-			src1MicAttribs[1].value = &m_isrc1TrackHeadPos;
-			src1MicAttribs[1].fmt = 'i';
-			src1MicAttribs[2].name = "muteDirectPath";
-			src1MicAttribs[2].value = &m_isrc1TrackHeadPos;
-			src1MicAttribs[2].fmt = 'i';
-
-			//attribute src1MicAttribs[3] = { { "enableMic", &mSrc1EnableMic, 'i' }, { "trackHeadPos", &m_isrc1TrackHeadPos, 'i' }, { "muteDirectPath", &m_isrc1TrackHeadPos, 'i' } };
-			//attribute streamAttribs[1] = { { "file", &mWavFileNames[i][0], 's' } };
-			src[0] = { "streamS1", 2, streamAttribs, 0, NULL };
-			src[1] = { "microphone", 3, src1MicAttribs, 0, NULL };
-			src[2] = { "positionS1", 3, srcPosAttribs, 0, NULL };
-			RAelementList[i].nElements = 3;
-			RAelementList[i].elemList = src;
-		}
-		else
+		mWavFileNames[waveFileIndex] = settings.value(sourceName.c_str()).toString().toStdString();
+		mSoundSourceEnable[waveFileIndex] = settings.value((sourceName + "ON").c_str()).toInt() ? 1 : 0;
+		
+		if(!waveFileIndex)
 		{
-			src = new element[2];
-			elements_list.push_back(src);
-
-
-			std::string _stream = "streamS";
-			std::string _position = "positionS";
-			_stream += std::to_string(i+1);
-			_position += std::to_string(i+1);
-			src[0].name = new char[MAX_PATH];
-			src[1].name = new char[MAX_PATH];
-			src[0].name = _stream;
-			src[1].name = _position;
-			src[0].nAttribs = 2;
-			src[1].nAttribs = 3;
-			src[0].attriblist = streamAttribs;
-			src[1].attriblist = srcPosAttribs;
-			src[0].nElements = src[1].nElements = 0;
-			src[0].elemList = src[1].elemList = NULL;
-			RAelementList[i].nElements = 2;
-			RAelementList[i].elemList = src;
+			mSrc1EnableMic = settings.value((sourceName + "MicEnable").c_str()).toInt() ? 1 : 0;
+			m_isrc1TrackHeadPos = settings.value((sourceName + "TracHeadPosition").c_str()).toInt() ? 1 : 0;
 		}
-		std::string _Source = "Source";
-		_Source += std::to_string(i+1);
 
-		RAelementList[i].name = _Source;
-		RAelementList[i].nAttribs = 0;
-		RAelementList[i].attriblist = NULL;
+		m_SoundSources[waveFileIndex].speakerX = settings.value((sourceName + "SpeakerX").c_str()).toFloat();
+		m_SoundSources[waveFileIndex].speakerY = settings.value((sourceName + "SpeakerY").c_str()).toFloat();
+		m_SoundSources[waveFileIndex].speakerZ = settings.value((sourceName + "SpeakerZ").c_str()).toFloat();
 	}
 
-	// Initialize Listener Attributes
-	attribute headPosAttribs[6] = { { "X", &m_Listener.headX, 'f' }, { "Y", &m_Listener.headY, 'f' }, { "Z", &m_Listener.headZ, 'f' },
-	{ "yaw", &m_Listener.yaw, 'f' }, { "pitch", &m_Listener.pitch, 'f' }, { "roll", &m_Listener.roll, 'f' } };
-	attribute earAttribs[1] = { { "S", &m_Listener.earSpacing, 'f' } };
-	struct element head[2] = {
-		{ "positionL1", 6, headPosAttribs, 0, NULL },
-		{ "earSpacing", 1, earAttribs, 0, NULL },
-	};
+	m_Listener.headX = settings.value((std::string("LISTENER/") + "HeadX").c_str()).toFloat();
+	m_Listener.headY = settings.value((std::string("LISTENER/") + "HeadY").c_str()).toFloat();
+	m_Listener.headZ = settings.value((std::string("LISTENER/") + "HeadZ").c_str()).toFloat();
+	m_Listener.yaw = settings.value((std::string("LISTENER/") + "Yaw").c_str()).toFloat();
+	m_Listener.pitch = settings.value((std::string("LISTENER/") + "Pitch").c_str()).toFloat();
+	m_Listener.roll = settings.value((std::string("LISTENER/") + "Roll").c_str()).toFloat();
 
-	// Initialize Room Attributes
-	attribute roomDimAttribs[3] = { { "width", &m_RoomDefinition.width, 'f' }, { "height", &m_RoomDefinition.height, 'f' }, { "length", &m_RoomDefinition.length, 'f' } };
-	attribute roomDampAttribs[6] =
-	{ { "left", &m_RoomDefinition.mLeft.damp, 'f' }, { "right", &m_RoomDefinition.mRight.damp, 'f' },
-	{ "front", &m_RoomDefinition.mFront.damp, 'f' }, { "back", &m_RoomDefinition.mBack.damp, 'f' },
-	{ "top", &m_RoomDefinition.mTop.damp, 'f' }, { "bottom", &m_RoomDefinition.mBottom.damp, 'f' } };
+	m_RoomDefinition.width = settings.value((std::string("ROOM/") + "Width").c_str()).toFloat();
+	m_RoomDefinition.height = settings.value((std::string("ROOM/") + "Height").c_str()).toFloat();
+	m_RoomDefinition.length = settings.value((std::string("ROOM/") + "Length").c_str()).toFloat();
+	m_RoomDefinition.mLeft.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampLeft").c_str()).toFloat());
+	m_RoomDefinition.mRight.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampRight").c_str()).toFloat());
+	m_RoomDefinition.mFront.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampFront").c_str()).toFloat());
+	m_RoomDefinition.mBack.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampBack").c_str()).toFloat());
+	m_RoomDefinition.mTop.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampTop").c_str()).toFloat());
+	m_RoomDefinition.mBottom.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampBottom").c_str()).toFloat());
+
+	//settings.value((std::string("ROOM/") + "Count").c_str());
+	m_iuseGPU4Room = settings.value((std::string("ROOM/") + "GPU").c_str()).toInt() ? 1 : 0;
+	m_iRoomDeviceID = settings.value((std::string("ROOM/") + "Device").c_str()).toInt();
+	m_iuseMPr4Room = settings.value((std::string("ROOM/") + "MPr").c_str()).toInt() ? 1 : 0;
 #ifdef RTQ_ENABLED
-	attribute roomRenderAttribs[5] = { { "nSources", &m_iNumOfWavFile, 'i' }, { "withGPU", &m_iuseGPU4Room, 'i' }, { "withRTQ", &m_iuseRTQ4Room, 'i' }, { "withMPr", &m_iuseMPr4Room, 'i' }, { "withCus", &m_iRoomCUCount, 'i' } };
-#else
-	attribute roomRenderAttribs[3] = { { "nSources", &m_iNumOfWavFile, 'i' }, { "withGPU", &m_iuseGPU4Room, 'i' }, { "withMPr", &m_iuseMPr4Room, 'i' }};
-#endif // RTQ_ENABLED
-	element roomElems[3] = {
-		{ "dimensions", 3, roomDimAttribs, NULL },
-		{ "damping", 6, roomDampAttribs, NULL },
+	m_iuseRTQ4Room = settings.value((std::string("ROOM/") + "RTQ").c_str()).toInt() ? 1 : 0;
+	m_iRoomCUCount = settings.value((std::string("ROOM/") + "CU").c_str()).toInt();
+#endif
 
+	//settings.value((std::string("CONVOLUTION/") + "Count").c_str());
+	m_iuseGPU4Conv = settings.value((std::string("CONVOLUTION/") + "GPU").c_str()).toInt() ? 1 : 0;
+	m_iConvolutionDeviceID = settings.value((std::string("CONVOLUTION/") + "Device").c_str()).toInt();
+	m_iuseMPr4Conv = settings.value((std::string("CONVOLUTION/") + "MPr").c_str()).toInt() ? 1 : 0;
 #ifdef RTQ_ENABLED
-		{ "rendering", 5, roomRenderAttribs, NULL }
-#else
-		{ "rendering", 3, roomRenderAttribs, NULL }
-#endif // RTQ_ENABLED
+	m_iuseRTQ4Conv = settings.value((std::string("CONVOLUTION/") + "RTQ").c_str()).toInt() ? 1 : 0;
+	m_iConvolutionCUCount = settings.value((std::string("CONVOLUTION/") + "CU").c_str()).toInt();
+#endif	
 
-	};
-
-	// Initialize Convolution attribute
-
-#ifdef RTQ_ENABLED
-	struct attribute convCfgAttribs[7] = {
-		{ "length", &m_iConvolutionLength, 'i' },
-		{ "buffersize", &m_iBufferSize, 'i' },
-		{ "useGPU", &m_iuseGPU4Conv, 'i' },
-		{ "useRTQ", &m_iuseRTQ4Conv, 'i' },
-		{ "useMpr", &m_iuseMPr4Conv, 'i' },
-		{ "cuCount", &m_iConvolutionCUCount, 'i' },
-		{ "method", &m_eConvolutionMethod, 'i' }
-	};
-	struct element convElems[1] = {
-		{ "configuration", 7, convCfgAttribs, 0, NULL }
-	};
-#else
-	struct attribute convCfgAttribs[5] = {
-		{ "length", &m_iConvolutionLength, 'i' },
-		{ "buffersize", &m_iBufferSize, 'i' },
-		{ "useGPU", &m_iuseGPU4Conv, 'i' },
-		{ "useMpr", &m_iuseMPr4Conv, 'i' },
-		{ "method", &m_eConvolutionMethod, 'i' }
-	};
-	struct element convElems[1] = {
-		{ "configuration", 5, convCfgAttribs, 0, NULL }
-	};
-#endif // RTQ_ENABLED
-	RAelementList[MAX_SOURCES].name = "Listener";
-	RAelementList[MAX_SOURCES].nElements = sizeof(head) / sizeof(element);
-	RAelementList[MAX_SOURCES].elemList = head;
-
-	RAelementList[MAX_SOURCES + 1].name = "Room";
-	RAelementList[MAX_SOURCES + 1].nElements = sizeof(roomElems) / sizeof(element);
-	RAelementList[MAX_SOURCES + 1].elemList = roomElems;
-
-
-	RAelementList[MAX_SOURCES + 2].name = "Convolution";
-	RAelementList[MAX_SOURCES + 2].nElements = sizeof(convElems) / sizeof(element);
-	RAelementList[MAX_SOURCES + 2].elemList = convElems;
-
-	RAelementList[MAX_SOURCES].nAttribs = RAelementList[MAX_SOURCES + 1].nAttribs = RAelementList[MAX_SOURCES + 2].nAttribs = 0;
-	RAelementList[MAX_SOURCES].attriblist = RAelementList[MAX_SOURCES + 1].attriblist = RAelementList[MAX_SOURCES + 2].attriblist = NULL;
-
-	struct element RoomAcoustics = { "RoomAcoustics", 0, NULL, sizeof(RAelementList) / sizeof(element), RAelementList };
-
-	FILE *fpLoadFile = NULL;
-
-	fopen_s(&fpLoadFile, xmlfilename.c_str(), "r+");
-
-	if(!fpLoadFile)
-	{
-		std::cerr << "Error: could not open configuration file " << xmlfilename << std::endl;
-
-		return;
-	}
-
-	fseek(fpLoadFile, 0, SEEK_END);
-	int fLen = ftell(fpLoadFile);
-	fseek(fpLoadFile, 0, SEEK_SET);
-
-	char *xmlBuf = (char *)calloc(fLen, 1);
-	if (!xmlBuf) return;
-
-	fread(xmlBuf, 1, fLen, fpLoadFile);
-
-	char *start, *end;
-	start = xmlBuf;
-	end = start + fLen;
-	parseElement(start, end, &RoomAcoustics);
-
-	fclose(fpLoadFile);
-
-	for (unsigned int i = 0; i < attributes_list.size(); i++)
-	{
-		delete[]attributes_list[i];
-	}
-	for (unsigned int i = 0; i < elements_list.size(); i++)
-	{
-		if (i == 0)
-		{
-			delete[]elements_list[i];
-		}
-		else
-		{
-			delete elements_list[i];
-		}
-	}
-	// Correct the damping factor to the correct unit
-	this->m_RoomDefinition.mLeft.damp = DBTODAMP(this->m_RoomDefinition.mLeft.damp);
-	this->m_RoomDefinition.mRight.damp = DBTODAMP(this->m_RoomDefinition.mRight.damp);
-	this->m_RoomDefinition.mTop.damp = DBTODAMP(this->m_RoomDefinition.mTop.damp);
-	this->m_RoomDefinition.mBottom.damp = DBTODAMP(this->m_RoomDefinition.mBottom.damp);
-	this->m_RoomDefinition.mFront.damp = DBTODAMP(this->m_RoomDefinition.mFront.damp);
-	this->m_RoomDefinition.mBack.damp = DBTODAMP(this->m_RoomDefinition.mBack.damp);
-
+	m_iConvolutionLength = settings.value((std::string("CONVOLUTION/") + "ConvolutionLength").c_str()).toInt();
+	m_iBufferSize = settings.value((std::string("CONVOLUTION/") + "BufferSize").c_str()).toInt();
+	m_eConvolutionMethod = (amf::TAN_CONVOLUTION_METHOD)settings.value((std::string("CONVOLUTION/") + "Method").c_str()).toInt();
 }
 
 /* Save Room acoustic configuration in xml file*/
 void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 {
-	time_t dt = time(NULL);
-	struct tm *lt = localtime(&dt);
+	QSettings settings(xmlfilename.c_str(), QSettings::IniFormat);
 
-	FILE *fpSaveFile = NULL;
-	fopen_s(&fpSaveFile, xmlfilename.c_str(), "w+");
+	settings.setValue("MAIN/About", "This document was created by AMD RoomAcousticsDemo");
+	settings.setValue("MAIN/Notes", "All dimensions in meters, damping in decibels");
 
-	if(!fpSaveFile)
 	{
-		std::cerr << "Error: could not open configuration file " << xmlfilename << std::endl;
+		time_t dt = {0};
+		struct tm *lt = localtime(&dt);
 
-		return;
+		char buffer[MAX_PATH] = {0};
+		std::snprintf(buffer,
+			MAX_PATH,
+			"%4d/%02d/%02d %02d:%02d:%02d",
+			2000 + (lt->tm_year % 100), 
+			1 + lt->tm_mon,
+			lt->tm_mday, 
+			lt->tm_hour, 
+			lt->tm_min, 
+			lt->tm_sec
+			);
+
+		settings.setValue(
+			"MAIN/Сreated",
+			buffer
+			);
 	}
 
-	fputs("<?xml version='1.0' encoding='UTF-8'?>\n", fpSaveFile);
-	fprintf(fpSaveFile,
-		"<!-- This document was created by AMD RoomAcousticsDemo v1.0.2 on %4d/%02d/%02d %02d:%02d:%02d -->\n",
-		2000 + (lt->tm_year % 100), 1 + lt->tm_mon, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
-	fputs("<RoomAcoustics>\n", fpSaveFile);
-	fputs("<!-- All dimensions in meters, damping in decibels -->\n", fpSaveFile);
+	settings.setValue("MAIN/Sources", m_iNumOfWavFile);
 
-	fputs(" <Source1>\n", fpSaveFile);
-	fprintf(fpSaveFile, " <streamS1  on=\"%d\" file=\"%s\" />\n", mSoundSourceEnable[0] ? 1 : 0, mWavFileNames[0].c_str());
-	fprintf(fpSaveFile, "  <microphone enableMic=\"%d\" trackHeadPos=\"%d\" muteDirectPath=\"%d\" />\n",
-		mSrc1EnableMic, m_isrc1TrackHeadPos, m_isrc1MuteDirectPath);
-	fprintf(fpSaveFile, "  <positionS1 X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", m_SoundSources[0].speakerX, m_SoundSources[0].speakerY, m_SoundSources[0].speakerZ);
-	fputs(" </Source1>\n", fpSaveFile);
+	for(int waveFileIndex(0); waveFileIndex < m_iNumOfWavFile; ++waveFileIndex)
+	{
+		auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
-	for (int i = 1; i < MAX_SOURCES; i++) {
-		fprintf(fpSaveFile, " <Source%d>\n", i + 1);
-		fprintf(fpSaveFile, " <streamS%d  on=\"%d\" file=\"%s\" />\n", i + 1, mSoundSourceEnable[i] ? 1 : 0, mWavFileNames[i].c_str());
-		fprintf(fpSaveFile, "  <positionS%d X=\"%f\" Y=\"%f\" Z=\"%f\"  />\n", i + 1, m_SoundSources[i].speakerX, m_SoundSources[i].speakerY, m_SoundSources[i].speakerZ);
-		fprintf(fpSaveFile, " </Source%d>\n", i + 1);
+		settings.setValue(sourceName.c_str(), mWavFileNames[waveFileIndex].c_str());
+		settings.setValue((sourceName + "ON").c_str(), mSoundSourceEnable[waveFileIndex] ? 1 : 0);
+		if(!waveFileIndex)
+		{
+			settings.setValue((sourceName + "MicEnable").c_str(), mSrc1EnableMic ? 1 : 0);
+			settings.setValue((sourceName + "TracHeadPosition").c_str(), m_isrc1TrackHeadPos ? 1 : 0);
+		}
+
+		settings.setValue((sourceName + "SpeakerX").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerX).c_str());
+		settings.setValue((sourceName + "SpeakerY").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerY).c_str());
+		settings.setValue((sourceName + "SpeakerZ").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerZ).c_str());
 	}
 
-	fputs(" <Listener>\n", fpSaveFile);
-	fprintf(fpSaveFile, "  <positionL1 X=\"%f\" Y=\"%f\" Z=\"%f\" yaw=\"%f\" pitch=\"%f\" roll=\"%f\" />\n",
-		m_Listener.headX, m_Listener.headY, m_Listener.headZ, m_Listener.yaw, m_Listener.pitch, m_Listener.roll);
-	fprintf(fpSaveFile, "  <earSpacing S=\"%f\"/>\n", m_Listener.earSpacing);
+	settings.setValue((std::string("LISTENER/") + "HeadX").c_str(), std::to_string(m_Listener.headX).c_str());
+	settings.setValue((std::string("LISTENER/") + "HeadY").c_str(), std::to_string(m_Listener.headY).c_str());
+	settings.setValue((std::string("LISTENER/") + "HeadZ").c_str(), std::to_string(m_Listener.headZ).c_str());
+	settings.setValue((std::string("LISTENER/") + "Yaw").c_str(), std::to_string(m_Listener.yaw).c_str());
+	settings.setValue((std::string("LISTENER/") + "Pitch").c_str(), std::to_string(m_Listener.pitch).c_str());
+	settings.setValue((std::string("LISTENER/") + "Roll").c_str(), std::to_string(m_Listener.roll).c_str());
 
-	fputs(" </Listener>\n", fpSaveFile);
-	fputs(" <Room>\n", fpSaveFile);
-	fprintf(fpSaveFile, "  <dimensions width=\"%f\" height=\"%f\" length=\"%f\" />\n", m_RoomDefinition.width, m_RoomDefinition.height, m_RoomDefinition.length);
-	fprintf(fpSaveFile, "  <damping left=\"%f\" right=\"%f\" front=\"%f\" back=\"%f\" top=\"%f\" bottom=\"%f\"/>\n",
-		DAMPTODB(m_RoomDefinition.mLeft.damp), DAMPTODB(m_RoomDefinition.mRight.damp), DAMPTODB(m_RoomDefinition.mFront.damp), DAMPTODB(m_RoomDefinition.mBack.damp),
-		DAMPTODB(m_RoomDefinition.mTop.damp), DAMPTODB(m_RoomDefinition.mBottom.damp));
+	settings.setValue((std::string("ROOM/") + "Width").c_str(), std::to_string(m_RoomDefinition.width).c_str());
+	settings.setValue((std::string("ROOM/") + "Height").c_str(), std::to_string(m_RoomDefinition.height).c_str());
+	settings.setValue((std::string("ROOM/") + "Length").c_str(), std::to_string(m_RoomDefinition.length).c_str());
+	settings.setValue((std::string("ROOM/") + "DampLeft").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mLeft.damp)).c_str());
+	settings.setValue((std::string("ROOM/") + "DampRight").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mRight.damp)).c_str());
+	settings.setValue((std::string("ROOM/") + "DampFront").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mFront.damp)).c_str());
+	settings.setValue((std::string("ROOM/") + "DampBack").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mBack.damp)).c_str());
+	settings.setValue((std::string("ROOM/") + "DampTop").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mTop.damp)).c_str());
+	settings.setValue((std::string("ROOM/") + "DampBottom").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mBottom.damp)).c_str());
+
+	settings.setValue((std::string("ROOM/") + "Count").c_str(), std::to_string(m_iNumOfWavFile).c_str());
+	settings.setValue((std::string("ROOM/") + "GPU").c_str(), std::to_string(m_iuseGPU4Room ? 1 : 0).c_str());
+	settings.setValue((std::string("ROOM/") + "Device").c_str(), std::to_string(m_iRoomDeviceID).c_str());
+	settings.setValue((std::string("ROOM/") + "MPr").c_str(), std::to_string(m_iuseMPr4Room).c_str());
 #ifdef RTQ_ENABLED
-	fprintf(fpSaveFile, " <rendering nSources=\"%d\" withGPU=\"%d\" withRTQ=\"%d\" withMPr=\"%d\" withCus=\"%d\"/>\n", m_iNumOfWavFile,
-		m_iuseGPU4Room, m_iuseRTQ4Room, m_iuseMPr4Room, m_iRoomCUCount);
-#else
-	fprintf(fpSaveFile, " <rendering nSources=\"%d\" withGPU=\"%d\" withMPr=\"%d\"/>\n", m_iNumOfWavFile,
-		m_iuseGPU4Room, m_iuseMPr4Room);
-#endif // RTQ_ENABLED
-	fputs(" </Room>\n", fpSaveFile);
-	fputs("<Convolution>\n", fpSaveFile);
-#ifdef RTQ_ENABLED
-	fprintf(fpSaveFile, " <configuration length=\"%d\" buffersize =\"%d\" useGPU=\"%d\" useRTQ=\"%d\" useMPr=\"%d\" cuCount=\"%d\" method=\"%d\"/>\n",
-		m_iConvolutionLength, m_iBufferSize, m_iuseGPU4Conv, m_iuseRTQ4Conv, m_iuseMPr4Conv, m_iConvolutionCUCount, m_eConvolutionMethod);
-#else
-	fprintf(fpSaveFile, " <configuration length=\"%d\" buffersize =\"%d\" useGPU=\"%d\" useMPr=\"%d\" method=\"%d\"/>\n",
-		m_iConvolutionLength, m_iBufferSize, m_iuseGPU4Conv, m_iuseMPr4Conv, m_eConvolutionMethod);
+	settings.setValue((std::string("ROOM/") + "RTQ").c_str(), std::to_string(m_iuseRTQ4Room ? 1 : 0).c_str());
+	settings.setValue((std::string("ROOM/") + "CU").c_str(), std::to_string(m_iRoomCUCount).c_str());
 #endif
-	fputs("</Convolution>\n", fpSaveFile);
-	fputs("</RoomAcoustics>\n", fpSaveFile);
-	fclose(fpSaveFile);
+
+	settings.setValue((std::string("CONVOLUTION/") + "Count").c_str(), std::to_string(m_iNumOfWavFile).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "GPU").c_str(), std::to_string(m_iuseGPU4Conv ? 1 : 0).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "Device").c_str(), std::to_string(m_iConvolutionDeviceID).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "MPr").c_str(), std::to_string(m_iuseMPr4Conv).c_str());
+#ifdef RTQ_ENABLED
+	settings.setValue((std::string("CONVOLUTION/") + "RTQ").c_str(), std::to_string(m_iuseRTQ4Conv ? 1 : 0).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "CU").c_str(), std::to_string(m_iConvolutionCUCount).c_str());
+#endif	
+
+	settings.setValue((std::string("CONVOLUTION/") + "ConvolutionLength").c_str(), std::to_string(m_iConvolutionLength).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "BufferSize").c_str(), std::to_string(m_iBufferSize).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "Method").c_str(), std::to_string(int(m_eConvolutionMethod)).c_str());
+
+	settings.sync();
 }
 
 int RoomAcousticQT::addSoundSource(const std::string& sourcename)
@@ -702,7 +600,6 @@ bool RoomAcousticQT::replaceSoundSource(const std::string& sourcename, int id)
 		{
 			m_isrc1TrackHeadPos = 0;
 			mSrc1EnableMic = false;
-			m_isrc1MuteDirectPath = 0;
 		}
 
 		mWavFileNames[id] = sourcename;
@@ -740,7 +637,6 @@ bool RoomAcousticQT::removeSoundSource(int id)
 			{
 				m_isrc1TrackHeadPos = 0;
 				mSrc1EnableMic = false;
-				m_isrc1MuteDirectPath = 0;
 			}
 
 			// Clean file name

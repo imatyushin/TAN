@@ -51,7 +51,7 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 	ConfigUi.SourcesTable->setRowCount(MAX_SOURCES);
 	ConfigUi.SourcesTable->setColumnCount(1);
 
-	//
+	/*
 	connect(
 		ConfigUi.CB_UseMicroPhone,
 		&QCheckBox::stateChanged,
@@ -59,7 +59,7 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 		{
 			m_RoomAcousticInstance.mSrc1EnableMic = Qt::Checked == state;
 		}
-		);
+		);*/
 
 	// Initialize device
 	for (int i = 0; i < m_RoomAcousticInstance.m_iDeviceCount; i++)
@@ -79,15 +79,16 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 #ifdef _WIN32
 	ConfigUi.PlayerType->addItem(QString::fromUtf8("WASApi"));
 #else
-
 	#if !defined(__APPLE__) && !defined(__MACOSX)
-	ConfigUi.PlayerType->addItem(QString::fromUtf8("ALSA"));
+		ConfigUi.PlayerType->addItem(QString::fromUtf8("ALSA"));
 	#endif
 #endif
 
 #ifdef ENABLE_PORTAUDIO
 	ConfigUi.PlayerType->addItem(QString::fromUtf8("PortAudio"));
 #endif
+
+	on_SourcesTable_cellClicked(-1, -1);
 }
 
 RoomAcousticQTConfig::~RoomAcousticQTConfig()
@@ -117,14 +118,16 @@ void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 	{
 		// Saving the configuration for the last clicked item
 		QTableWidgetItem* last_item = ConfigUi.SourcesTable->item(m_iLastClickedRow, m_iLastClickedCol);
+		
 		int sound_id = last_item->row();
 		if (sound_id == 0)
 		{
-			ConfigUi.CB_TrackHead->isChecked() ? m_RoomAcousticInstance.m_isrc1TrackHeadPos = 1 : m_RoomAcousticInstance.m_isrc1TrackHeadPos = 0;
 			m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked();
+			m_RoomAcousticInstance.m_isrc1TrackHeadPos = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
 		}
 
 		m_RoomAcousticInstance.mSoundSourceEnable[sound_id] = ConfigUi.CB_SoundSourceEnable->isChecked();
+
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerX = ConfigUi.SB_SoundPositionX->value();
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerY = ConfigUi.SB_SoundPositionY->value();
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerZ = ConfigUi.SB_SoundPositionZ->value();
@@ -133,41 +136,72 @@ void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 
 void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 {
-	if (item != NULL && item->text() != "\0")
+	if(item && item->text().length())
 	{
 		// Load the paramter of the latest selected sound source
 		std::string sound_source_name = item->text().toStdString();
 		int id = item->row();
 		if (id == 0)
 		{
-			ConfigUi.CB_TrackHead->setEnabled(true);
+			ConfigUi.CB_UseMicroPhone->setChecked(m_RoomAcousticInstance.mSrc1EnableMic);
 			ConfigUi.CB_UseMicroPhone->setEnabled(true);
+
+			ConfigUi.CB_TrackHead->setChecked(m_RoomAcousticInstance.m_isrc1TrackHeadPos);
+			ConfigUi.CB_TrackHead->setEnabled(true);
 		}
 		else
 		{
-			ConfigUi.CB_TrackHead->setDisabled(true);
-			ConfigUi.CB_UseMicroPhone->setDisabled(true);
+			ConfigUi.CB_TrackHead->setEnabled(false);
+			ConfigUi.CB_TrackHead->setChecked(false);
+
+			ConfigUi.CB_UseMicroPhone->setEnabled(false);
+			ConfigUi.CB_UseMicroPhone->setChecked(false);
 		}
+
+		ConfigUi.SB_SoundPositionX->setEnabled(true);
+		ConfigUi.SB_SoundPositionY->setEnabled(true);
+		ConfigUi.SB_SoundPositionZ->setEnabled(true);
+		
 		setEnableSoundsourceFields(true);
 		m_iCurrentSelectedSource = id;
 
 		m_iLastClickedCol = item->column();
 		m_iLastClickedRow = item->row();
+
 		ConfigUi.RemoveSoundSourceButton->setEnabled(true);
-		ConfigUi.CB_SoundSourceEnable->setEnabled(true);
+
 		ConfigUi.CB_SoundSourceEnable->setChecked(m_RoomAcousticInstance.mSoundSourceEnable[id]);
-		update_sound_position(id, m_RoomAcousticInstance.m_SoundSources[id].speakerX,
+		ConfigUi.CB_SoundSourceEnable->setEnabled(true);
+		
+		update_sound_position(
+			id,
+			m_RoomAcousticInstance.m_SoundSources[id].speakerX,
 			m_RoomAcousticInstance.m_SoundSources[id].speakerY,
-			m_RoomAcousticInstance.m_SoundSources[id].speakerZ);
+			m_RoomAcousticInstance.m_SoundSources[id].speakerZ
+			);
 	}
 	else
 	{
 		// If the slot does not have any sound source, disable the parameter settings.
 		m_iCurrentSelectedSource = -1;
 		setEnableSoundsourceFields(false);
+
 		ConfigUi.RemoveSoundSourceButton->setEnabled(false);
-		ConfigUi.CB_TrackHead->setDisabled(true);
-		ConfigUi.CB_UseMicroPhone->setDisabled(true);
+
+		ConfigUi.CB_TrackHead->setEnabled(false);
+		ConfigUi.CB_TrackHead->setChecked(false);
+
+		ConfigUi.CB_UseMicroPhone->setEnabled(false);
+		ConfigUi.CB_UseMicroPhone->setChecked(false);
+
+		ConfigUi.SB_SoundPositionX->setEnabled(false);
+		ConfigUi.SB_SoundPositionX->setValue(0);
+
+		ConfigUi.SB_SoundPositionY->setEnabled(false);
+		ConfigUi.SB_SoundPositionY->setValue(0);
+		
+		ConfigUi.SB_SoundPositionZ->setEnabled(false);
+		ConfigUi.SB_SoundPositionZ->setValue(0);
 	}
 }
 
@@ -195,22 +229,28 @@ void RoomAcousticQTConfig::updateSoundsourceNames()
 		if (m_RoomAcousticInstance.mWavFileNames[i].length())
 		{
 			// Check the file existance before assign it into the cell
-			std::string name_temp(m_RoomAcousticInstance.mWavFileNames[i]);
-			std::string display_name = name_temp;
+			std::string display_name = m_RoomAcousticInstance.mWavFileNames[i];
 
-			if (!checkFileExist(name_temp))
+			if (!checkFileExist(m_RoomAcousticInstance.mWavFileNames[i]))
 			{
 				display_name += " <Invalid>";
 			}
-			if (i >= m_RoomAcousticInstance.m_iNumOfWavFile)
+
+			if(!m_RoomAcousticInstance.mSoundSourceEnable[i])
 			{
 				display_name += " <Disabled>";
-				m_RoomAcousticInstance.mSoundSourceEnable[i] = false;
 			}
-			else
+
+			if(!i && m_RoomAcousticInstance.mSrc1EnableMic)
 			{
-				m_RoomAcousticInstance.mSoundSourceEnable[i] = true;
+				display_name += " <Mic>";
 			}
+
+			if(!i && m_RoomAcousticInstance.m_isrc1TrackHeadPos)
+			{
+				display_name += " <Trac>";
+			}
+
 			item->setText(QString::fromStdString(display_name));
 
 		}
@@ -314,10 +354,15 @@ void RoomAcousticQTConfig::updateAllFieldsToInstance()
 	m_RoomAcousticInstance.m_Listener.yaw = ConfigUi.SB_HeadYaw->value();
 	m_RoomAcousticInstance.m_Listener.roll = ConfigUi.SB_HeadRoll->value();
 	m_RoomAcousticInstance.m_Listener.earSpacing = ConfigUi.SB_EarSpacing->value();
-	ConfigUi.CB_AutoSpin->isChecked() ? m_RoomAcousticInstance.m_iHeadAutoSpin = 1 : m_RoomAcousticInstance.m_iHeadAutoSpin = 0;
-	ConfigUi.CB_TrackHead->isChecked() ? m_RoomAcousticInstance.m_isrc1TrackHeadPos = 1 : m_RoomAcousticInstance.m_isrc1TrackHeadPos = 0;
+
+	m_RoomAcousticInstance.m_iHeadAutoSpin = ConfigUi.CB_AutoSpin->isChecked() ?  1 : 0;
+	
+	m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked() ? 1 : 0;
+	m_RoomAcousticInstance.m_isrc1TrackHeadPos = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
+	
 	// Porting room definition
 	updateRoomDefinitionToInstance();
+	
 	// Porting room option
 	// If CPU is slected, porting 0 as device id, else porting index
 	ConfigUi.CB_UseGPU4Room->currentText() == "CPU" ? m_RoomAcousticInstance.m_iuseGPU4Room = 0 : m_RoomAcousticInstance.m_iuseGPU4Room = ConfigUi.CB_UseGPU4Room->currentIndex();
@@ -368,8 +413,10 @@ void RoomAcousticQTConfig::printConfiguration()
 			"Source %d: Name: %s, Position: (%f,%f,%f)",
 			i,
 			m_RoomAcousticInstance.mWavFileNames[i].c_str(),
-			m_RoomAcousticInstance.m_SoundSources[i].speakerX, m_RoomAcousticInstance.m_SoundSources[i].speakerY,
-			m_RoomAcousticInstance.m_SoundSources[i].speakerZ);
+			m_RoomAcousticInstance.m_SoundSources[i].speakerX, 
+			m_RoomAcousticInstance.m_SoundSources[i].speakerY,
+			m_RoomAcousticInstance.m_SoundSources[i].speakerZ
+			);
 	}
 
 	// Print Listener configuration
@@ -585,38 +632,53 @@ void RoomAcousticQTConfig::updateTrackedHeadSource()
 void RoomAcousticQTConfig::on_actionLoad_Config_File_triggered()
 {
 	m_RoomAcousticGraphic->clear();
-	std::string fileName = QFileDialog::getOpenFileName(
-		this,
-		tr("Open Configuration File"),
-		m_RoomAcousticInstance.mTANDLLPath.c_str(),
-		tr("Configuration File (*.xml)")
-		).toStdString();
-	if (fileName[0] != '\0')
+
+	QString fileName;
+	
 	{
-		char* filenamecpy = new char[MAX_PATH];
-		std::strncpy(filenamecpy, fileName.c_str(), MAX_PATH);
-		m_RoomAcousticInstance.loadConfiguration(filenamecpy);
+		fileName = QFileDialog::getOpenFileName(
+			this,
+			tr("Open Configuration File"),
+			m_RoomAcousticInstance.mTANDLLPath.c_str(),
+			tr("Configuration File (*.ini)")
+			);
+	}
+
+	if(fileName.length())
+	{
+		m_RoomAcousticInstance.loadConfiguration(fileName.toStdString());
+		
 		updateAllFields();
 		updateRoomGraphic();
 		initSoundSourceGraphic();
 		initListenerGraphics();
-		delete[]filenamecpy;
+
+		if(m_RoomAcousticInstance.m_iNumOfWavFile)
+		{
+			table_selection_changed(0);
+		}
 	}
 }
 /*QT Slots: Triggered when saving configuration file action clicked*/
 void RoomAcousticQTConfig::on_actionSave_Config_File_triggered()
 {
-	std::string fileName = QFileDialog::getSaveFileName(
-		this,
-		tr("Save Configuration File"),
-		m_RoomAcousticInstance.mTANDLLPath.c_str(),
-		tr("Configuration File (*.xml)")
-		).toStdString();
-	char* filenamecpy = new char[MAX_PATH];
-	std::strncpy(filenamecpy, fileName.c_str(), MAX_PATH);
-	updateAllFieldsToInstance();
-	m_RoomAcousticInstance.saveConfiguraiton(filenamecpy);
-	delete[]filenamecpy;
+	QString fileName;
+	
+	{
+		fileName = QFileDialog::getSaveFileName(
+			this,
+			tr("Save Configuration File"),
+			m_RoomAcousticInstance.mTANDLLPath.c_str(),
+			tr("Configuration File (*.ini)")
+			);
+	
+	}
+
+	if(fileName.length())
+	{ 
+		updateAllFieldsToInstance();
+	    m_RoomAcousticInstance.saveConfiguraiton(fileName.toStdString());
+	}
 }
 
 void RoomAcousticQTConfig::on_actionAbout_triggered()
@@ -662,7 +724,6 @@ void RoomAcousticQTConfig::on_SourcesTable_cellClicked(int row, int col)
 {
 	table_selection_changed(row);
 }
-
 
 void RoomAcousticQTConfig::on_CB_TrackHead_stateChanged(int stage)
 {
@@ -1196,7 +1257,9 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 void RoomAcousticQTConfig::table_selection_changed(int index)
 {
 	saveLastSelectedSoundSource();
+
 	QTableWidgetItem* selected_item = ConfigUi.SourcesTable->item(index, 0);
+
 	ConfigUi.SourcesTable->setCurrentItem(selected_item);
 	highlightSelectedSoundSource(selected_item);
 }
@@ -1321,31 +1384,28 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 		tr("WAV File (*.wav)")
 		);
 
-	/*QList<QTableWidgetItem*> selected_sources = ConfigUi.SourcesTable->selectedItems();
-
-	// Try to add sound source without selecting empty slots
-	if (selected_sources.isEmpty())*/
+	int firstIndex(-1);
+	
+	for(int fileNameIndex = 0; fileNameIndex < fileNames.size(); ++fileNameIndex)
 	{
-		for (int i = 0; i < fileNames.size(); i++)
+		int insertedIndex = m_RoomAcousticInstance.addSoundSource(fileNames[fileNameIndex].toStdString());
+
+		if(insertedIndex >= 0)
 		{
-			int index = m_RoomAcousticInstance.addSoundSource(fileNames[i].toStdString());
-			addSoundsourceGraphics(index);
+			addSoundsourceGraphics(insertedIndex);
+
+			if(-1 == firstIndex)
+			{
+				firstIndex = insertedIndex;
+			}
 		}
 	}
-	/*// Try to replace a sound source
-	else
-	{
-		for (int i = 0; i < fileNames.size(); i++)
-		{
-			QTableWidgetItem* item = selected_sources.first();
-			m_RoomAcousticInstance.replaceSoundSource(fileNames[i].toStdString(), item->row());
-			addSoundsourceGraphics(item->row());
-
-			selected_sources.pop_front();
-			if (selected_sources.size() <= 0) break;
-		}
-	}*/
 
 	updateSoundsourceNames();
 	updateAllSoundSourceGraphics();
+
+	if(-1 != firstIndex)
+	{
+		table_selection_changed(firstIndex);
+	}
 }
