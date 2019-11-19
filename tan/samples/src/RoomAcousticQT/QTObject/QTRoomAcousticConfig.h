@@ -24,7 +24,7 @@ private slots:
 	void on_actionExport_Response_triggered();
 	void on_AddSoundSourceButton_clicked();
 	void on_RemoveSoundSourceButton_clicked();
-	void on_SourcesTable_cellClicked(int row, int col);
+	void on_SourcesTable_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn);
 	void on_CB_SoundSourceEnable_stateChanged(int state);
 	void on_CB_UseMicroPhone_stateChanged(int state);
 	void on_CB_TrackHead_stateChanged(int state);

@@ -51,16 +51,6 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 	ConfigUi.SourcesTable->setRowCount(MAX_SOURCES);
 	ConfigUi.SourcesTable->setColumnCount(1);
 
-	/*
-	connect(
-		ConfigUi.CB_UseMicroPhone,
-		&QCheckBox::stateChanged,
-		[this](int state)
-		{
-			m_RoomAcousticInstance.mSrc1EnableMic = Qt::Checked == state;
-		}
-		);*/
-
 	// Initialize device
 	for (int i = 0; i < m_RoomAcousticInstance.m_iDeviceCount; i++)
 	{
@@ -88,7 +78,7 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 	ConfigUi.PlayerType->addItem(QString::fromUtf8("PortAudio"));
 #endif
 
-	on_SourcesTable_cellClicked(-1, -1);
+	table_selection_changed(-1);
 }
 
 RoomAcousticQTConfig::~RoomAcousticQTConfig()
@@ -243,7 +233,7 @@ void RoomAcousticQTConfig::updateSoundsourceNames()
 				display_name += " <Mic>";
 			}
 
-			if(!i && m_RoomAcousticInstance.m_bSrcTrackHead[i])
+			if(m_RoomAcousticInstance.m_bSrcTrackHead[i])
 			{
 				display_name += " <Trac>";
 			}
@@ -719,21 +709,21 @@ void RoomAcousticQTConfig::on_RemoveSoundSourceButton_clicked()
 	m_iCurrentSelectedSource = -1;
 }
 
-void RoomAcousticQTConfig::on_SourcesTable_cellClicked(int row, int col)
+void RoomAcousticQTConfig::on_SourcesTable_currentCellChanged(int row, int currentColumn, int previousRow, int previousColumn)
 {
 	table_selection_changed(row);
 }
 
 void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int state)
 {
-	m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = state ? true : false;
+	//m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = state ? true : false;
 
 	updateSoundsourceNames();
 }
 
 void RoomAcousticQTConfig::on_CB_UseMicroPhone_stateChanged(int state)
 {
-	m_RoomAcousticInstance.mSrc1EnableMic = state ? true : false;
+	//m_RoomAcousticInstance.mSrc1EnableMic = state ? true : false;
 
 	updateSoundsourceNames();
 }
@@ -741,8 +731,8 @@ void RoomAcousticQTConfig::on_CB_UseMicroPhone_stateChanged(int state)
 void RoomAcousticQTConfig::on_CB_TrackHead_stateChanged(int state)
 {
 	ConfigUi.SoundSourcePositionGroup->setEnabled(state ? true : false);
-	m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = state ? true : false;
 	m_RoomAcousticGraphic->m_pSoundSource[m_iCurrentSelectedSource]->setTrackHead(state ? true : false);
+	//m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = state ? true : false;
 
 	updateSoundsourceNames();
 }
