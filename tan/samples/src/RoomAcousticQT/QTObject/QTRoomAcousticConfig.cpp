@@ -123,10 +123,10 @@ void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 		if (sound_id == 0)
 		{
 			m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked();
-			m_RoomAcousticInstance.m_isrc1TrackHeadPos = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
 		}
 
 		m_RoomAcousticInstance.mSoundSourceEnable[sound_id] = ConfigUi.CB_SoundSourceEnable->isChecked();
+		m_RoomAcousticInstance.m_bSrcTrackHead[sound_id] = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
 
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerX = ConfigUi.SB_SoundPositionX->value();
 		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerY = ConfigUi.SB_SoundPositionY->value();
@@ -140,38 +140,28 @@ void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 	{
 		// Load the paramter of the latest selected sound source
 		std::string sound_source_name = item->text().toStdString();
+		
 		int id = item->row();
 		if (id == 0)
 		{
 			ConfigUi.CB_UseMicroPhone->setChecked(m_RoomAcousticInstance.mSrc1EnableMic);
 			ConfigUi.CB_UseMicroPhone->setEnabled(true);
-
-			ConfigUi.CB_TrackHead->setChecked(m_RoomAcousticInstance.m_isrc1TrackHeadPos);
-			ConfigUi.CB_TrackHead->setEnabled(true);
 		}
 		else
 		{
-			ConfigUi.CB_TrackHead->setEnabled(false);
-			ConfigUi.CB_TrackHead->setChecked(false);
-
 			ConfigUi.CB_UseMicroPhone->setEnabled(false);
 			ConfigUi.CB_UseMicroPhone->setChecked(false);
 		}
-
-		ConfigUi.SB_SoundPositionX->setEnabled(true);
-		ConfigUi.SB_SoundPositionY->setEnabled(true);
-		ConfigUi.SB_SoundPositionZ->setEnabled(true);
 		
-		setEnableSoundsourceFields(true);
 		m_iCurrentSelectedSource = id;
-
 		m_iLastClickedCol = item->column();
 		m_iLastClickedRow = item->row();
 
-		ConfigUi.RemoveSoundSourceButton->setEnabled(true);
-
 		ConfigUi.CB_SoundSourceEnable->setChecked(m_RoomAcousticInstance.mSoundSourceEnable[id]);
 		ConfigUi.CB_SoundSourceEnable->setEnabled(true);
+
+		ConfigUi.CB_TrackHead->setChecked(m_RoomAcousticInstance.m_bSrcTrackHead[id]);
+		ConfigUi.CB_TrackHead->setEnabled(true);
 		
 		update_sound_position(
 			id,
@@ -179,29 +169,36 @@ void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 			m_RoomAcousticInstance.m_SoundSources[id].speakerY,
 			m_RoomAcousticInstance.m_SoundSources[id].speakerZ
 			);
+		ConfigUi.SB_SoundPositionX->setEnabled(true);
+		ConfigUi.SB_SoundPositionY->setEnabled(true);
+		ConfigUi.SB_SoundPositionZ->setEnabled(true);
+
+		ConfigUi.RemoveSoundSourceButton->setEnabled(true);
+		
+		ConfigUi.SoundConfigurationGroup->setEnabled(true);
 	}
 	else
 	{
 		// If the slot does not have any sound source, disable the parameter settings.
 		m_iCurrentSelectedSource = -1;
-		setEnableSoundsourceFields(false);
+		
+		ConfigUi.SoundConfigurationGroup->setEnabled(false);
 
-		ConfigUi.RemoveSoundSourceButton->setEnabled(false);
-
+		ConfigUi.CB_SoundSourceEnable->setEnabled(false);
+		ConfigUi.CB_SoundSourceEnable->setChecked(false);
+		ConfigUi.CB_UseMicroPhone->setEnabled(false);
+		ConfigUi.CB_UseMicroPhone->setChecked(false);
 		ConfigUi.CB_TrackHead->setEnabled(false);
 		ConfigUi.CB_TrackHead->setChecked(false);
 
-		ConfigUi.CB_UseMicroPhone->setEnabled(false);
-		ConfigUi.CB_UseMicroPhone->setChecked(false);
-
 		ConfigUi.SB_SoundPositionX->setEnabled(false);
 		ConfigUi.SB_SoundPositionX->setValue(0);
-
 		ConfigUi.SB_SoundPositionY->setEnabled(false);
 		ConfigUi.SB_SoundPositionY->setValue(0);
-		
 		ConfigUi.SB_SoundPositionZ->setEnabled(false);
 		ConfigUi.SB_SoundPositionZ->setValue(0);
+
+		ConfigUi.RemoveSoundSourceButton->setEnabled(false);
 	}
 }
 
@@ -246,7 +243,7 @@ void RoomAcousticQTConfig::updateSoundsourceNames()
 				display_name += " <Mic>";
 			}
 
-			if(!i && m_RoomAcousticInstance.m_isrc1TrackHeadPos)
+			if(!i && m_RoomAcousticInstance.m_bSrcTrackHead[i])
 			{
 				display_name += " <Trac>";
 			}
@@ -333,11 +330,6 @@ void RoomAcousticQTConfig::updateReverbFields()
 	ConfigUi.LB_T120ResponseTime->setText(QString::fromStdString(std::to_string(reverbtime120)));
 }
 
-void RoomAcousticQTConfig::setEnableSoundsourceFields(bool enable)
-{
-	ConfigUi.SoundConfigurationGroup->setEnabled(enable);
-}
-
 void RoomAcousticQTConfig::setEnableHeadPositionFields(bool enable)
 {
 	ConfigUi.HeadPositionGroup->setEnabled(enable);
@@ -358,7 +350,6 @@ void RoomAcousticQTConfig::updateAllFieldsToInstance()
 	m_RoomAcousticInstance.m_iHeadAutoSpin = ConfigUi.CB_AutoSpin->isChecked() ?  1 : 0;
 	
 	m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked() ? 1 : 0;
-	m_RoomAcousticInstance.m_isrc1TrackHeadPos = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
 	
 	// Porting room definition
 	updateRoomDefinitionToInstance();
@@ -410,22 +401,30 @@ void RoomAcousticQTConfig::printConfiguration()
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
 		qInfo(
-			"Source %d: Name: %s, Position: (%f,%f,%f)",
+			"Source %d: Name: %s, Position: (%f,%f,%f), Track: %d",
 			i,
 			m_RoomAcousticInstance.mWavFileNames[i].c_str(),
 			m_RoomAcousticInstance.m_SoundSources[i].speakerX, 
 			m_RoomAcousticInstance.m_SoundSources[i].speakerY,
-			m_RoomAcousticInstance.m_SoundSources[i].speakerZ
+			m_RoomAcousticInstance.m_SoundSources[i].speakerZ,
+			m_RoomAcousticInstance.m_bSrcTrackHead[i]
 			);
 	}
 
 	// Print Listener configuration
 	qInfo("Head Position: %f,%f,%f. Pitch: %f, Yaw: %f, Roll: %f",
-		this->m_RoomAcousticInstance.m_Listener.headX,this->m_RoomAcousticInstance.m_Listener.headY,
-		this->m_RoomAcousticInstance.m_Listener.headZ,this->m_RoomAcousticInstance.m_Listener.pitch,
-		this->m_RoomAcousticInstance.m_Listener.yaw, this->m_RoomAcousticInstance.m_Listener.roll);
-	qInfo("Head Configuration: Auto Spin: %d, Track Head: %d, Ear Spacing: %f", this->m_RoomAcousticInstance.m_iHeadAutoSpin,
-		this->m_RoomAcousticInstance.m_isrc1TrackHeadPos, this->m_RoomAcousticInstance.m_Listener.earSpacing);
+		m_RoomAcousticInstance.m_Listener.headX,
+		m_RoomAcousticInstance.m_Listener.headY,
+		m_RoomAcousticInstance.m_Listener.headZ,
+		
+		m_RoomAcousticInstance.m_Listener.pitch,
+		m_RoomAcousticInstance.m_Listener.yaw, 
+		m_RoomAcousticInstance.m_Listener.roll
+		);
+	qInfo("Head Configuration: Auto Spin: %d, Ear Spacing: %f", 
+	    m_RoomAcousticInstance.m_iHeadAutoSpin,
+		m_RoomAcousticInstance.m_Listener.earSpacing
+		);
 
 	// Print Room Infomation
 	qInfo("Room Definition: width: %f, Height: %f, Length: %f", m_RoomAcousticInstance.m_RoomDefinition.width,
@@ -725,53 +724,27 @@ void RoomAcousticQTConfig::on_SourcesTable_cellClicked(int row, int col)
 	table_selection_changed(row);
 }
 
-void RoomAcousticQTConfig::on_CB_TrackHead_stateChanged(int stage)
+void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int state)
 {
-	if (!ConfigUi.CB_TrackHead->isChecked())
-	{
-		ConfigUi.SoundSourcePositionGroup->setEnabled(true);
-		if (m_iCurrentSelectedSource != -1)
-		{
-			m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = false;
-			m_RoomAcousticGraphic->m_pSoundSource[m_iCurrentSelectedSource]->setTrackHead(false);
-		}
+	m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = state ? true : false;
 
-	}
-	else
-	{
-		ConfigUi.SoundSourcePositionGroup->setEnabled(false);
-		if (m_iCurrentSelectedSource != -1)
-		{
-			m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = true;
-			m_RoomAcousticGraphic->m_pSoundSource[m_iCurrentSelectedSource]->setTrackHead(true);
-		}
-	}
+	updateSoundsourceNames();
 }
 
-void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int stage)
+void RoomAcousticQTConfig::on_CB_UseMicroPhone_stateChanged(int state)
 {
-	if (m_iCurrentSelectedSource >= 0)
-	{
-		if (!stage)
-		{
-			// Current sound source is disabled
-			std::string new_name = m_RoomAcousticInstance.mWavFileNames[m_iCurrentSelectedSource];
-			new_name += " <Disabled>";
+	m_RoomAcousticInstance.mSrc1EnableMic = state ? true : false;
 
-			m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = false;
-			QTableWidgetItem* item = ConfigUi.SourcesTable->item(m_iCurrentSelectedSource, 0);
-			item->setText(QString::fromStdString(new_name));
-		}
-		else
-		{
-			// Current sound source is enabled
-			std::string new_name = m_RoomAcousticInstance.mWavFileNames[m_iCurrentSelectedSource];
+	updateSoundsourceNames();
+}
 
-			m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = true;
-			QTableWidgetItem* item = ConfigUi.SourcesTable->item(m_iCurrentSelectedSource, 0);
-			item->setText(QString::fromStdString(new_name));
-		}
-	}
+void RoomAcousticQTConfig::on_CB_TrackHead_stateChanged(int state)
+{
+	ConfigUi.SoundSourcePositionGroup->setEnabled(state ? true : false);
+	m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = state ? true : false;
+	m_RoomAcousticGraphic->m_pSoundSource[m_iCurrentSelectedSource]->setTrackHead(state ? true : false);
+
+	updateSoundsourceNames();
 }
 
 void RoomAcousticQTConfig::on_CB_AutoSpin_stateChanged(int stage)
@@ -1269,26 +1242,16 @@ void RoomAcousticQTConfig::update_sound_position(int index, float x, float y, fl
 	m_RoomAcousticInstance.m_SoundSources[index].speakerY = y;
 	m_RoomAcousticInstance.m_SoundSources[index].speakerX = x;
 	m_RoomAcousticInstance.m_SoundSources[index].speakerZ = z;
+
 	updateSoundSourceGraphics(index);
-	if (index == m_iCurrentSelectedSource)
+
+	if(index == m_iCurrentSelectedSource)
 	{
-//		// if the sound source is inside the room, then allow user to enable it
-//		if (m_RoomAcousticInstance.isInsideRoom(x, y, z))
-//		{
-//			this->ConfigUi.CB_SoundSourceEnable->setCheckable(true);
-//			this->ConfigUi.CB_SoundSourceEnable->setEnabled(true);
-//		}
-//		// Else, the sound source is automatically disable, and you cannot enable it
-//		// unleass you move the sound source inside the room
-//		else
-//		{
-//			this->ConfigUi.CB_SoundSourceEnable->setCheckable(false);
-//			this->ConfigUi.CB_SoundSourceEnable->setEnabled(false);
-//		}
 		ConfigUi.SB_SoundPositionX->setValue(m_RoomAcousticInstance.m_SoundSources[index].speakerX);
 		ConfigUi.SB_SoundPositionY->setValue(m_RoomAcousticInstance.m_SoundSources[index].speakerY);
 		ConfigUi.SB_SoundPositionZ->setValue(m_RoomAcousticInstance.m_SoundSources[index].speakerZ);
 	}
+
 //	if (m_bDemoStarted && m_RoomAcousticInstance.m_iSoundSourceEnable[index])
 //	{
 //		this->m_RoomAcousticInstance.updateSoundSourcePosition(index);

@@ -25,9 +25,10 @@ private slots:
 	void on_AddSoundSourceButton_clicked();
 	void on_RemoveSoundSourceButton_clicked();
 	void on_SourcesTable_cellClicked(int row, int col);
-	void on_CB_TrackHead_stateChanged(int stage);
-	void on_CB_SoundSourceEnable_stateChanged(int stage);
-	void on_CB_AutoSpin_stateChanged(int stage);
+	void on_CB_SoundSourceEnable_stateChanged(int state);
+	void on_CB_UseMicroPhone_stateChanged(int state);
+	void on_CB_TrackHead_stateChanged(int state);
+	void on_CB_AutoSpin_stateChanged(int state);
 	void on_SB_ConvolutionLength_valueChanged(int value);
 	void on_SB_BufferSize_valueChanged(int value);
 	void on_SB_RoomWidth_valueChanged(double value);
@@ -96,7 +97,6 @@ private:
 	void updateConvolutionFields();
 	void updateListenerFields();								// Update the listener fields
 	void updateReverbFields();									// Use the reverb function in instance and update reverb field
-	void setEnableSoundsourceFields(bool enable);				// set enable for sound source fields
 	void setEnableHeadPositionFields(bool enable);				// set enable for head position fields
 	/************************************************************************************/
 	/*							Graphics Update Function								*/

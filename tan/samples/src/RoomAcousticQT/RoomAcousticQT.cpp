@@ -49,7 +49,7 @@ int RoomAcousticQT::start()
 	// TODO: Need to port the configuration back to the audio3D engine
 
 	//Initialize Audio 3D engine
-	portInfoToEngine();
+	
 	// Since cpu's device id is 0 in this demo, we need to decrease the device id if
 	// you want to run GPU
 	int convolutionDeviceIndex = m_iConvolutionDeviceID;
@@ -67,11 +67,18 @@ int RoomAcousticQT::start()
 	}
 
 	std::vector<std::string> fileNames;
-	fileNames.reserve(m_iNumOfWavFileInternal);
+	std::vector<bool> trackHead;
 
-	for(int nameIndex(0); nameIndex < m_iNumOfWavFileInternal; ++nameIndex)
+	fileNames.reserve(m_iNumOfWavFile);
+	trackHead.reserve(m_iNumOfWavFile);
+
+	for(int nameIndex(0); nameIndex < m_iNumOfWavFile; ++nameIndex)
 	{
-		fileNames.push_back(mWavFileNamesInternal[nameIndex]);
+		if(mWavFileNames[nameIndex].length() && mSoundSourceEnable[nameIndex])
+		{
+			fileNames.push_back(mWavFileNames[nameIndex]);
+			trackHead.push_back(m_bSrcTrackHead[nameIndex]);
+		}
 	}
 
 	int err =  m_pAudioEngine->Init(
@@ -81,7 +88,7 @@ int RoomAcousticQT::start()
 		fileNames,
 
 		mSrc1EnableMic,
-		m_isrc1TrackHeadPos,
+		trackHead,
 
 		m_iConvolutionLength,
 		m_iBufferSize,
@@ -228,12 +235,6 @@ void RoomAcousticQT::initializeAudioPositions()
 		m_SoundSources[idx].speakerY = 1.75;
 
 		mSoundSourceEnable[idx] = true;
-		mWavFileNamesInternal[idx].resize(0);
-	}
-
-	for (int i = 0; i < MAX_SOURCES; i++)
-	{
-		m_iSoundSourceMap[i] = 0;
 	}
 }
 
@@ -248,161 +249,10 @@ void RoomAcousticQT::initializeDevice()
 	m_iDeviceCount = listGpuDeviceNamesWrapper(m_cpDeviceName, MAX_DEVICES);
 }
 
-/*
-bool RoomAcousticQT::parseElement(char* start, char* end, element* elem)
-{
-	bool ok = false;
-	start += elem->name.length() + 1;
-
-	// parse attributes
-	for (int j = 0; j < elem->nAttribs; j++){
-		int len = (int)elem->attriblist[j].name.length();
-		char *p = start;
-		while (p++ < end){
-			if (strncmp(p, elem->attriblist[j].name.c_str(), len) == 0){
-				p += len;
-				while (p < end){
-					if (*p++ == '=')
-						break;
-				}
-				while (p < end){
-					if (*p++ == '\"')
-						break;
-				}
-				switch (elem->attriblist[j].fmt) {
-				case 'f':
-					sscanf_s(p, "%f", (float *)elem->attriblist[j].value);
-					break;
-				case 'i':
-					sscanf_s(p, "%d", (int *)elem->attriblist[j].value);
-					break;
-				case 's':
-				{
-					char *sv = (char *)elem->attriblist[j].value;
-					while (p < end && *p != '\"'){
-						*sv++ = *p++;
-					}
-					*sv = '\0';
-				}
-				break;
-				}
-			}
-		}
-	}
-
-	//parse included elements
-	for (int i = 0; i < elem->nElements; i++){
-		char *s, *e;
-		s = start;
-		e = end;
-		if (findElement(&s, &e, elem->elemList[i].name.c_str())){
-			ok = parseElement(s, e, &elem->elemList[i]);
-		}
-	}
-
-	return ok;
-}
-
-bool RoomAcousticQT::findElement(char** start, char** end, const char* name)
-{
-	bool found = false;
-	char *p = *start;
-	while (p < *end){
-		if (*p == '<')
-		{
-			if (strncmp(p + 1, name, strlen(name)) == 0){
-				*start = p++;
-				int nestcount = 0;
-				while (p < *end){
-					if (p[0] == '<')
-					{
-						if (p[1] == '/')
-						{
-							if (strncmp(p + 2, name, strlen(name)) == 0)
-							{
-								while (p < *end)
-								{
-									if (*p++ == '>')
-										break;
-								}
-								*end = p;
-								found = true;
-							}
-							++p;
-						}
-						++nestcount;
-					}
-					else if (p[0] == '/' && p[1] == '>' && nestcount == 0){
-						p += 2;
-						*end = p;
-						found = true;
-					}
-					++p;
-				}
-			}
-			else {
-				while (p < *end && *p != '>') {
-					++p;
-				}
-			}
-		}
-		else {
-			++p;
-		}
-	}
-	return found;
-}
-*/
-
-void RoomAcousticQT::portInfoToEngine()
-{
-	// Remap the source name so that it maps the audio3D engine
-	int soundnameindex = 0;
-	m_iNumOfWavFileInternal = 0;
-
-	for (int i = 0; i < MAX_SOURCES; i++)
-	{
-		mWavFileNamesInternal[soundnameindex].resize(0);
-
-		if(mWavFileNames[i].length() && mSoundSourceEnable[i])
-		{
-			mWavFileNamesInternal[soundnameindex] = mWavFileNames[i];
-			m_iSoundSourceMap[i] = soundnameindex;
-			soundnameindex++;
-			m_iNumOfWavFileInternal++;
-		}
-	}
-}
-
 void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 {
 	QSettings settings(xmlfilename.c_str(), QSettings::IniFormat);
 	settings.sync();
-
-	//settings.setValue("MAIN/About", "This document was created by AMD RoomAcousticsDemo");
-	//settings.setValue("MAIN/Notes", "All dimensions in meters, damping in decibels");
-
-	/*{
-		time_t dt = {0};
-		struct tm *lt = localtime(&dt);
-
-		char buffer[MAX_PATH] = {0};
-		std::snprintf(buffer,
-			MAX_PATH,
-			"%4d/%02d/%02d %02d:%02d:%02d",
-			2000 + (lt->tm_year % 100), 
-			1 + lt->tm_mon,
-			lt->tm_mday, 
-			lt->tm_hour, 
-			lt->tm_min, 
-			lt->tm_sec
-			);
-
-		settings.setValue(
-			"MAIN/Сreated",
-			buffer
-			);
-	};*/
 
 	m_iNumOfWavFile = settings.value("MAIN/Sources").toInt();
 
@@ -411,13 +261,13 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 		auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
 		mWavFileNames[waveFileIndex] = settings.value(sourceName.c_str()).toString().toStdString();
-		mSoundSourceEnable[waveFileIndex] = settings.value((sourceName + "ON").c_str()).toInt() ? 1 : 0;
 		
+		mSoundSourceEnable[waveFileIndex] = settings.value((sourceName + "ON").c_str()).toInt() ? 1 : 0;
 		if(!waveFileIndex)
 		{
 			mSrc1EnableMic = settings.value((sourceName + "MicEnable").c_str()).toInt() ? 1 : 0;
-			m_isrc1TrackHeadPos = settings.value((sourceName + "TracHeadPosition").c_str()).toInt() ? 1 : 0;
 		}
+		m_bSrcTrackHead[waveFileIndex] = settings.value((sourceName + "TracHeadPosition").c_str()).toInt() ? 1 : 0;
 
 		m_SoundSources[waveFileIndex].speakerX = settings.value((sourceName + "SpeakerX").c_str()).toFloat();
 		m_SoundSources[waveFileIndex].speakerY = settings.value((sourceName + "SpeakerY").c_str()).toFloat();
@@ -501,12 +351,13 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 		auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
 		settings.setValue(sourceName.c_str(), mWavFileNames[waveFileIndex].c_str());
+
 		settings.setValue((sourceName + "ON").c_str(), mSoundSourceEnable[waveFileIndex] ? 1 : 0);
 		if(!waveFileIndex)
 		{
 			settings.setValue((sourceName + "MicEnable").c_str(), mSrc1EnableMic ? 1 : 0);
-			settings.setValue((sourceName + "TracHeadPosition").c_str(), m_isrc1TrackHeadPos ? 1 : 0);
 		}
+		settings.setValue((sourceName + "TracHeadPosition").c_str(), m_bSrcTrackHead[waveFileIndex] ? 1 : 0);
 
 		settings.setValue((sourceName + "SpeakerX").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerX).c_str());
 		settings.setValue((sourceName + "SpeakerY").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerY).c_str());
@@ -582,32 +433,6 @@ int RoomAcousticQT::addSoundSource(const std::string& sourcename)
 	}
 }
 
-bool RoomAcousticQT::replaceSoundSource(const std::string& sourcename, int id)
-{
-	if (id < 0 && id >= MAX_PATH)
-	{
-		return false;
-	}
-	else
-	{
-		m_SoundSources[id].speakerY = 0.0f;
-		m_SoundSources[id].speakerX = 0.0f;
-		m_SoundSources[id].speakerZ = 0.0f;
-
-		mSoundSourceEnable[id] = true;
-
-		if (id == 0)
-		{
-			m_isrc1TrackHeadPos = 0;
-			mSrc1EnableMic = false;
-		}
-
-		mWavFileNames[id] = sourcename;
-
-		return true;
-	}
-}
-
 bool RoomAcousticQT::removeSoundSource(const std::string& sourcename)
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
@@ -631,11 +456,12 @@ bool RoomAcousticQT::removeSoundSource(int id)
 			m_SoundSources[id].speakerY = 0.0f;
 			m_SoundSources[id].speakerX = 0.0f;
 			m_SoundSources[id].speakerZ = 0.0f;
+			
 			mSoundSourceEnable[id] = true;
+			m_bSrcTrackHead[id] = false;
 
 			if (id == 0)
 			{
-				m_isrc1TrackHeadPos = 0;
 				mSrc1EnableMic = false;
 			}
 
@@ -733,9 +559,8 @@ void RoomAcousticQT::updateAllSoundSourcesPosition()
 
 void RoomAcousticQT::updateSoundSourcePosition(int index)
 {
-	int i = m_iSoundSourceMap[index];
 	m_pAudioEngine->updateSourcePosition(
-		i,
+		index,
 		m_SoundSources[index].speakerX,
 		m_SoundSources[index].speakerY,
 		m_SoundSources[index].speakerZ

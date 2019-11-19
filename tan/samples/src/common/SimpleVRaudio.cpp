@@ -23,7 +23,7 @@
 
 #include "../TrueAudioVR/TrueAudioVR.h"
 #include "GpuUtils.h"
-#include "Utilities.h"
+#include "utilities.h"
 #include "cpucaps.h"
 
 #include <time.h>
@@ -247,7 +247,8 @@ int Audio3D::Init
                             inFiles,
 
     bool                    useMicSource,
-    bool                    trackHeadPos,
+    const std::vector<bool> &
+                            trackHeadPos,
 
 	int                     fftLen,
 	int                     bufferSizeInSamples,
@@ -300,8 +301,7 @@ int Audio3D::Init
     m_useOCLOutputPipeline = useGPU_Conv || useGPU_IRGen;
     
     mSrc1EnableMic = useMicSource;
-    mSrc1TrackHeadPos = trackHeadPos;
-
+    mTrackHeadPos = trackHeadPos;
     mBufferSizeInSamples = bufferSizeInSamples;
     mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
 
@@ -1298,18 +1298,15 @@ int Audio3D::UpdateProc()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if(!mStop)
-        {
-            if(mSrc1TrackHeadPos)
-            {
-                sources[0].speakerX = ears.headX;
-                sources[0].speakerY = ears.headY;
-                sources[0].speakerZ = ears.headZ;
-            }
-        }
-
         for(int idx = 0; !mStop && (idx < mWavFiles.size()); idx++)
         {
+            if(mTrackHeadPos[idx])
+            {
+                sources[idx].speakerX = ears.headX;
+                sources[idx].speakerY = ears.headY;
+                sources[idx].speakerZ = ears.headZ;
+            }
+
             if(mUseClMemBufs)
             {
                 m_pTAVR->generateRoomResponse(

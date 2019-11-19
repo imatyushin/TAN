@@ -22,7 +22,7 @@
 
 #include "audiovr.h"
 #include "gpuutils.h"
-#include "Utilities.h"
+#include "utilities.h"
 
 #include <time.h>
 #include <process.h>

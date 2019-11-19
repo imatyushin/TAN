@@ -73,7 +73,8 @@ public:
 
         // Source 1 can optionally be captured audio from default microphone:
         bool                    useMicSource,
-        bool                    trackHeadPos,
+        const std::vector<bool> &
+                                trackHeadPos,
 
         int                     fftLen,
         int                     bufSize,
@@ -133,7 +134,9 @@ protected:
     bool m_useOCLOutputPipeline;
 
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
-	std::vector<WavContent>     mWavFiles;
+	
+    std::vector<WavContent>     mWavFiles;
+    std::vector<bool>           mTrackHeadPos;
 
     //Timer                       mRealtimeTimer;
 
@@ -154,7 +157,6 @@ protected:
 	StereoListener ears;
 
     bool mSrc1EnableMic = false;
-    bool mSrc1TrackHeadPos = false;
     bool mSrc1MuteDirectPath = false;
 
     AllignedAllocator<float, 32>mResponseBufferStorage;

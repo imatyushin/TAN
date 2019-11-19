@@ -34,7 +34,6 @@ using namespace amf;
 #include "wav.h"
 
 #include "utilities.h"
-
 #include "samples/src/GPUUtilities/GpuUtilities.h"
 const uint32_t c_modesCnt = 2;
 

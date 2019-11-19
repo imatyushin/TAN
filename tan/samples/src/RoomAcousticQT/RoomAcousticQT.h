@@ -19,7 +19,6 @@ public:
 	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
 
 	int addSoundSource(const std::string& sourcename);							// Add a sound source in the audio engine
-	bool replaceSoundSource(const std::string& sourcename, int id);				// Replace a sound source in the audio engine given its ID. Return true if success
 	bool removeSoundSource(const std::string& sourcename);						// Remove a sound source in the audio engine, return true if success
 	bool removeSoundSource(int id);
 	int  findSoundSource(const std::string& sourcename);						// Given the sound source name, find the corresponding soundsource ID,
@@ -55,9 +54,6 @@ private:
 	void initializeAudioPositions();
 
 	void initializeDevice();													// Initialize TAN device (Convolution, FFT, etc.)
-	bool parseElement(char *start, char *end, struct element *elem);			// Function used to parse XML file. Used in load configruation
-	bool findElement(char **start, char **end, const char *name);						// Function used to parse XML file
-	void portInfoToEngine();													// Port all the configuration to engine
 
 //todo: make accessors
 public:
@@ -76,11 +72,9 @@ public:
 	/*Sound Source*/
 	MonoSource m_SoundSources[MAX_SOURCES];								// All of the sound sources
 	bool mSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
-	int m_iSoundSourceMap[MAX_SOURCES];
 	int m_bSrcTrackHead[MAX_SOURCES];
 
 	bool mSrc1EnableMic = false;
-	int m_isrc1TrackHeadPos = 0;
 
 	/*Device*/
 	char* m_cpDeviceName[MAX_DEVICES];									// Device names
@@ -113,9 +107,5 @@ public:
 	
 	bool mCLRoomOverGPU = false;
 	bool mCLConvolutionOverGPU = false;
-
-private:
-	std::string mWavFileNamesInternal[MAX_SOURCES];							// Internal wav file name, used to pass valid source file into Audio3D engine
-	int m_iNumOfWavFileInternal = 0;
 };
 
