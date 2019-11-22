@@ -65,8 +65,9 @@ int main(int argc, char* argv[])
 
     #ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
-        typedef int(__cdecl *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
-        listGpuDeviceNamesType listGpuDeviceNames = nullptr;
+        
+		typedef int (GPUUTILITIES_CDECL_CALL  *listTanDevicesAndCapsType)(TanDeviceCapabilities **deviceList, int *count);
+		listTanDevicesAndCapsType listTanDevicesAndCaps = nullptr;
 
         GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
         if (NULL != GPUUtilitiesDll)
@@ -78,7 +79,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                MessageBoxA(NULL, "NOT FOUND listGpuDeviceNames", "GPUUtils...", MB_ICONERROR);
+                MessageBoxA(NULL, "NOT FOUND listTanDevicesAndCaps", "GPUUtils...", MB_ICONERROR);
             }
         }
         else
