@@ -101,7 +101,10 @@ if(NOT WIN32)
   target_compile_options(TrueAudioVR PUBLIC -mavx2)
   target_compile_options(TrueAudioVR PUBLIC -mfma)
   target_compile_options(TrueAudioVR PUBLIC -msse4.2)
-  target_compile_options(TrueAudioVR PUBLIC -g) #todo: to Debug only
+
+  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+    target_compile_options(TrueAudioVR PUBLIC -g)
+  endif()
   
   if(NOT APPLE)
     target_compile_options(TrueAudioVR PUBLIC -Wpsabi)

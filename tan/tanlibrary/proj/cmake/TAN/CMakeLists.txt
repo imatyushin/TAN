@@ -36,7 +36,10 @@ ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
-ADD_DEFINITIONS(-D_DEBUG)
+
+if(CMAKE_BUILD_TYPE EQUAL "Debug")
+    ADD_DEFINITIONS(-D_DEBUG)
+endif()
 
 include_directories(../../../../../amf)
 include_directories(../../../..)
@@ -174,7 +177,10 @@ if(NOT WIN32)
   target_compile_options(TrueAudioNext PUBLIC -mavx2)
   target_compile_options(TrueAudioNext PUBLIC -mfma)
   target_compile_options(TrueAudioNext PUBLIC -msse4.2)
-  target_compile_options(TrueAudioNext PUBLIC -g) #todo: to Debug only
+
+  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+    target_compile_options(TrueAudioNext PUBLIC -g)
+  endif()
   
   if(NOT APPLE)
     target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
