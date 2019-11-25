@@ -69,6 +69,6 @@ add_library(
 target_link_libraries(GPUUtilities amf)
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
   target_compile_options(GPUUtilities PUBLIC -g)
 endif()

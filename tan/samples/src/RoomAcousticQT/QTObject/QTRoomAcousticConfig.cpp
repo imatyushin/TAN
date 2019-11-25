@@ -101,6 +101,11 @@ void RoomAcousticQTConfig::Init()
 
 void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
 	// save selected item on the graphcis scene
 
 	// Save last selected item on the table widget
@@ -126,6 +131,8 @@ void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 
 void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 {
+	mLockUpdate = true;
+
 	if(item && item->text().length())
 	{
 		// Load the paramter of the latest selected sound source
@@ -190,6 +197,8 @@ void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 
 		ConfigUi.RemoveSoundSourceButton->setEnabled(false);
 	}
+
+	mLockUpdate = false;
 }
 
 void RoomAcousticQTConfig::updateAllFields()
@@ -202,6 +211,11 @@ void RoomAcousticQTConfig::updateAllFields()
 
 void RoomAcousticQTConfig::updateSoundsourceNames()
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
 	// Update Fields in list view
 
 	for (unsigned int i = 0; i < MAX_SOURCES; i++)
@@ -620,8 +634,6 @@ void RoomAcousticQTConfig::updateTrackedHeadSource()
 /*QT Slots: Triggered when loading configuration file action clicked*/
 void RoomAcousticQTConfig::on_actionLoad_Config_File_triggered()
 {
-	m_RoomAcousticGraphic->clear();
-
 	QString fileName;
 	
 	{
@@ -635,6 +647,7 @@ void RoomAcousticQTConfig::on_actionLoad_Config_File_triggered()
 
 	if(fileName.length())
 	{
+		m_RoomAcousticGraphic->clear();
 		m_RoomAcousticInstance.loadConfiguration(fileName.toStdString());
 		
 		updateAllFields();
@@ -718,6 +731,7 @@ void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int state)
 {
 	//m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = state ? true : false;
 
+	saveLastSelectedSoundSource();
 	updateSoundsourceNames();
 }
 
@@ -725,6 +739,7 @@ void RoomAcousticQTConfig::on_CB_UseMicroPhone_stateChanged(int state)
 {
 	//m_RoomAcousticInstance.mSrc1EnableMic = state ? true : false;
 
+	saveLastSelectedSoundSource();
 	updateSoundsourceNames();
 }
 
@@ -734,6 +749,12 @@ void RoomAcousticQTConfig::on_CB_TrackHead_stateChanged(int state)
 	m_RoomAcousticGraphic->m_pSoundSource[m_iCurrentSelectedSource]->setTrackHead(state ? true : false);
 	//m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = state ? true : false;
 
+	#ifdef _DEBUG
+	    int i = 0;
+		++i;
+	#endif
+
+	saveLastSelectedSoundSource();
 	updateSoundsourceNames();
 }
 

@@ -102,7 +102,7 @@ if(NOT WIN32)
   target_compile_options(TrueAudioVR PUBLIC -mfma)
   target_compile_options(TrueAudioVR PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(TrueAudioVR PUBLIC -g)
   endif()
   

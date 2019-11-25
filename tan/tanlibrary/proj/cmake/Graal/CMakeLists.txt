@@ -32,6 +32,9 @@ include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor
 #  ../../../src/Graal/GraalUtil.cl
 #  )
 
+# library name
+project(Graal)
+
 include_directories(../../../../../amf)
 include_directories(../../../..)
 include_directories(../../../../common)
@@ -40,9 +43,6 @@ ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DCLFFT_EXPORTS)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
-
-# library name
-project(Graal)
 
 # sources
 set(
@@ -132,7 +132,7 @@ if(NOT WIN32)
   target_compile_options(Graal PUBLIC -mfma)
   target_compile_options(Graal PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(Graal PUBLIC -g)
   endif()
 

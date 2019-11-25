@@ -21,10 +21,6 @@ include_directories(../../../src/clFFT-master/src/include)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
-    ADD_DEFINITIONS(-D_DEBUG)
-endif()
-
 # sources
 set(
   SOURCE_LIB
@@ -87,7 +83,7 @@ if(NOT WIN32)
   target_compile_options(clFFT-master PUBLIC -mfma)
   target_compile_options(clFFT-master PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(clFFT-master PUBLIC -g)
   endif()
   

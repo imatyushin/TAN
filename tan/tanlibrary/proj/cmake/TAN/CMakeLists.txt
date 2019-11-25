@@ -37,10 +37,6 @@ ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
-    ADD_DEFINITIONS(-D_DEBUG)
-endif()
-
 include_directories(../../../../../amf)
 include_directories(../../../..)
 
@@ -178,7 +174,7 @@ if(NOT WIN32)
   target_compile_options(TrueAudioNext PUBLIC -mfma)
   target_compile_options(TrueAudioNext PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(TrueAudioNext PUBLIC -g)
   endif()
   

@@ -75,10 +75,6 @@ include_directories(../../../src/RoomAcousticQT/QTObject)
 
 #ADD_DEFINITIONS(-DRTQ_ENABLED)
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
-    ADD_DEFINITIONS(-D_DEBUG)
-endif()
-
 # sources
 set(
   SOURCE_EXE
@@ -214,7 +210,7 @@ if(NOT WIN32)
   target_compile_options(RoomAcousticsQT PUBLIC -mfma)
   target_compile_options(RoomAcousticsQT PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE EQUAL "Debug" OR CMAKE_BUILD_TYPE EQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(RoomAcousticsQT PUBLIC -g)
   endif()
 

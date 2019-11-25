@@ -56,8 +56,6 @@ private slots:
 	void on_CB_UseGPU4Conv_currentIndexChanged(int index);
 	void on_CB_ConvMethod_currentIndexChanged(int index);
 	void on_RB_DEF4Room_clicked();
-
-
 	void on_RB_DEF4Conv_clicked();
 #ifdef RTQ_ENABLED
 	void on_RB_MPr4Room_clicked();
@@ -81,8 +79,8 @@ public:
 	RoomAcousticQTConfig(QWidget *parent = 0);
 	~RoomAcousticQTConfig();
 	void Init();
-private:
 
+private:
 	void initSoundSourceGraphic();								// Initialize the soundsource graphcis(icon)
 	void initListenerGraphics();								// Initialize the listener graphcis(icon)
 	void saveLastSelectedSoundSource();							// Save the last selected item's info
@@ -91,6 +89,7 @@ private:
 	/*								GUI Functions			 							*/
 	/************************************************************************************/
 	/*				Function below update the value in instance to gui					*/
+	void clear();
 	void updateAllFields();
 	void updateSoundsourceNames();
 	void updateRoomDefinitionFields();
@@ -137,9 +136,10 @@ private:
 	int m_iLastClickedCol = -1;									// Would be zero
 	int m_iCurrentSelectedSource = -1;
 	bool m_bDemoStarted = false;								// Flag that identifies the demo starting state
-	QTimeLine* m_pHeadAnimationTimeline;
+	QTimeLine* m_pHeadAnimationTimeline = nullptr;
 
-	QTimer *mTimer;
+	QTimer *mTimer = nullptr;
+	bool mLockUpdate = false;
 };
 
 

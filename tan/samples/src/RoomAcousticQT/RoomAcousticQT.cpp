@@ -256,8 +256,16 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 
 	m_iNumOfWavFile = settings.value("MAIN/Sources").toInt();
 
-	for(int waveFileIndex(0); waveFileIndex < m_iNumOfWavFile; ++waveFileIndex)
+	for(int waveFileIndex(0); waveFileIndex < MAX_SOURCES; ++waveFileIndex)
 	{
+		if(waveFileIndex > m_iNumOfWavFile)
+		{
+			mWavFileNames[waveFileIndex].resize(0);
+			mSoundSourceEnable[waveFileIndex] = false;
+
+			continue;
+		}
+		
 		auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
 		mWavFileNames[waveFileIndex] = settings.value(sourceName.c_str()).toString().toStdString();
