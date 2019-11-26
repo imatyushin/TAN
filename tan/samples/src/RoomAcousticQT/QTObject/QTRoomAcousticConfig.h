@@ -83,14 +83,13 @@ public:
 private:
 	void initSoundSourceGraphic();								// Initialize the soundsource graphcis(icon)
 	void initListenerGraphics();								// Initialize the listener graphcis(icon)
-	void saveLastSelectedSoundSource();							// Save the last selected item's info
-	void highlightSelectedSoundSource(QTableWidgetItem* item);	// Trasfer the focus to the current selected item
 	/************************************************************************************/
 	/*								GUI Functions			 							*/
 	/************************************************************************************/
 	/*				Function below update the value in instance to gui					*/
 	void clear();
 	void updateAllFields();
+	void updateSelectedSoundSource();							// Trasfer the focus to the current selected item
 	void updateSoundsourceNames();
 	void updateRoomDefinitionFields();
 	void updateConvolutionFields();
@@ -108,11 +107,13 @@ private:
 	void addListenerGraphics();									// add Listener into graphcis
 	void removeSoundsourceGraphics(int index);					// remove sound source from graphics
 	/************************************************************************************/
-	/*							Instance Update Function								*/
+	/*							Params Store Functions                                  */
 	/************************************************************************************/
-	void updateTrackedHeadSource();
-	void updateAllFieldsToInstance();							// Porting all configuration from UI to instance
-	void updateRoomDefinitionToInstance();						// Porting room definition from UI to instance
+	void storeSelectedSoundSource();							// Save the last selected item's info
+	void storeTrackedHeadSource();
+	void storeAllFieldsToInstance();							// Porting all configuration from UI to instance
+	void storeListenerPosition();
+	void storeRoomDefinitionToInstance();						// Porting room definition from UI to instance
 	/************************************************************************************/
 	/*									Debug											*/
 	/************************************************************************************/
@@ -132,8 +133,6 @@ private:
 	RoomAcousticQT m_RoomAcousticInstance;						// The main room acoustic instance
 
 	RoomAcousticGraphic* m_RoomAcousticGraphic;
-	int m_iLastClickedRow = -1;									// Record the last selected sound source id, Initially
-	int m_iLastClickedCol = -1;									// Would be zero
 	int m_iCurrentSelectedSource = -1;
 	bool m_bDemoStarted = false;								// Flag that identifies the demo starting state
 	QTimeLine* m_pHeadAnimationTimeline = nullptr;

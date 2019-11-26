@@ -51,7 +51,7 @@ private:
 	
 	void initializeRoom();														// Initialize TAN Room definition
 	void initializeListener();													// Initialize TAN listener profile
-	void initializeAudioPositions();
+	void initializeAudioPosition(int index);
 
 	void initializeDevice();													// Initialize TAN device (Convolution, FFT, etc.)
 
@@ -73,7 +73,6 @@ public:
 	MonoSource m_SoundSources[MAX_SOURCES];								// All of the sound sources
 	bool mSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
 	int m_bSrcTrackHead[MAX_SOURCES];
-
 	bool mSrc1EnableMic = false;
 
 	/*Device*/

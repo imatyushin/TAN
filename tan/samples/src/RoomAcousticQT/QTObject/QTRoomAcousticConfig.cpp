@@ -99,7 +99,7 @@ void RoomAcousticQTConfig::Init()
 	show();
 }
 
-void RoomAcousticQTConfig::saveLastSelectedSoundSource()
+void RoomAcousticQTConfig::storeSelectedSoundSource()
 {
 	if(mLockUpdate)
 	{
@@ -109,37 +109,33 @@ void RoomAcousticQTConfig::saveLastSelectedSoundSource()
 	// save selected item on the graphcis scene
 
 	// Save last selected item on the table widget
-	if (m_iLastClickedRow >= 0 && m_iLastClickedCol >= 0)
+	if(m_iCurrentSelectedSource >= 0 && m_iCurrentSelectedSource < MAX_SOURCES)
 	{
-		// Saving the configuration for the last clicked item
-		QTableWidgetItem* last_item = ConfigUi.SourcesTable->item(m_iLastClickedRow, m_iLastClickedCol);
-		
-		int sound_id = last_item->row();
-		if (sound_id == 0)
+		m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = ConfigUi.CB_SoundSourceEnable->isChecked();
+		if(!m_iCurrentSelectedSource)
 		{
 			m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked();
 		}
+		m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
 
-		m_RoomAcousticInstance.mSoundSourceEnable[sound_id] = ConfigUi.CB_SoundSourceEnable->isChecked();
-		m_RoomAcousticInstance.m_bSrcTrackHead[sound_id] = ConfigUi.CB_TrackHead->isChecked() ? 1 : 0;
+		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerX = ConfigUi.SB_SoundPositionX->value();
+		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerY = ConfigUi.SB_SoundPositionY->value();
+		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerZ = ConfigUi.SB_SoundPositionZ->value();
 
-		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerX = ConfigUi.SB_SoundPositionX->value();
-		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerY = ConfigUi.SB_SoundPositionY->value();
-		m_RoomAcousticInstance.m_SoundSources[sound_id].speakerZ = ConfigUi.SB_SoundPositionZ->value();
+		if(m_bDemoStarted)
+		{
+			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
+		}
 	}
 }
 
-void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
+void RoomAcousticQTConfig::updateSelectedSoundSource()
 {
 	mLockUpdate = true;
 
-	if(item && item->text().length())
+	if(m_iCurrentSelectedSource >= 0 && m_iCurrentSelectedSource < m_RoomAcousticInstance.m_iNumOfWavFile)
 	{
-		// Load the paramter of the latest selected sound source
-		std::string sound_source_name = item->text().toStdString();
-		
-		int id = item->row();
-		if (id == 0)
+		if(!m_iCurrentSelectedSource)
 		{
 			ConfigUi.CB_UseMicroPhone->setChecked(m_RoomAcousticInstance.mSrc1EnableMic);
 			ConfigUi.CB_UseMicroPhone->setEnabled(true);
@@ -149,22 +145,18 @@ void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 			ConfigUi.CB_UseMicroPhone->setEnabled(false);
 			ConfigUi.CB_UseMicroPhone->setChecked(false);
 		}
-		
-		m_iCurrentSelectedSource = id;
-		m_iLastClickedCol = item->column();
-		m_iLastClickedRow = item->row();
 
-		ConfigUi.CB_SoundSourceEnable->setChecked(m_RoomAcousticInstance.mSoundSourceEnable[id]);
+		ConfigUi.CB_SoundSourceEnable->setChecked(m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource]);
 		ConfigUi.CB_SoundSourceEnable->setEnabled(true);
 
-		ConfigUi.CB_TrackHead->setChecked(m_RoomAcousticInstance.m_bSrcTrackHead[id]);
+		ConfigUi.CB_TrackHead->setChecked(m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource]);
 		ConfigUi.CB_TrackHead->setEnabled(true);
 		
 		update_sound_position(
-			id,
-			m_RoomAcousticInstance.m_SoundSources[id].speakerX,
-			m_RoomAcousticInstance.m_SoundSources[id].speakerY,
-			m_RoomAcousticInstance.m_SoundSources[id].speakerZ
+			m_iCurrentSelectedSource,
+			m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerX,
+			m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerY,
+			m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerZ
 			);
 		ConfigUi.SB_SoundPositionX->setEnabled(true);
 		ConfigUi.SB_SoundPositionY->setEnabled(true);
@@ -176,9 +168,6 @@ void RoomAcousticQTConfig::highlightSelectedSoundSource(QTableWidgetItem* item)
 	}
 	else
 	{
-		// If the slot does not have any sound source, disable the parameter settings.
-		m_iCurrentSelectedSource = -1;
-		
 		ConfigUi.SoundConfigurationGroup->setEnabled(false);
 
 		ConfigUi.CB_SoundSourceEnable->setEnabled(false);
@@ -227,10 +216,12 @@ void RoomAcousticQTConfig::updateSoundsourceNames()
 			ConfigUi.SourcesTable->setItem(i, 0, item);
 		}
 
-		if (m_RoomAcousticInstance.mWavFileNames[i].length())
+		std::string display_name = "";
+
+		if(m_RoomAcousticInstance.mWavFileNames[i].length())
 		{
 			// Check the file existance before assign it into the cell
-			std::string display_name = m_RoomAcousticInstance.mWavFileNames[i];
+			display_name = m_RoomAcousticInstance.mWavFileNames[i];
 
 			if (!checkFileExist(m_RoomAcousticInstance.mWavFileNames[i]))
 			{
@@ -251,25 +242,27 @@ void RoomAcousticQTConfig::updateSoundsourceNames()
 			{
 				display_name += " <Trac>";
 			}
-
-			item->setText(QString::fromStdString(display_name));
-
 		}
+		
+		item->setText(QString::fromStdString(display_name));
 	}
 }
 
 void RoomAcousticQTConfig::updateRoomDefinitionFields()
 {
+	mLockUpdate = true;
+	
+	ConfigUi.SB_RoomWidth->setValue(m_RoomAcousticInstance.m_RoomDefinition.width);
 	ConfigUi.SB_RoomHeight->setValue(m_RoomAcousticInstance.m_RoomDefinition.height);
 	ConfigUi.SB_RoomLength->setValue(m_RoomAcousticInstance.m_RoomDefinition.length);
-	ConfigUi.SB_RoomWidth->setValue(m_RoomAcousticInstance.m_RoomDefinition.width);
+	
 	// Update the damping factor to UI
 	ConfigUi.SB_RoomDampFront->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mFront.damp));
+	ConfigUi.SB_RoomDampBack->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mBack.damp));
 	ConfigUi.SB_RoomDampLeft->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mLeft.damp));
 	ConfigUi.SB_RoomDampRight->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mRight.damp));
 	ConfigUi.SB_RoomDampTop->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mTop.damp));
 	ConfigUi.SB_RoomDampBottom->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mBottom.damp));
-	ConfigUi.SB_RoomDampBack->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mBack.damp));
 
 	m_RoomAcousticInstance.m_iuseGPU4Room == 0 ? ConfigUi.CB_UseGPU4Room->setCurrentIndex(0) : ConfigUi.CB_UseGPU4Room->setCurrentIndex(1);
 
@@ -278,10 +271,14 @@ void RoomAcousticQTConfig::updateRoomDefinitionFields()
 	m_RoomAcousticInstance.m_iuseRTQ4Room == 0 ? ConfigUi.RB_RTQ4Room->setChecked(false) : ConfigUi.RB_MPr4Room->setChecked(true);
 	ConfigUi.SB_RoomCU->setValue(m_RoomAcousticInstance.m_iRoomCUCount);
 #endif // RTQ_ENABLED
+
+	mLockUpdate = false;
 }
 
 void RoomAcousticQTConfig::updateConvolutionFields()
 {
+	mLockUpdate = true;
+
 	ConfigUi.SB_ConvolutionLength->setValue(m_RoomAcousticInstance.m_iConvolutionLength);
 	ConfigUi.SB_BufferSize->setValue(m_RoomAcousticInstance.m_iBufferSize);
 	ConfigUi.LB_ConvolutionTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getConvolutionTime())));
@@ -312,22 +309,34 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 	ConfigUi.SB_ConvCU->setValue(m_RoomAcousticInstance.m_iConvolutionCUCount);
 #endif // RTQ_ENABLED
 
+	mLockUpdate = false;
 }
 
 void RoomAcousticQTConfig::updateListenerFields()
 {
+	mLockUpdate = true;
+
 	ConfigUi.SB_HeadPositionX->setValue(m_RoomAcousticInstance.m_Listener.headX);
 	ConfigUi.SB_HeadPositionY->setValue(m_RoomAcousticInstance.m_Listener.headY);
 	ConfigUi.SB_HeadPositionZ->setValue(m_RoomAcousticInstance.m_Listener.headZ);
+	
+	ConfigUi.SB_HeadYaw->setValue(m_RoomAcousticInstance.m_Listener.yaw);
+	ConfigUi.SB_HeadPitch->setValue(m_RoomAcousticInstance.m_Listener.pitch);
+	ConfigUi.SB_HeadRoll->setValue(m_RoomAcousticInstance.m_Listener.roll);
+
 	ConfigUi.SB_EarSpacing->setValue(m_RoomAcousticInstance.m_Listener.earSpacing);
+
+	mLockUpdate = false;
 }
 
 void RoomAcousticQTConfig::updateReverbFields()
 {
-	int nReflection60;
-	int nReflection120;
+	int nReflection60(0);
 	float reverbtime60 = m_RoomAcousticInstance.getReverbTime(60, &nReflection60);
+	
+	int nReflection120(0);
 	float reverbtime120 = m_RoomAcousticInstance.getReverbTime(120, &nReflection120);
+	
 	ConfigUi.LB_T60Reflection->setText(QString::fromStdString(std::to_string(nReflection60)));
 	ConfigUi.LB_T120Reflection->setText(QString::fromStdString(std::to_string(nReflection120)));
 	ConfigUi.LB_T60ResponseTime->setText(QString::fromStdString(std::to_string(reverbtime60)));
@@ -339,33 +348,23 @@ void RoomAcousticQTConfig::setEnableHeadPositionFields(bool enable)
 	ConfigUi.HeadPositionGroup->setEnabled(enable);
 }
 
-void RoomAcousticQTConfig::updateAllFieldsToInstance()
+void RoomAcousticQTConfig::storeAllFieldsToInstance()
 {
-	// Since wave file names are handled, we only need to port in the other stuff
-	// Porting Listener configuration
-	m_RoomAcousticInstance.m_Listener.headX = ConfigUi.SB_HeadPositionX->value();
-	m_RoomAcousticInstance.m_Listener.headY = ConfigUi.SB_HeadPositionY->value();
-	m_RoomAcousticInstance.m_Listener.headZ = ConfigUi.SB_HeadPositionZ->value();
-	m_RoomAcousticInstance.m_Listener.pitch = ConfigUi.SB_HeadPitch->value();
-	m_RoomAcousticInstance.m_Listener.yaw = ConfigUi.SB_HeadYaw->value();
-	m_RoomAcousticInstance.m_Listener.roll = ConfigUi.SB_HeadRoll->value();
-	m_RoomAcousticInstance.m_Listener.earSpacing = ConfigUi.SB_EarSpacing->value();
+	if(mLockUpdate)
+	{
+		return;
+	}
 
-	m_RoomAcousticInstance.m_iHeadAutoSpin = ConfigUi.CB_AutoSpin->isChecked() ?  1 : 0;
+	storeSelectedSoundSource();
+	storeListenerPosition();
+	storeRoomDefinitionToInstance();
 	
-	m_RoomAcousticInstance.mSrc1EnableMic = ConfigUi.CB_UseMicroPhone->isChecked() ? 1 : 0;
-	
-	// Porting room definition
-	updateRoomDefinitionToInstance();
-	
-	// Porting room option
-	// If CPU is slected, porting 0 as device id, else porting index
-	ConfigUi.CB_UseGPU4Room->currentText() == "CPU" ? m_RoomAcousticInstance.m_iuseGPU4Room = 0 : m_RoomAcousticInstance.m_iuseGPU4Room = ConfigUi.CB_UseGPU4Room->currentIndex();
-
-
-	// Porting convolution configuration
-	// If CPU is selected, porting 0 as device id, else porting index
-	ConfigUi.CB_UseGPU4Conv->currentText() == "CPU" ? m_RoomAcousticInstance.m_iuseGPU4Conv = 0 : m_RoomAcousticInstance.m_iuseGPU4Conv = ConfigUi.CB_UseGPU4Conv->currentIndex();
+	m_RoomAcousticInstance.m_iuseGPU4Room = !ConfigUi.CB_UseGPU4Room->currentIndex() 
+	    ? 0 
+		: ConfigUi.CB_UseGPU4Room->currentIndex();
+	m_RoomAcousticInstance.m_iuseGPU4Conv = !ConfigUi.CB_UseGPU4Conv->currentIndex() 
+	    ? 0 
+		: ConfigUi.CB_UseGPU4Conv->currentIndex();
 
 	m_RoomAcousticInstance.m_iConvolutionLength = ConfigUi.SB_ConvolutionLength->value();
 	m_RoomAcousticInstance.m_eConvolutionMethod = m_RoomAcousticInstance.getConvMethodFlag(ConfigUi.CB_ConvMethod->currentText().toStdString());
@@ -382,11 +381,42 @@ void RoomAcousticQTConfig::updateAllFieldsToInstance()
 	m_RoomAcousticInstance.mPlayerName = ConfigUi.PlayerType->currentText().toStdString();
 }
 
-void RoomAcousticQTConfig::updateRoomDefinitionToInstance()
+void RoomAcousticQTConfig::storeListenerPosition()
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
+	// Since wave file names are handled, we only need to port in the other stuff
+	// Porting Listener configuration
+	m_RoomAcousticInstance.m_Listener.headX = ConfigUi.SB_HeadPositionX->value();
+	m_RoomAcousticInstance.m_Listener.headY = ConfigUi.SB_HeadPositionY->value();
+	m_RoomAcousticInstance.m_Listener.headZ = ConfigUi.SB_HeadPositionZ->value();
+	m_RoomAcousticInstance.m_Listener.pitch = ConfigUi.SB_HeadPitch->value();
+	m_RoomAcousticInstance.m_Listener.yaw = ConfigUi.SB_HeadYaw->value();
+	m_RoomAcousticInstance.m_Listener.roll = ConfigUi.SB_HeadRoll->value();
+	m_RoomAcousticInstance.m_Listener.earSpacing = ConfigUi.SB_EarSpacing->value();
+
+	m_RoomAcousticInstance.m_iHeadAutoSpin = ConfigUi.CB_AutoSpin->isChecked() ?  1 : 0;
+
+	if(m_bDemoStarted)
+	{
+		m_RoomAcousticInstance.updateListenerPosition();
+	}
+}
+
+void RoomAcousticQTConfig::storeRoomDefinitionToInstance()
+{
+	if(mLockUpdate)
+	{
+		return;
+	}
+
+	m_RoomAcousticInstance.m_RoomDefinition.width = ConfigUi.SB_RoomWidth->value();
 	m_RoomAcousticInstance.m_RoomDefinition.height = ConfigUi.SB_RoomHeight->value();
 	m_RoomAcousticInstance.m_RoomDefinition.length = ConfigUi.SB_RoomLength->value();
-	m_RoomAcousticInstance.m_RoomDefinition.width = ConfigUi.SB_RoomLength->value();
+
 	m_RoomAcousticInstance.m_RoomDefinition.mLeft.damp = DBTODAMP(ConfigUi.SB_RoomDampLeft->value());
 	m_RoomAcousticInstance.m_RoomDefinition.mRight.damp = DBTODAMP(ConfigUi.SB_RoomDampRight->value());
 	m_RoomAcousticInstance.m_RoomDefinition.mTop.damp = DBTODAMP(ConfigUi.SB_RoomDampTop->value());
@@ -394,8 +424,16 @@ void RoomAcousticQTConfig::updateRoomDefinitionToInstance()
 	m_RoomAcousticInstance.m_RoomDefinition.mFront.damp = DBTODAMP(ConfigUi.SB_RoomDampFront->value());
 	m_RoomAcousticInstance.m_RoomDefinition.mBack.damp = DBTODAMP(ConfigUi.SB_RoomDampBack->value());
 
+	//todo: move to separated helper function
 	m_RoomAcousticInstance.mCLRoomOverGPU = ConfigUi.CL_RoomGPU->isChecked();
 	m_RoomAcousticInstance.mCLConvolutionOverGPU = ConfigUi.CL_ConvolutionGPU->isChecked();
+
+	updateReverbFields();
+	
+	if(m_bDemoStarted)
+	{
+		m_RoomAcousticInstance.updateRoomDamping();
+	}
 }
 
 void RoomAcousticQTConfig::printConfiguration()
@@ -620,7 +658,7 @@ void RoomAcousticQTConfig::removeSoundsourceGraphics(int index)
 	this->m_RoomAcousticGraphic->remove_sound_source(index);
 }
 
-void RoomAcousticQTConfig::updateTrackedHeadSource()
+void RoomAcousticQTConfig::storeTrackedHeadSource()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
 	{
@@ -678,7 +716,7 @@ void RoomAcousticQTConfig::on_actionSave_Config_File_triggered()
 
 	if(fileName.length())
 	{ 
-		updateAllFieldsToInstance();
+		storeAllFieldsToInstance();
 	    m_RoomAcousticInstance.saveConfiguraiton(fileName.toStdString());
 	}
 }
@@ -705,21 +743,28 @@ void RoomAcousticQTConfig::on_actionExport_Response_triggered()
 void RoomAcousticQTConfig::on_RemoveSoundSourceButton_clicked()
 {
 	QList<QTableWidgetItem*> selected_sources = ConfigUi.SourcesTable->selectedItems();
+
+	int firstSelectedIndex = -1;
+	
 	for (int i = 0; i < selected_sources.size(); i++)
 	{
 		QTableWidgetItem* selected_source = selected_sources[i];
-		std::string source_name = selected_source->text().toStdString();
-		// Remove sound source from instance
-		m_RoomAcousticInstance.removeSoundSource(selected_source->row());
-		// Remove sound source from ConfigUi
-		selected_source->setText("\0");
-		removeSoundsourceGraphics(selected_source->row());
+
+		int row = selected_source->row();
+
+		if(firstSelectedIndex == -1)
+		{
+			firstSelectedIndex = row;
+		}
+
+		m_RoomAcousticInstance.removeSoundSource(row);
+		removeSoundsourceGraphics(row);
 	}
+
+	m_iCurrentSelectedSource = firstSelectedIndex >= 0 && firstSelectedIndex < m_RoomAcousticInstance.m_iNumOfWavFile
+	  	? firstSelectedIndex
+		: -1;
 	updateSoundsourceNames();
-	// Clean the last selected row and col
-	m_iLastClickedRow = -1;
-	m_iLastClickedCol = -1;
-	m_iCurrentSelectedSource = -1;
 }
 
 void RoomAcousticQTConfig::on_SourcesTable_currentCellChanged(int row, int currentColumn, int previousRow, int previousColumn)
@@ -729,38 +774,48 @@ void RoomAcousticQTConfig::on_SourcesTable_currentCellChanged(int row, int curre
 
 void RoomAcousticQTConfig::on_CB_SoundSourceEnable_stateChanged(int state)
 {
-	//m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource] = state ? true : false;
+	if(mLockUpdate)
+	{
+		return;
+	}
 
-	saveLastSelectedSoundSource();
+	storeSelectedSoundSource();
 	updateSoundsourceNames();
 }
 
 void RoomAcousticQTConfig::on_CB_UseMicroPhone_stateChanged(int state)
 {
-	//m_RoomAcousticInstance.mSrc1EnableMic = state ? true : false;
+	if(mLockUpdate)
+	{
+		return;
+	}
 
-	saveLastSelectedSoundSource();
+	storeSelectedSoundSource();
 	updateSoundsourceNames();
 }
 
 void RoomAcousticQTConfig::on_CB_TrackHead_stateChanged(int state)
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+	
+	storeSelectedSoundSource();
+	updateSoundsourceNames();
+
 	ConfigUi.SoundSourcePositionGroup->setEnabled(state ? true : false);
 	m_RoomAcousticGraphic->m_pSoundSource[m_iCurrentSelectedSource]->setTrackHead(state ? true : false);
-	//m_RoomAcousticInstance.m_bSrcTrackHead[m_iCurrentSelectedSource] = state ? true : false;
-
-	#ifdef _DEBUG
-	    int i = 0;
-		++i;
-	#endif
-
-	saveLastSelectedSoundSource();
-	updateSoundsourceNames();
 }
 
 void RoomAcousticQTConfig::on_CB_AutoSpin_stateChanged(int stage)
 {
-	if (ConfigUi.CB_AutoSpin->isChecked())
+	if(mLockUpdate)
+	{
+		return;
+	}
+
+	if(ConfigUi.CB_AutoSpin->isChecked())
 	{
 		startHeadSpinAnimation();
 	}
@@ -772,12 +827,22 @@ void RoomAcousticQTConfig::on_CB_AutoSpin_stateChanged(int stage)
 
 void RoomAcousticQTConfig::on_SB_ConvolutionLength_valueChanged(int value)
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
 	m_RoomAcousticInstance.m_iConvolutionLength = value;
 	ConfigUi.LB_ConvolutionTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getConvolutionTime())));
 }
 
 void RoomAcousticQTConfig::on_SB_BufferSize_valueChanged(int value)
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
 	m_RoomAcousticInstance.m_iBufferSize = value;
 	ConfigUi.LB_BufferTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getBufferTime())));
 }
@@ -785,202 +850,209 @@ void RoomAcousticQTConfig::on_SB_BufferSize_valueChanged(int value)
 
 void RoomAcousticQTConfig::on_SB_RoomWidth_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.width = value;
-	m_RoomAcousticGraphic->update_Room_definition(value, ConfigUi.SB_RoomHeight->value(),ConfigUi.SB_RoomLength->value());
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDimention();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomLength_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.length = value;
-	m_RoomAcousticGraphic->update_Room_definition(ConfigUi.SB_RoomWidth->value(), ConfigUi.SB_RoomHeight->value(), value);
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDimention();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomHeight_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.height = value;
-	m_RoomAcousticGraphic->update_Room_definition(ConfigUi.SB_RoomWidth->value(), value, ConfigUi.SB_RoomLength->value());
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDimention();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomDampLeft_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.mLeft.damp = DBTODAMP(value);
-	updateReverbFields();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDamping();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomDampRight_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.mRight.damp = DBTODAMP(value);
-	updateReverbFields();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDamping();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomDampTop_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.mTop.damp = DBTODAMP(value);
-	updateReverbFields();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDamping();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomDampBottom_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.mBottom.damp = DBTODAMP(value);
-	updateReverbFields();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDamping();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomDampFront_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.mFront.damp = DBTODAMP(value);
-	updateReverbFields();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDamping();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_RoomDampBack_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_RoomDefinition.mBack.damp = DBTODAMP(value);
-	updateReverbFields();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateRoomDamping();
+		return;
 	}
+
+	storeRoomDefinitionToInstance();
+	updateReverbFields();
 }
 
 void RoomAcousticQTConfig::on_SB_SoundPositionX_valueChanged(double value)
 {
-	if (m_iCurrentSelectedSource != -1)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerX = value;
-		updateSoundSourceGraphics(m_iCurrentSelectedSource);
-
-		if(m_bDemoStarted && m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource])
-		{
-			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
-		}
+		return;
 	}
 
+	storeSelectedSoundSource();
+	updateSoundSourceGraphics(m_iCurrentSelectedSource);
 }
 
 void RoomAcousticQTConfig::on_SB_SoundPositionY_valueChanged(double value)
 {
-	if (m_iCurrentSelectedSource != -1)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerY = value;
-		updateSoundSourceGraphics(m_iCurrentSelectedSource);
-		
-		if(m_bDemoStarted && m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource])
-		{
-			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
-		}
+		return;
 	}
+
+	storeSelectedSoundSource();
+	updateSoundSourceGraphics(m_iCurrentSelectedSource);
 }
 
 void RoomAcousticQTConfig::on_SB_SoundPositionZ_valueChanged(double value)
 {
-	if (m_iCurrentSelectedSource != -1)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.m_SoundSources[m_iCurrentSelectedSource].speakerZ = value;
-		updateSoundSourceGraphics(m_iCurrentSelectedSource);
-
-		if(m_bDemoStarted && m_RoomAcousticInstance.mSoundSourceEnable[m_iCurrentSelectedSource])
-		{
-			m_RoomAcousticInstance.updateSoundSourcePosition(m_iCurrentSelectedSource);
-		}
+		return;
 	}
+
+	storeSelectedSoundSource();
+	updateSoundSourceGraphics(m_iCurrentSelectedSource);
 }
 
 void RoomAcousticQTConfig::on_SB_HeadPitch_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_Listener.pitch = value;
-	updateListnerGraphics();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateListenerPosition();
+		return;
 	}
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::on_SB_HeadYaw_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_Listener.yaw = value;
-	updateListnerGraphics();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateListenerPosition();
+		return;
 	}
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::on_SB_HeadRoll_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_Listener.roll = value;
-	updateListnerGraphics();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateListenerPosition();
+		return;
 	}
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::on_SB_HeadPositionX_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_Listener.headX = value;
-	updateListnerGraphics();
-	updateTrackedHeadSource();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateListenerPosition();
+		return;
 	}
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::on_SB_HeadPositionY_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_Listener.headY = value;
-	updateListnerGraphics();
-	updateTrackedHeadSource();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateListenerPosition();
+		return;
 	}
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::on_SB_HeadPositionZ_valueChanged(double value)
 {
-	m_RoomAcousticInstance.m_Listener.headZ = value;
-	updateListnerGraphics();
-	updateTrackedHeadSource();
-	if (this->m_bDemoStarted)
+	if(mLockUpdate)
 	{
-		m_RoomAcousticInstance.updateListenerPosition();
+		return;
 	}
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::on_CB_UseGPU4Room_currentIndexChanged(int index)
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
 	if(index == 0)
 	{
 		// Running in CPU mode
@@ -1022,6 +1094,11 @@ void RoomAcousticQTConfig::on_CB_UseGPU4Room_currentIndexChanged(int index)
 
 void RoomAcousticQTConfig::on_CB_UseGPU4Conv_currentIndexChanged(int index)
 {
+	if(mLockUpdate)
+	{
+		return;
+	}
+
 	if(index == 0)
 	{
 		ConfigUi.CL_ConvolutionGPU->setEnabled(false);
@@ -1064,7 +1141,10 @@ void RoomAcousticQTConfig::on_CB_UseGPU4Conv_currentIndexChanged(int index)
 
 void RoomAcousticQTConfig::on_CB_ConvMethod_currentIndexChanged(int index)
 {
-
+	if(mLockUpdate)
+	{
+		return;
+	}
 }
 
 void RoomAcousticQTConfig::on_RB_DEF4Room_clicked()
@@ -1073,8 +1153,8 @@ void RoomAcousticQTConfig::on_RB_DEF4Room_clicked()
 	// Default queue selected, disable CU
 	ConfigUi.SB_RoomCU->setEnabled(false);
 #endif
-
 }
+
 #ifdef RTQ_ENABLED
 void RoomAcousticQTConfig::on_RB_MPr4Room_clicked()
 {
@@ -1208,7 +1288,7 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 {
 	if(!m_bDemoStarted)
 	{
-		updateAllFieldsToInstance();
+		storeAllFieldsToInstance();
 
 #ifdef _DEBUG
 		printConfiguration();
@@ -1240,12 +1320,17 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 
 void RoomAcousticQTConfig::table_selection_changed(int index)
 {
-	saveLastSelectedSoundSource();
+	storeSelectedSoundSource();
+
+	if(index >= 0 && index <  m_RoomAcousticInstance.m_iNumOfWavFile)
+	{
+		m_iCurrentSelectedSource = index;
+	}
 
 	QTableWidgetItem* selected_item = ConfigUi.SourcesTable->item(index, 0);
-
 	ConfigUi.SourcesTable->setCurrentItem(selected_item);
-	highlightSelectedSoundSource(selected_item);
+
+	updateSelectedSoundSource();
 }
 
 void RoomAcousticQTConfig::update_sound_position(int index, float x, float y, float z)
@@ -1275,42 +1360,6 @@ void RoomAcousticQTConfig::update_sound_position_top_view(int index, float x, fl
 	update_sound_position(index, x,m_RoomAcousticInstance.m_SoundSources[index].speakerY, y);
 }
 
-void RoomAcousticQTConfig::update_listener_postion(float x, float y, float z)
-{
-	// porting listener position to instance
-	m_RoomAcousticInstance.m_Listener.headX = x;
-	m_RoomAcousticInstance.m_Listener.headY = y;
-	m_RoomAcousticInstance.m_Listener.headZ = z;
-	ConfigUi.SB_HeadPositionX->setValue(x);
-	ConfigUi.SB_HeadPositionY->setValue(y);
-	ConfigUi.SB_HeadPositionZ->setValue(z);
-	// update the listener position in the engine
-	if (m_bDemoStarted)
-	{
-		this->m_RoomAcousticInstance.updateListenerPosition();
-	}
-}
-
-void RoomAcousticQTConfig::update_listener_position_top_view(float x, float y)
-{
-	update_listener_postion(x, m_RoomAcousticInstance.m_Listener.headY, y);
-}
-
-void RoomAcousticQTConfig::update_listener_orientation(float pitch, float yaw, float roll)
-{
-	m_RoomAcousticInstance.m_Listener.pitch = pitch;
-	m_RoomAcousticInstance.m_Listener.yaw = yaw;
-	m_RoomAcousticInstance.m_Listener.roll = roll;
-	ConfigUi.SB_HeadPitch->setValue(pitch);
-	ConfigUi.SB_HeadRoll->setValue(roll);
-	ConfigUi.SB_HeadYaw->setValue(yaw);
-}
-
-void RoomAcousticQTConfig::update_listener_orientation_top_view(float yaw)
-{
-	update_listener_orientation(m_RoomAcousticInstance.m_Listener.pitch, yaw, m_RoomAcousticInstance.m_Listener.roll);
-}
-
 void RoomAcousticQTConfig::update_instance_sound_sources()
 {
 	for (int i = 0; i < MAX_SOURCES; i++)
@@ -1321,6 +1370,40 @@ void RoomAcousticQTConfig::update_instance_sound_sources()
 			update_sound_position(i, source->pos().x() / ROOMSCALE, source->pos().y() / ROOMSCALE, m_RoomAcousticInstance.m_SoundSources[i].speakerZ);
 		}
 	}
+}
+
+void RoomAcousticQTConfig::update_listener_position_top_view(float x, float y)
+{
+	update_listener_postion(x, m_RoomAcousticInstance.m_Listener.headY, y);
+}
+
+void RoomAcousticQTConfig::update_listener_postion(float x, float y, float z)
+{
+	mLockUpdate = true;
+		ConfigUi.SB_HeadPositionX->setValue(x);
+		ConfigUi.SB_HeadPositionY->setValue(y);
+		ConfigUi.SB_HeadPositionZ->setValue(z);
+	mLockUpdate = false;
+
+	storeListenerPosition();
+	updateListnerGraphics();
+}
+
+void RoomAcousticQTConfig::update_listener_orientation_top_view(float yaw)
+{
+	update_listener_orientation(m_RoomAcousticInstance.m_Listener.pitch, yaw, m_RoomAcousticInstance.m_Listener.roll);
+}
+
+void RoomAcousticQTConfig::update_listener_orientation(float pitch, float yaw, float roll)
+{
+	mLockUpdate = true;
+		ConfigUi.SB_HeadPitch->setValue(pitch);
+		ConfigUi.SB_HeadRoll->setValue(roll);
+		ConfigUi.SB_HeadYaw->setValue(yaw);
+	mLockUpdate = false;
+
+	storeListenerPosition();
+	updateListnerGraphics();
 }
 
 void RoomAcousticQTConfig::update_convMethod_CPU()
