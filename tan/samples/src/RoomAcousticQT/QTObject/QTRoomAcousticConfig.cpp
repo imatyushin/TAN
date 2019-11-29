@@ -43,21 +43,25 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 	ConfigUi.SourcesTable->setRowCount(MAX_SOURCES);
 	ConfigUi.SourcesTable->setColumnCount(1);
 
-	//Initialize devices
-	ConfigUi.CB_RoomDevice->addItem("CPU");
-	ConfigUi.CB_ConvolutionDevice->addItem("CPU");
-	
-	for (int i = 0; i < m_RoomAcousticInstance.mCPUDevicesCount; i++)
-	{
-		ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mCPUDevicesNames[i].c_str()));
-		ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mCPUDevicesNames[i].c_str()));
-	}
+	ConfigUi.CB_AutoSpin->setEnabled(false);
 
-	for (int i = 0; i < m_RoomAcousticInstance.mGPUDevicesCount; i++)
-	{
-		ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
-		ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
-	}
+	//Initialize devices
+	mLockUpdate = true;
+		ConfigUi.CB_RoomDevice->addItem("CPU");
+		ConfigUi.CB_ConvolutionDevice->addItem("CPU");
+		
+		for (int i = 0; i < m_RoomAcousticInstance.mCPUDevicesCount; i++)
+		{
+			ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mCPUDevicesNames[i].c_str()));
+			ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mCPUDevicesNames[i].c_str()));
+		}
+
+		for (int i = 0; i < m_RoomAcousticInstance.mGPUDevicesCount; i++)
+		{
+			ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
+			ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
+		}
+	mLockUpdate = false;
 
 	// Update Graphics
 	QGraphicsScene* m_pGraphicsScene = new QGraphicsScene(this);
@@ -96,6 +100,10 @@ void RoomAcousticQTConfig::Init()
 	updateRoomGraphic();
 	initSoundSourceGraphic();
 	initListenerGraphics();
+	
+	updateRoomGraphic();
+	updateAllSoundSourceGraphics();
+	updateListnerGraphics();
 
 	show();
 }
@@ -816,9 +824,13 @@ void RoomAcousticQTConfig::on_actionLoad_Config_File_triggered()
 			: -1;
 		
 		updateAllFields();
-		updateRoomGraphic();
+		
 		initSoundSourceGraphic();
 		initListenerGraphics();
+
+		updateRoomGraphic();
+		updateAllSoundSourceGraphics();
+		updateListnerGraphics();
 
 		if(m_RoomAcousticInstance.m_iNumOfWavFile)
 		{
@@ -1313,8 +1325,8 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 		m_bDemoStarted = false;
 
 		ConfigUi.PB_RunDemo->setText("Run");
-		ConfigUi.ConvolutionSettings->setEnabled(false);
-		ConfigUi.RoomOptions->setEnabled(false);
+		ConfigUi.ConvolutionSettings->setEnabled(true);
+		ConfigUi.RoomOptions->setEnabled(true);
 	}
 }
 

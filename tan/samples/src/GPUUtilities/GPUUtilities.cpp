@@ -368,7 +368,7 @@ int getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice,
             if (error == CL_SUCCESS){
                 char deviceName[100] = "\0";
                 clGetDeviceInfo(devices[deviceId], CL_DEVICE_NAME, sizeof(deviceName), deviceName, NULL);
-                fprintf(stdout, " Using GPU device %s\n", deviceName);
+                fprintf(stdout, " Using OpenCL device %s\n", deviceName);
             }
             else {
                 fprintf(stdout, "clCreateContext failed: %d \n", error);
