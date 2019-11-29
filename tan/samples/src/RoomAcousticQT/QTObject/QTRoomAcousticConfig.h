@@ -4,11 +4,7 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QtWidgets>
 
-#ifdef RTQ_ENABLED
 #include "ui_RoomAcousticConfig.h"
-#else
-#include "ui_RoomAcousticConfig_NoRTQ.h"
-#endif // RTQ_ENABLED
 #include "../RoomAcousticQT.h"
 #include "QTRoomAcousticGraphic.h"
 
@@ -52,17 +48,16 @@ private slots:
 	void on_SB_HeadPositionY_valueChanged(double value);
 	void on_SB_HeadPositionZ_valueChanged(double value);
 
-	void on_CB_UseGPU4Room_currentIndexChanged(int index);
-	void on_CB_UseGPU4Conv_currentIndexChanged(int index);
+	void on_CB_RoomDevice_currentIndexChanged(int index);
+	void on_CB_ConvolutionDevice_currentIndexChanged(int index);
 	void on_CB_ConvMethod_currentIndexChanged(int index);
 	void on_RB_DEF4Room_clicked();
 	void on_RB_DEF4Conv_clicked();
-#ifdef RTQ_ENABLED
 	void on_RB_MPr4Room_clicked();
 	void on_RB_MPr4Conv_clicked();
 	void on_RB_RTQ4Conv_clicked();
 	void on_RB_RTQ4Room_clicked();
-#endif // RTQ_ENABLED
+
 	void on_PB_RunDemo_clicked();
 
 	void table_selection_changed(int index);
@@ -73,8 +68,7 @@ private slots:
 	void update_listener_orientation(float pitch, float yaw, float roll);
 	void update_listener_orientation_top_view(float yaw);
 	void update_instance_sound_sources();
-	void update_convMethod_CPU();
-	void update_convMethod_GPU();
+	void update_convMethod(bool gpu);
 public:
 	RoomAcousticQTConfig(QWidget *parent = 0);
 	~RoomAcousticQTConfig();
@@ -91,7 +85,7 @@ private:
 	void updateAllFields();
 	void updateSelectedSoundSource();							// Trasfer the focus to the current selected item
 	void updateSoundsourceNames();
-	void updateRoomDefinitionFields();
+	void updateRoomFields();
 	void updateConvolutionFields();
 	void updateListenerFields();								// Update the listener fields
 	void updateReverbFields();									// Use the reverb function in instance and update reverb field
@@ -113,7 +107,8 @@ private:
 	void storeTrackedHeadSource();
 	void storeAllFieldsToInstance();							// Porting all configuration from UI to instance
 	void storeListenerPosition();
-	void storeRoomDefinitionToInstance();						// Porting room definition from UI to instance
+	void storeRoomFields();						// Porting room definition from UI to instance
+	void storeConvolutionFields();
 	/************************************************************************************/
 	/*									Debug											*/
 	/************************************************************************************/
@@ -140,7 +135,5 @@ private:
 	QTimer *mTimer = nullptr;
 	bool mLockUpdate = false;
 };
-
-
 
 #endif // ROOMACCOUSTICNEW_H

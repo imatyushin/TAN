@@ -883,7 +883,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="groupBox_9">
+            <widget class="QGroupBox" name="RoomOptions">
              <property name="title">
               <string>Options</string>
              </property>
@@ -903,31 +903,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QComboBox" name="CB_UseGPU4Room">
-                    <item>
-                     <property name="text">
-                      <string>CPU</string>
-                     </property>
-                    </item>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_5">
-                  <item>
-                   <widget class="QRadioButton" name="CL_RoomGPU">
-                    <property name="text">
-                     <string>CL/GPU</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QRadioButton" name="CL_RoomCPU">
-                    <property name="text">
-                     <string>CL/CPU</string>
-                    </property>
-                   </widget>
+                   <widget class="QComboBox" name="CB_RoomDevice"/>
                   </item>
                  </layout>
                 </item>
@@ -959,7 +935,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_11">
+         <widget class="QGroupBox" name="ConvolutionSettings">
           <property name="title">
            <string>Convolution</string>
           </property>
@@ -1070,29 +1046,6 @@
              <layout class="QHBoxLayout" name="horizontalLayout_12">
               <item>
                <layout class="QGridLayout" name="gridLayout_6">
-                <item row="0" column="2">
-                 <widget class="QRadioButton" name="CL_ConvolutionGPU">
-                  <property name="text">
-                   <string>CL/GPU</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="1">
-                 <widget class="QComboBox" name="CB_UseGPU4Conv">
-                  <item>
-                   <property name="text">
-                    <string>CPU</string>
-                   </property>
-                  </item>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QComboBox" name="CB_ConvMethod">
-                  <property name="modelColumn">
-                   <number>0</number>
-                  </property>
-                 </widget>
-                </item>
                 <item row="1" column="0">
                  <widget class="QLabel" name="label_35">
                   <property name="text">
@@ -1103,6 +1056,16 @@
                   </property>
                  </widget>
                 </item>
+                <item row="1" column="1">
+                 <widget class="QComboBox" name="CB_ConvMethod">
+                  <property name="modelColumn">
+                   <number>0</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QComboBox" name="CB_ConvolutionDevice"/>
+                </item>
                 <item row="0" column="0">
                  <widget class="QLabel" name="label_28">
                   <property name="text">
@@ -1110,13 +1073,6 @@
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="2">
-                 <widget class="QRadioButton" name="CL_ConvolutionCPU">
-                  <property name="text">
-                   <string>CL/CPU</string>
                   </property>
                  </widget>
                 </item>

@@ -148,7 +148,6 @@ endif()
 set(
   UI_FILES
   ../../../src/RoomAcousticQT/UI/RoomAcousticConfig.ui
-  ../../../src/RoomAcousticQT/UI/RoomAcousticConfig_NoRTQ.ui
   ../../../src/RoomAcousticQT/UI/ExportResponse.ui
   )
 

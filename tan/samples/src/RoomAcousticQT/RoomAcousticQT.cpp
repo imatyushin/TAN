@@ -37,9 +37,10 @@ void RoomAcousticQT::initialize()
 	initializeAudioEngine();
 
 	initializeRoom();
+	initializeConvolution();
 	initializeListener();
 
-	initializeDevice();
+	enumDevices();
 }
 
 int RoomAcousticQT::start()
@@ -51,19 +52,8 @@ int RoomAcousticQT::start()
 	
 	// Since cpu's device id is 0 in this demo, we need to decrease the device id if
 	// you want to run GPU
-	int convolutionDeviceIndex = m_iConvolutionDeviceID;
-	int roomDeviceIndex = m_iRoomDeviceID;
-
-	//becouse indices must be zero based?
-	if(m_iuseGPU4Conv)
-	{
-		convolutionDeviceIndex--;
-	}
-
-	if(m_iuseGPU4Room)
-	{
-		roomDeviceIndex--;
-	}
+	int convolutionDeviceIndex = mConvolutionOverCL ? mConvolutionDeviceIndex : 0;
+	int roomDeviceIndex = mRoomOverCL ? mRoomDeviceIndex : 0;
 
 	std::vector<std::string> fileNames;
 	std::vector<bool> trackHead;
@@ -76,7 +66,7 @@ int RoomAcousticQT::start()
 		if(mWavFileNames[nameIndex].length() && mSoundSourceEnable[nameIndex])
 		{
 			fileNames.push_back(mWavFileNames[nameIndex]);
-			trackHead.push_back(m_bSrcTrackHead[nameIndex]);
+			trackHead.push_back(mSrcTrackHead[nameIndex]);
 		}
 	}
 
@@ -92,8 +82,8 @@ int RoomAcousticQT::start()
 		m_iConvolutionLength,
 		m_iBufferSize,
 
-		m_iuseGPU4Conv,
-		mCLConvolutionOverGPU,
+		mConvolutionOverCL,
+		mConvolutionOverGPU,
 		convolutionDeviceIndex,
 
 #ifdef RTQ_ENABLED
@@ -102,8 +92,8 @@ int RoomAcousticQT::start()
 		m_iConvolutionCUCount,
 #endif // RTQ_ENABLED
 
-		m_iuseGPU4Room,
-		mCLRoomOverGPU,
+		mRoomOverCL,
+		mRoomOverGPU,
 		roomDeviceIndex,
 
 #ifdef RTQ_ENABLED
@@ -184,7 +174,7 @@ void RoomAcousticQT::initializeEnvironment()
 
 	for (int index = 0; index < MAX_SOURCES; ++index)
 	{
-		m_bSrcTrackHead[index] = false;
+		mSrcTrackHead[index] = false;
 	}
 }
 
@@ -205,6 +195,12 @@ void RoomAcousticQT::initializeRoom()
 
 	m_RoomDefinition.mLeft.damp = m_RoomDefinition.mRight.damp = DBTODAMP(4.0);
 	m_RoomDefinition.mTop.damp = m_RoomDefinition.mBottom.damp = DBTODAMP(2.0);
+}
+
+void RoomAcousticQT::initializeConvolution()
+{
+	m_iConvolutionLength = 32768;
+	m_iBufferSize = 2048;
 }
 
 void RoomAcousticQT::initializeListener()
@@ -235,15 +231,43 @@ void RoomAcousticQT::initializeAudioPosition(int index)
 	}
 }
 
-void RoomAcousticQT::initializeDevice()
+void RoomAcousticQT::enumDevices()
 {
-	m_iConvolutionLength = 32768;
-	m_iBufferSize = 2048;
-	for (int i = 0; i < MAX_DEVICES; i++){
-		m_cpDeviceName[i] = new char[MAX_PATH + 2];
-		memset(m_cpDeviceName[i], 0, (MAX_PATH + 2));
+	{
+		char buffer[MAX_DEVICES * MAX_PATH] = {0};
+		char *devicesNames[MAX_DEVICES] = {0};
+
+		for(int i = 0; i < MAX_DEVICES; i++)
+		{
+			devicesNames[i] = &buffer[i * MAX_PATH];
+			devicesNames[i][0] = 0;
+		}
+
+		mCPUDevicesCount = listCpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
+
+		for(int i = 0; i < MAX_DEVICES; i++)
+		{
+			mCPUDevicesNames[i] = devicesNames[i];
+		}
 	}
-	m_iDeviceCount = listGpuDeviceNamesWrapper(m_cpDeviceName, MAX_DEVICES);
+
+	{
+		char buffer[MAX_DEVICES * MAX_PATH] = {0};
+		char *devicesNames[MAX_DEVICES] = {0};
+
+		for(int i = 0; i < MAX_DEVICES; i++)
+		{
+			devicesNames[i] = &buffer[i * MAX_PATH];
+			devicesNames[i][0] = 0;
+		}
+
+		mGPUDevicesCount = listGpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
+
+		for(int i = 0; i < MAX_DEVICES; i++)
+		{
+			mGPUDevicesNames[i] = devicesNames[i];
+		}
+	}
 }
 
 void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
@@ -277,7 +301,7 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 			{
 				mSrc1EnableMic = settings.value((sourceName + "MicEnable").c_str()).toInt() ? 1 : 0;
 			}
-			m_bSrcTrackHead[waveFileIndex] = settings.value((sourceName + "TracHeadPosition").c_str()).toInt() ? 1 : 0;
+			mSrcTrackHead[waveFileIndex] = settings.value((sourceName + "TracHeadPosition").c_str()).toInt() ? 1 : 0;
 
 			m_SoundSources[waveFileIndex].speakerX = settings.value((sourceName + "SpeakerX").c_str()).toFloat();
 			m_SoundSources[waveFileIndex].speakerY = settings.value((sourceName + "SpeakerY").c_str()).toFloat();
@@ -302,23 +326,18 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 	m_RoomDefinition.mTop.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampTop").c_str()).toFloat());
 	m_RoomDefinition.mBottom.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampBottom").c_str()).toFloat());
 
-	//settings.value((std::string("ROOM/") + "Count").c_str());
-	m_iuseGPU4Room = settings.value((std::string("ROOM/") + "GPU").c_str()).toInt() ? 1 : 0;
-	m_iRoomDeviceID = settings.value((std::string("ROOM/") + "Device").c_str()).toInt();
-	m_iuseMPr4Room = settings.value((std::string("ROOM/") + "MPr").c_str()).toInt() ? 1 : 0;
-#ifdef RTQ_ENABLED
-	m_iuseRTQ4Room = settings.value((std::string("ROOM/") + "RTQ").c_str()).toInt() ? 1 : 0;
-	m_iRoomCUCount = settings.value((std::string("ROOM/") + "CU").c_str()).toInt();
-#endif
+	mRoomOverCL = settings.value((std::string("ROOM/") + "OpenCL").c_str()).toInt() ? 1 : 0;
+	mRoomOverGPU = settings.value((std::string("ROOM/") + "GPU").c_str()).toInt() ? 1 : 0;
+	mRoomDeviceIndex = settings.value((std::string("ROOM/") + "Device").c_str()).toInt();
+	mRoomPriority = settings.value((std::string("ROOM/") + "Priority").c_str()).toInt();
+	mRoomCUCount = settings.value((std::string("ROOM/") + "CU").c_str()).toInt();
 
 	//settings.value((std::string("CONVOLUTION/") + "Count").c_str());
-	m_iuseGPU4Conv = settings.value((std::string("CONVOLUTION/") + "GPU").c_str()).toInt() ? 1 : 0;
-	m_iConvolutionDeviceID = settings.value((std::string("CONVOLUTION/") + "Device").c_str()).toInt();
-	m_iuseMPr4Conv = settings.value((std::string("CONVOLUTION/") + "MPr").c_str()).toInt() ? 1 : 0;
-#ifdef RTQ_ENABLED
-	m_iuseRTQ4Conv = settings.value((std::string("CONVOLUTION/") + "RTQ").c_str()).toInt() ? 1 : 0;
-	m_iConvolutionCUCount = settings.value((std::string("CONVOLUTION/") + "CU").c_str()).toInt();
-#endif	
+	mConvolutionOverCL = settings.value((std::string("CONVOLUTION/") + "OpenCL").c_str()).toInt() ? 1 : 0;
+	mConvolutionOverGPU = settings.value((std::string("CONVOLUTION/") + "GPU").c_str()).toInt() ? 1 : 0;
+	mConvolutionDeviceIndex = settings.value((std::string("CONVOLUTION/") + "Device").c_str()).toInt();
+	mConvolutionPriority = settings.value((std::string("CONVOLUTION/") + "Priority").c_str()).toInt();
+	mConvolutionCUCount = settings.value((std::string("CONVOLUTION/") + "CU").c_str()).toInt();
 
 	m_iConvolutionLength = settings.value((std::string("CONVOLUTION/") + "ConvolutionLength").c_str()).toInt();
 	m_iBufferSize = settings.value((std::string("CONVOLUTION/") + "BufferSize").c_str()).toInt();
@@ -368,7 +387,7 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 		{
 			settings.setValue((sourceName + "MicEnable").c_str(), mSrc1EnableMic ? 1 : 0);
 		}
-		settings.setValue((sourceName + "TracHeadPosition").c_str(), m_bSrcTrackHead[waveFileIndex] ? 1 : 0);
+		settings.setValue((sourceName + "TracHeadPosition").c_str(), mSrcTrackHead[waveFileIndex] ? 1 : 0);
 
 		settings.setValue((sourceName + "SpeakerX").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerX).c_str());
 		settings.setValue((sourceName + "SpeakerY").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerY).c_str());
@@ -392,27 +411,21 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 	settings.setValue((std::string("ROOM/") + "DampTop").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mTop.damp)).c_str());
 	settings.setValue((std::string("ROOM/") + "DampBottom").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mBottom.damp)).c_str());
 
-	settings.setValue((std::string("ROOM/") + "Count").c_str(), std::to_string(m_iNumOfWavFile).c_str());
-	settings.setValue((std::string("ROOM/") + "GPU").c_str(), std::to_string(m_iuseGPU4Room ? 1 : 0).c_str());
-	settings.setValue((std::string("ROOM/") + "Device").c_str(), std::to_string(m_iRoomDeviceID).c_str());
-	settings.setValue((std::string("ROOM/") + "MPr").c_str(), std::to_string(m_iuseMPr4Room).c_str());
-#ifdef RTQ_ENABLED
-	settings.setValue((std::string("ROOM/") + "RTQ").c_str(), std::to_string(m_iuseRTQ4Room ? 1 : 0).c_str());
-	settings.setValue((std::string("ROOM/") + "CU").c_str(), std::to_string(m_iRoomCUCount).c_str());
-#endif
+	settings.setValue((std::string("ROOM/") + "OpenCL").c_str(), mRoomOverCL ? 1 : 0);
+	settings.setValue((std::string("ROOM/") + "GPU").c_str(), mRoomOverGPU ? 1 : 0);
+	settings.setValue((std::string("ROOM/") + "Device").c_str(), mRoomDeviceIndex);
+	settings.setValue((std::string("ROOM/") + "Priority").c_str(), mRoomPriority);
+	settings.setValue((std::string("ROOM/") + "CU").c_str(), mRoomCUCount);
 
-	settings.setValue((std::string("CONVOLUTION/") + "Count").c_str(), std::to_string(m_iNumOfWavFile).c_str());
-	settings.setValue((std::string("CONVOLUTION/") + "GPU").c_str(), std::to_string(m_iuseGPU4Conv ? 1 : 0).c_str());
-	settings.setValue((std::string("CONVOLUTION/") + "Device").c_str(), std::to_string(m_iConvolutionDeviceID).c_str());
-	settings.setValue((std::string("CONVOLUTION/") + "MPr").c_str(), std::to_string(m_iuseMPr4Conv).c_str());
-#ifdef RTQ_ENABLED
-	settings.setValue((std::string("CONVOLUTION/") + "RTQ").c_str(), std::to_string(m_iuseRTQ4Conv ? 1 : 0).c_str());
-	settings.setValue((std::string("CONVOLUTION/") + "CU").c_str(), std::to_string(m_iConvolutionCUCount).c_str());
-#endif	
+	settings.setValue((std::string("CONVOLUTION/") + "OpenCL").c_str(), mConvolutionOverCL ? 1 : 0);
+	settings.setValue((std::string("CONVOLUTION/") + "GPU").c_str(), mConvolutionOverGPU ? 1 : 0);
+	settings.setValue((std::string("CONVOLUTION/") + "Device").c_str(), mConvolutionDeviceIndex);
+	settings.setValue((std::string("CONVOLUTION/") + "Priority").c_str(), mConvolutionPriority);
+	settings.setValue((std::string("CONVOLUTION/") + "CU").c_str(), mConvolutionCUCount);
 
-	settings.setValue((std::string("CONVOLUTION/") + "ConvolutionLength").c_str(), std::to_string(m_iConvolutionLength).c_str());
-	settings.setValue((std::string("CONVOLUTION/") + "BufferSize").c_str(), std::to_string(m_iBufferSize).c_str());
-	settings.setValue((std::string("CONVOLUTION/") + "Method").c_str(), std::to_string(int(m_eConvolutionMethod)).c_str());
+	settings.setValue((std::string("CONVOLUTION/") + "ConvolutionLength").c_str(), m_iConvolutionLength);
+	settings.setValue((std::string("CONVOLUTION/") + "BufferSize").c_str(), m_iBufferSize);
+	settings.setValue((std::string("CONVOLUTION/") + "Method").c_str(), int(m_eConvolutionMethod));
 
 	settings.sync();
 }
@@ -426,7 +439,7 @@ int RoomAcousticQT::addSoundSource(const std::string& sourcename)
 		{
 			mWavFileNames[i] = sourcename;
 			mSoundSourceEnable[i] = true;
-			m_bSrcTrackHead[i] = false;
+			mSrcTrackHead[i] = false;
 			if(!i)
 			{
 				mSrc1EnableMic = false;
@@ -469,7 +482,7 @@ bool RoomAcousticQT::removeSoundSource(int id)
 			m_SoundSources[id].speakerZ = 0.0f;
 			
 			mSoundSourceEnable[id] = true;
-			m_bSrcTrackHead[id] = false;
+			mSrcTrackHead[id] = false;
 
 			if (id == 0)
 			{
@@ -522,25 +535,21 @@ float RoomAcousticQT::getBufferTime()
 	return m_iBufferSize / 48000.0f;
 }
 
-void RoomAcousticQT::getCPUConvMethod(std::string** _out, int* _num)
+std::vector<std::string> RoomAcousticQT::getCPUConvMethod() const
 {
-	int numberOfMethod = 1;
-	std::string* output = new std::string[numberOfMethod];
-	output[0] = "FFT OVERLAP ADD";
-	*_out = output;
-	*_num = numberOfMethod;
+	return {
+		"FFT OVERLAP ADD"
+		};
 }
 
-void RoomAcousticQT::getGPUConvMethod(std::string** _out, int* _num)
+std::vector<std::string> RoomAcousticQT::getGPUConvMethod() const
 {
-	int numberOfMethod = 4;
-	std::string* output = new std::string[numberOfMethod];
-	output[0] = "FFT OVERLAP ADD";
-	output[1] = "FFT UNIFORM PARTITIONED";
-	output[2] = "FHT UNIFORM PARTITIONED";
-	output[3] = "FHT UINFORM HEAD TAIL";
-	*_out = output;
-	*_num = numberOfMethod;
+	return {
+		"FFT OVERLAP ADD",
+		"FFT UNIFORM PARTITIONED",
+		"FHT UNIFORM PARTITIONED",
+		"FHT UINFORM HEAD TAIL"
+		};
 }
 
 amf::TAN_CONVOLUTION_METHOD RoomAcousticQT::getConvMethodFlag(const std::string& _name)
@@ -624,7 +633,6 @@ AmdTrueAudioVR* RoomAcousticQT::getAMDTrueAudioVR()
 {
 	return m_pAudioEngine->getAMDTrueAudioVR();
 }
-
 
 TANConverterPtr RoomAcousticQT::getTANConverter()
 {

@@ -79,9 +79,9 @@ public:
         int                     fftLen,
         int                     bufSize,
 
-        bool                    useGPU_Conv,
-        bool                    useGPU_ConvQueue,
-        int                     devIdx_Conv,
+        bool                    useCLConvolution,
+        bool                    useGPUConvolution,
+        int                     deviceIndexConvolution,
 
 #ifdef RTQ_ENABLED
 		bool                    useHPr_Conv,
@@ -89,9 +89,9 @@ public:
         int                     cuRes_Conv,
 #endif // RTQ_ENABLED
 
-        bool                    useGPU_IRGen,
-        bool                    useCPU_IRGenQueue,
-        int                     devIdx_IRGen,
+        bool                    useCLRoom,
+        bool                    useGPURoom,
+        int                     deviceIndexRoom,
 
 #ifdef RTQ_ENABLED
 		bool                    useHPr_IRGen,
@@ -206,16 +206,6 @@ protected:
     cl_command_queue mCmdQueue3 = nullptr;
 
 public:
-    /*
-    m_pAudioVR->init(room, dlg.nFiles, dlg.waveFileNames, dlg.convolutionLength, dlg.bufferSize,
-    dlg.useGPU4Conv, dlg.convDevIdx, dlg.useRTQ4Conv, dlg.cuCountConv,
-    dlg.useGPU4Room, dlg.roomDevIdx, dlg.useRTQ4Room, dlg.cuCountRoom);
-    */
-	// Initialize room acoustics model, WASAPI audio, and TAN convolution:
-    //int init(RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize, bool useGPU_Conv = true);
-
-    //static amf::TAN_CONVOLUTION_METHOD m_convMethod;// = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-
     //todo: move to Init with help of struct
     // Set transform to translate game coordinates to room audio coordinates:
 	int setWorldToRoomCoordTransform(
