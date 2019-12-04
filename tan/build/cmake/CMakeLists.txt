@@ -24,6 +24,11 @@ if(NOT CMAKE_BUILD_TYPE)
   message("Build type was not set, Debug will be forced")
 endif()
 
+if(RTQ_ENABLED)
+  message("Realtime queue support will be enabled")
+  ADD_DEFINITIONS(-DRTQ_ENABLED)
+endif()
+
 # name
 project(TAN DESCRIPTION "TAN")
 
@@ -46,7 +51,7 @@ add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
 
 if(WIN32)
   #not implemented yet: add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
-  #migration to new player not yet done: add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
+  #migration to new Audio3D class not yet done: add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 endif()
 
 #libraries
@@ -59,5 +64,5 @@ add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
 add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
 add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
 add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
-add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
+#add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
 add_subdirectory(../../tests/proj/cmake/TanDeviceResourcesTest cmake-TanDeviceResourcesTest-bin)
