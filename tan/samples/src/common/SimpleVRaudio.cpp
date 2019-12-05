@@ -160,7 +160,7 @@ Audio3D::~Audio3D()
     Close();
 }
 
-int Audio3D::Close()
+void Audio3D::Close()
 {
     mRunning = false;
 
@@ -234,11 +234,9 @@ int Audio3D::Close()
     mCmdQueue3 = NULL;
 
     mWavFiles.resize(0);
-
-    return 0;
 }
 
-int Audio3D::Init
+bool Audio3D::Init
 (
 	const std::string &     dllPath,
 	const RoomDefinition &  roomDef,
@@ -285,7 +283,7 @@ int Audio3D::Init
             << "Error: GPU queues must be used only if OpenCL flag is set"
             << std::endl;
 
-        return -1;
+        return false;
     }
 
     //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
@@ -311,7 +309,7 @@ int Audio3D::Init
                     << FILTER_SAMPLE_RATE << " frequency is supported!"
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             if(content.BitsPerSample != 16)
@@ -321,7 +319,7 @@ int Audio3D::Init
                     << 16 << " bits is supported!"
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             if(content.ChannelsCount != 2)
@@ -330,7 +328,7 @@ int Audio3D::Init
                     << "Error: file " << fileName << " is not a stereo file. Currently only stereo files are supported!"
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             if(content.SamplesCount < mBufferSizeInSamples)
@@ -339,7 +337,7 @@ int Audio3D::Init
                     << "Error: file " << fileName << " are too short."
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             //check that samples have compatible formats
@@ -350,7 +348,7 @@ int Audio3D::Init
                 {
                     std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
 
-                    return -1;
+                    return false;
                 }
             }
 
@@ -360,7 +358,7 @@ int Audio3D::Init
         {
             std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
 
-            return -1;
+            return false;
         }
     }
 
@@ -368,7 +366,7 @@ int Audio3D::Init
     {
         std::cerr << "Error: no files opened to play" << std::endl;
 
-        return -1;
+        return false;
     }
 
     //initialize hardware
@@ -415,7 +413,7 @@ int Audio3D::Init
     {
         std::cerr << "Error: could not initialize player " << std::endl;
 
-        return -1;
+        return false;
     }
 
     /* # fft buffer length must be power of 2: */
@@ -542,7 +540,7 @@ int Audio3D::Init
             // For " core "reservation" on CPU" -ToDo test and enable
             if (cuRes_Conv > 0 && cuRes_IRGen > 0)
             {
-                cl_int err = CreateCommandQueuesWithCUcount(devIdx_Conv, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
+                cl_int err = CreateCommandQueuesWithCUcount(deviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
             }
             else
             {
@@ -667,8 +665,9 @@ int Audio3D::Init
 
         if(clErr != CL_SUCCESS)
         {
-            printf("Could not create OpenCL buffer\n");
-            return -1;
+            std::cerr << "Could not create OpenCL buffer" << std::endl;
+            
+            return false;
         }
 
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
@@ -681,16 +680,18 @@ int Audio3D::Init
 
             if (clErr != CL_SUCCESS)
             {
-                printf("Could not create OpenCL subBuffer\n");
-                return AMF_FAIL;
+                std::cerr << "Could not create OpenCL subBuffer" << std::endl;
+                
+                return false;
             }
 
             float zero = 0.0;
             clErr = clEnqueueFillBuffer(mCmdQueue1, mOutputCLBufs[i], &zero, sizeof(zero), 0, region.size, 0, NULL, NULL);
             if (clErr != CL_SUCCESS)
             {
-                printf("Could not fill OpenCL subBuffer\n");
-                return AMF_FAIL;
+                std::cerr << "Could not fill OpenCL subBuffer" << std::endl;
+                
+                return false;
             }
         }
 
@@ -706,15 +707,16 @@ int Audio3D::Init
 
             if (clErr != CL_SUCCESS)
             {
-                printf("Could not create OpenCL buffer\n");
-                return AMF_FAIL;
+                std::cerr << "Could not create OpenCL buffer" << std::endl;
+                
+                return false;
             }
 
             if (clErr != CL_SUCCESS)
             {
-
-                printf("Could not create OpenCL buffer\n");
-                return AMF_FAIL;
+                std::cerr << "Could not create OpenCL buffer" << std::endl;
+                
+                return false;
             }
         }
 
@@ -756,7 +758,9 @@ int Audio3D::Init
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
 
-    std::cout << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H" << std::endl;
+    std::cout 
+        << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H" 
+        << std::endl;
 
     // head model:
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
@@ -778,9 +782,11 @@ int Audio3D::Init
         RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(mResponses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
 
+    std::cout << "Playback started" << std::endl;
+
     mRunning = true;
 
-    return 0;
+    return true;
 }
 
 int Audio3D::updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
@@ -874,9 +880,8 @@ int Audio3D::setWorldToRoomCoordTransform(
     return 0;
 }
 
-int Audio3D::Run()
+bool Audio3D::Run()
 {
-    mStop = false;
     // start main processing thread:
     //m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
     //RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
@@ -894,10 +899,12 @@ int Audio3D::Run()
     mUpdateThread = std::thread(updateThreadProc, this);
 
     mUpdateParams = true;
-    return 0;
+    mStop = false;
+
+    return true;
 }
 
-bool Audio3D::Stop()
+void Audio3D::Stop()
 {
     mStop = true;
 
@@ -905,8 +912,6 @@ bool Audio3D::Stop()
     mUpdateThread.WaitCloseInfinite();
 
     Close();
-
-    return true;
 }
 
 int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)

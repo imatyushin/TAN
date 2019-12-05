@@ -44,10 +44,6 @@ struct element {
     struct element *elemList;
 };
 
-#define DBTODAMP(dB) powf(10.0,float(-dB/20.0))
-#define DAMPTODB(d) float(-20.0*log10(d))
-
-
 #define MAX_SOURCES 10
 float srcX[MAX_SOURCES], srcY[MAX_SOURCES], srcZ[MAX_SOURCES];
 float srcVX[MAX_SOURCES], srcVY[MAX_SOURCES], srcVZ[MAX_SOURCES];

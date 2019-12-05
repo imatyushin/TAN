@@ -73,8 +73,6 @@ include_directories(../../../../common)
 
 include_directories(../../../src/RoomAcousticQT/QTObject)
 
-#ADD_DEFINITIONS(-DRTQ_ENABLED)
-
 # sources
 set(
   SOURCE_EXE

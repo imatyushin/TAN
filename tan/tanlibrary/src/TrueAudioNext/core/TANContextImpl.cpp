@@ -254,12 +254,12 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
                             L"could not retrieve the device ids from context");
     cl_int error;
     m_oclConvQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
-    printf("Queue created %llX\r\n", m_oclConvQueue);
+    //printf("Queue created %llX\r\n", m_oclConvQueue);
     AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
                         L"cannot create the conv command queue");
 
     m_oclGeneralQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
-    printf("Queue created %llX\r\n", m_oclGeneralQueue);
+    //printf("Queue created %llX\r\n", m_oclGeneralQueue);
     AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
                         L"cannot create the general command queue");
 

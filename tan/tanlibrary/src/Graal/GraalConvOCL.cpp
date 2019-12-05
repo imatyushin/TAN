@@ -233,7 +233,7 @@ cl_command_queue CGraalConvOCL::getClQueue(cl_command_queue_properties * _prop, 
                                             devices_[_deviceId],
                                             _prop,
                                             &status);
-        printf("Queue created %llX\r\n", commandQueue);
+        //printf("Queue created %llX\r\n", commandQueue);
         //ASSERT_CL_RETURN(status, "clCreateCommandQueue failed.");
         if (status != CL_SUCCESS)
         {

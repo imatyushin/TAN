@@ -89,7 +89,7 @@ void R2C_transform(std::auto_ptr< clfftSetupData > setupData, size_t* inlengths,
 	cl_int status = 0;
     
 	cl_command_queue commandQueue = ::clCreateCommandQueue( context, device_id[0], command_queue_flags, &status);
-	printf("Queue created %llX\r\n", commandQueue);
+	//printf("Queue created %llX\r\n", commandQueue);
     OPENCL_V_THROW( status, "Creating Command Queue ( ::clCreateCommandQueue() )" );
 
 	if (precision == CLFFT_SINGLE)
@@ -103,7 +103,7 @@ void R2C_transform(std::auto_ptr< clfftSetupData > setupData, size_t* inlengths,
 									batchSize, vectorLength, fftLength, profile_count);
 	}
 
-	printf("Queue release %llX\r\n", commandQueue);
+	//printf("Queue release %llX\r\n", commandQueue);
 	OPENCL_V_THROW( clReleaseCommandQueue( commandQueue ), "Error: In clReleaseCommandQueue\n" );
     OPENCL_V_THROW( clReleaseContext( context ), "Error: In clReleaseContext\n" );
 }

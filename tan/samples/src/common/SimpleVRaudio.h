@@ -64,7 +64,7 @@ public:
     Audio3D(Audio3D const &) = delete;
     virtual ~Audio3D();
 
-    int Init
+    bool Init
     (
         const std::string &     dllPath,
         const RoomDefinition &  roomDef,
@@ -106,13 +106,18 @@ public:
         );
 
 	// finalize, deallocate resources, close files, etc.
-	int Close();
+	void Close();
 
 	// start audio engine:
-    int Run();
+    bool Run();
 
 	// Stop audio engine:
-    bool Stop();
+    void Stop();
+
+    std::string GetLastError() const
+    {
+        return mLastError;
+    }
 
 protected:
     static bool useIntrinsics;
@@ -165,6 +170,8 @@ protected:
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     bool   mUseClMemBufs = false;
+
+    std::string mLastError;
 
     //attention:
     //the following buffers must be 32-bit aligned to use AVX/SSE instructions

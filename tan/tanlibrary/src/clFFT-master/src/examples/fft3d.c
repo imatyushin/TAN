@@ -61,7 +61,7 @@ int main( void )
     props[1] = (cl_context_properties)platform;
     ctx = clCreateContext( props, 1, &device, NULL, NULL, &err );
     queue = clCreateCommandQueue(ctx, device, 0, &err);
-    printf("Queue created %llX\r\n", queue);
+    //printf("Queue created %llX\r\n", queue);
 
     /* Setup clFFT. */
     clfftSetupData fftSetup;
@@ -148,7 +148,7 @@ int main( void )
     clfftTeardown( );
 
     /* Release OpenCL working objects. */
-    printf("Queue release %llX\r\n", queue);
+    //printf("Queue release %llX\r\n", queue);
     clReleaseCommandQueue( queue );
 
     clReleaseContext( ctx );

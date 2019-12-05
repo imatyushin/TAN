@@ -217,13 +217,13 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
 
     if (NULL != pcmdQueue1)
     {
-        printf("Queue release %llX\r\n", *pcmdQueue1);
+        //printf("Queue release %llX\r\n", *pcmdQueue1);
         clReleaseCommandQueue(*pcmdQueue1);
         *pcmdQueue1 = NULL;
     }
     if (NULL != pcmdQueue2)
     {
-        printf("Queue release %llX\r\n", *pcmdQueue2);
+        //printf("Queue release %llX\r\n", *pcmdQueue2);
         clReleaseCommandQueue(*pcmdQueue2);
         *pcmdQueue2 = NULL;
     }
@@ -284,7 +284,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                                 AllIsOK = false;
                             }
                             clRetainCommandQueue(tempQueue);
-                            printf("Queue %llX +1\r\n", tempQueue);
+                            //printf("Queue %llX +1\r\n", tempQueue);
 
                             *pcmdQueue1 = tempQueue;
                         }
@@ -317,7 +317,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                                 AllIsOK = false;
                             }
                             clRetainCommandQueue(tempQueue);
-                            printf("Queue %llX +1\r\n", tempQueue);
+                            //printf("Queue %llX +1\r\n", tempQueue);
 
                             *pcmdQueue2 = tempQueue;
                         }
@@ -345,7 +345,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         {
             if (NULL != *pcmdQueue1)
             {
-                printf("Queue release %llX\r\n", pcmdQueue1);
+                //printf("Queue release %llX\r\n", pcmdQueue1);
                 clReleaseCommandQueue(*pcmdQueue1);
                 *pcmdQueue1 = NULL;
             }
@@ -354,7 +354,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         {
             if (NULL != *pcmdQueue2)
             {
-                printf("Queue release %llX\r\n", pcmdQueue2);
+                //printf("Queue release %llX\r\n", pcmdQueue2);
                 clReleaseCommandQueue(*pcmdQueue2);
                 *pcmdQueue2 = NULL;
             }
@@ -414,10 +414,10 @@ bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue
         NULL);
 
     *pcmdQueue1 = clCreateCommandQueue(context, outdevices[0], NULL, &err);
-    printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue1, err);
+    //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue1, err);
 
     *pcmdQueue2 = clCreateCommandQueue(context, outdevices[1], NULL, &err);
-    printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue2, err);
+    //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue2, err);
 
     return err;
 }
@@ -485,7 +485,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
         {
             if (NULL != *pcmdQueue1)
             {
-                printf("Queue release %llX\r\n", pcmdQueue1);
+                //printf("Queue release %llX\r\n", pcmdQueue1);
                 clReleaseCommandQueue(*pcmdQueue1);
                 *pcmdQueue1 = NULL;
             }
@@ -494,7 +494,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
         {
             if (NULL != *pcmdQueue2)
             {
-                printf("Queue release %llX\r\n", pcmdQueue2);
+                //printf("Queue release %llX\r\n", pcmdQueue2);
                 clReleaseCommandQueue(*pcmdQueue2);
                 *pcmdQueue2 = NULL;
             }

@@ -123,7 +123,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     // Retain the queue for use
     ret = clRetainCommandQueue(m_pCommandQueueCl);
-    printf("Queue %llX +1\r\n", m_pCommandQueueCl);
+    //printf("Queue %llX +1\r\n", m_pCommandQueueCl);
 
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to retain command queue.");
 
@@ -158,7 +158,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
     m_pDeviceCl = NULL;
     if (m_pCommandQueueCl)
     {
-        printf("Queue release %llX\r\n", m_pCommandQueueCl);
+        //printf("Queue release %llX\r\n", m_pCommandQueueCl);
         cl_int ret = clReleaseCommandQueue(m_pCommandQueueCl);
         AMF_RETURN_IF_CL_FAILED(ret, L"Failed to release command queue.");
     }

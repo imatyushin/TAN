@@ -12,14 +12,18 @@ public:
 	virtual ~RoomAcousticQT();
 
 	void initialize();															// Initialize the Room Acoustic
-	int start();																// Start the demo
+	bool start();																// Start the demo
 	void stop();																// Stop the demo
+	
+	std::string getLastError() const 
+	{
+		return mLastError;
+	}															
 
 	void loadConfiguration(const std::string& xmlfilename);						// Load the configuration from the xml file
 	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
 
 	int addSoundSource(const std::string& sourcename);							// Add a sound source in the audio engine
-	bool removeSoundSource(const std::string& sourcename);						// Remove a sound source in the audio engine, return true if success
 	bool removeSoundSource(int id);
 	int  findSoundSource(const std::string& sourcename);						// Given the sound source name, find the corresponding soundsource ID,
 
@@ -102,4 +106,6 @@ public:
 	int mRoomCUCount = 0;
 
 	std::string mPlayerName;
+
+	std::string mLastError;
 };

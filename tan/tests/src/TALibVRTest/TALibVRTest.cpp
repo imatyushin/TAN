@@ -40,10 +40,6 @@ struct element {
     struct element *elemList;
 };
 
-#define DBTODAMP(dB) powf(10.0,float(-dB/20.0))
-#define DAMPTODB(d) float(-20.0*log10(d))
-
-
 #ifdef RTQ_ENABLED
 	#define CL_DEVICE_MAX_REAL_TIME_COMPUTE_QUEUES_AMD  0x404D
 	#define CL_DEVICE_MAX_REAL_TIME_COMPUTE_UNITS_AMD   0x404E
@@ -204,7 +200,7 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
     #endif
 
 #endif
-    printf("Queue created %llX\r\n", cmdQueue);
+    //printf("Queue created %llX\r\n", cmdQueue);
 
     clReleaseDevice(devices[deviceId]);
     clReleaseContext(context);
@@ -220,7 +216,7 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
         fprintf(stdout, "RT Queue NOT created.\n");
     }
 
-    printf("Queue created %llX\r\n", cmdQueue);
+    //printf("Queue created %llX\r\n", cmdQueue);
 
     return cmdQueue;
 }

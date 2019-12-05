@@ -36,9 +36,6 @@ if(WIN32)
     include_directories(../../../src/common)
     include_directories(../../../../common)
 
-    ADD_DEFINITIONS(-DRTQ_ENABLED)
-    set(CMAKE_MFC_FLAG 1)
-
     macro(replace_flags var these those)
       if("${${var}}" MATCHES "${these}")
         string(REGEX REPLACE "${these}" "${those}" ${var} "${${var}}")

@@ -44,7 +44,7 @@ void RoomAcousticQT::initialize()
 	enumDevices();
 }
 
-int RoomAcousticQT::start()
+bool RoomAcousticQT::start()
 {
 	// Remap the sound path to accomodates the audioVR engine
 	// TODO: Need to port the configuration back to the audio3D engine
@@ -71,7 +71,7 @@ int RoomAcousticQT::start()
 		}
 	}
 
-	int err =  m_pAudioEngine->Init(
+	bool started = m_pAudioEngine->Init(
 		mTANDLLPath,
 		m_RoomDefinition,
 
@@ -88,19 +88,19 @@ int RoomAcousticQT::start()
 		convolutionDeviceIndex,
 
 #ifdef RTQ_ENABLED
-		m_iuseMPr4Conv,
-		m_iuseRTQ4Conv,
-		m_iConvolutionCUCount,
-#endif // RTQ_ENABLED
+		1 == mConvolutionPriority,
+		2 == mConvolutionPriority,
+		mConvolutionCUCount,
+#endif
 
 		mRoomOverCL,
 		mRoomOverGPU,
 		roomDeviceIndex,
 
 #ifdef RTQ_ENABLED
-		m_iuseMPr4Room,
-		m_iuseRTQ4Room,
-		m_iRoomCUCount,
+		1 == mRoomPriority,
+		2 == mRoomPriority,
+		mRoomCUCount,
 #endif
 
 		m_eConvolutionMethod,
@@ -108,7 +108,7 @@ int RoomAcousticQT::start()
 		mPlayerName
 		);
 
-	if(!err)
+	if(started)
 	{
 		m_pAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
 
@@ -118,7 +118,7 @@ int RoomAcousticQT::start()
 		return m_pAudioEngine->Run();
 	}
 
-	return -1;
+	return false;
 }
 
 void RoomAcousticQT::stop()
@@ -182,7 +182,6 @@ void RoomAcousticQT::initializeEnvironment()
 void RoomAcousticQT::initializeAudioEngine()
 {
 	m_pAudioEngine = new Audio3D();
-
 }
 
 void RoomAcousticQT::initializeRoom()
@@ -310,6 +309,8 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 		}
 	}
 
+	mPlayerName = settings.value("MAIN/Player").toString().toStdString();
+
 	m_Listener.headX = settings.value((std::string("LISTENER/") + "HeadX").c_str()).toFloat();
 	m_Listener.headY = settings.value((std::string("LISTENER/") + "HeadY").c_str()).toFloat();
 	m_Listener.headZ = settings.value((std::string("LISTENER/") + "HeadZ").c_str()).toFloat();
@@ -395,6 +396,8 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 		settings.setValue((sourceName + "SpeakerZ").c_str(), std::to_string(m_SoundSources[waveFileIndex].speakerZ).c_str());
 	}
 
+	settings.setValue("MAIN/Player", mPlayerName.c_str());
+
 	settings.setValue((std::string("LISTENER/") + "HeadX").c_str(), std::to_string(m_Listener.headX).c_str());
 	settings.setValue((std::string("LISTENER/") + "HeadY").c_str(), std::to_string(m_Listener.headY).c_str());
 	settings.setValue((std::string("LISTENER/") + "HeadZ").c_str(), std::to_string(m_Listener.headZ).c_str());
@@ -458,44 +461,37 @@ int RoomAcousticQT::addSoundSource(const std::string& sourcename)
 	return -1;
 }
 
-bool RoomAcousticQT::removeSoundSource(const std::string& sourcename)
-{
-	for (int i = 0; i < MAX_SOURCES; i++)
-	{
-		if (!strcmp(sourcename.c_str(), mWavFileNames[i].c_str()))
-		{
-			removeSoundSource(i);
-		}
-	}
-	return true;
-}
-
-bool RoomAcousticQT::removeSoundSource(int id)
+bool RoomAcousticQT::removeSoundSource(int index2Remove)
 {
 	// Check if the id is valid
-	if (id >= 0 && id < MAX_SOURCES)
+	if(index2Remove >= 0 && index2Remove < m_iNumOfWavFile)
 	{
-		// if the sound source exist
-		if (mWavFileNames[id].length())
+		if(!index2Remove)
 		{
-			m_SoundSources[id].speakerY = 0.0f;
-			m_SoundSources[id].speakerX = 0.0f;
-			m_SoundSources[id].speakerZ = 0.0f;
-			
-			mSoundSourceEnable[id] = true;
-			mSrcTrackHead[id] = false;
-
-			if (id == 0)
-			{
-				mSrc1EnableMic = false;
-			}
-
-			// Clean file name
-			mWavFileNames[id].resize(0);
-			m_iNumOfWavFile--;
-
-			return true;
+			mSrc1EnableMic = false;
 		}
+
+		for(int index(index2Remove + 1); index < m_iNumOfWavFile; ++index)
+		{
+			mWavFileNames[index - 1] = mWavFileNames[index];
+			mSoundSourceEnable[index - 1] = mSoundSourceEnable[index];
+			m_SoundSources[index - 1] = m_SoundSources[index];
+			mSrcTrackHead[index - 1] = mSrcTrackHead[index];
+		}
+
+		//reset last
+		{
+			mWavFileNames[m_iNumOfWavFile - 1].resize(0);
+			mSoundSourceEnable[m_iNumOfWavFile - 1] = true;
+
+			m_SoundSources[m_iNumOfWavFile - 1].speakerY = 0.0f;
+			m_SoundSources[m_iNumOfWavFile - 1].speakerX = 0.0f;
+			m_SoundSources[m_iNumOfWavFile - 1].speakerZ = 0.0f;
+			
+			mSrcTrackHead[m_iNumOfWavFile - 1] = false;
+		}
+
+		--m_iNumOfWavFile;
 	}
 	
 	return false;
