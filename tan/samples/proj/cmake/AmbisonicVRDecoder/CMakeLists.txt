@@ -24,7 +24,9 @@ project(AmbisonicVRDecoder DESCRIPTION "AmbisonicVRDecoder")
 
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
+
 include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/samples/src/TrueAudioVR)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)

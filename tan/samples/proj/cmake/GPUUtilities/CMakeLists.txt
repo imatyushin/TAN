@@ -72,4 +72,6 @@ add_library(
 target_link_libraries(GPUUtilities ${AMF_NAME})
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
-target_compile_options(GPUUtilities PUBLIC -g) #todo: to Debug only
+if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+  target_compile_options(GPUUtilities PUBLIC -g)
+endif()

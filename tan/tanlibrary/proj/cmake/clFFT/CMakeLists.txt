@@ -18,7 +18,6 @@ project(clFFT-master)
 
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
-ADD_DEFINITIONS(-D_DEBUG)
 
 # sources
 set(
@@ -81,7 +80,10 @@ if(NOT WIN32)
   target_compile_options(clFFT-master PUBLIC -mavx2)
   target_compile_options(clFFT-master PUBLIC -mfma)
   target_compile_options(clFFT-master PUBLIC -msse4.2)
-  target_compile_options(clFFT-master PUBLIC -g) #todo: to Debug only
+
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    target_compile_options(clFFT-master PUBLIC -g)
+  endif()
   
   if(NOT APPLE)
     target_compile_options(clFFT-master PUBLIC -Wpsabi)

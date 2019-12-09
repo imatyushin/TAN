@@ -3,8 +3,8 @@
 #include "stdafx.h"
 
 #include "TrueAudioNext.h"
-#include "samples/src/TrueAudioVR/TrueAudioVR.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "TrueAudioVR.h"
+#include "GpuUtilities.h"
 
 #include "FileUtility.h"
 #include "wav.h"
@@ -39,10 +39,6 @@ struct element {
     int nElements;
     struct element *elemList;
 };
-
-#define DBTODAMP(dB) powf(10.0,float(-dB/20.0))
-#define DAMPTODB(d) float(-20.0*log10(d))
-
 
 #ifdef RTQ_ENABLED
 	#define CL_DEVICE_MAX_REAL_TIME_COMPUTE_QUEUES_AMD  0x404D
@@ -204,7 +200,7 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
     #endif
 
 #endif
-    printf("Queue created %llX\r\n", cmdQueue);
+    //printf("Queue created %llX\r\n", cmdQueue);
 
     clReleaseDevice(devices[deviceId]);
     clReleaseContext(context);
@@ -220,7 +216,7 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
         fprintf(stdout, "RT Queue NOT created.\n");
     }
 
-    printf("Queue created %llX\r\n", cmdQueue);
+    //printf("Queue created %llX\r\n", cmdQueue);
 
     return cmdQueue;
 }

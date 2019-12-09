@@ -27,15 +27,13 @@
     #include <ppltasks.h>
 #endif
 
+#include "GpuUtilities.h"
 #include "TrueAudioNext.h"
 using namespace amf;
 
 #include "FileUtility.h"
 #include "wav.h"
 
-#include "utilities.h"
-
-#include "samples/src/GPUUtilities/GpuUtilities.h"
 const uint32_t c_modesCnt = 2;
 
 int main(int argc, char* argv[])

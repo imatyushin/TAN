@@ -24,7 +24,7 @@
 #include <cstdint>
 
 #include "TrueAudioNext.h"       //TAN
-#include "../TrueAudioVR/TrueAudioVR.h"
+#include "TrueAudioVR.h"
 
 #include "fifo.h"
 #include "maxlimits.h"
@@ -64,7 +64,7 @@ public:
     Audio3D(Audio3D const &) = delete;
     virtual ~Audio3D();
 
-    int Init
+    bool Init
     (
         const std::string &     dllPath,
         const RoomDefinition &  roomDef,
@@ -73,14 +73,15 @@ public:
 
         // Source 1 can optionally be captured audio from default microphone:
         bool                    useMicSource,
-        bool                    trackHeadPos,
+        const std::vector<bool> &
+                                trackHeadPos,
 
         int                     fftLen,
         int                     bufSize,
 
-        bool                    useGPU_Conv,
-        bool                    useGPU_ConvQueue,
-        int                     devIdx_Conv,
+        bool                    useCLConvolution,
+        bool                    useGPUConvolution,
+        int                     deviceIndexConvolution,
 
 #ifdef RTQ_ENABLED
 		bool                    useHPr_Conv,
@@ -88,9 +89,9 @@ public:
         int                     cuRes_Conv,
 #endif // RTQ_ENABLED
 
-        bool                    useGPU_IRGen,
-        bool                    useCPU_IRGenQueue,
-        int                     devIdx_IRGen,
+        bool                    useCLRoom,
+        bool                    useGPURoom,
+        int                     deviceIndexRoom,
 
 #ifdef RTQ_ENABLED
 		bool                    useHPr_IRGen,
@@ -105,13 +106,18 @@ public:
         );
 
 	// finalize, deallocate resources, close files, etc.
-	int Close();
+	void Close();
 
 	// start audio engine:
-    int Run();
+    bool Run();
 
 	// Stop audio engine:
-    bool Stop();
+    void Stop();
+
+    std::string GetLastError() const
+    {
+        return mLastError;
+    }
 
 protected:
     static bool useIntrinsics;
@@ -133,7 +139,9 @@ protected:
     bool m_useOCLOutputPipeline;
 
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
-	std::vector<WavContent>     mWavFiles;
+	
+    std::vector<WavContent>     mWavFiles;
+    std::vector<bool>           mTrackHeadPos;
 
     //Timer                       mRealtimeTimer;
 
@@ -154,7 +162,6 @@ protected:
 	StereoListener ears;
 
     bool mSrc1EnableMic = false;
-    bool mSrc1TrackHeadPos = false;
     bool mSrc1MuteDirectPath = false;
 
     AllignedAllocator<float, 32>mResponseBufferStorage;
@@ -163,6 +170,8 @@ protected:
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     bool   mUseClMemBufs = false;
+
+    std::string mLastError;
 
     //attention:
     //the following buffers must be 32-bit aligned to use AVX/SSE instructions
@@ -204,16 +213,6 @@ protected:
     cl_command_queue mCmdQueue3 = nullptr;
 
 public:
-    /*
-    m_pAudioVR->init(room, dlg.nFiles, dlg.waveFileNames, dlg.convolutionLength, dlg.bufferSize,
-    dlg.useGPU4Conv, dlg.convDevIdx, dlg.useRTQ4Conv, dlg.cuCountConv,
-    dlg.useGPU4Room, dlg.roomDevIdx, dlg.useRTQ4Room, dlg.cuCountRoom);
-    */
-	// Initialize room acoustics model, WASAPI audio, and TAN convolution:
-    //int init(RoomDefinition roomDef, int nFiles, char **inFiles, int fftLen, int bufSize, bool useGPU_Conv = true);
-
-    //static amf::TAN_CONVOLUTION_METHOD m_convMethod;// = amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-
     //todo: move to Init with help of struct
     // Set transform to translate game coordinates to room audio coordinates:
 	int setWorldToRoomCoordTransform(

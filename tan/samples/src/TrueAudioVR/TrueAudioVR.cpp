@@ -267,7 +267,7 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     if (cmdQueue != 0)
     {
         clRetainCommandQueue(cmdQueue);
-        printf("Queue %llX +1\r\n", cmdQueue);
+        //printf("Queue %llX +1\r\n", cmdQueue);
     }
 }
 
@@ -663,7 +663,7 @@ void TrueAudioVRimpl::generateRoomResponse(RoomDefinition room, MonoSource sound
         nL = (nL > maxBounces) ? maxBounces : nL;
     }
 
-    printf("\nComputing %d x %d x %d = %d reflections ...", nW, nH, nL, nW*nH*nL);
+    printf("Computing %d x %d x %d = %d reflections ...\r\n", nW, nH, nL, nW*nH*nL);
 
     if (m_executionMode == VRExecutionMode::GPU)
     {
@@ -731,12 +731,7 @@ void TrueAudioVRimpl::generateRoomResponse(RoomDefinition room, MonoSource sound
             generateRoomResponseCPU(room, sound, ears.earSpacing, &ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, hrtfResponseLength, nW, nH, nL);
         }
     }
-
-    //printf(".");
-    return;
-
 }
-
 
 /**************************************************************************************************
 AmdTrueAudio::generateRoomResponse:
@@ -814,12 +809,7 @@ void TrueAudioVRimpl::generateDirectResponse(RoomDefinition room, MonoSource sou
         generateDirectResponseCPU(room, sound, ears.earSpacing, &ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, pFirstNZ, pLastNZ);
 
     }
-
-    //printf(".");
-    return;
-
 }
-
 
 void TrueAudioVRimpl::Initialize(StereoListener ears, int nW, int nH, int nL, int responseLength)
 {
@@ -1141,7 +1131,7 @@ void TrueAudioVRimpl::Release()
 
     if (m_cmdQueue)
     {
-        printf("Queue release %llX\r\n", m_cmdQueue);
+        //printf("Queue release %llX\r\n", m_cmdQueue);
         clReleaseCommandQueue(m_cmdQueue);
         m_cmdQueue = NULL;
     }

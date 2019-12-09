@@ -32,6 +32,7 @@ project(TanDeviceResourcesTest DESCRIPTION "TanDeviceResourcesTest")
 
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 
 # sources
 set(

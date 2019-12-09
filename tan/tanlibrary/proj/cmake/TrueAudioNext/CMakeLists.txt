@@ -41,7 +41,6 @@ ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
-ADD_DEFINITIONS(-D_DEBUG)
 
 # sources
 set(
@@ -177,7 +176,10 @@ if(NOT WIN32)
   target_compile_options(TrueAudioNext PUBLIC -mavx2)
   target_compile_options(TrueAudioNext PUBLIC -mfma)
   target_compile_options(TrueAudioNext PUBLIC -msse4.2)
-  target_compile_options(TrueAudioNext PUBLIC -g) #todo: to Debug only
+
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    target_compile_options(TrueAudioNext PUBLIC -g)
+  endif()
   
   if(NOT APPLE)
     target_compile_options(TrueAudioNext PUBLIC -Wpsabi)

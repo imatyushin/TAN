@@ -70,13 +70,12 @@ link_directories(${Qt5Widgets_LIBRARY})
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
 
-include_directories(../../../src/common)
 include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/samples/src/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
+include_directories(${TAN_ROOT}/tan/samples/src/TrueAudioVR)
 
 include_directories(../../../src/RoomAcousticQT/QTObject)
-
-#ADD_DEFINITIONS(-DRTQ_ENABLED)
-ADD_DEFINITIONS(-D_DEBUG)
 
 # sources
 set(
@@ -85,7 +84,6 @@ set(
 
   ../../../src/common/GpuUtils.cpp
   ../../../src/common/SimpleVRaudio.cpp
-  ../../../src/common/utilities.c
 
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/StringUtility.cpp
@@ -119,7 +117,6 @@ set(
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h
   ../../../src/common/SimpleVRaudio.h
-  ../../../src/common/utilities.h
   ../../../src/common/WasAPI.h
   ../../../src/common/IWavPlayer.h
 
@@ -151,7 +148,6 @@ endif()
 set(
   UI_FILES
   ../../../src/RoomAcousticQT/UI/RoomAcousticConfig.ui
-  ../../../src/RoomAcousticQT/UI/RoomAcousticConfig_NoRTQ.ui
   ../../../src/RoomAcousticQT/UI/ExportResponse.ui
   )
 
@@ -212,7 +208,10 @@ if(NOT WIN32)
   target_compile_options(RoomAcousticsQT PUBLIC -mavx2)
   target_compile_options(RoomAcousticsQT PUBLIC -mfma)
   target_compile_options(RoomAcousticsQT PUBLIC -msse4.2)
-  target_compile_options(RoomAcousticsQT PUBLIC -g) #todo: to Debug only
+
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    target_compile_options(RoomAcousticsQT PUBLIC -g)
+  endif()
 
   if(NOT APPLE)
     target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)

@@ -23,6 +23,8 @@ include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 project(TALibTestConvolution DESCRIPTION "TALibTestConvolution")
 
 include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/samples/src/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -35,7 +37,7 @@ include_directories(${TAN_HEADERS})
 # sources
 set(
   SOURCE_EXE
-  ../../../../samples/src/common/utilities.c
+  ../../../../samples/src/common/ConvUtilities.c
 
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/wav.cpp
@@ -49,7 +51,7 @@ set(
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/wav.h
 
-  ../../../../samples/src/common/utilities.h
+  ../../../../samples/src/common/ConvUtilities.h
   )
 
 # create binary

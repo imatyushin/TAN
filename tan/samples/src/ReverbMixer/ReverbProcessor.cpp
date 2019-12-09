@@ -2,8 +2,8 @@
 #define FILTER_SAMPLE_RATE 48000
 
 #include "ReverbProcessor.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
-#include "samples/src/common/GpuUtils.h"
+#include "GpuUtilities.h"
+#include "GpuUtils.h"
 #include "FileUtility.h"
 #include "wav.h"
 

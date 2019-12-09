@@ -27,6 +27,7 @@ include_directories(${TAN_HEADERS})
 
 include_directories(${TAN_ROOT}/utils/common)
 include_directories(../../../../samples/src/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -38,8 +39,6 @@ set(
   SOURCE_EXE
   ../../../src/TAlibTestDynamicChannelConvolution/TALibTestDynamicChannelConvolution.cpp
 
-  ../../../../samples/src/common/utilities.c
-
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/wav.cpp
   )
@@ -48,8 +47,6 @@ set(
   HEADER_EXE
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/wav.h
-
-  ../../../../samples/src/common/utilities.h
   )
 
 # create binary

@@ -142,10 +142,13 @@ add_library(
 set_property(TARGET ${AMF_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
-  target_compile_options(${AMF_NAME} PUBLIC -mavx2)
-  target_compile_options(${AMF_NAME} PUBLIC -mfma)
-  target_compile_options(${AMF_NAME} PUBLIC -msse4.2)
-  target_compile_options(${AMF_NAME} PUBLIC -g) #todo: to Debug only
+  target_compile_options(amf PUBLIC -mavx2)
+  target_compile_options(amf PUBLIC -mfma)
+  target_compile_options(amf PUBLIC -msse4.2)
+
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    target_compile_options(amf PUBLIC -g)
+  endif()
   
   if(NOT APPLE)
     target_compile_options(${AMF_NAME} PUBLIC -Wpsabi)

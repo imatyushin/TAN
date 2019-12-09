@@ -19,12 +19,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include "Utilities.h"
 #include "GraalConv_clFFT.hpp"
 #include "GraalCLUtil/GraalUtil.hpp"
 #include "GraalConvOCL.hpp"
 #include "../common/OCLHelper.h"
 #include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
+#include "Utilities.h"
 
 #include <iostream>
 #include <fstream>

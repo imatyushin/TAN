@@ -23,7 +23,8 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
-#include "../common/maxlimits.h"
+
+#include "maxlimits.h"
 
 #define MAXWINDOWS 100
 

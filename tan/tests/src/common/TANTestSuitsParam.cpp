@@ -1,5 +1,5 @@
 #include "TANTestSuitsParam.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "GpuUtilities.h"
 #include "assert.h"
 TANTestSuitsParam::TANTestSuitsParam(eTestMode mode)
 {

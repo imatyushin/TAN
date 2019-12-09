@@ -16,6 +16,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+  message("Build type was not set, Debug will be forced")
+endif()
+
+if(RTQ_ENABLED)
+  if(WIN32)
+    message("Realtime queue support will be enabled")
+    ADD_DEFINITIONS(-DRTQ_ENABLED)
+  else()
+    message(WARNING "Warning: realtime queues are only supported for Windows platform")
+    #ADD_DEFINITIONS(-DRTQ_ENABLED)
+  endif()
+endif()
 
 # name
 project(TAN DESCRIPTION "TAN")
@@ -71,7 +88,7 @@ add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bi
 add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
 if(WIN32)
   #not implemented yet: add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
-  #migration to new player not yet done: add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
+  #migration to new Audio3D class not yet done: add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 endif()
 
 #tests

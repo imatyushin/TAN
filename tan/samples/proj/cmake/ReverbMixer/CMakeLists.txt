@@ -52,9 +52,10 @@ link_directories(${Qt5Widgets_LIBRARY})
 
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
-include_directories(${TAN_ROOT}/utils/common)
 
-include_directories(../../../src/common)
+include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/samples/src/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 
 include_directories(../../../src/ReverbMixer)
 include_directories(../../../src/ReverbMixer/UI)

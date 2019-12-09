@@ -1,6 +1,8 @@
 #include <QtWidgets/QtWidgets>
-#include <samples/src/common/maxlimits.h>
 #include <QGraphicsItemGroup>
+
+#include "maxlimits.h"
+
 #define ROOMSCALE 100
 
 class RoomAcousticRoomGraphics : public QGraphicsItemGroup

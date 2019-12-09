@@ -22,7 +22,7 @@
 
 // RoomAcousticsDlg.h : header file
 //
-#include "../common/maxlimits.h"
+#include "maxlimits.h"
 #pragma once
 
 #define MAX_CFileDialog_FILE_COUNT 99

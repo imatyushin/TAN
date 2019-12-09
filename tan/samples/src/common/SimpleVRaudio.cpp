@@ -21,9 +21,8 @@
 //
 #include "SimpleVRaudio.h"
 
-#include "../TrueAudioVR/TrueAudioVR.h"
+#include "TrueAudioVR.h"
 #include "GpuUtils.h"
-#include "Utilities.h"
 #include "cpucaps.h"
 
 #include <time.h>
@@ -160,7 +159,7 @@ Audio3D::~Audio3D()
     Close();
 }
 
-int Audio3D::Close()
+void Audio3D::Close()
 {
     mRunning = false;
 
@@ -234,11 +233,9 @@ int Audio3D::Close()
     mCmdQueue3 = NULL;
 
     mWavFiles.resize(0);
-
-    return 0;
 }
 
-int Audio3D::Init
+bool Audio3D::Init
 (
 	const std::string &     dllPath,
 	const RoomDefinition &  roomDef,
@@ -247,14 +244,15 @@ int Audio3D::Init
                             inFiles,
 
     bool                    useMicSource,
-    bool                    trackHeadPos,
+    const std::vector<bool> &
+                            trackHeadPos,
 
 	int                     fftLen,
 	int                     bufferSizeInSamples,
 
-    bool                    useGPU_Conv,
-    bool                    useGPU_ConvQueue,
-    int                     devIdx_Conv,
+    bool                    useCLConvolution,
+    bool                    useGPUConvolution,
+    int                     deviceIndexConvolution,
 
 #ifdef RTQ_ENABLED
 	bool                    useHPr_Conv,
@@ -262,9 +260,9 @@ int Audio3D::Init
     int                     cuRes_Conv,
 #endif
 
-    bool                    useGPU_IRGen,
-    bool                    useGPU_IRGenQueue,
-    int                     devIdx_IRGen,
+    bool                    useCLRoom,
+    bool                    useGPURoom,
+    int                     deviceIndexRoom,
 
 #ifdef RTQ_ENABLED
 	bool                    useHPr_IRGen,
@@ -278,30 +276,20 @@ int Audio3D::Init
     const std::string &     playerType
 )
 {
-    if(useGPU_ConvQueue && !useGPU_Conv)
+    if((useGPUConvolution && !useCLConvolution) || (useGPURoom && !useCLRoom))
     {
         std::cerr
-            << "Error: GPU queues must be used only with OpenCL Convolution processing!"
+            << "Error: GPU queues must be used only if OpenCL flag is set"
             << std::endl;
 
-        return -1;
-    }
-
-    if(useGPU_IRGenQueue && !useGPU_IRGen)
-    {
-        std::cerr
-            << "Error: GPU queues must be used only with OpenCL Convolution processing!"
-            << std::endl;
-
-        return -1;
+        return false;
     }
 
     //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
-    m_useOCLOutputPipeline = useGPU_Conv || useGPU_IRGen;
+    m_useOCLOutputPipeline = useCLConvolution || useCLRoom;
     
     mSrc1EnableMic = useMicSource;
-    mSrc1TrackHeadPos = trackHeadPos;
-
+    mTrackHeadPos = trackHeadPos;
     mBufferSizeInSamples = bufferSizeInSamples;
     mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
 
@@ -320,7 +308,7 @@ int Audio3D::Init
                     << FILTER_SAMPLE_RATE << " frequency is supported!"
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             if(content.BitsPerSample != 16)
@@ -330,7 +318,7 @@ int Audio3D::Init
                     << 16 << " bits is supported!"
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             if(content.ChannelsCount != 2)
@@ -339,7 +327,7 @@ int Audio3D::Init
                     << "Error: file " << fileName << " is not a stereo file. Currently only stereo files are supported!"
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             if(content.SamplesCount < mBufferSizeInSamples)
@@ -348,7 +336,7 @@ int Audio3D::Init
                     << "Error: file " << fileName << " are too short."
                     << std::endl;
 
-                return -1;
+                return false;
             }
 
             //check that samples have compatible formats
@@ -359,7 +347,7 @@ int Audio3D::Init
                 {
                     std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
 
-                    return -1;
+                    return false;
                 }
             }
 
@@ -369,7 +357,7 @@ int Audio3D::Init
         {
             std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
 
-            return -1;
+            return false;
         }
     }
 
@@ -377,7 +365,7 @@ int Audio3D::Init
     {
         std::cerr << "Error: no files opened to play" << std::endl;
 
-        return -1;
+        return false;
     }
 
     //initialize hardware
@@ -424,7 +412,7 @@ int Audio3D::Init
     {
         std::cerr << "Error: could not initialize player " << std::endl;
 
-        return -1;
+        return false;
     }
 
     /* # fft buffer length must be power of 2: */
@@ -511,7 +499,7 @@ int Audio3D::Init
         int32_t flagsQ2 = 0;
 
         //CL convolution on GPU
-        if(useGPU_Conv && useGPU_ConvQueue)
+        if(useCLConvolution && useGPUConvolution)
         {
     #ifdef RTQ_ENABLED
 
@@ -535,53 +523,54 @@ int Audio3D::Init
             }
     #endif // RTQ_ENABLED
 
-            CreateGpuCommandQueues(devIdx_Conv, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
+            CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
             
-            //to does not rewrite existing deallocation sources
-            //todo: use CL queue smartpointers
-            clRetainCommandQueue(mCmdQueue1);
-            clRetainCommandQueue(mCmdQueue2);
-
-            if((devIdx_Conv == devIdx_IRGen) && useGPU_IRGen)
+            //CL room on GPU
+            if(useCLRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
                 mCmdQueue3 = mCmdQueue2;
             }
         }
 
         //CL convolution on CPU
-        else if(useGPU_Conv && !useGPU_ConvQueue)
+        else if(useCLConvolution && !useGPUConvolution)
         {
-    #ifdef RTQ_ENABLED
+#ifdef RTQ_ENABLED
             // For " core "reservation" on CPU" -ToDo test and enable
             if (cuRes_Conv > 0 && cuRes_IRGen > 0)
             {
-                cl_int err = CreateCommandQueuesWithCUcount(devIdx_Conv, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
+                cl_int err = CreateCommandQueuesWithCUcount(deviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
             }
             else
             {
-                CreateCpuCommandQueues(devIdx_Conv, 0, &mCmdQueue1, 0, &mCmdQueue2);
+#endif
+                CreateCpuCommandQueues(deviceIndexConvolution, 0, &mCmdQueue1, 0, &mCmdQueue2);
+#ifdef RTQ_ENABLED
             }
-    #endif // RTQ_ENABLED
-
+#endif
+    
             //CL room on CPU
-            if((devIdx_Conv == devIdx_IRGen) && !useGPU_IRGenQueue)
+            if(useCLRoom && !useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
                 mCmdQueue3 = mCmdQueue2;
             }
         }
 
+        clRetainCommandQueue(mCmdQueue1);
+        clRetainCommandQueue(mCmdQueue2);
+
         //room queue not yet created
-        if(!mCmdQueue3)
+        if(!mCmdQueue3 && useCLRoom)
         {
             //CL over GPU
-            if(useGPU_IRGenQueue)
+            if(useGPURoom)
             {
-                CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
+                CreateGpuCommandQueues(deviceIndexRoom, 0, &mCmdQueue3, 0, nullptr);
             }
             //CL over CPU
             else
             {
-                CreateCpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, nullptr);
+                CreateCpuCommandQueues(deviceIndexRoom, 0, &mCmdQueue3, 0, nullptr);
             }
         }
     }
@@ -590,33 +579,23 @@ int Audio3D::Init
     RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext));
 
     //convolution over OpenCL
-    if(useGPU_Conv) 
+    if(useCLConvolution) 
     {
         RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
     }
 
     //room processing over OpenCL
-    if(useGPU_IRGen) 
+    if(useCLRoom) 
     {
         RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
     }
 
     RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &m_spConvolution));
     
-    //don't use OpenCL at all
-    if(!useGPU_Conv) 
-    {        
-        /*
-        // ensures compatible with old room acoustic
-		if(convMethod != TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
-        {
-            convMethod = TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-        }
-        */
-
-        // C_Model implementation
+    if(useCLConvolution) 
+    {   
         RETURN_IF_FAILED(
-            m_spConvolution->InitCpu(
+            m_spConvolution->InitGpu(
                 convMethod,
                 m_fftLen,
                 mBufferSizeInSamples,
@@ -625,10 +604,9 @@ int Audio3D::Init
             );
     }
     else
-    {
+    {   
         RETURN_IF_FAILED(
-            m_spConvolution->InitGpu(
-                //TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
+            m_spConvolution->InitCpu(
                 convMethod,
                 m_fftLen,
                 mBufferSizeInSamples,
@@ -652,13 +630,8 @@ int Audio3D::Init
     }
 
     //CL over GPU for both Convolution and Room processing
-    if(useGPU_ConvQueue && useGPU_IRGenQueue)
+    if(useCLConvolution && useCLRoom)
     {
-        //if (mCmdQueue3 == NULL){
-        //    CreateGpuCommandQueues(devIdx_IRGen, 0, &mCmdQueue3, 0, NULL);
-        //}
-
-        cl_int status;
         cl_context context_IR;
         cl_context context_Conv;
 
@@ -669,6 +642,7 @@ int Audio3D::Init
         {
             for(int i = 0; i < mWavFiles.size() * 2; i++)
             {
+                cl_int status = 0;
                 mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, m_fftLen * sizeof(float), NULL, &status);
             }
 
@@ -677,103 +651,104 @@ int Audio3D::Init
         }
 
         // Initialize CL output buffers,
-        //if(useGPU_Conv) already?
-        {
-            cl_int clErr;
+        cl_int clErr;
 
-            // First create a big cl_mem buffer then create small sub-buffers from it
-            mOutputMainCLbuf = clCreateBuffer(
-                mTANConvolutionContext->GetOpenCLContext(),
-                CL_MEM_READ_WRITE,
-                mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
-                nullptr,
-                &clErr
-                );
+        // First create a big cl_mem buffer then create small sub-buffers from it
+        mOutputMainCLbuf = clCreateBuffer(
+            mTANConvolutionContext->GetOpenCLContext(),
+            CL_MEM_READ_WRITE,
+            mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
+            nullptr,
+            &clErr
+            );
+
+        if(clErr != CL_SUCCESS)
+        {
+            std::cerr << "Could not create OpenCL buffer" << std::endl;
+            
+            return false;
+        }
+
+        for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
+        {
+            cl_buffer_region region;
+            region.origin = i * mBufferSizeInBytes;
+            region.size = mBufferSizeInBytes;
+            mOutputCLBufs[i] = clCreateSubBuffer(
+                mOutputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
 
             if (clErr != CL_SUCCESS)
             {
-                printf("Could not create OpenCL buffer\n");
-                return AMF_FAIL;
-            };
-
-            for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
-            {
-                cl_buffer_region region;
-                region.origin = i * mBufferSizeInBytes;
-                region.size = mBufferSizeInBytes;
-                mOutputCLBufs[i] = clCreateSubBuffer(
-                    mOutputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
-
-                if (clErr != CL_SUCCESS)
-                {
-                    printf("Could not create OpenCL subBuffer\n");
-                    return AMF_FAIL;
-                }
-
-                float zero = 0.0;
-                clErr = clEnqueueFillBuffer(mCmdQueue1, mOutputCLBufs[i], &zero,sizeof(zero), 0, region.size, 0, NULL, NULL);
-                if (clErr != CL_SUCCESS)
-                {
-                    printf("Could not fill OpenCL subBuffer\n");
-                    return AMF_FAIL;
-                }
+                std::cerr << "Could not create OpenCL subBuffer" << std::endl;
+                
+                return false;
             }
 
-            for (int idx = 0; idx < 2; idx++)
+            float zero = 0.0;
+            clErr = clEnqueueFillBuffer(mCmdQueue1, mOutputCLBufs[i], &zero, sizeof(zero), 0, region.size, 0, NULL, NULL);
+            if (clErr != CL_SUCCESS)
             {
-                mOutputMixCLBufs[idx] = clCreateBuffer(
-                    mTANConvolutionContext->GetOpenCLContext(),
-                    CL_MEM_READ_WRITE,
-                    mBufferSizeInBytes,
-                    nullptr,
-                    &clErr
-                    );
-
-                if (clErr != CL_SUCCESS)
-                {
-                    printf("Could not create OpenCL buffer\n");
-                    return AMF_FAIL;
-                }
-
-                if (clErr != CL_SUCCESS)
-                {
-
-                    printf("Could not create OpenCL buffer\n");
-                    return AMF_FAIL;
-                }
+                std::cerr << "Could not fill OpenCL subBuffer" << std::endl;
+                
+                return false;
             }
+        }
 
-            // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
-            // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
-            mOutputShortBuf = clCreateBuffer(
+        for (int idx = 0; idx < 2; idx++)
+        {
+            mOutputMixCLBufs[idx] = clCreateBuffer(
                 mTANConvolutionContext->GetOpenCLContext(),
                 CL_MEM_READ_WRITE,
                 mBufferSizeInBytes,
                 nullptr,
                 &clErr
                 );
+
+            if (clErr != CL_SUCCESS)
+            {
+                std::cerr << "Could not create OpenCL buffer" << std::endl;
+                
+                return false;
+            }
+
+            if (clErr != CL_SUCCESS)
+            {
+                std::cerr << "Could not create OpenCL buffer" << std::endl;
+                
+                return false;
+            }
         }
+
+        // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
+        // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
+        mOutputShortBuf = clCreateBuffer(
+            mTANConvolutionContext->GetOpenCLContext(),
+            CL_MEM_READ_WRITE,
+            mBufferSizeInBytes,
+            nullptr,
+            &clErr
+            );
     }
 
-    #ifdef _WIN32
+#ifdef _WIN32
     HMODULE TanVrDll;
     TanVrDll = LoadLibraryA("TrueAudioVR.dll");
     typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
     CREATEVR CreateAmdTrueAudioVR = nullptr;
 
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
-    #endif
+#endif
 
     CreateAmdTrueAudioVR(
         &m_pTAVR,
         mTANRoomContext,
         m_spFft,
         mCmdQueue3,
-        48000, //todo: other frequencies?
+        FILTER_SAMPLE_RATE, //todo: other frequencies?
         m_fftLen
         );
 
-    if(useGPU_IRGenQueue)
+    if(useGPURoom)
     {
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
@@ -782,7 +757,9 @@ int Audio3D::Init
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
 
-    std::cout << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H" << std::endl;
+    std::cout 
+        << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H" 
+        << std::endl;
 
     // head model:
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
@@ -804,9 +781,11 @@ int Audio3D::Init
         RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(mResponses, m_fftLen, nullptr, IR_UPDATE_MODE));
     }
 
+    std::cout << "Playback started" << std::endl;
+
     mRunning = true;
 
-    return 0;
+    return true;
 }
 
 int Audio3D::updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
@@ -900,9 +879,8 @@ int Audio3D::setWorldToRoomCoordTransform(
     return 0;
 }
 
-int Audio3D::Run()
+bool Audio3D::Run()
 {
-    mStop = false;
     // start main processing thread:
     //m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
     //RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
@@ -920,10 +898,12 @@ int Audio3D::Run()
     mUpdateThread = std::thread(updateThreadProc, this);
 
     mUpdateParams = true;
-    return 0;
+    mStop = false;
+
+    return true;
 }
 
-bool Audio3D::Stop()
+void Audio3D::Stop()
 {
     mStop = true;
 
@@ -931,8 +911,6 @@ bool Audio3D::Stop()
     mUpdateThread.WaitCloseInfinite();
 
     Close();
-
-    return true;
 }
 
 int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
@@ -1298,18 +1276,15 @@ int Audio3D::UpdateProc()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if(!mStop)
-        {
-            if(mSrc1TrackHeadPos)
-            {
-                sources[0].speakerX = ears.headX;
-                sources[0].speakerY = ears.headY;
-                sources[0].speakerZ = ears.headZ;
-            }
-        }
-
         for(int idx = 0; !mStop && (idx < mWavFiles.size()); idx++)
         {
+            if(mTrackHeadPos[idx])
+            {
+                sources[idx].speakerX = ears.headX;
+                sources[idx].speakerY = ears.headY;
+                sources[idx].speakerZ = ears.headZ;
+            }
+
             if(mUseClMemBufs)
             {
                 m_pTAVR->generateRoomResponse(

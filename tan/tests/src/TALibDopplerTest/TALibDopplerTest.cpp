@@ -5,8 +5,8 @@
 #include "StringUtility.h"
 
 #include "TrueAudioNext.h"
-#include "samples/src/TrueAudioVR/TrueAudioVR.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "TrueAudioVR.h"
+#include "GpuUtilities.h"
 
 #include <vector>
 #include <iostream>
@@ -43,10 +43,6 @@ struct element {
     int nElements;
     struct element *elemList;
 };
-
-#define DBTODAMP(dB) powf(10.0,float(-dB/20.0))
-#define DAMPTODB(d) float(-20.0*log10(d))
-
 
 #define MAX_SOURCES 10
 float srcX[MAX_SOURCES], srcY[MAX_SOURCES], srcZ[MAX_SOURCES];
