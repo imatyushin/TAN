@@ -33,11 +33,11 @@
 //#define MAXFILES 3
 //#define MAXRESPONSELENGTH 131072
 
-class transRotMtx{
+class TransRotMtx{
 private:
 	float m[3][4];
 public:
-	transRotMtx();
+	TransRotMtx();
 	void setAngles(float yaw, float pitch, float roll);
 	void setOffset(float x, float y, float z);
 	void transform(float &X, float &Y, float &Z);
@@ -98,7 +98,7 @@ private:
     int64_t m_samplePos;
 
 	// World To Room coordinate transform:
-	transRotMtx m_mtxWorldToRoomCoords;
+	TransRotMtx m_mtxWorldToRoomCoords;
 	float m_headingOffset;
 	bool m_headingCCW;
 

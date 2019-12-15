@@ -39,23 +39,6 @@
 #include <vector>
 #include <array>
 
-// rotation, translation matrix
-class transRotMtx{
-private:
-	float m[3][4];
-public:
-	transRotMtx();
-	void setAngles(float yaw, float pitch, float roll);
-	void setOffset(float x, float y, float z);
-	void transform(float &X, float &Y, float &Z);
-};
-
-enum class ProcessingType
-{
-    ProcessingType_CPU = 1 << 0,
-    ProcessingType_GPU = 1 << 1
-};
-
 // Simple VR audio engine using True Audio Next GPU acceleration
 class Audio3D
 {
@@ -176,13 +159,13 @@ protected:
     //attention:
     //the following buffers must be 32-bit aligned to use AVX/SSE instructions
 
-    AllignedAllocator<float, 32>mInputFloatBufsStorage[MAX_SOURCES * 2];
+    AllignedAllocator<float, 32> mInputFloatBufsStorage[MAX_SOURCES * 2];
     float *mInputFloatBufs[MAX_SOURCES * 2] = {nullptr};
 
-    AllignedAllocator<float, 32>mOutputFloatBufsStorage[MAX_SOURCES * 2];
+    AllignedAllocator<float, 32> mOutputFloatBufsStorage[MAX_SOURCES * 2];
     float *mOutputFloatBufs[MAX_SOURCES * 2] = {nullptr};
 
-    AllignedAllocator<float, 32>mOutputMixFloatBufsStorage[STEREO_CHANNELS_COUNT];
+    AllignedAllocator<float, 32> mOutputMixFloatBufsStorage[STEREO_CHANNELS_COUNT];
     float *mOutputMixFloatBufs[2] = {nullptr};
 
 	cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
@@ -190,57 +173,8 @@ protected:
 	cl_mem mOutputMixCLBufs[2] = {nullptr};
 	cl_mem mOutputShortBuf = nullptr;
 
-	// current position in each stream:
-	//int64_t m_samplePos[MAX_SOURCES];
-
-	// fft length must be power of 2
-	// 65536/48000 = reverb time of 1.37 seconds
-    int m_fftLen = 65536;  //default fft length
-
-	// buffer length 4096 / 48000 = 85 ms update rate:
-	//int m_bufSize = 4096 * 4; // default buffer length
-    uint32_t mBufferSizeInSamples = 0;
-    uint32_t mBufferSizeInBytes = 0;
-
-	// World To Room coordinate transform:
-	transRotMtx m_mtxWorldToRoomCoords;
-	float m_headingOffset;
-	bool m_headingCCW;
-
     // RT-Queues
     cl_command_queue mCmdQueue1 = nullptr;
     cl_command_queue mCmdQueue2 = nullptr;
     cl_command_queue mCmdQueue3 = nullptr;
-
-public:
-    //todo: move to Init with help of struct
-    // Set transform to translate game coordinates to room audio coordinates:
-	int setWorldToRoomCoordTransform(
-        float translationX,
-        float translationY,
-        float translationZ,
-        float rotationY,
-        float headingOffset,
-        bool headingCCW
-        );
-
-	// get's the current playback position in a stream:
-    //int64_t getCurrentPosition(int stream);
-
-	// update the head (listener) position:
-    int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);
-
-	//update a source position:
-    int updateSourcePosition(int srcNumber, float x, float y, float z);
-
-	//update a room's dimension:
-	int updateRoomDimension(float _width, float _height, float _length);
-
-	//update a room's damping factor
-	int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back);
-
-    // export impulse response for source  + current listener and room:
-    int exportImpulseResponse(int srcNumber, char * fname);
-	AmdTrueAudioVR* getAMDTrueAudioVR();
-	TANConverterPtr getTANConverter();
 };

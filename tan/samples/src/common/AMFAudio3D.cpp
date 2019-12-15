@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include "SimpleVRaudio.h"
+#include "AMFAudio3D.h"
 
 #include "TrueAudioVR.h"
 #include "GpuUtils.h"
@@ -53,104 +53,8 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-/**/
 
-bool Audio3D::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
-
-#ifndef ERROR_MESSAGE
-
-#ifdef _WIN32
-#define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
-#else
-#define ERROR_MESSAGE(message) __asm__("int3"); std::cerr << "Error: " << message << std::endl
-#endif
-
-#endif
-
-#define RETURN_IF_FAILED(x) \
-{ \
-    AMF_RESULT tmp = (x); \
-    if (tmp != AMF_OK) { \
-        ERROR_MESSAGE(int(x)); \
-        return -1; \
-    } \
-}
-
-#define RETURN_IF_FALSE(x) \
-{ \
-    bool tmp = (x); \
-    if (!tmp) { \
-        ERROR_MESSAGE(int(x)); \
-        return -1; \
-    } \
-}
-
-#define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
-
-transRotMtx::transRotMtx(){
-    memset(m, 0, sizeof(m));
-    m[0][0] = 1.0;
-    m[1][1] = 1.0;
-    m[2][2] = 1.0;
-}
-
-void transRotMtx::setAngles(float yaw, float pitch, float roll)
-{
-    float sinY = std::sin(yaw * (float)PI / 180);
-    float cosY = std::cos(yaw * (float)PI / 180);
-    float sinP = std::sin(pitch * (float)PI / 180);
-    float cosP = std::cos(pitch * (float)PI / 180);
-    float sinR = std::sin(roll * (float)PI / 180);
-    float cosR = std::cos(roll * (float)PI / 180);
-
-    m[0][0] = cosR*cosY - sinR*sinP*sinY;
-    m[0][1] = -sinR*cosP;
-    m[0][2] = cosR*sinY + sinR*sinP*cosY;
-    m[1][0] = sinR*cosY + cosR*sinP*sinY;
-    m[1][1] = cosR*cosP;
-    m[1][2] = sinR*sinY - cosR*sinP*cosY;
-    m[2][0] = -cosP*sinY;
-    m[2][1] = sinP;
-    m[2][2] = cosP*cosY;
-}
-
-void transRotMtx::setOffset(float x, float y, float z){
-    m[0][3] = x;
-    m[1][3] = y;
-    m[2][3] = z;
-}
-
-void transRotMtx::transform(float &X, float &Y, float &Z)
-{
-    float x = X;
-    float y = Y;
-    float z = Z;
-    X = x*m[0][0] + y*m[0][1] + z*m[0][2] + m[0][3];
-    Y = x*m[1][0] + y*m[1][1] + z*m[1][2] + m[1][3];
-    Z = x*m[2][0] + y*m[2][1] + z*m[2][2] + m[2][3];
-}
-
-
-unsigned Audio3D::processThreadProc(void * ptr)
-{
-    Audio3D *pAudio3D = static_cast<Audio3D*>(ptr);
-
-    return pAudio3D->ProcessProc();
-}
-
-unsigned Audio3D::updateThreadProc(void * ptr)
-{
-    Audio3D *pAudio3D = static_cast<Audio3D*>(ptr);
-
-    return pAudio3D->UpdateProc();
-}
-
-Audio3D::Audio3D():
-    m_pTAVR(nullptr),
-    mProcessThread(true),
-    mStop(false),
-    m_headingOffset(0.),
-    m_headingCCW(true)
+Audio3D::Audio3D()
 {
 }
 
@@ -169,44 +73,6 @@ void Audio3D::Close()
         mPlayer.reset();
     }
 
-    // destroy dumb pointer:
-    if (m_pTAVR != NULL) {
-        delete m_pTAVR;
-        m_pTAVR = nullptr;
-    }
-
-    for (int i = 0; i < MAX_SOURCES*2; i++)
-    {
-        if (mOCLResponses[i] == NULL) continue;
-        clReleaseMemObject(mOCLResponses[i]);
-        mOCLResponses[i] = NULL;
-    }
-
-    for (int i = 0; i < mWavFiles.size() * 2; i++)
-    {
-        if (mOutputCLBufs[i] == NULL) continue;
-        clReleaseMemObject(mOutputCLBufs[i]);
-        mOutputCLBufs[i] = NULL;
-    }
-
-    if (mOutputMainCLbuf != NULL)
-    {
-        clReleaseMemObject(mOutputMainCLbuf);
-        mOutputMainCLbuf = NULL;
-    }
-    for (int i = 0; i < 2; i++)
-    {
-        if (mOutputMixCLBufs[i] == NULL) continue;
-        clReleaseMemObject(mOutputMixCLBufs[i]);
-        mOutputMixCLBufs[i] = NULL;
-    }
-    if (mOutputShortBuf)
-    {
-        clReleaseMemObject(mOutputShortBuf);
-        mOutputShortBuf = NULL;
-    }
-    mUseClMemBufs = false;
-
     // release smart pointers:
     m_spFft.Release();
     m_spConvolution.Release();
@@ -214,23 +80,6 @@ void Audio3D::Close()
     m_spMixer.Release();
     mTANRoomContext.Release();
     mTANConvolutionContext.Release();
-
-    /*
-    why this called here too? queues was released inside convolution processor first!
-    if (mCmdQueue1 != NULL){
-        clReleaseCommandQueue(mCmdQueue1);
-    }
-    if (mCmdQueue2 != NULL){
-        clReleaseCommandQueue(mCmdQueue2);
-    }
-    if (mCmdQueue3 != NULL && mCmdQueue3 != mCmdQueue2){
-        clReleaseCommandQueue(mCmdQueue3);
-    }
-    */
-
-    mCmdQueue1 = NULL;
-    mCmdQueue2 = NULL;
-    mCmdQueue3 = NULL;
 
     mWavFiles.resize(0);
 }
@@ -273,7 +122,9 @@ bool Audio3D::Init
     amf::TAN_CONVOLUTION_METHOD
                             convMethod,
 
-    const std::string &     playerType
+    const std::string &     playerType,
+
+    RoomUpdateMode          roomUpdateMode
 )
 {
     if((useGPUConvolution && !useCLConvolution) || (useGPURoom && !useCLRoom))
@@ -417,7 +268,7 @@ bool Audio3D::Init
 
     /* # fft buffer length must be power of 2: */
     m_fftLen = 1;
-    while((int)m_fftLen < fftLen && (m_fftLen << 1) <= MAXRESPONSELENGTH)
+    while(m_fftLen < fftLen && (m_fftLen << 1) <= MAXRESPONSELENGTH)
     {
         m_fftLen <<= 1;
     }
@@ -1003,51 +854,6 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
     }
 
 
-#if 0// Old code: Crossfade, Mixing and Conversion on CPU
-
-    for (int idx = 0; idx < mWavFiles.size(); idx++) {
-        for (int chan = 0; chan < 2; chan++){
-            RETURN_IF_FAILED(m_spConverter->Convert(pChan[idx] + chan, 2, sampleCount,
-                inputFloatBufs[idx*2 + chan], 1, 1.f));
-        }
-    }
-
-    RETURN_IF_FAILED(m_spConvolution->Process(inputFloatBufs, outputFloatBufs, sampleCount,
-                                             nullptr, nullptr));
-
-    // ToDo:  use limiter...
-
-
-    for (int idx = 2; idx < 2 * mWavFiles.size(); idx += 2) {
-        int k = 0;
-        int n = sampleCount;
-        while (n >= 8 && useIntrinsics){
-            register __m256 *outL, *outR, *inL, *inR;
-            outL = (__m256 *)&outputFloatBufs[0][k];
-            outR = (__m256 *)&outputFloatBufs[1][k];
-            inL = (__m256 *)&outputFloatBufs[idx][k];
-            inR = (__m256 *)&outputFloatBufs[idx + 1][k];
-
-            *outL = _mm256_add_ps(*outL, *inL);
-            *outR = _mm256_add_ps(*outR, *inR);
-            k += 8;
-            n -= 8;
-        }
-        while(n > 0) {
-            outputFloatBufs[0][k] += outputFloatBufs[idx][k];
-            outputFloatBufs[1][k] += outputFloatBufs[idx + 1][k];
-            k++;
-            n--;
-        }
-    }
-
-
-    AMF_RESULT ret = m_spConverter->Convert(outputFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
-    RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
-
-    ret = m_spConverter->Convert(outputFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
-    RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
-#endif
     return 0;
 }
 

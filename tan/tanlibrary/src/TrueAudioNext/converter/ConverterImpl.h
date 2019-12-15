@@ -28,9 +28,6 @@
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF
 
-
-#define USE_SSE2 1
-
 namespace amf
 {
     class TANConverterImpl
@@ -71,6 +68,7 @@ namespace amf
                                             short** outputBuffers, amf_size outputStep,
                                             float conversionGain, int count, bool* outputClipped = NULL) override;
 
+#ifndef TAN_NO_OPENCL
 		AMF_RESULT  AMF_STD_CALL    Convert(cl_mem inputBuffer, amf_size inputStep,
 											amf_size inputOffset,TAN_SAMPLE_TYPE inputType, 
 
@@ -91,6 +89,40 @@ namespace amf
 
                                             int count, bool* outputClipped = NULL) override;
 
+#endif
+        AMF_RESULT  AMF_STD_CALL    Convert(const AMFBuffer * inputBuffer,
+                                            amf_size inputStep,
+                                            amf_size inputOffset,
+                                            TAN_SAMPLE_TYPE inputType, 
+                                                    
+                                            AMFBuffer * outputBuffer,
+                                            amf_size outputStep,
+                                            amf_size outputOffset,
+                                            TAN_SAMPLE_TYPE outputType,                                                
+
+                                            amf_size numOfSamplesToProcess,
+                                            float conversionGain, 
+                                            bool* outputClipped = nullptr
+                                            ) override;
+
+        AMF_RESULT  AMF_STD_CALL    Convert(
+                                            const AMFBuffer ** inputBuffers,
+                                            amf_size inputStep,
+                                            amf_size* inputOffsets,
+                                            TAN_SAMPLE_TYPE inputType,
+                                            
+                                            AMFBuffer ** outputBuffers,
+                                            amf_size outputStep,
+                                            amf_size* outputOffsets,
+                                            TAN_SAMPLE_TYPE outputType,
+                                            
+                                            amf_size numOfSamplesToProcess,
+                                            float conversionGain,                                                   
+                                            
+                                            int count, 
+                                            bool* outputClipped = nullptr
+                                            ) override;
+
     protected:
         TANContextPtr               m_pContextTAN;
         AMFContextPtr               m_pContextAMF;
@@ -100,6 +132,7 @@ namespace amf
         AMF_MEMORY_TYPE             m_eOutputMemoryType;
         AMFCriticalSection          m_sect;
 
+#ifndef TAN_NO_OPENCL
         cl_command_queue			m_pCommandQueueCl;
         cl_context					m_pContextCl;
         cl_device_id				m_pDeviceCl;
@@ -112,6 +145,8 @@ namespace amf
 		cl_kernel					m_clkFloat2Float = nullptr;
 		cl_kernel					m_clkShort2Float = nullptr;
         cl_mem                      m_overflowBuffer = NULL;
+#endif
+
     private:
         static bool useSSE2;
         AMF_RESULT	AMF_STD_CALL InitCpu();

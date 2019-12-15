@@ -83,8 +83,6 @@ set(
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
   ../../../src/common/GpuUtils.cpp
-  ../../../src/common/SimpleVRaudio.cpp
-
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/StringUtility.cpp
   ${TAN_ROOT}/utils/common/RegisterBrowser.cpp
@@ -99,6 +97,10 @@ set(
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticGraphic.cpp
   ../../../src/RoomAcousticQT/RoomAcousticQT.cpp
   )
+
+if(TAN_NO_OPENCL)
+  list(APPEND SOURCE_EXE ../../../src/common/AMFAudio3D.h)
+endif()
 
 if(WIN32)
   list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
@@ -116,9 +118,9 @@ set(
 
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h
-  ../../../src/common/SimpleVRaudio.h
   ../../../src/common/WasAPI.h
   ../../../src/common/IWavPlayer.h
+  ../../../src/common/IAudio3D.h
 
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/StringUtility.h
@@ -130,6 +132,10 @@ set(
   ../../../src/RoomAcousticQT/Resources/resource.h
   ../../../src/RoomAcousticQT/RoomAcousticQT.h
 )
+
+if(TAN_NO_OPENCL)
+  list(APPEND HEADER_EXE ../../../src/common/AMFAudio3D.h)
+endif()
 
 if(WIN32)
   list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)

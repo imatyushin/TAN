@@ -19,32 +19,4 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-#include <math.h>
-
-#if !defined(__APPLE__) && !defined(__MACOSX)
-    #include <omp.h>
-#endif
-
-int DirectConv(float * out, float * in, int index, int block_sz, float * kernel, int kernel_sz, int n_blocks)
-{
-    int ret = 0;
-    int b, j, c;
-    int in_sz = n_blocks * block_sz;
-#pragma omp parallel for private(j,c)
-    for (b = 0; b < block_sz; b++) {
-        out[b] = 0;
-        double o = 0;
-        // limited by real kernel length
-        for (j = index * block_sz + b, c = 0; c < kernel_sz; c++, j--) {
-            j = (j < 0) ? in_sz - 1 : j;
-
-            o += in[j] * kernel[c];
-
-        }
-
-        out[b] = (float)o;
-    }
-
-    return ret;
-}
+#include "GraalConv.hpp"

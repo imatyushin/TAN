@@ -64,14 +64,14 @@
 #define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
 
 
-transRotMtx::transRotMtx(){
+TransRotMtx::TransRotMtx(){
     memset(m, 0, sizeof(m));
     m[0][0] = 1.0;
     m[1][1] = 1.0;
     m[2][2] = 1.0;
 }
 
-void transRotMtx::setAngles(float yaw, float pitch, float roll)
+void TransRotMtx::setAngles(float yaw, float pitch, float roll)
 {
     float sinY = sin(yaw * (float)PI / 180);
     float cosY = cos(yaw * (float)PI / 180);
@@ -91,13 +91,13 @@ void transRotMtx::setAngles(float yaw, float pitch, float roll)
     m[2][2] = cosP*cosY;
 }
 
-void transRotMtx::setOffset(float x, float y, float z){
+void TransRotMtx::setOffset(float x, float y, float z){
     m[0][3] = x;
     m[1][3] = y;
     m[2][3] = z;
 }
 
-void transRotMtx::transform(float &X, float &Y, float &Z)
+void TransRotMtx::transform(float &X, float &Y, float &Z)
 {
     float x = X;
     float y = Y;

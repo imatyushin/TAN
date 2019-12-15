@@ -31,20 +31,31 @@ set(
   SOURCE_LIB
   ../../../src/common/OCLHelper.cpp
   ../../../src/Graal/amdFHT.cpp
-  ../../../src/Graal/GraalConv.cpp
-  ../../../src/Graal/GraalConvOCL.cpp
-  ../../../src/Graal/GraalConv_clFFT.cpp
+  
 )
+
+if(TAN_NO_OPENCL)
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConvAMF.cpp)
+else()
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConv.cpp)
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConvOCL.cpp)
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConv_clFFT.cpp)
+endif()
 
 set(
   HEADER_LIB
   ../../../src/common/OCLHelper.h
   ../../../src/Graal/amdFHT.h
-  ../../../src/Graal/GraalConv.hpp
-  ../../../src/Graal/GraalConvOCL.hpp
-  ../../../src/Graal/GraalConv_clFFT.hpp
   ../../../src/Graal/GraalInternal.h
   )
+
+if(TAN_NO_OPENCL)
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConvAMF.hpp)
+else()
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConv.hpp)
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConvOCL.hpp)
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConv_clFFT.hpp)
+endif()
 
 # cl kernels compilation
 set(

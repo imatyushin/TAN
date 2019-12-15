@@ -439,7 +439,7 @@ namespace amf
                                                     TAN_SAMPLE_TYPE outputType,                                                
                                                     amf_size numOfSamplesToProcess,
                                                     float conversionGain, 
-                                                    bool* outputClipped = NULL
+                                                    bool* outputClipped = nullptr
                                                     ) = 0;
         // Method for batch processing
         virtual AMF_RESULT  AMF_STD_CALL    Convert(
@@ -454,7 +454,7 @@ namespace amf
                                                     amf_size numOfSamplesToProcess,
                                                     float conversionGain,                                                   
                                                     int count, 
-                                                    bool* outputClipped = NULL
+                                                    bool* outputClipped = nullptr
                                                     ) = 0;
 
     };
@@ -664,9 +664,11 @@ namespace amf
                                                 cl_command_queue pGeneralQueue = nullptr,
                                                 cl_command_queue pConvolutionQueue = nullptr) = 0;
 
-        virtual cl_context   AMF_STD_CALL   GetOpenCLContext() = 0;
-        virtual	cl_command_queue	AMF_STD_CALL	GetOpenCLGeneralQueue() = 0;
-        virtual	cl_command_queue	AMF_STD_CALL	GetOpenCLConvQueue() = 0;
+        virtual cl_context  AMF_STD_CALL    GetOpenCLContext() = 0;
+        virtual	cl_command_queue 
+                            AMF_STD_CALL    GetOpenCLGeneralQueue() = 0;
+        virtual	cl_command_queue 
+                            AMF_STD_CALL    GetOpenCLConvQueue() = 0;
 #endif
 
         virtual AMF_RESULT  AMF_STD_CALL    InitAMF(

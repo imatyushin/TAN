@@ -28,9 +28,6 @@
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF
 
-
-#define USE_SSE2 1
-
 namespace amf
 {
     class TANMixerImpl
