@@ -521,93 +521,128 @@ bool WavContent::ReadWaveFile(const std::string & fileName)
 
 	fclose(fpIn);
 
-	return Valid();
+	return IsValid();
 }
 
 bool WavContent::Convert2Stereo16Bit()
 {
-	throw std::runtime_error("Error: not implemented!");
-
-	/*if(2 == ChannelsCount && 16 == BitsPerSample)
+	if(STEREO_CHANNELS_COUNT == ChannelsCount && 16 == BitsPerSample)
 	{
 		return true;
 	}
 
+	//currently unsupported
 	if(ChannelsCount > 2)
 	{
-		std::cerr << "Error: not supported conversion!" << std::endl;
-
 		return false;
 	}
-	std::vector<uint8_t> floatBuffer(sizeof(float) * 2 * SamplesCount, 0);
 
-	switch(BitsPerSample)
+	std::vector<uint8_t> converted(STEREO_CHANNELS_COUNT * SamplesCount * BitsPerSample / 8);
+
+	for(uint32_t sampleNumber(0); sampleNumber < SamplesCount; ++sampleNumber)
 	{
-	case 8:
-		for(int sampleNumber = 0; sampleNumber < SamplesCount; ++sampleNumber)
+		for(int channelNumber = 0; channelNumber < ChannelsCount; ++channelNumber)
 		{
-			int k = sampleNumber * ChannelsCount;
+			float value(.0f);
 
-			for(int channelNumber = 0; channelNumber < ChannelsCount; ++channelNumber)
+			switch(BitsPerSample)
 			{
-				floatBuffer.data()[channelNumber * sa ][sampleNumber] = (float)((*pSamples)[k + channelNumber] - 127) / 256.0f;
+			case 8:
+			    value = (Data[sampleNumber * ChannelsCount + channelNumber] - 127) / 256.0f;
+				break;
+
+			case 16:
+			    value = (reinterpret_cast<int16_t *>(&Data.front())[sampleNumber * ChannelsCount + channelNumber]) / 32768.0f;
+				break;
+
+			case 32:
+			    value = reinterpret_cast<float *>(&Data.front())[sampleNumber * ChannelsCount + channelNumber];
+				break;
+			default:
+				return false;
+			}
+
+			if(1 == ChannelsCount)
+			{
+				(reinterpret_cast<int16_t *>(&converted.front())[sampleNumber * ChannelsCount + 0]) = 
+				    (reinterpret_cast<int16_t *>(&converted.front())[sampleNumber * ChannelsCount + 1]) = int16_t(value * 32768.0f);
+			}
+			else if(2 == ChannelsCount)
+			{
+				(reinterpret_cast<int16_t *>(&converted.front())[sampleNumber * ChannelsCount + channelNumber]) = int16_t(value * 32768.0f);
+			}
+			else
+			{
+				//Lo = 1.0 * L + clev * C + slev * Ls ;
+				//Ro = 1.0 * R + clev * C + slev * Rs ;
+				return false;
 			}
 		}
+	}
 
+	/*
+	*pfSamples = new float *[nChannels];
+	for (int i = 0; i < nChannels; i++)
+	{
+		float *data;
+		(*pfSamples)[i] = data = new float[(nSamples + 1)];
+		if (data == NULL) {
+			printf("ReadWaveFile: Failed to allocate %d floats\n", nSamples + 1);
+			return(false);
+		}
+		for (int j = 0; j < (nSamples + 1); j++) data[j] = 0.0;
+	}
+
+	//read wave samples, convert to floating point:
+	unsigned char *sampleBuf = new unsigned char[nSamples*nChannels * bytesPerSam];
+	if (sampleBuf == NULL) {
+		printf("ReadWaveFile: Failed to allocate %d bytes\n", nSamples*nChannels * bytesPerSam);
+		return(false);
+	}
+	fread(sampleBuf, nSamples*bytesPerSam*nChannels, 1, fpIn);
+	short *sSampleBuf = (short *)sampleBuf;
+	float *fSampleBuf = (float *)sampleBuf;
+	*pSamples = sampleBuf;
+
+	switch (bitsPerSam){
+	case 8:
+		for (int i = 0; i < nSamples; i++){
+			int k;
+			k = i*nChannels;
+			for (int n = 0; n < nChannels;n++)
+			{
+				(*pfSamples)[n][i] = (float)(sampleBuf[k + n] - 127) / 256.0f;
+			}
+		}
 		break;
-
 	case 16:
-		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
+		for (int i = 0; i < nSamples; i++){
 			int k;
-			k = sampleNumber*channelsCount;
-			for (int n = 0; n < channelsCount; n++)
+			k = i*nChannels;
+			for (int n = 0; n < nChannels; n++)
 			{
-				(*pfSamples)[n][sampleNumber] = (float)(((uint16_t *)*pSamples)[k + n]) / 32768.0f;
+				(*pfSamples)[n][i] = (float)(sSampleBuf[k + n]) / 32768.0f;
 			}
 		}
 		break;
-
 	case 32:
-		for (int sampleNumber = 0; sampleNumber < samplesCount; sampleNumber++){
+		for (int i = 0; i < nSamples; i++){
 			int k;
-			k = sampleNumber*channelsCount;
-			for (int n = 0; n < channelsCount; n++)
+			k = i*nChannels;
+			for (int n = 0; n < nChannels; n++)
 			{
-				(*pfSamples)[n][sampleNumber] = ((float *)*pSamples)[k + n];
+				(*pfSamples)[n][i] = fSampleBuf[k + n];
 			}
 		}
 		break;
-	}
-
-	auto convertedData(2 * SamplesCount * sizeof(int16_t));
-
-	try
-	{
-	    std::vector<uint8_t> convertedData(2 * SamplesCount * sizeof(int16_t));
-
-		int16_t *pSBuf = (int16_t *)convertedData.begin();
-
-		for(int sampleNumber = 0; sampleNumber < SamplesCount; ++sampleNumber)
-        {
-			int16_t channelNumber(0);
-
-            pSBuf[2 * sampleNumber + 1] = pSBuf[2 * sampleNumber] = (int16_t)(32767 * Data[channelNumber * SamplesCount + sampleNumber]);
-
-			if(ChannelsCount == 2)
-            {
-                pSBuf[2 * sampleNumber + 1] = (int16_t)(32767 * pSamples[1][sampleNumber]);
-            }
-        }
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-
-		return false;
 	}
 	*/
 
-	return false;
+	Data.swap(converted);
+	ChannelsCount = STEREO_CHANNELS_COUNT;
+	BitsPerSample = 16;
+
+	return true;
 }
 
 #endif

@@ -118,6 +118,8 @@ bool RoomAcousticQT::start()
 		return m_pAudioEngine->Run();
 	}
 
+	mLastError = m_pAudioEngine->GetLastError();
+
 	return false;
 }
 

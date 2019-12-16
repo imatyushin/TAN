@@ -119,6 +119,8 @@ bool WriteWaveFileS
 #include <string>
 #include <chrono>
 
+#define STEREO_CHANNELS_COUNT 2
+
 struct WavContent
 {
 	uint16_t	ChannelsCount;
@@ -148,7 +150,7 @@ struct WavContent
 		Data.resize(0);
 	}
 
-	inline bool Valid() const
+	inline bool IsValid() const
 	{
 		return Data.size() && Data.size() == ChannelsCount * SamplesCount * BitsPerSample / 8;
 	}

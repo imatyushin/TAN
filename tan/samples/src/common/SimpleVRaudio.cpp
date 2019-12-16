@@ -216,19 +216,6 @@ void Audio3D::Close()
     mTANRoomContext.Release();
     mTANConvolutionContext.Release();
 
-    /*
-    why this called here too? queues was released inside convolution processor first!
-    if (mCmdQueue1 != NULL){
-        clReleaseCommandQueue(mCmdQueue1);
-    }
-    if (mCmdQueue2 != NULL){
-        clReleaseCommandQueue(mCmdQueue2);
-    }
-    if (mCmdQueue3 != NULL && mCmdQueue3 != mCmdQueue2){
-        clReleaseCommandQueue(mCmdQueue3);
-    }
-    */
-
     mCmdQueue1 = NULL;
     mCmdQueue2 = NULL;
     mCmdQueue3 = NULL;
@@ -279,10 +266,8 @@ bool Audio3D::Init
 {
     if((useGPUConvolution && !useCLConvolution) || (useGPURoom && !useCLRoom))
     {
-        std::cerr
-            << "Error: GPU queues must be used only if OpenCL flag is set"
-            << std::endl;
-
+        mLastError = "Error: GPU queues must be used only if OpenCL flag is set";
+        
         return false;
     }
 
@@ -304,38 +289,35 @@ bool Audio3D::Init
         {
             if(content.SamplesPerSecond != FILTER_SAMPLE_RATE)
             {
-                std::cerr
-                    << "Error: file " << fileName << " has an unsupported frequency! Currently only "
-                    << FILTER_SAMPLE_RATE << " frequency is supported!"
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " has an unsupported frequency! Currently only "
+                    + std::to_string(FILTER_SAMPLE_RATE) + " frequency is supported!";
 
                 return false;
             }
 
-            if(content.BitsPerSample != 16)
+            bool converted = content.Convert2Stereo16Bit();
+
+            if(!converted && content.BitsPerSample != 16)
             {
-                std::cerr
-                    << "Error: file " << fileName << " has an unsupported bits per sample count. Currently only "
-                    << 16 << " bits is supported!"
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " has an unsupported bits per sample count. Currently only "
+                    + std::to_string(16) + " bits is supported!";
 
                 return false;
             }
-
-            if(content.ChannelsCount != 2)
+            else if(!converted && content.ChannelsCount != STEREO_CHANNELS_COUNT)
             {
-                std::cerr
-                    << "Error: file " << fileName << " is not a stereo file. Currently only stereo files are supported!"
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " is not a stereo file. Currently only stereo files are supported!";
 
                 return false;
             }
 
             if(content.SamplesCount < mBufferSizeInSamples)
             {
-                std::cerr
-                    << "Error: file " << fileName << " are too short."
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " are too short (SamplesCount < single buffer size).";
 
                 return false;
             }
@@ -346,7 +328,8 @@ bool Audio3D::Init
             {
                 if(!mWavFiles[0].IsSameFormat(content))
                 {
-                    std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
+                    mLastError = std::string()
+                        + "Error: file " + fileName + " has a diffrent format with other opened files.";
 
                     return false;
                 }
@@ -356,7 +339,7 @@ bool Audio3D::Init
         }
         else
         {
-            std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
+            mLastError = std::string() + "Error: could not load WAV data from file " + fileName;
 
             return false;
         }
@@ -364,7 +347,7 @@ bool Audio3D::Init
 
     if(!mWavFiles.size())
     {
-        std::cerr << "Error: no files opened to play" << std::endl;
+        mLastError = "Error: no files opened to play.";
 
         return false;
     }

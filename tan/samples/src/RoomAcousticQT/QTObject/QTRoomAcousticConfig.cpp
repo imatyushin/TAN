@@ -1337,6 +1337,11 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 				    ? m_RoomAcousticInstance.getLastError().c_str()
 					: "Could not start playing, please see output log!"
 				);
+
+			if(m_RoomAcousticInstance.getLastError().length())
+			{
+				std::cerr << m_RoomAcousticInstance.getLastError() << std::endl;
+			}
 		}
 	}
 	else

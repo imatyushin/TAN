@@ -43,7 +43,6 @@ using namespace amf;
 
 #define SPEED_OF_SOUND 343.0 // m/s
 #define FILTER_SAMPLE_RATE 48000
-#define STEREO_CHANNELS_COUNT 2
 
 #define DBTODAMP(dB) std::pow(10.0,float(-dB/20.0))
 #define DAMPTODB(d) float(-20.0*log10(d))
