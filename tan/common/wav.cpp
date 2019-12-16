@@ -537,45 +537,66 @@ bool WavContent::Convert2Stereo16Bit()
 		return false;
 	}
 
-	std::vector<uint8_t> converted(STEREO_CHANNELS_COUNT * SamplesCount * BitsPerSample / 8);
+																	    //2 is the new sample size
+	std::vector<uint8_t> converted(STEREO_CHANNELS_COUNT * SamplesCount * 2);
+	int16_t *outDataAsShortsArray((int16_t *)&converted.front());
 
 	for(uint32_t sampleNumber(0); sampleNumber < SamplesCount; ++sampleNumber)
 	{
-		for(int channelNumber = 0; channelNumber < ChannelsCount; ++channelNumber)
+		auto outLeftChannelSampleIndex(sampleNumber * STEREO_CHANNELS_COUNT + 0);
+		auto outRightChannelSampleIndex(sampleNumber * STEREO_CHANNELS_COUNT + 1);
+
+		for(uint16_t channelNumber = 0; channelNumber < ChannelsCount; ++channelNumber)
 		{
-			float value(.0f);
+			float floatValue(.0f);
 
-			switch(BitsPerSample)
+			auto sourceChannelSampleIndex(sampleNumber * ChannelsCount + channelNumber);
+			
+			if(8 == BitsPerSample)
 			{
-			case 8:
-			    value = (Data[sampleNumber * ChannelsCount + channelNumber] - 127) / 256.0f;
-				break;
-
-			case 16:
-			    value = (reinterpret_cast<int16_t *>(&Data.front())[sampleNumber * ChannelsCount + channelNumber]) / 32768.0f;
-				break;
-
-			case 32:
-			    value = reinterpret_cast<float *>(&Data.front())[sampleNumber * ChannelsCount + channelNumber];
-				break;
-			default:
-				return false;
+				floatValue = (Data[sourceChannelSampleIndex] - 127) / 256.0f;
 			}
-
-			if(1 == ChannelsCount)
+			else if(16 == BitsPerSample)
 			{
-				(reinterpret_cast<int16_t *>(&converted.front())[sampleNumber * ChannelsCount + 0]) = 
-				    (reinterpret_cast<int16_t *>(&converted.front())[sampleNumber * ChannelsCount + 1]) = int16_t(value * 32768.0f);
+			    int16_t *dataAsShortsArray((int16_t *)&Data.front());
+			    floatValue = float(dataAsShortsArray[sourceChannelSampleIndex]) / 32768.0f;
 			}
-			else if(2 == ChannelsCount)
+			else if(32 == BitsPerSample)
 			{
-				(reinterpret_cast<int16_t *>(&converted.front())[sampleNumber * ChannelsCount + channelNumber]) = int16_t(value * 32768.0f);
+			    float *dataAsFloatArray((float *)&Data.front());
+			    floatValue = dataAsFloatArray[sourceChannelSampleIndex];
 			}
 			else
 			{
+				return false;
+			}
+
+			int16_t intValue = int16_t(floatValue * 32768.0f);
+
+			if(1 == ChannelsCount)
+			{
+				outDataAsShortsArray[outLeftChannelSampleIndex] =
+				    outDataAsShortsArray[outRightChannelSampleIndex] =
+					    intValue;
+			}
+			else if(2 == ChannelsCount)
+			{
+				if(channelNumber & 1)
+				{
+					outDataAsShortsArray[outRightChannelSampleIndex] = intValue;	
+				}
+				else
+				{
+					outDataAsShortsArray[outLeftChannelSampleIndex] = intValue;
+				}
+			}
+			else
+			{
+				return false;
+				
+				//todo: implement the following scheme
 				//Lo = 1.0 * L + clev * C + slev * Ls ;
 				//Ro = 1.0 * R + clev * C + slev * Rs ;
-				return false;
 			}
 		}
 	}
