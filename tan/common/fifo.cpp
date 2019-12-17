@@ -21,7 +21,7 @@
 //
 #include "fifo.h"
 #include <memory.h>
-
+#include <assert.h>
 #include <algorithm>
 
 // #define BE_THREAD_SAFE
