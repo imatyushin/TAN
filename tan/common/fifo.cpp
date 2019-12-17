@@ -217,38 +217,39 @@ void FifoBuffer::flush(){
     m_Head = 0;
 }
 
-//
-std::mutex mLockMutex;
+/*
+//std::mutex gLockMutex;
 
 void Fifo::Reset(size_t newSize)
 {
-    std::lock_guard<std::mutex> lock(mLockMutex);
+    std::lock_guard<std::mutex> lock(gLockMutex);
     
     mBuffer.resize(newSize);
-    //mQueueSize.store(0);
+    
     mQueueSize = 0;
-    //mBufferInPosition.store(0);
-    mBufferInPosition = 0;
-    //mBufferOutPosition.store(0);
-    mBufferOutPosition = 0;
+    
+    mBufferInPosition.store(0);
+    mBufferOutPosition.store(0);
 }
 
 size_t Fifo::GetQueueSize() const 
 {
-    std::lock_guard<std::mutex> lock(mLockMutex);
+    std::lock_guard<std::mutex> lock(gLockMutex);
     
-    return mQueueSize/*.load()*/;
+    return mQueueSize;
 }
+*/
 
 uint32_t Fifo::Write(const uint8_t *data, size_t size)
 {
-    std::lock_guard<std::mutex> lock(mLockMutex);
+    auto bufferDataSize(mQueueSize.load());
+    auto bufferInPosition(mBufferInPosition.load());
+    auto bufferOutPosition(mBufferOutPosition.load());
 
-    auto bufferDataSize(mQueueSize/*.load()*/);
-    auto bufferInPosition(mBufferInPosition/*.load()*/);
-    auto bufferOutPosition(mBufferOutPosition/*.load()*/);
-
-    //std::cout << "play position: " << bufferInPosition << " (" << mBuffer.size() << ") " << std::endl;
+    //std::lock_guard<std::mutex> lock(gLockMutex);
+    //auto bufferDataSize(mQueueSize/*.load()*/);
+    //auto bufferInPosition(mBufferInPosition/*.load()*/);
+    //auto bufferOutPosition(mBufferOutPosition/*.load()*/);
 
     //free size from bufferInPosition and higher
     auto tailBlock(
@@ -273,13 +274,6 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
     {
         auto size2Write(std::min(size_t(size), tailBlock));
 
-        if(bufferDataSize + size2Write > mBuffer.size())
-        {
-            int i = 0;
-            ++i;
-        }
-
-        //std::cout << "write in tail " << size2Write << std::endl;
         std::memcpy(&mBuffer.front() + bufferInPosition, data, size2Write);
 
         size -= size2Write;
@@ -290,7 +284,6 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
     //some free space exists at front
     if(bufferInPosition == mBuffer.size() && headBlock)
     {
-        //std::cout << "reset in " << std::endl;
         bufferInPosition = 0;
     }
 
@@ -300,11 +293,9 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
         if(bufferDataSize + sizeWritten + size2Write > mBuffer.size())
         {
-            int i =0;
-            ++i;
+            assert(false);
         }
 
-        //std::cout << "write in head" << size2Write << std::endl;
         std::memcpy(&mBuffer.front(), data, size2Write);
 
         size -= size2Write;
@@ -317,13 +308,13 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
         bufferInPosition = 0;
     }
 
-    mBufferInPosition = /*.store*/(bufferInPosition);
-    //std::cout << "play end, new position: " << bufferInPosition << " played: " << sizeWritten << std::endl;
-
-    if(mQueueSize/*.load()*/ + sizeWritten > mBuffer.size())
+    mBufferInPosition.store(bufferInPosition);
+    //mBufferInPosition = bufferInPosition;
+    
+    if(mQueueSize.load() + sizeWritten > mBuffer.size())
+    //if(mQueueSize + sizeWritten > mBuffer.size())
     {
-        int i =0;
-        ++i;
+        assert(false);
     }
 
     mQueueSize += sizeWritten;
@@ -333,11 +324,14 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
 uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 {
-    std::lock_guard<std::mutex> lock(mLockMutex);
+    auto bufferDataSize(mQueueSize.load());
+    auto bufferInPosition(mBufferInPosition.load());
+    auto bufferOutPosition(mBufferOutPosition.load());
 
-    auto bufferDataSize(mQueueSize/*.load()*/);
-    auto bufferInPosition(mBufferInPosition/*.load()*/);
-    auto bufferOutPosition(mBufferOutPosition/*.load()*/);
+    //std::lock_guard<std::mutex> lock(gLockMutex);
+    //auto bufferDataSize(mQueueSize);
+    //auto bufferInPosition(mBufferInPosition);
+    //auto bufferOutPosition(mBufferOutPosition);
 
     auto tailSize(
         bufferInPosition == bufferOutPosition
@@ -358,24 +352,15 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
     auto sizeFilled(0);
 
-    //std::cout << "in: " << bufferInPosition << " out: " << bufferOutPosition << std::endl;
-    //std::cout << "tail: " << tailSize << " head: " << headSize << std::endl;
-
-    //std::memset(output + sizeFilled, 0, size2Play);
-    //std::cout << "out position: " << bufferOutPosition << " " << sizeFilled << " " << size2Play << std::endl;
-    //return paContinue;
-
     if(tailSize)
     {
         auto fillTailSize(std::min(tailSize, size2Fill));
 
         if(fillTailSize > mQueueSize)
         {
-            int i = 0;
-            ++i;
+            assert(false);
         }
 
-        //std::cout << "eat tail from " << bufferOutPosition << " to " << bufferOutPosition + fillTailSize << std::endl;
         std::memcpy(outputBuffer, &mBuffer.front() + bufferOutPosition, fillTailSize);
 
         sizeFilled += fillTailSize;
@@ -395,11 +380,9 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
         if(sizeFilled + fillHeadSize > mQueueSize)
         {
-            int i = 0;
-            ++i;
+            assert(false);
         }
 
-        //std::cout << "eat head from " << 0 << " to " << fillHeadSize << std::endl;
         std::memcpy(outputBuffer + sizeFilled, &mBuffer.front(), fillHeadSize);
 
         sizeFilled += fillHeadSize;
@@ -418,7 +401,9 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
         bufferOutPosition = 0;
     }*/
 
-    mBufferOutPosition = /*.store*/(bufferOutPosition);
+    mBufferOutPosition.store(bufferOutPosition);
+    //mBufferOutPosition = bufferOutPosition;
+
     mQueueSize -= sizeFilled;
 
     return sizeFilled;

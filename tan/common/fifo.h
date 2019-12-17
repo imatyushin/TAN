@@ -60,30 +60,24 @@ private:
 #include <iostream>
 
 //two-threads frendly fifo
+//with uniform buffer usage
 //one thread - write
 //another thread - read
-class Fifo
+class alignas(32) Fifo //mac demands 32bit alignment
 {
-    //std::atomic<size_t>
-    size_t
+    std::atomic<size_t>
+    //size_t
                     mQueueSize;
-    //std::atomic<size_t>
-    size_t
+    std::atomic<size_t>
+    //size_t
                     mBufferInPosition;
-    //std::atomic<size_t>
-    size_t
+    std::atomic<size_t>
+    //size_t
                     mBufferOutPosition;
     std::vector<uint8_t>
                     mBuffer;
 
-    /*inline size_t   GetQueueSize() const
-    {
-        std::lock_guard<std::mutex> lock(mLockMutex);
-
-        return mQueueSize;
-    }
-
-    inline size_t   GetBufferInPosition() const
+    /*inline size_t   GetBufferInPosition() const
     {
         std::lock_guard<std::mutex> lock(mLockMutex);
 
@@ -105,8 +99,22 @@ public:
     {
     }
 
-    void Reset(size_t newSize);
-    size_t GetQueueSize() const;
+    //atomic variant
+    inline void Reset(size_t newSize)
+    {
+        mBuffer.resize(newSize);
+        mQueueSize.store(0);
+        
+        mBufferInPosition.store(0);
+        mBufferOutPosition.store(0);
+    }
+    //void Reset(size_t newSize); //mutex variant
+
+    inline size_t GetQueueSize() const
+    {
+        return mQueueSize.load();
+    }
+    //inline size_t GetQueueSize() const; //mutex variant
 
     uint32_t Write(const uint8_t *data, size_t size);
     uint32_t Read(uint8_t *outputBuffer, size_t size2Fill);
