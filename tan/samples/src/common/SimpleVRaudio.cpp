@@ -23,7 +23,7 @@
 
 #include "../TrueAudioVR/TrueAudioVR.h"
 #include "GpuUtils.h"
-#include "utilities.h"
+#include "Utilities.h"
 #include "cpucaps.h"
 
 #include <time.h>
