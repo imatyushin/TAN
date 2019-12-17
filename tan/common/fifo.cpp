@@ -20,9 +20,11 @@
 // THE SOFTWARE.
 //
 #include "fifo.h"
+#include <cassert>
 #include <memory.h>
-#include <assert.h>
 #include <algorithm>
+
+//#include <errno.h>
 
 // #define BE_THREAD_SAFE
 
