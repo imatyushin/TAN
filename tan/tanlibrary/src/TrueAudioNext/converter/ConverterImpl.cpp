@@ -58,8 +58,10 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConverter(
 TANConverterImpl::TANConverterImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextTAN(pContextTAN),
     m_pContextAMF(pContextAMF),
+#ifndef TAN_NO_OPENCL
     m_pCommandQueueCl(nullptr),
     m_overflowBuffer(NULL),
+#endif
     m_eOutputMemoryType(AMF_MEMORY_HOST)
 {
     AMFPrimitivePropertyInfoMapBegin
@@ -77,10 +79,13 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
     AMFLock lock(&m_sect);
 
     AMF_RETURN_IF_FALSE(!m_pDeviceAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#endif
     AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
     L"Cannot initialize after termination");
 
+#ifndef TAN_NO_OPENCL
     // Determine how to initialize based on context, CPU for CPU and GPU for GPU
     if (m_pContextTAN->GetOpenCLContext())
     {
@@ -90,6 +95,9 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
     {
         return InitCpu();
     }
+#endif
+
+    return AMF_FAIL;
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitCpu()
@@ -100,6 +108,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitCpu()
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 {
+#ifndef TAN_NO_OPENCL
     cl_int ret;
     AMF_RESULT res = AMF_OK;
 
@@ -143,10 +152,14 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToFloat"); return AMF_FAIL; }
 
 	return res;
+#endif
+
+    return AMF_FAIL;
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 {
+#ifndef TAN_NO_OPENCL
     AMFLock lock(&m_sect);
 
     m_pDeviceAMF = NULL;
@@ -180,6 +193,9 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
     }
 
     return AMF_OK;
+#endif
+
+    return AMF_FAIL;
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
@@ -439,6 +455,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     bool* outputClipped
     )
 {
+#ifndef TAN_NO_OPENCL
     AMF_RESULT res = AMF_OK;
     AMF_KERNEL_ID m_KernelIdConvert;
     cl_int clErr = CL_SUCCESS;
@@ -538,8 +555,12 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
         *outputClipped = overflowBufferOut;
     }
     return res;
+#endif
+    return AMF_FAIL;
 }
 //-------------------------------------------------------------------------------------------------
+#ifndef TAN_NO_OPENCL
+
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     cl_mem inputBuffer,
 	amf_size inputStep,
@@ -610,5 +631,42 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     }
     return AMF_OK;
 }
+#endif
 
+AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
+    const AMFBuffer * inputBuffer,
+    amf_size inputStep,
+    amf_size inputOffset,
+    TAN_SAMPLE_TYPE inputType, 
+            
+    AMFBuffer * outputBuffer,
+    amf_size outputStep,
+    amf_size outputOffset,
+    TAN_SAMPLE_TYPE outputType,                                                
 
+    amf_size numOfSamplesToProcess,
+    float conversionGain, 
+    bool* outputClipped)
+{
+    return AMF_FAIL;
+}
+
+AMF_RESULT  AMF_STD_CALL    Convert(
+    const AMFBuffer ** inputBuffers,
+    amf_size inputStep,
+    amf_size* inputOffsets,
+    TAN_SAMPLE_TYPE inputType,
+    
+    AMFBuffer ** outputBuffers,
+    amf_size outputStep,
+    amf_size* outputOffsets,
+    TAN_SAMPLE_TYPE outputType,
+    
+    amf_size numOfSamplesToProcess,
+    float conversionGain,                                                   
+    
+    int count, 
+    bool* outputClipped)
+{
+    return AMF_FAIL;
+}
