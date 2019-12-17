@@ -9,13 +9,13 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <cassert>
 
 #ifdef _WIN32
 #include <io.h>
 #include <direct.h>
 #include "AclAPI.h"
 #include <Shlwapi.h>
-#include <cassert>
 #else
 #include <unistd.h>
 #endif
