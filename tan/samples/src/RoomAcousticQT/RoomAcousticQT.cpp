@@ -246,8 +246,9 @@ void RoomAcousticQT::enumDevices()
 		}
 
 		mCPUDevicesCount = listCpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
+		//mCPUDevicesCount = 0; for test
 
-		for(int i = 0; i < MAX_DEVICES; i++)
+		for(int i = 0; i < mCPUDevicesCount; i++)
 		{
 			mCPUDevicesNames[i] = devicesNames[i];
 		}
@@ -264,8 +265,9 @@ void RoomAcousticQT::enumDevices()
 		}
 
 		mGPUDevicesCount = listGpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
+		//mGPUDevicesCount = 1; //for test
 
-		for(int i = 0; i < MAX_DEVICES; i++)
+		for(int i = 0; i < mGPUDevicesCount; i++)
 		{
 			mGPUDevicesNames[i] = devicesNames[i];
 		}
