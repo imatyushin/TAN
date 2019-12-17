@@ -597,6 +597,8 @@ bool WavContent::Convert2Stereo16Bit()
 				//todo: implement the following scheme
 				//Lo = 1.0 * L + clev * C + slev * Ls ;
 				//Ro = 1.0 * R + clev * C + slev * Rs ;
+
+				//ps. usually clev === slev === 0.7 
 			}
 		}
 	}
