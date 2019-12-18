@@ -48,23 +48,3 @@ ADD_DEFINITIONS(-DCL_TARGET_OPENCL_VERSION=120)
 if(DEFINE_AMD_OPENCL_EXTENSION)
   ADD_DEFINITIONS(-DDEFINE_AMD_OPENCL_EXTENSION)
 endif()
-
-#cl-helper
-#SET(clHelper_DIR ../../../../../OpenCLHelper/clHelper)
-# this builds the clHelper library (optional, if you want
-# to manually access the globally generated symbols)
-#ADD_SUBDIRECTORY(${clHelper_DIR} cmake-clHelper-bin)
-# specify include paths for #include's in opencl files:
-#OPENCL_INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
-
-# compile some opencl kernels. This properly preprocessor-exapands
-# and test-compiles the given .cl files (once to asm, once to llvm),
-# and puts the preprocessor-expanded code (as a char[] array)
-# into dedicated .c files (that can be accessed through the
-# implicit EMBEDDED_OPENCL_KERNELS variable
-#COMPILE_OPENCL(
-#  ../../../src/Graal/amdFFT_conv_kernels.cl
-#  ../../../src/Graal/amdFIR_kernels.cl
-#  ../../../src/Graal/GraalFHT.cl
-#  ../../../src/Graal/GraalUtil.cl
-#  )
