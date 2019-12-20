@@ -57,7 +57,7 @@ enum class ProcessingType
 };
 
 // Simple VR audio engine using True Audio Next GPU acceleration
-class Audio3D
+class alignas(32) Audio3D
 {
 public:
     Audio3D();
@@ -143,7 +143,9 @@ protected:
     std::vector<WavContent>     mWavFiles;
     std::vector<bool>           mTrackHeadPos;
 
-    //Timer                       mRealtimeTimer;
+    Timer                       mTimer;
+    double                      mStartTime = 0.0;
+    uint64_t                    mSamplesSent = 0;
 
     uint32_t                    mMaxSamplesCount = 0;
     std::vector<int16_t>        mStereoProcessedBuffer;

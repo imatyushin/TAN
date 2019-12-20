@@ -1074,10 +1074,28 @@ int Audio3D::ProcessProc()
     auto *processed = &mStereoProcessedBuffer.front();
 
     double previousTimerValue(0.0);
-    bool firstFrame(true);
 
     while(!mStop)
     {
+        if(!mTimer.IsStarted())
+        {
+            mTimer.Start();
+            mStartTime = mTimer.Sample();
+        }
+
+        //std::cout << "sa: " << mTimer.Sample() << std::endl;
+
+        auto demandedAmount = (mTimer.Sample() - mStartTime) * mWavFiles[0].SamplesPerSecond;
+        auto sheduledAmount = uint64_t(demandedAmount) + 2 * mBufferSizeInSamples;
+
+        if(mSamplesSent > sheduledAmount)
+        {
+            std::cout << "wait " << (mSamplesSent - sheduledAmount) << std::endl;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            continue;
+        }
+        
         uint32_t bytes2Play(0);
 
         if(mSrc1EnableMic)
@@ -1135,7 +1153,28 @@ int Audio3D::ProcessProc()
             //todo: this is not correct for common case, add size calculation
             bytes2Play = mBufferSizeInBytes;
 
-            Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
+            /*auto frames2Play = bytes2Play / mWavFiles[0].GetSampleSizeInBytes() / STEREO_CHANNELS_COUNT;
+
+            if(mSamplesSent + frames2Play > sheduledAmount)
+            {
+                if(sheduledAmount > mSamplesSent)
+                {
+                    frames2Play = sheduledAmount - mSamplesSent;
+                    std::cout << "over " << frames2Play << std::endl;
+                }
+                else
+                {
+                    frames2Play = 0;
+                    std::cout << "pause" << std::endl;
+                }
+
+                bytes2Play = frames2Play * mWavFiles[0].GetSampleSizeInBytes() * STEREO_CHANNELS_COUNT;
+            }*/
+
+            if(bytes2Play)
+            {
+                Process(&outputBuffer.front(), pWaves, bytes2Play);
+            }
         }
 
         //continue;
@@ -1148,39 +1187,16 @@ int Audio3D::ProcessProc()
 
         while(bytes2Play && !mStop)
         {
-            //if(!mRealtimeTimer.IsStarted())
-            {
-                //mRealtimeTimer.Start();
-                //firstFrame = true;
-            }
+            auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
+            mSamplesSent += bytesPlayed / (mWavFiles[0].BitsPerSample / 8) / STEREO_CHANNELS_COUNT;
 
-            //double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
+            bytesTotalPlayed += bytesPlayed;
 
-            if
-            (
-                firstFrame
-                ||
-                true
-                //((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
-            )
-            {
-                auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
-                bytesTotalPlayed += bytesPlayed;
-
-                outputBufferData += bytesPlayed;
-                bytes2Play -= bytesPlayed;
-
-                //previousTimerValue = timerValue;
-                firstFrame = false;
-            }
-            else
-            {
-                //std::this_thread::sleep_for(std::chrono::milliseconds(2));
-                std::this_thread::sleep_for(std::chrono::milliseconds(0));
-            }
+            outputBufferData += bytesPlayed;
+            bytes2Play -= bytesPlayed;
         }
 
-        for(int fileIndex = 0; fileIndex < mWavFiles.size(); ++fileIndex)
+        for(int fileIndex = 0; bytesTotalPlayed && fileIndex < mWavFiles.size(); ++fileIndex)
         {
             waveBytesPlayed[fileIndex] += bytesTotalPlayed;
 
@@ -1202,13 +1218,16 @@ int Audio3D::ProcessProc()
             }
         }
 
-        if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+        if(bytes2Play)
         {
-            processed = &mStereoProcessedBuffer.front();
-        }
-        else
-        {
-            processed += (mBufferSizeInBytes / sizeof(int16_t));
+            if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+            {
+                processed = &mStereoProcessedBuffer.front();
+            }
+            else
+            {
+                processed += (mBufferSizeInBytes / sizeof(int16_t));
+            }
         }
 
         /*///compute current sample position for each stream:

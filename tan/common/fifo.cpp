@@ -323,7 +323,7 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
     mQueueSize += sizeWritten;
 
-    std::cout << "write " << sizeWritten << " " << mQueueSize << std::endl;
+    //std::cout << "write " << sizeWritten << " " << mQueueSize << std::endl;
 
     return sizeWritten;
 }
@@ -412,7 +412,7 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
     mQueueSize -= sizeFilled;
 
-    std::cout << "read " << sizeFilled << " " << mQueueSize << std::endl;
+    //std::cout << "read " << sizeFilled << " " << mQueueSize << std::endl;
 
     return sizeFilled;
 }
