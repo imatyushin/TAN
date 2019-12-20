@@ -175,13 +175,13 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
 
     if (m_oclGeneralQueue)
     {
-        printf("Release TANContext queue %llX\r\n", m_oclGeneralQueue);
+        printf("Release general queue %llX\r\n", m_oclGeneralQueue);
         clReleaseCommandQueue(m_oclGeneralQueue);
     }
     
     if (m_oclConvQueue)
     {
-        printf("Release TANContext queue %llX", m_oclConvQueue);
+        printf("Release convolution queue %llX\r\n", m_oclConvQueue);
         clReleaseCommandQueue(m_oclConvQueue);
     }
 
