@@ -536,7 +536,6 @@ bool WavContent::Convert2Stereo16Bit()
 	{
 		return false;
 	}
-
 																	    //2 is the new sample size
 	std::vector<uint8_t> converted(STEREO_CHANNELS_COUNT * SamplesCount * 2);
 	int16_t *outDataAsShortsArray((int16_t *)&converted.front());
@@ -664,6 +663,34 @@ bool WavContent::Convert2Stereo16Bit()
 	Data.swap(converted);
 	ChannelsCount = STEREO_CHANNELS_COUNT;
 	BitsPerSample = 16;
+
+	return true;
+}
+
+bool WavContent::JoinChannels()
+{
+	if(STEREO_CHANNELS_COUNT != ChannelsCount && 16 != BitsPerSample)
+	{
+		return false;
+	}
+
+	int16_t *outDataAsShortsArray((int16_t *)&Data.front());
+
+	for(uint32_t sampleNumber(0); sampleNumber < SamplesCount; ++sampleNumber)
+	{
+		auto outLeftChannelSampleIndex(sampleNumber * STEREO_CHANNELS_COUNT + 0);
+		auto outRightChannelSampleIndex(sampleNumber * STEREO_CHANNELS_COUNT + 1);
+
+		outDataAsShortsArray[outLeftChannelSampleIndex] =
+		  outDataAsShortsArray[outRightChannelSampleIndex] =
+		    int16_t(
+				(
+					int32_t(outDataAsShortsArray[outLeftChannelSampleIndex]) 
+					+ 
+					int32_t(outDataAsShortsArray[outRightChannelSampleIndex])
+				) / 2
+				);
+	}
 
 	return true;
 }

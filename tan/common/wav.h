@@ -156,7 +156,8 @@ struct WavContent
 	}
 
 	bool ReadWaveFile(const std::string & fileName);
-	bool Convert2Stereo16Bit(); //not implemented
+	bool Convert2Stereo16Bit();
+	bool JoinChannels();
 
 	inline bool IsSameFormat(const WavContent & other)
 	{
