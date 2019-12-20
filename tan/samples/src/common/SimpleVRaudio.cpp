@@ -322,6 +322,9 @@ bool Audio3D::Init
                 return false;
             }
 
+            //make mono
+            content.JoinChannels();
+
             //check that samples have compatible formats
             //becouse convertions are not yet implemented
             if(mWavFiles.size())
@@ -1083,14 +1086,12 @@ int Audio3D::ProcessProc()
             mStartTime = mTimer.Sample();
         }
 
-        //std::cout << "sa: " << mTimer.Sample() << std::endl;
-
         auto demandedAmount = (mTimer.Sample() - mStartTime) * mWavFiles[0].SamplesPerSecond;
         auto sheduledAmount = uint64_t(demandedAmount) + 2 * mBufferSizeInSamples;
 
         if(mSamplesSent > sheduledAmount)
         {
-            std::cout << "wait " << (mSamplesSent - sheduledAmount) << std::endl;
+            //std::cout << "wait " << (mSamplesSent - sheduledAmount) << std::endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(0));
             continue;
@@ -1152,24 +1153,6 @@ int Audio3D::ProcessProc()
         {
             //todo: this is not correct for common case, add size calculation
             bytes2Play = mBufferSizeInBytes;
-
-            /*auto frames2Play = bytes2Play / mWavFiles[0].GetSampleSizeInBytes() / STEREO_CHANNELS_COUNT;
-
-            if(mSamplesSent + frames2Play > sheduledAmount)
-            {
-                if(sheduledAmount > mSamplesSent)
-                {
-                    frames2Play = sheduledAmount - mSamplesSent;
-                    std::cout << "over " << frames2Play << std::endl;
-                }
-                else
-                {
-                    frames2Play = 0;
-                    std::cout << "pause" << std::endl;
-                }
-
-                bytes2Play = frames2Play * mWavFiles[0].GetSampleSizeInBytes() * STEREO_CHANNELS_COUNT;
-            }*/
 
             if(bytes2Play)
             {
