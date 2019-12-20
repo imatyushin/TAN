@@ -200,9 +200,9 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
 
     float scale = conversionGain / SHRT_MAX;
 
-   // ToDo use AVX
+    //ToDo use AVX
     //__m256i _mm256_cvtps_epi32 (__m256 a)
-     while (numOfSamplesToProcess > 0)
+    while(numOfSamplesToProcess > 0)
     {
         *outputBuffer = *inputBuffer * scale;
 
