@@ -1076,8 +1076,6 @@ int Audio3D::ProcessProc()
 
     auto *processed = &mStereoProcessedBuffer.front();
 
-    double previousTimerValue(0.0);
-
     mTimer.Start();
     mStartTime = mTimer.Sample();
 
@@ -1088,8 +1086,6 @@ int Audio3D::ProcessProc()
 
         if(mSamplesSent >= sheduledAmount)
         {
-            //std::cout << "wait " << (mSamplesSent - sheduledAmount) << std::endl;
-
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
