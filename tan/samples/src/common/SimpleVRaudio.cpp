@@ -1075,24 +1075,21 @@ int Audio3D::ProcessProc()
 
     double previousTimerValue(0.0);
 
+    mTimer.Start();
+    mStartTime = mTimer.Sample();
+
     while(!mStop)
     {
-        if(!mTimer.IsStarted())
-        {
-            mTimer.Start();
-            mStartTime = mTimer.Sample();
-        }
-
         //std::cout << "sa: " << mTimer.Sample() << std::endl;
 
         auto demandedAmount = (mTimer.Sample() - mStartTime) * mWavFiles[0].SamplesPerSecond;
-        auto sheduledAmount = uint64_t(demandedAmount) + 2 * mBufferSizeInSamples;
+        auto sheduledAmount = uint64_t(demandedAmount) + mBufferSizeInSamples;
 
-        if(mSamplesSent > sheduledAmount)
+        if(mSamplesSent >= sheduledAmount)
         {
-            std::cout << "wait " << (mSamplesSent - sheduledAmount) << std::endl;
+            //std::cout << "wait " << (mSamplesSent - sheduledAmount) << std::endl;
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
         
@@ -1261,6 +1258,7 @@ int Audio3D::ProcessProc()
     }*/
 
     mRunning = false;
+    mTimer.Stop();
 
     return 0;
 }
