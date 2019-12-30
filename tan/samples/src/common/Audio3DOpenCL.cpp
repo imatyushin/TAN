@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include "CLAudio3D.h"
+#include "Audio3DOpenCL.h"
 
 #include "TrueAudioVR.h"
 #include "GpuUtils.h"
@@ -243,7 +243,7 @@ bool Audio3D::Init
 
     //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
     m_useOCLOutputPipeline = useCLConvolution || useCLRoom;
-    
+
     mSrc1EnableMic = useMicSource;
     mTrackHeadPos = trackHeadPos;
     mBufferSizeInSamples = bufferSizeInSamples;
@@ -450,7 +450,7 @@ bool Audio3D::Init
     // Allocate RT-Queues
     {
         mCmdQueue1 = mCmdQueue2 = mCmdQueue3 = nullptr;
-        
+
         int32_t flagsQ1 = 0;
         int32_t flagsQ2 = 0;
 
@@ -480,7 +480,7 @@ bool Audio3D::Init
     #endif // RTQ_ENABLED
 
             CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
-            
+
             //CL room on GPU
             if(useCLRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
@@ -504,7 +504,7 @@ bool Audio3D::Init
 #ifdef RTQ_ENABLED
             }
 #endif
-    
+
             //CL room on CPU
             if(useCLRoom && !useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
@@ -535,21 +535,21 @@ bool Audio3D::Init
     RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext));
 
     //convolution over OpenCL
-    if(useCLConvolution) 
+    if(useCLConvolution)
     {
         RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
     }
 
     //room processing over OpenCL
-    if(useCLRoom) 
+    if(useCLRoom)
     {
         RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
     }
 
     RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &m_spConvolution));
-    
-    if(useCLConvolution) 
-    {   
+
+    if(useCLConvolution)
+    {
         RETURN_IF_FAILED(
             m_spConvolution->InitGpu(
                 convMethod,
@@ -560,7 +560,7 @@ bool Audio3D::Init
             );
     }
     else
-    {   
+    {
         RETURN_IF_FAILED(
             m_spConvolution->InitCpu(
                 convMethod,
@@ -593,8 +593,8 @@ bool Audio3D::Init
 
         clGetCommandQueueInfo(mCmdQueue3, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_IR, NULL);
         clGetCommandQueueInfo(mCmdQueue2, CL_QUEUE_CONTEXT, sizeof(cl_context), &context_Conv, NULL);
-        
-        if(context_IR == context_Conv) 
+
+        if(context_IR == context_Conv)
         {
             for(int i = 0; i < mWavFiles.size() * 2; i++)
             {
@@ -621,7 +621,7 @@ bool Audio3D::Init
         if(clErr != CL_SUCCESS)
         {
             std::cerr << "Could not create OpenCL buffer" << std::endl;
-            
+
             return false;
         }
 
@@ -636,7 +636,7 @@ bool Audio3D::Init
             if (clErr != CL_SUCCESS)
             {
                 std::cerr << "Could not create OpenCL subBuffer" << std::endl;
-                
+
                 return false;
             }
 
@@ -645,7 +645,7 @@ bool Audio3D::Init
             if (clErr != CL_SUCCESS)
             {
                 std::cerr << "Could not fill OpenCL subBuffer" << std::endl;
-                
+
                 return false;
             }
         }
@@ -663,14 +663,14 @@ bool Audio3D::Init
             if (clErr != CL_SUCCESS)
             {
                 std::cerr << "Could not create OpenCL buffer" << std::endl;
-                
+
                 return false;
             }
 
             if (clErr != CL_SUCCESS)
             {
                 std::cerr << "Could not create OpenCL buffer" << std::endl;
-                
+
                 return false;
             }
         }
@@ -708,13 +708,13 @@ bool Audio3D::Init
     {
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
-    else 
+    else
     {
         m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
 
-    std::cout 
-        << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H" 
+    std::cout
+        << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H"
         << std::endl;
 
     // head model:

@@ -52,16 +52,14 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMixer(
     )
 {
     TANContextImplPtr contextImpl(pContext);
-    *ppComponent = new TANMixerImpl(pContext, NULL );
+    *ppComponent = new TANMixerImpl(pContext, NULL);
     (*ppComponent)->Acquire();
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
 TANMixerImpl::TANMixerImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextTAN(pContextTAN),
-    m_pContextAMF(pContextAMF),
-    m_pCommandQueueCl(nullptr),
-    m_eOutputMemoryType(AMF_MEMORY_HOST)
+    m_pContextAMF(pContextAMF)
 {
     AMFPrimitivePropertyInfoMapBegin
         AMFPropertyInfoEnum(TAN_OUTPUT_MEMORY_TYPE ,  L"Output Memory Type", AMF_MEMORY_HOST, AMF_MEMORY_ENUM_DESCRIPTION, false),
@@ -72,6 +70,7 @@ TANMixerImpl::~TANMixerImpl(void)
 {
     Terminate();
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     amf_size buffer_size,
@@ -82,10 +81,15 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     m_bufferSize = buffer_size;
     m_numChannels = num_channels;
     AMF_RETURN_IF_FALSE(!m_pDeviceAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
+
+#ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#endif
+
     AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
     L"Cannot initialize after termination");
 
+#ifndef TAN_NO_OPENCL
     // Determine how to initialize based on context, CPU for CPU and GPU for GPU
     if (m_pContextTAN->GetOpenCLContext())
     {
@@ -95,16 +99,22 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     {
         return InitCpu();
     }
+#else
+    return AMF_FAIL;
+#endif
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitCpu()
 {
     // No device setup needs to occur here; we're done!
     return AMF_OK;
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 {
+#ifndef TAN_NO_OPENCL
     cl_int ret;
     AMF_RESULT res = AMF_OK;
 
@@ -141,10 +151,15 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     if (!OCLKenel_Err){ printf("Failed to compile Mixer Kernel"); return AMF_FAIL; }
 	m_OCLInitialized = true;
     return res;
+#else
+    return AMF_FAIL;
+#endif
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
 {
+#ifndef TAN_NO_OPENCL
     AMFLock lock(&m_sect);
 
     m_pDeviceAMF = NULL;
@@ -167,8 +182,10 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
     m_pContextTAN = NULL;
 
     return AMF_OK;
+#else
+    return AMF_FAIL;
+#endif
 }
-
 
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     float* ppBufferInput[],
@@ -200,6 +217,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     return AMF_OK;
 }
 
+#ifndef TAN_NO_OPENCL
 // For contigous cl_mem input buffers
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     cl_mem pBufferInput,
@@ -257,4 +275,22 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
 	AMF_RESULT ret = Mix(m_internalBuff, pBufferOutput, m_bufferSize);
 	return ret;
 }
+#endif
 
+AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
+    const AMFBuffer * pBufferInput,
+    AMFBuffer * pBufferOutput,
+    amf_size inputStride
+    )
+{
+	return AMF_FAIL;
+}
+
+// For disjoint cl_mem input buffers
+AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
+    const AMFBuffer * pBufferInput[],
+    AMFBuffer * pBufferOutput
+    )
+{
+	return AMF_FAIL;
+}

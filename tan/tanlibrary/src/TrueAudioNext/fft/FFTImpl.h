@@ -51,7 +51,7 @@ namespace amf
         AMF_RESULT	AMF_STD_CALL Init()         override;
         AMF_RESULT  AMF_STD_CALL Terminate()    override;
         TANContext* AMF_STD_CALL GetContext()   override    { return m_pContextTAN; }
-        
+
         // log2len - arrays' length should be power of 2, the true lenght is expected to be
         //           (2 ^ log2len) * (2 * sizeof(float)) (due to complex numbers).
         AMF_RESULT  AMF_STD_CALL Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
@@ -59,11 +59,22 @@ namespace amf
                                            amf_uint32 channels,
                                            float* ppBufferInput[],
                                            float* ppBufferOutput[]) override;
+#ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
                                            amf_uint32 log2len,
                                            amf_uint32 channels,
                                            cl_mem pBufferInput[],
                                            cl_mem pBufferOutput[]) override;
+#endif
+
+        AMF_RESULT  AMF_STD_CALL Transform(
+                                            TAN_FFT_TRANSFORM_DIRECTION direction,
+                                            amf_uint32 log2len,
+                                            amf_uint32 channels,
+                                            const AMFBuffer * pBufferInput[],
+                                            AMFBuffer * pBufferOutput[]
+                                            ) override;
+
     private:
 		//first 32 bit-> log2length, second 32 bit -> num of channel
 		std::unordered_map<amf_uint, size_t> m_pCLFFTHandleMap;
@@ -78,6 +89,7 @@ namespace amf
                                                          amf_size channels,
                                                          float* ppBufferInput[],
                                                          float* ppBufferOutput[]);
+#ifndef TAN_NO_OPENCL
 		AMF_RESULT virtual AMF_STD_CALL TransformImplGPUBatched(
 														TAN_FFT_TRANSFORM_DIRECTION direction,
 														amf_size log2len,
@@ -89,6 +101,7 @@ namespace amf
                                                          amf_size channels,
                                                          cl_mem pBufferInput[],
                                                          cl_mem pBufferOutput[]);
+#endif
 
     private:
 		void clearInternalBuffers();
@@ -96,15 +109,18 @@ namespace amf
         TANContextPtr               m_pContextTAN;
 
         AMFComputeKernelPtr         m_pKernelCopy;
-        AMF_MEMORY_TYPE             m_eOutputMemoryType;
+        AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
         AMFCriticalSection          m_sect;
 
-		amf_size m_iInternalBufferSizeInBytes = 0;
-        cl_mem          m_pInputsOCL;
-        cl_mem          m_pOutputsOCL;
+		amf_size                    m_iInternalBufferSizeInBytes = 0;
+
+#ifndef TAN_NO_OPENCL
+        cl_mem                      m_pInputsOCL = nullptr;
+        cl_mem                      m_pOutputsOCL = nullptr;
+#endif
 
         bool                        m_doProcessingOnGpu;
-        bool                        m_useConvQueue;
+        bool                        m_useConvQueue = false;
     };
 
     // Internal function used only from TANConvolution class.

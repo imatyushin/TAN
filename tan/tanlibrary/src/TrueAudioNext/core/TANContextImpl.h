@@ -46,6 +46,8 @@ namespace amf
 
         //TANContext interface
         AMF_RESULT AMF_STD_CALL Terminate() override;
+
+#ifndef TAN_NO_OPENCL
         AMF_RESULT AMF_STD_CALL InitOpenCL(cl_context pContext) override;
         AMF_RESULT AMF_STD_CALL InitOpenCL(
             cl_command_queue pGeneralQueue,
@@ -55,36 +57,50 @@ namespace amf
         cl_context AMF_STD_CALL GetOpenCLContext() override;
         cl_command_queue AMF_STD_CALL GetOpenCLGeneralQueue() override;
         cl_command_queue AMF_STD_CALL GetOpenCLConvQueue() override;
+#endif
+
+        AMF_RESULT  AMF_STD_CALL    InitAMF(AMFContext *pContext
+                                            ) override;
+        AMF_RESULT  AMF_STD_CALL    InitAMF(AMFCompute *pGeneralQueue = nullptr,
+                                            AMFCompute *pConvolutionQueue = nullptr
+                                            ) override;
+
+        AMFContext * AMF_STD_CALL   GetContext() override;
+        AMFCompute * AMF_STD_CALL	GetGeneralQueue() override;
+        AMFCompute * AMF_STD_CALL	GetConvQueue() override;
 
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }
-        AMFComputePtr GetGeneralCompute() const       { return m_pComputeGeneral; }
-        AMFComputePtr GetConvolutionCompute() const   { return m_pComputeConvolution; }
+        AMFComputePtr GetGeneralCompute() const       { return m_pComputeGeneralAMF; }
+        AMFComputePtr GetConvolutionCompute() const   { return m_pComputeConvolutionAMF; }
 
     protected:
         enum QueueType { eConvQueue, eGeneralQueue };
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT InitOpenCLInt(cl_command_queue pClCommandQueue, QueueType queueType);
 
         virtual AMF_RESULT InitClfft();
 
         bool checkOpenCL2_XCompatibility(cl_command_queue cmdQueue);
+#endif
 
     private:
-        cl_context                  m_oclGeneralContext;
-        cl_context                  m_oclConvContext;
-        cl_command_queue			m_oclGeneralQueue;
-        cl_command_queue			m_oclConvQueue;
-        cl_device_id                m_oclGeneralDeviceId;
-        cl_device_id                m_oclConvDeviceId;
-
+#ifndef TAN_NO_OPENCL
+        cl_context                  m_oclGeneralContext = nullptr;
+        cl_context                  m_oclConvContext = nullptr;
+        cl_command_queue			m_oclGeneralQueue = nullptr;
+        cl_command_queue			m_oclConvQueue = nullptr;
+        cl_device_id                m_oclGeneralDeviceId = nullptr;
+        cl_device_id                m_oclConvDeviceId = nullptr;
+#endif
         AMFContextPtr               m_pContextGeneralAMF;
         AMFContextPtr               m_pContextConvolutionAMF;
-        AMFComputePtr               m_pComputeGeneral;
-        AMFComputePtr               m_pComputeConvolution;
+        AMFComputePtr               m_pComputeGeneralAMF;
+        AMFComputePtr               m_pComputeConvolutionAMF;
         AMFComputeDevicePtr         m_pGeneralDeviceAMF;
         AMFComputeDevicePtr         m_pConvolutionDeviceAMF;
 
-        bool m_clfftInitialized;
+        bool m_clfftInitialized = false;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.
 
 

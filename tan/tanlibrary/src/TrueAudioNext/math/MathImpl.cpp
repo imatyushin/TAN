@@ -51,7 +51,7 @@ static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 };
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMath(
-    amf::TANContext* pContext, 
+    amf::TANContext* pContext,
     amf::TANMath** ppComponent
     )
 {
@@ -62,34 +62,8 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMath(
 }
 //-------------------------------------------------------------------------------------------------
 TANMathImpl::TANMathImpl(TANContext *pContextTAN) :
-    m_pContextTAN(pContextTAN),
-	///TODO:AAA     m_pContextAMF(pContextAMF),
-	m_pDeviceCompute(NULL),
-    m_eOutputMemoryType(AMF_MEMORY_HOST),
-    m_gpuDivisionRunNum(0),
-    m_gpuMultiplicationRunNum(0),
-	m_iInternalSwapBuffer1Size_MulAccu(0),
-	m_iInternalSwapBuffer2Size_MulAccu(0),
-	m_pInternalSwapBuffer2_MulAccu(nullptr),
-	m_pInternalSwapBuffer1_MulAccu(nullptr),
-	m_iInternalBufferIn1Size_MulAccu(0),
-	m_iInternalBufferIn2Size_MulAccu(0),
-	m_iInternalBufferOutSize_MulAccu(0),
-	m_pInternalBufferOut_MulAccu(nullptr),
-	m_pInternalBufferIn1_MulAccu(nullptr),
-	m_pInternalBufferIn2_MulAccu(nullptr),
-	m_iInternalBufferIn1Size_Division(0),
-	m_iInternalBufferIn2Size_Division(0),
-	m_iInternalBufferOutSize_Division(0),
-	m_pInternalBufferOut_Division(nullptr),
-	m_pInternalBufferIn1_Division(nullptr),
-	m_pInternalBufferIn2_Division(nullptr),
-	m_iInternalBufferIn1Size_Multiply(0),
-	m_iInternalBufferIn2Size_Multiply(0),
-	m_iInternalBufferOutSize_Multiply(0),
-	m_pInternalBufferOut_Multiply(nullptr),
-	m_pInternalBufferIn1_Multiply(nullptr),
-	m_pInternalBufferIn2_Multiply(nullptr)
+    m_pContextTAN(pContextTAN)
+	///TODO:AAA     m_pContextAMF(pContextAMF)
 {
     AMFPrimitivePropertyInfoMapBegin
         AMFPropertyInfoEnum(TAN_OUTPUT_MEMORY_TYPE, L"Output Memory Type", AMF_MEMORY_HOST, AMF_MEMORY_ENUM_DESCRIPTION, false),
@@ -107,6 +81,7 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
 	AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
 		L"Cannot initialize after termination");
 
+#ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext())
 	{
 		return InitGpu();
@@ -115,6 +90,9 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
 	{
 		return InitCpu();
 	}
+#else
+	throw "Not implemented!";
+#endif
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMathImpl::InitCpu()
@@ -125,7 +103,6 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitCpu()
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 {
-
 	AMF_RETURN_IF_FALSE(!m_pDeviceCompute, AMF_ALREADY_INITIALIZED, L"Already initialized");
 	AMF_RETURN_IF_FALSE((m_pContextTAN != NULL), AMF_WRONG_STATE,
 		L"Cannot initialize after termination");
@@ -144,10 +121,11 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 		return AMF_OK;
 	}
 
+#ifndef TAN_NO_OPENCL
 	bool OCLKernel_Err = false;
 	// for now register source kernels
 	if (m_pKernelComplexDiv == nullptr)
-	{	
+	{
 		OCLKernel_Err = GetOclKernel(m_pKernelComplexDiv, m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexDivision", VectorComplexDivision_Str, VectorComplexDivisionCount,
 			"VectorComplexDiv", "");
 		if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL;}
@@ -165,12 +143,16 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 		if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL; }
 	}
 
-
 	return AMF_OK;
+#else
+	return AMF_FAIL;
+#endif
 }
+
 //-------------------------------------------------------------------------------------------------
+#ifndef TAN_NO_OPENCL
 AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
-	cl_mem* _buffer, 
+	cl_mem* _buffer,
 	amf_size* size, // in bytes
 	const amf_size requiredSize)
 {
@@ -193,17 +175,22 @@ AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
 	}
 	return AMF_OK;
 }
+#endif
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMathImpl::Terminate()
 {
 	m_pDeviceCompute = nullptr;
-
-	m_pDeviceCompute = nullptr;
     m_pContextTAN = nullptr;
+
+#ifndef TAN_NO_OPENCL
     m_pKernelComplexDiv = nullptr;
     m_pKernelComplexMul = nullptr;
-    return AMF_OK;
+
+	return AMF_OK;
+#else
+	return AMF_FAIL;
+#endif
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT TANMathImpl::ComplexMultiplication(
@@ -260,6 +247,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	return AMF_OK;
 }
 
+#ifndef TAN_NO_OPENCL
 AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	const cl_mem inputBuffers1[],
 	const amf_size buffers1OffsetInSamples[],
@@ -338,6 +326,34 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 	}
 	return AMF_OK;
 }
+#endif
+
+AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
+	const AMFBuffer * inputBuffers1[],
+	const amf_size buffers1OffsetInSamples[],
+	const AMFBuffer * inputBuffers2[],
+	const amf_size buffers2OffsetInSamples[],
+	AMFBuffer * accumBuffers[],
+	const amf_size accumBuffersOffsetInSamples[],
+	amf_uint32 channels,
+    amf_size countOfComplexNumbers)
+{
+	return AMF_FAIL;
+}
+
+AMF_RESULT TANMathImpl::ComplexMultiplication(
+	const AMFBuffer * inputBuffers1[],
+	const amf_size buffers1OffsetInSamples[],
+	const AMFBuffer * inputBuffers2[],
+	const amf_size buffers2OffsetInSamples[],
+	AMFBuffer * outputBuffers[],
+	const amf_size outputBuffersOffsetInSamples[],
+	amf_uint32 channels,
+    amf_size countOfComplexNumbers
+	)
+{
+	return AMF_FAIL;
+}
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT TANMathImpl::ComplexDivision(
@@ -365,7 +381,9 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 	}
 	return AMF_OK;
 }
+
 //-------------------------------------------------------------------------------------------------
+#ifndef TAN_NO_OPENCL
 AMF_RESULT TANMathImpl::ComplexDivision(
 	const cl_mem inputBuffers1[],
 	const amf_size buffers1OffsetInSamples[],
@@ -404,6 +422,22 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 	}
 	return AMF_OK;
 }
+#endif
+
+AMF_RESULT TANMathImpl::ComplexDivision(
+	const AMFBuffer * inputBuffers1[],
+	const amf_size buffers1OffsetInSamples[],
+	const AMFBuffer * inputBuffers2[],
+	const amf_size buffers2OffsetInSamples[],
+	AMFBuffer * outputBuffers[],
+	const amf_size outputBuffersOffsetInSamples[],
+	amf_uint32 channels,
+    amf_size countOfComplexNumbers
+	)
+{
+	return AMF_FAIL;
+}
+
 //-------------------------------------------------------------------------------------------------
 //protected----------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -421,7 +455,9 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
     AMF_RETURN_IF_FALSE(outputBuffer != NULL, AMF_INVALID_ARG, L"outputBuffer == NULL");
 
     AMF_RETURN_IF_FALSE(countOfComplexNumbers > 0, AMF_INVALID_ARG, L"countOfComplexNumbers == 0");
- 
+
+#ifndef TAN_NO_OPENCL
+
 	// If GPU Context is initialized then run it on GPU
 	if (m_pContextTAN->GetOpenCLContext())
 	{
@@ -457,12 +493,17 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 	}
 
     return AMF_OK;
+
+#else
+	return AMF_FAIL;
+#endif
 }
+
 //------------------------------------------------------------------------------------------------
 AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
-	const float inputBuffer1[], 
-	const float inputBuffer2[], 
-	float accumBuffer[], 
+	const float inputBuffer1[],
+	const float inputBuffer2[],
+	float accumBuffer[],
     amf_size countOfComplexNumbers)
 {
 	AMF_RETURN_IF_FALSE(inputBuffer1 != NULL, AMF_INVALID_ARG, L"inputBuffer1 == NULL");
@@ -471,7 +512,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 
     AMF_RETURN_IF_FALSE(countOfComplexNumbers > 0, AMF_INVALID_ARG, L"countOfComplexNumbers == 0");
 
-
+#ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext())
 	{
 		// Adjust internal buffer size
@@ -505,9 +546,13 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 		}
 	}
 	return AMF_OK;
+#else
+	return AMF_FAIL;
+#endif
 }
 
 //-------------------------------------------------------------------------------------------------
+#ifndef TAN_NO_OPENCL
 AMF_RESULT TANMathImpl::ComplexMultiplication(
 	const cl_mem inputBuffer1,
     const amf_size buffer1OffsetInSamples,
@@ -555,10 +600,10 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 	clErr = clSetKernelArg(m_pKernelComplexMul, index++, sizeof(amf_int64), &outputBufferOffsetInSamples);
 	if (clErr != CL_SUCCESS) { printf("Failed to set OpenCL argument"); return AMF_FAIL; }
 //////    AMF_RETURN_IF_FAILED(m_pKernelComplexMul->SetArgInt32(index++, static_cast<amf_int32>(numOfSamplesToProcess / 4)));
-    amf_int32 numOfSamplesToProcessDivBy4 = static_cast<amf_int32>(countOfComplexNumbers / 2);  
+    amf_int32 numOfSamplesToProcessDivBy4 = static_cast<amf_int32>(countOfComplexNumbers / 2);
 	clErr = clSetKernelArg(m_pKernelComplexMul, index++, sizeof(amf_int32), &numOfSamplesToProcessDivBy4);
 	if (clErr != CL_SUCCESS) { printf("Failed to set OpenCL argument"); return AMF_FAIL; }
-	
+
 	cl_command_queue cmdQueue = m_pContextTAN->GetOpenCLGeneralQueue();
 
     amf_size global[3] = { countOfComplexNumbers / 2, 0, 0 };
@@ -570,15 +615,14 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 }
 
 AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
-	const cl_mem inputBuffer1, 
-	const amf_size buffer1OffsetInSamples, 
-	const cl_mem inputBuffer2, 
-	const amf_size buffer2OffsetInSamples, 
-	cl_mem accumBuffer, 
-	const amf_size accumBufferOffsetInSamples, 
+	const cl_mem inputBuffer1,
+	const amf_size buffer1OffsetInSamples,
+	const cl_mem inputBuffer2,
+	const amf_size buffer2OffsetInSamples,
+	cl_mem accumBuffer,
+	const amf_size accumBufferOffsetInSamples,
     amf_size countOfComplexNumbers)
 {
-
 	if (m_pKernelComplexSum == 0)
 	{
 		return AMF_OPENCL_FAILED;
@@ -596,7 +640,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 
 	AMFLock lock(&m_sect);
 	cl_int clErr;
-	
+
 	amf_size numofGroup = numOfSamplesInVector4 / oclWorkGroupSize;
 	amf_size oclLocalBufferSize = sizeof(float) * 4 * oclWorkGroupSize;
 
@@ -618,10 +662,9 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	cl_uint pResultFlt_arg_index = 2;
 	cl_uint rOffsetInFloats_arg_index = 3;
 	cl_uint countInQuadFloats_arg_index = 4;
-	
+
 	cl_command_queue cmdQueue = m_pContextTAN->GetOpenCLGeneralQueue();
 	// Set kernel arguments (additional arugments if needed)
-	
 
 	clErr = clSetKernelArg(m_pKernelComplexSum, pAuxiliary_arg_index, sizeof(float) * 4 * oclWorkGroupSize, NULL);
 	if (clErr != CL_SUCCESS) { printf("Failed to set OpenCL argument"); return AMF_FAIL; }
@@ -662,7 +705,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 		numOfIteration++;
 		leftOver = (leftOver + oclWorkGroupSize - 1) / oclWorkGroupSize / 2;
 	}
-	
+
 	// CPU Summation
 	cl_mem resultBuffferOCL = nullptr;
 	numOfIteration % 2 == 0 ? resultBuffferOCL = m_pInternalSwapBuffer1_MulAccu : resultBuffferOCL = m_pInternalSwapBuffer2_MulAccu;
@@ -685,6 +728,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	if (clErr != CL_SUCCESS) { printf("Faield to map OCL Buffer"); return AMF_FAIL; }
 	return AMF_OK;
 }
+#endif
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT TANMathImpl::ComplexDivision(
@@ -700,6 +744,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 
     AMF_RETURN_IF_FALSE(countOfComplexNumbers > 0, AMF_INVALID_ARG, L"countOfComplexNumbers == 0");
 
+#ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext())
 	{
 		// Adjust internal buffer size
@@ -734,8 +779,13 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 		}
 	}
     return AMF_OK;
+#else
+	return AMF_FAIL;
+#endif
 }
+
 //-------------------------------------------------------------------------------------------------
+#ifndef TAN_NO_OPENCL
 AMF_RESULT TANMathImpl::ComplexDivision(
 	const cl_mem inputBuffer1,
     const amf_size buffer1OffsetInSamples,
@@ -759,7 +809,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 	cl_uint index = 0;
 
 	cl_int clErr;
-	
+
 //////    AMF_RETURN_IF_FAILED(m_pKernelComplexDiv->SetArgBuffer(index++, inputBuffer1));
 	clErr = clSetKernelArg(m_pKernelComplexDiv, index++, sizeof(cl_mem), &inputBuffer1);
 	if (clErr != CL_SUCCESS) { printf("Failed to set OpenCL argument"); return AMF_FAIL; }
@@ -792,11 +842,17 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 
     return AMF_OK;
 }
+#endif
 
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
+AMF_RESULT TANMathImpl::ComplexDivision(
+	const AMFBuffer * inputBuffer1,
+    const amf_size buffer1OffsetInSamples,
+	const AMFBuffer * inputBuffer2,
+    const amf_size buffer2OffsetInSamples,
+	AMFBuffer * outputBuffer,
+    const amf_size outputBufferOffsetInSamples,
+    amf_size countOfComplexNumbers
+)
+{
+	return AMF_FAIL;
+}

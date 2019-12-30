@@ -23,13 +23,13 @@
 
 #include "IAudio3D.h"
 
-class AMFAudio3D:
+class Audio3DAMF:
     public IAudio3D
 {
 public:
-    AMFAudio3D();
-    AMFAudio3D(AMFAudio3D const &) = delete;
-    virtual ~AMFAudio3D();
+    Audio3DAMF();
+    Audio3DAMF(Audio3DAMF const &) = delete;
+    virtual ~Audio3DAMF();
 
     bool Init
     (

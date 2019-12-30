@@ -55,6 +55,7 @@ namespace amf
                                                     amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
 
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT ComplexMultiplication(	const cl_mem inputBuffers1[],
                                                     const amf_size buffers1OffsetInSamples[],
                                                     const cl_mem inputBuffers2[],
@@ -63,13 +64,27 @@ namespace amf
                                                     const amf_size outputBuffersOffsetInSamples[],
                                                     amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
+#endif
 
-		virtual AMF_RESULT ComplexMultiplyAccumulate(	const float* const inputBuffers1[], 
-														const float* const inputBuffers2[],
-														float *accumbuffers[],
-														amf_uint32 channels,
-														amf_size numOfSamplesToProcess) override;
-		virtual AMF_RESULT ComplexMultiplyAccumulate(const cl_mem inputBuffers1[],
+        virtual AMF_RESULT ComplexMultiplication(	const AMFBuffer * inputBuffers1[],
+                                                    const amf_size buffers1OffsetInSamples[],
+                                                    const AMFBuffer * inputBuffers2[],
+                                                    const amf_size buffers2OffsetInSamples[],
+                                                    AMFBuffer * outputBuffers[],
+                                                    const amf_size outputBuffersOffsetInSamples[],
+                                                    amf_uint32 channels,
+                                                    amf_size countOfComplexNumbers) override;
+
+		virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                    const float* const inputBuffers1[],
+													const float* const inputBuffers2[],
+													float *accumbuffers[],
+													amf_uint32 channels,
+													amf_size numOfSamplesToProcess) override;
+
+#ifndef TAN_NO_OPENCL
+		virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                    const cl_mem inputBuffers1[],
 													const amf_size buffers1OffsetInSamples[],
 													const cl_mem inputBuffers2[],
 													const amf_size buffers2OffsetInSamples[],
@@ -77,20 +92,43 @@ namespace amf
 													const amf_size accumBuffersOffsetInSamples[],
 													amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
+#endif
+        virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                    const AMFBuffer * inputBuffers1[],
+													const amf_size buffers1OffsetInSamples[],
+													const AMFBuffer * inputBuffers2[],
+													const amf_size buffers2OffsetInSamples[],
+													AMFBuffer * accumBuffers[],
+													const amf_size accumBuffersOffsetInSamples[],
+													amf_uint32 channels,
+                                                    amf_size countOfComplexNumbers) override;
 
-        virtual AMF_RESULT ComplexDivision(	const float* const inputBuffers1[],
-                                            const float* const inputBuffers2[],
-                                            float *outputBuffers[],
-                                            amf_uint32 channels,
-                                            amf_size numOfSamplesToProcess) override;
-        virtual AMF_RESULT ComplexDivision(	const cl_mem inputBuffers1[],
-                                            const amf_size buffers1OffsetInSamples[],
-                                            const cl_mem inputBuffers2[],
-                                            const amf_size buffers2OffsetInSamples[],
-                                            cl_mem outputBuffers[],
-                                            const amf_size outputBuffersOffsetInSamples[],
-                                            amf_uint32 channels,
-                                            amf_size countOfComplexNumbers) override;
+
+        virtual AMF_RESULT ComplexDivision(	        const float* const inputBuffers1[],
+                                                    const float* const inputBuffers2[],
+                                                    float *outputBuffers[],
+                                                    amf_uint32 channels,
+                                                    amf_size numOfSamplesToProcess) override;
+
+#ifndef TAN_NO_OPENCL
+        virtual AMF_RESULT ComplexDivision(
+                                                    const cl_mem inputBuffers1[],
+                                                    const amf_size buffers1OffsetInSamples[],
+                                                    const cl_mem inputBuffers2[],
+                                                    const amf_size buffers2OffsetInSamples[],
+                                                    cl_mem outputBuffers[],
+                                                    const amf_size outputBuffersOffsetInSamples[],
+                                                    amf_uint32 channels,
+                                                    amf_size countOfComplexNumbers) override;
+#endif
+        virtual AMF_RESULT ComplexDivision(	        const AMFBuffer * inputBuffers1[],
+                                                    const amf_size buffers1OffsetInSamples[],
+                                                    const AMFBuffer * inputBuffers2[],
+                                                    const amf_size buffers2OffsetInSamples[],
+                                                    AMFBuffer * outputBuffers[],
+                                                    const amf_size outputBuffersOffsetInSamples[],
+                                                    amf_uint32 channels,
+                                                    amf_size countOfComplexNumbers) override;
 
     protected:
         virtual AMF_RESULT ComplexMultiplication(
@@ -98,13 +136,14 @@ namespace amf
             const float inputBuffer2[],
             float outputBuffer[],
             amf_size countOfComplexNumbers);
-		
+
         virtual AMF_RESULT ComplexMultiplyAccumulate(
 			const float inputBuffer1[],
 			const float inputBuffer2[],
 			float accumBuffer[],
             amf_size countOfComplexNumbers);
-        
+
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT ComplexMultiplication(
             const cl_mem inputBuffer1,
             const amf_size buffer1OffsetInSamples,
@@ -113,7 +152,7 @@ namespace amf
             cl_mem outputBuffer,
             const amf_size outputBufferOffsetInSamples,
             amf_size countOfComplexNumbers);
-		
+
         virtual AMF_RESULT ComplexMultiplyAccumulate(
 			const cl_mem inputBuffer1,
 			const amf_size buffer1OffsetInSamples,
@@ -122,12 +161,15 @@ namespace amf
 			cl_mem accumBuffer,
 			const amf_size accumBufferOffsetInSamples,
             amf_size countOfComplexNumbers);
+#endif
 
         virtual AMF_RESULT ComplexDivision(
             const float inputBuffer1[],
             const float inputBuffer2[],
             float outputBuffer[],
             amf_size countOfComplexNumbers);
+
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT ComplexDivision(
             const cl_mem inputBuffer1,
             const amf_size buffer1OffsetInSamples,
@@ -136,57 +178,81 @@ namespace amf
             cl_mem outputBuffer,
             const amf_size outputBufferOffsetInSamples,
             amf_size countOfComplexNumbers);
+#endif
+        virtual AMF_RESULT ComplexDivision(
+            const AMFBuffer * inputBuffer1,
+            const amf_size buffer1OffsetInSamples,
+            const AMFBuffer * inputBuffer2,
+            const amf_size buffer2OffsetInSamples,
+            AMFBuffer * outputBuffer,
+            const amf_size outputBufferOffsetInSamples,
+            amf_size countOfComplexNumbers);
 
     protected:
         TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pDeviceCompute;
 
-	
+#ifndef TAN_NO_OPENCL
         cl_kernel			m_pKernelComplexDiv = nullptr;
         cl_kernel			m_pKernelComplexMul = nullptr;
 		cl_kernel			m_pKernelComplexSum = nullptr;
+#endif
 
-        AMF_MEMORY_TYPE             m_eOutputMemoryType;
+        AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
         AMFCriticalSection          m_sect;
 
-        amf_uint32 m_gpuMultiplicationRunNum;
-        amf_uint32 m_gpuDivisionRunNum;
+        amf_uint32 m_gpuMultiplicationRunNum = 0;
+        amf_uint32 m_gpuDivisionRunNum = 0;
 
+#ifndef TAN_NO_OPENCL
 		// multiply accumulate internal buffer
-		cl_mem	m_pInternalSwapBuffer1_MulAccu;
-		cl_mem	m_pInternalSwapBuffer2_MulAccu;
-		cl_mem	m_pInternalBufferIn1_MulAccu;
-		cl_mem	m_pInternalBufferIn2_MulAccu;
-		amf_size m_iInternalSwapBuffer1Size_MulAccu;
-		amf_size m_iInternalSwapBuffer2Size_MulAccu;
-       	amf_size m_iInternalBufferIn1Size_MulAccu;
-		amf_size m_iInternalBufferIn2Size_MulAccu;     
-		cl_mem	m_pInternalBufferOut_MulAccu;
-		amf_size m_iInternalBufferOutSize_MulAccu;
+		cl_mem	m_pInternalSwapBuffer1_MulAccu = nullptr;
+		cl_mem	m_pInternalSwapBuffer2_MulAccu = nullptr;
+		cl_mem	m_pInternalBufferIn1_MulAccu = nullptr;
+		cl_mem	m_pInternalBufferIn2_MulAccu = nullptr;
+#endif
 
+		amf_size m_iInternalSwapBuffer1Size_MulAccu = 0;
+		amf_size m_iInternalSwapBuffer2Size_MulAccu = 0;
+       	amf_size m_iInternalBufferIn1Size_MulAccu = 0;
+		amf_size m_iInternalBufferIn2Size_MulAccu = 0;
+
+#ifndef TAN_NO_OPENCL
+		cl_mem	m_pInternalBufferOut_MulAccu = nullptr;
+#endif
+
+		amf_size m_iInternalBufferOutSize_MulAccu = 0;
+
+#ifndef TAN_NO_OPENCL
 		// Division internal buffer
-		cl_mem	m_pInternalBufferIn1_Division;
-		cl_mem	m_pInternalBufferIn2_Division;
-		cl_mem	m_pInternalBufferOut_Division;
-		amf_size m_iInternalBufferIn1Size_Division;
-		amf_size m_iInternalBufferIn2Size_Division;
-		amf_size m_iInternalBufferOutSize_Division;
+		cl_mem	m_pInternalBufferIn1_Division = nullptr;
+		cl_mem	m_pInternalBufferIn2_Division = nullptr;
+		cl_mem	m_pInternalBufferOut_Division = nullptr;
+#endif
+		amf_size m_iInternalBufferIn1Size_Division = 0;
+		amf_size m_iInternalBufferIn2Size_Division = 0;
+		amf_size m_iInternalBufferOutSize_Division = 0;
 
+#ifndef TAN_NO_OPENCL
 		// Multiplication internal buffer
-		cl_mem	m_pInternalBufferIn1_Multiply;
-		cl_mem	m_pInternalBufferIn2_Multiply;
-		cl_mem	m_pInternalBufferOut_Multiply;
-		amf_size m_iInternalBufferIn1Size_Multiply;
-		amf_size m_iInternalBufferIn2Size_Multiply;
-		amf_size m_iInternalBufferOutSize_Multiply;
+		cl_mem	m_pInternalBufferIn1_Multiply = nullptr;
+		cl_mem	m_pInternalBufferIn2_Multiply = nullptr;
+		cl_mem	m_pInternalBufferOut_Multiply = nullptr;
+#endif
+		amf_size m_iInternalBufferIn1Size_Multiply = 0;
+		amf_size m_iInternalBufferIn2Size_Multiply = 0;
+		amf_size m_iInternalBufferOutSize_Multiply = 0;
 
     private:
         virtual AMF_RESULT  AMF_STD_CALL InitCpu();
         virtual AMF_RESULT  AMF_STD_CALL InitGpu();
+
+#ifndef TAN_NO_OPENCL
 		AMF_RESULT AdjustInternalBufferSize(
-			cl_mem* _buffer, 
-			amf_size* size, 
+			cl_mem* _buffer,
+			amf_size* size,
 			const amf_size requiredSize
-		);
+		    );
+#endif
     };
 } //amf

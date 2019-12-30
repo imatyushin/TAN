@@ -217,6 +217,7 @@ AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(float* ppBufferInput[],
     return AMF_OK;
 }
 
+#ifndef TAN_NO_OPENCL
 AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
     cl_mem ppBufferInput[],
     cl_mem ppBufferOutput[],
@@ -225,7 +226,17 @@ AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
     amf_size *pNumOfSamplesProcessed // Can be NULL.
     )
 {
-
     return AMF_NOT_IMPLEMENTED;
 }
+#endif
 
+AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
+    const AMFBuffer * ppBufferInput[],
+    AMFBuffer * ppBufferOutput[],
+    amf_size numOfSamplesToProcess,
+    const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
+    amf_size *pNumOfSamplesProcessed // Can be NULL.
+    )
+{
+    return AMF_NOT_IMPLEMENTED;
+}

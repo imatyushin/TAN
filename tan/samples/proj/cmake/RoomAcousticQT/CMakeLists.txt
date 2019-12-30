@@ -59,7 +59,7 @@ if(PortAudio_DIR)
     )
 
   add_subdirectory(${PortAudio_DIR} cmake-portaudio-bin EXCLUDE_FROM_ALL)
-  
+
   ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
   include_directories(${PortAudio_DIR}/include)
 endif()
@@ -99,7 +99,9 @@ set(
   )
 
 if(TAN_NO_OPENCL)
-  list(APPEND SOURCE_EXE ../../../src/common/AMFAudio3D.h)
+  list(APPEND SOURCE_EXE ../../../src/common/Audio3DAMF.cpp)
+else()
+  list(APPEND SOURCE_EXE ../../../src/common/Audio3DOpenCL.cpp)
 endif()
 
 if(WIN32)
@@ -134,7 +136,9 @@ set(
 )
 
 if(TAN_NO_OPENCL)
-  list(APPEND HEADER_EXE ../../../src/common/AMFAudio3D.h)
+  list(APPEND HEADER_EXE ../../../src/common/Audio3DAMF.h)
+else()
+  list(APPEND HEADER_EXE ../../../src/common/Audio3DOpenCL.h)
 endif()
 
 if(WIN32)

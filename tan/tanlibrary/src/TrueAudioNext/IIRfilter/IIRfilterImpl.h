@@ -66,6 +66,7 @@ namespace amf
             amf_size *pNumOfSamplesProcessed // Can be NULL.
             );
 
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT  AMF_STD_CALL    Process(
             cl_mem ppBufferInput[],
             cl_mem ppBufferOutput[],
@@ -73,7 +74,15 @@ namespace amf
             const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
             amf_size *pNumOfSamplesProcessed // Can be NULL.
             );
+#endif
 
+        virtual AMF_RESULT  AMF_STD_CALL    Process(
+            const AMFBuffer * ppBufferInput[],
+            AMFBuffer * ppBufferOutput[],
+            amf_size numOfSamplesToProcess,
+            const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
+            amf_size *pNumOfSamplesProcessed // Can be NULL.
+            );
  
     protected:
         TANContextPtr               m_pContextTAN;

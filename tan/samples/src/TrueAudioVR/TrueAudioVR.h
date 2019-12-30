@@ -28,6 +28,7 @@
 using namespace amf;
 
 #include "public/include/core/Result.h"
+#include "public/include/core/Compute.h"
 
 #include <CL/cl.h>
 #include <cmath>
@@ -197,6 +198,7 @@ public:
 // TAN objects creation functions.
 extern "C"
 {
+#ifndef TAN_NO_OPENCL
     TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR(
         AmdTrueAudioVR **taVR,
         TANContextPtr pContext,
@@ -205,6 +207,16 @@ extern "C"
         float samplesPerSecond,
         int convolutionLength
         );
+#else
+    TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR(
+        AmdTrueAudioVR **taVR,
+        TANContextPtr pContext,
+        TANFFTPtr pFft,
+        AMFCompute * cmdQueue,
+        float samplesPerSecond,
+        int convolutionLength
+        );
+#endif
 
     TAN_SDK_LINK float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections);
 }

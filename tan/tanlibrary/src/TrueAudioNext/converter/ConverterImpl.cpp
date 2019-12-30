@@ -558,9 +558,9 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
 #endif
     return AMF_FAIL;
 }
-//-------------------------------------------------------------------------------------------------
-#ifndef TAN_NO_OPENCL
 
+#ifndef TAN_NO_OPENCL
+//-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     cl_mem inputBuffer,
 	amf_size inputStep,
@@ -633,39 +633,39 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
 }
 #endif
 
-AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
+AMF_RESULT  AMF_STD_CALL TANConverterImpl::Convert(
     const AMFBuffer * inputBuffer,
     amf_size inputStep,
     amf_size inputOffset,
-    TAN_SAMPLE_TYPE inputType, 
-            
+    TAN_SAMPLE_TYPE inputType,
+
     AMFBuffer * outputBuffer,
     amf_size outputStep,
     amf_size outputOffset,
-    TAN_SAMPLE_TYPE outputType,                                                
+    TAN_SAMPLE_TYPE outputType,
 
     amf_size numOfSamplesToProcess,
-    float conversionGain, 
+    float conversionGain,
     bool* outputClipped)
 {
     return AMF_FAIL;
 }
 
-AMF_RESULT  AMF_STD_CALL    Convert(
+AMF_RESULT  AMF_STD_CALL TANConverterImpl::Convert(
     const AMFBuffer ** inputBuffers,
     amf_size inputStep,
     amf_size* inputOffsets,
     TAN_SAMPLE_TYPE inputType,
-    
+
     AMFBuffer ** outputBuffers,
     amf_size outputStep,
     amf_size* outputOffsets,
     TAN_SAMPLE_TYPE outputType,
-    
+
     amf_size numOfSamplesToProcess,
-    float conversionGain,                                                   
-    
-    int count, 
+    float conversionGain,
+
+    int count,
     bool* outputClipped)
 {
     return AMF_FAIL;
