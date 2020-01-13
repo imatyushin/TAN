@@ -38,7 +38,10 @@ endif()
 project(TAN DESCRIPTION "TAN")
 
 get_filename_component(ABSOLUTE_PATH "${PROJECT_SOURCE_DIR}/../../../" ABSOLUTE)
+
 set(TAN_ROOT ${ABSOLUTE_PATH})
+set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include)
+
 include(${TAN_ROOT}/utils/cmake/test_TAN.cmake)
 message("TAN_ROOT: ${TAN_ROOT}")
 
@@ -50,24 +53,15 @@ if(NOT OpenCL_FOUND)
   return()
 endif()
 
-#switch between CL or AMF TAN variants
-if(TAN_AMF AND TAN_OPENCL)
-  message(SEND_ERROR "Error: TAN/AMF anf TAN/CL could not be used simultaneously!")
-  return()
-elseif(TAN_AMF)
-  message("TAN/AMF will be used")
-  #set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include/amf)
-  set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include)
-  ADD_DEFINITIONS(-DTAN_AMF)
-else()
-  message("TAN/CL will be used")
-  #set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include/opencl)
-  set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include)
-  ADD_DEFINITIONS(-DTAN_CL)
-endif()
-
 if(TAN_NO_OPENCL)
   ADD_DEFINITIONS(-DTAN_NO_OPENCL)
+endif()
+
+if(AMF_CORE_STATIC)
+  message("static AMF build will be used")
+  ADD_DEFINITIONS(-DAMF_CORE_STATIC)
+else()
+  message("shared AMF build will be used")
 endif()
 
 #choose amf library to use

@@ -150,9 +150,9 @@ int Audio3D::finit(){
     // release smart pointers:
     m_spContext1 = NULL;
     m_spContext2 = NULL;
-    m_spConverter = NULL;
-    m_spConvolution = NULL;
-    m_spFft = NULL;
+    mConverter = NULL;
+    mConvolution = NULL;
+    mFft = NULL;
 
     // destroy dumb pointer:
     if (m_pTAVR != NULL) {
@@ -182,9 +182,9 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     finit();
 
     /* # fft buffer length must be power of 2: */
-    m_fftLen = 1;
-    while ((int)m_fftLen < fftLen && (m_fftLen << 1) <= MAXRESPONSELENGTH){
-        m_fftLen <<= 1;
+    mFFTLength = 1;
+    while ((int)mFFTLength < fftLen && (mFFTLength << 1) <= MAXRESPONSELENGTH){
+        mFFTLength <<= 1;
     }
 
     m_bufSize = bufSize*4;
@@ -197,17 +197,17 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
 
 	// allocate responses in one block
 	// to optimize transfer to GPU
-	responseBuffer = new float[m_fftLen*nFiles*2];
+	responseBuffer = new float[mFFTLength*nFiles*2];
     for (int idx = 0; idx < nFiles * 2; idx++){
-		responses[idx] = responseBuffer + idx*m_fftLen;
-        inputFloatBufs[idx] = new float[m_fftLen];
-        outputFloatBufs[idx] = new float[m_fftLen];
+		responses[idx] = responseBuffer + idx*mFFTLength;
+        inputFloatBufs[idx] = new float[mFFTLength];
+        outputFloatBufs[idx] = new float[mFFTLength];
     }
 
     for (int i = 0; i < nFiles * 2; i++){
-        memset(responses[i], 0, sizeof(float)*m_fftLen);
-        memset(inputFloatBufs[i], 0, sizeof(float)*m_fftLen);
-        memset(outputFloatBufs[i], 0, sizeof(float)*m_fftLen);
+        memset(responses[i], 0, sizeof(float)*mFFTLength);
+        memset(inputFloatBufs[i], 0, sizeof(float)*mFFTLength);
+        memset(outputFloatBufs[i], 0, sizeof(float)*mFFTLength);
     }
 
 
@@ -294,20 +294,20 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
         RETURN_IF_FAILED(m_spContext2->InitOpenCL(cmdQueue2,cmdQueue2));
     }
 
-    RETURN_IF_FAILED(TANCreateConverter(m_spContext1, &m_spConverter));
-    RETURN_IF_FAILED(m_spConverter->Init());
+    RETURN_IF_FAILED(TANCreateConverter(m_spContext1, &mConverter));
+    RETURN_IF_FAILED(mConverter->Init());
 
-    RETURN_IF_FAILED(TANCreateConvolution(m_spContext1, &m_spConvolution));
+    RETURN_IF_FAILED(TANCreateConvolution(m_spContext1, &mConvolution));
     if (!useGPU_Conv)
     {
-        RETURN_IF_FAILED(m_spConvolution->InitCpu(TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
-            m_fftLen, bufSize,
+        RETURN_IF_FAILED(mConvolution->InitCpu(TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
+            mFFTLength, bufSize,
             nFiles * 2));
     }
     else {
-        //RETURN_IF_FAILED(m_spConvolution->InitGpu(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,//TAN_CONVOLUTION_METHOD_FHT_UINFORM_HEAD_TAIL
-        RETURN_IF_FAILED(m_spConvolution->InitGpu(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
-            m_fftLen, bufSize,
+        //RETURN_IF_FAILED(mConvolution->InitGpu(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,//TAN_CONVOLUTION_METHOD_FHT_UINFORM_HEAD_TAIL
+        RETURN_IF_FAILED(mConvolution->InitGpu(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
+            mFFTLength, bufSize,
             nFiles * 2));
     }
 
@@ -316,12 +316,12 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
         m_pTAVR = NULL;
     }
 
-    RETURN_IF_FAILED(TANCreateFFT(m_spContext2, &m_spFft));
-    RETURN_IF_FAILED(m_spFft->Init());
+    RETURN_IF_FAILED(TANCreateFFT(m_spContext2, &mFft));
+    RETURN_IF_FAILED(mFft->Init());
 
 
-    //RETURN_IF_FAILED(TANCreateTrueAudioVR(m_spContext2, m_spFft, 48000, fftLen, &m_pTAVR));
-	m_pTAVR = new AmdTrueAudioVR(m_spContext2, m_spFft, cmdQueue2, 48000, fftLen);
+    //RETURN_IF_FAILED(TANCreateTrueAudioVR(m_spContext2, mFft, 48000, fftLen, &m_pTAVR));
+	m_pTAVR = new AmdTrueAudioVR(m_spContext2, mFft, cmdQueue2, 48000, fftLen);
 	//AmdTrueAudioVR(TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue,
 	//	float samplesPerSecond, int convolutionLength);
 
@@ -336,11 +336,11 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 
     for (int idx = 0; idx < nFiles; idx++){
-        m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, responses[idx*2], responses[idx*2+1]);
+        m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, responses[idx*2], responses[idx*2+1]);
     }
 
 
-    RETURN_IF_FAILED(m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, 0));
+    RETURN_IF_FAILED(mConvolution->UpdateResponseTD(responses, mFFTLength, nullptr, 0));
 
     running = false;
 
@@ -390,7 +390,7 @@ int Audio3D::updateSourcePosition(int srcNumber, float x, float y, float z)
     sources[srcNumber].speakerZ = z;// +room.length / 2.0f;
 
     //no head motion, only one source moved, so just regenerate it's response:
-    //m_pTAVR->generateRoomResponse(room, sources[srcNumber], ears, FILTER_SAMPLE_RATE, m_fftLen, responses[srcNumber * 2], responses[srcNumber * 2 + 1]);
+    //m_pTAVR->generateRoomResponse(room, sources[srcNumber], ears, FILTER_SAMPLE_RATE, mFFTLength, responses[srcNumber * 2], responses[srcNumber * 2 + 1]);
 
     // ToDo mask unchanged responses:
 
@@ -455,12 +455,12 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCount)
 
     for (int idx = 0; idx < m_nFiles; idx++) {
         for (int chan = 0; chan < 2; chan++){
-            RETURN_IF_FAILED(m_spConverter->Convert(pChan[idx] + chan, 2, sampleCount,
+            RETURN_IF_FAILED(mConverter->Convert(pChan[idx] + chan, 2, sampleCount,
                 inputFloatBufs[idx*2 + chan], 1, 1.f));
         }
     }
 
-    RETURN_IF_FAILED(m_spConvolution->Process(inputFloatBufs, outputFloatBufs, sampleCount,
+    RETURN_IF_FAILED(mConvolution->Process(inputFloatBufs, outputFloatBufs, sampleCount,
                                              nullptr, nullptr));
 
         // ToDo:  use limiter...
@@ -472,10 +472,10 @@ int Audio3D::process(short *pOut, short *pChan[MAX_SOURCES], int sampleCount)
         }
     }
 
-    AMF_RESULT ret = m_spConverter->Convert(outputFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
+    AMF_RESULT ret = mConverter->Convert(outputFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
     RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-    ret = m_spConverter->Convert(outputFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
+    ret = mConverter->Convert(outputFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
     RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
     return 0;
@@ -612,15 +612,15 @@ int Audio3D::updateProc(){
         }
 		// ToDo skip unchanged responses:
         for (int idx = 0; idx < m_nFiles; idx++){
-                memset(responses[idx*2], 0, sizeof(float)*m_fftLen);
-                memset(responses[idx*2 + 1], 0, sizeof(float)*m_fftLen);
-                m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, m_fftLen, responses[idx*2], responses[idx*2 + 1]);
+                memset(responses[idx*2], 0, sizeof(float)*mFFTLength);
+                memset(responses[idx*2 + 1], 0, sizeof(float)*mFFTLength);
+                m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, responses[idx*2], responses[idx*2 + 1]);
         }
 
         AMF_RESULT ret = AMF_OK;
         do {
 			// ToDo mask unchanged responses:
-            ret = m_spConvolution->UpdateResponseTD(responses, m_fftLen, nullptr, 0);
+            ret = mConvolution->UpdateResponseTD(responses, mFFTLength, nullptr, 0);
         } while (ret == AMF_INPUT_FULL && running && !stop);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_INPUT_FULL);
 

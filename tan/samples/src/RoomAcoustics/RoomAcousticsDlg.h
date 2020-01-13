@@ -75,7 +75,7 @@ protected:
 protected:
 	//AmdTrueAudio *m_pTA;
 	AmdTrueAudioVR *m_pTAVR;
-    TANConverterPtr m_spConverter;
+    TANConverterPtr mConverter;
 
 public:
     void LoadParameters(char * xmlFileName);

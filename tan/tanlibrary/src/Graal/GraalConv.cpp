@@ -23,17 +23,19 @@
 
 #include "GraalConv.hpp"
 #include "amdFHT.h"
+#include "../common/OCLHelper.h"
 #include "GraalCLUtil/GraalCLUtil.hpp"
 
-//#include "OclKernels/GraalFHT.cl.h"
 #include "OclKernels/CLKernel_GraalFHT.h"
 
 #if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
 #endif
+
 #include "public/common/Thread.h"
-#include "public/common/AMFFactory.h"           //AMF
-#include "../common/OCLHelper.h"
+#include "public/common/TraceAdapter.h"
+#include "public/common/AMFFactory.h"
+
 #include <algorithm>
 
 #include <CL/cl_ext.h>
@@ -47,16 +49,6 @@
 //to allow std::min usage
 #ifdef min
 #undef min
-#endif
-
-#ifndef AMF_RETURN_IF_FALSE
-#define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
-#endif
-#ifndef AMF_RETURN_IF_FAILED
-#define AMF_RETURN_IF_FAILED(exp, ...)
-#endif
-#ifndef AMF_ASSERT_OK
-#define AMF_ASSERT_OK(exp, ... /*optional format, args*/)
 #endif
 
 namespace graal
@@ -167,9 +159,9 @@ int CGraalConv::initializeConv(
     amf::AMFComputePtr &pConvolution,
     amf::AMFComputePtr &pUpdate,
 #endif
-    int _n_max_channels, 
-    int _max_conv_sz, 
-    int _max_proc_buffer_sz, 
+    int _n_max_channels,
+    int _max_conv_sz,
+    int _max_proc_buffer_sz,
     int _n_sets,
     int _algorithm
 #ifndef TAN_SDK_EXPORTS
@@ -2586,7 +2578,7 @@ AMF_RESULT CGraalConv::zeroMemory(CABuf<float> *pBuf, amf_uint offset, amf_uint 
 
 int CGraalConv::setupCL
 (
-    amf::AMFComputePtr  pComputeConvolution, 
+    amf::AMFComputePtr  pComputeConvolution,
     amf::AMFComputePtr  pComputeUpdate
 
 #ifndef TAN_SDK_EXPORTS
@@ -2721,15 +2713,15 @@ int CGraalConv::setupCL
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
     selectResetOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    
+
     goit = GetOclKernel(
-        resetKernel_, 
-        pComputeConvolution, 
+        resetKernel_,
+        pComputeConvolution,
         graalQ_,
         kernel_file,
-        kernel_src, 
-        kernel_src_size, 
-        kernel_name, 
+        kernel_src,
+        kernel_src_size,
+        kernel_name,
         comp_options
         );
 
@@ -2856,7 +2848,7 @@ int CGraalConv::setupCL
     }
 
     selectDirectFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    
+
     goit = GetOclKernel(
         directTransformKernel_,
         pComputeConvolution,
@@ -2873,7 +2865,7 @@ int CGraalConv::setupCL
     std::vector<std::string> kernel_names;
     selectFHT_CMADOptions(kernel_file, kernel_src, kernel_src_size, kernel_names, comp_options);
     CMADKernels_.resize(kernel_names.size());
-    
+
     for(int i = 0; i < CMADKernels_.size(); i++)
     {
         goit = GetOclKernel(
@@ -2890,7 +2882,7 @@ int CGraalConv::setupCL
     }
 
     selectInverseFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    
+
     goit = GetOclKernel(
         inverseTransformKernel_,
         pComputeConvolution,
@@ -2918,7 +2910,7 @@ int CGraalConv::setupCL
 
     clFinish(m_pContextTAN->GetOpenCLConvQueue());
     clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
-    
+
     return ret;
 }
 

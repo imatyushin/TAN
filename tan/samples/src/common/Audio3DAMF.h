@@ -26,6 +26,29 @@
 class Audio3DAMF:
     public IAudio3D
 {
+protected:
+    AMFContextPtr               mContext12;
+    AMFComputePtr               mCompute1;
+    AMFComputePtr               mCompute2;
+
+    AMFContextPtr               mContext3;
+    AMFComputePtr               mCompute3;
+
+    bool                        mUseAMFBuffers = false;
+    AMFBufferPtr                mAMFResponses[MAX_SOURCES * 2];
+
+    AMFBufferPtr                mOutputAMFBufers[MAX_SOURCES * 2] = {nullptr};
+	AMFBufferPtr                mOutputMainAMFBuffer = nullptr;
+	AMFBufferPtr                mOutputMixAMFBuffer[2] = {nullptr};
+	AMFBufferPtr                mOutputShortBuffer = nullptr;
+
+    int Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes);
+    int ProcessProc();
+    int UpdateProc();
+
+    static unsigned processThreadProc(void *ptr);
+    static unsigned updateThreadProc(void *ptr);
+
 public:
     Audio3DAMF();
     Audio3DAMF(Audio3DAMF const &) = delete;
@@ -82,4 +105,34 @@ public:
 
 	// Stop audio engine:
     void Stop() override;
+
+public:
+    //todo: move to Init with help of struct
+    // Set transform to translate game coordinates to room audio coordinates:
+	virtual int setWorldToRoomCoordTransform(
+        float translationX,
+        float translationY,
+        float translationZ,
+        float rotationY,
+        float headingOffset,
+        bool headingCCW
+        );
+
+	// get's the current playback position in a stream:
+    //int64_t getCurrentPosition(int stream);
+
+	// update the head (listener) position:
+    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);
+
+	//update a source position:
+    virtual int updateSourcePosition(int srcNumber, float x, float y, float z);
+
+	//update a room's dimension:
+	virtual int updateRoomDimension(float _width, float _height, float _length);
+
+	//update a room's damping factor
+	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back);
+
+    // export impulse response for source  + current listener and room:
+    virtual int exportImpulseResponse(int srcNumber, char * fname);
 };

@@ -102,8 +102,13 @@ enum RoomUpdateMode
 class IAudio3D
 {
 public:
+    IAudio3D()
+    {
+    }
     IAudio3D(IAudio3D const &) = delete;
-    virtual ~IAudio3D();
+    virtual ~IAudio3D()
+    {
+    }
 
     virtual bool Init
     (
@@ -146,16 +151,16 @@ public:
         const std::string &     playerType,
 
         RoomUpdateMode          roomUpdateMode = RoomUpdateMode::Blocking
-        );
+        ) = 0;
 
 	// finalize, deallocate resources, close files, etc.
-	virtual void Close();
+	virtual void Close() = 0;
 
 	// start audio engine:
-    virtual bool Run();
+    virtual bool Run() = 0;
 
 	// Stop audio engine:
-    virtual void Stop();
+    virtual void Stop() = 0;
 
     std::string GetLastError() const
     {
@@ -172,33 +177,37 @@ public:
         float rotationY,
         float headingOffset,
         bool headingCCW
-        );
+        ) = 0;
 
 	// get's the current playback position in a stream:
     //int64_t getCurrentPosition(int stream);
 
 	// update the head (listener) position:
-    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);
+    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll) = 0;
 
 	//update a source position:
-    virtual int updateSourcePosition(int srcNumber, float x, float y, float z);
+    virtual int updateSourcePosition(int srcNumber, float x, float y, float z) = 0;
 
 	//update a room's dimension:
-	virtual int updateRoomDimension(float _width, float _height, float _length);
+	virtual int updateRoomDimension(float _width, float _height, float _length) = 0;
 
 	//update a room's damping factor
-	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back);
+	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back) = 0;
 
     // export impulse response for source  + current listener and room:
-    virtual int exportImpulseResponse(int srcNumber, char * fname);
-	
-    virtual AmdTrueAudioVR* getAMDTrueAudioVR();
-	virtual TANConverterPtr getTANConverter();
+    virtual int exportImpulseResponse(int srcNumber, char * fname) = 0;
+
+    virtual AmdTrueAudioVR * getAMDTrueAudioVR()
+    {
+        return m_pTAVR;
+    }
+
+    virtual TANConverterPtr getTANConverter()
+    {
+        return mConverter;
+    }
 
 protected:
-    static unsigned processThreadProc(void *ptr);
-    static unsigned updateThreadProc(void *ptr);
-
     PrioritizedThread mProcessThread;
     PrioritizedThread mUpdateThread;
 
@@ -212,7 +221,7 @@ protected:
     bool mUpdateParams = true;
 
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
-	
+
     std::vector<WavContent>     mWavFiles;
     std::vector<bool>           mTrackHeadPos;
 
@@ -224,12 +233,12 @@ protected:
 	TANContextPtr               mTANConvolutionContext;
 	TANContextPtr               mTANRoomContext;
 
-	TANConvolutionPtr           m_spConvolution;
-	TANConverterPtr             m_spConverter;
-    
-    TANMixerPtr                 m_spMixer;
-	TANFFTPtr                   m_spFft;
-	
+	TANConvolutionPtr           mConvolution;
+	TANConverterPtr             mConverter;
+
+    TANMixerPtr                 mMixer;
+	TANFFTPtr                   mFft;
+
     AmdTrueAudioVR *m_pTAVR = NULL;
 
     RoomDefinition room;
@@ -241,7 +250,7 @@ protected:
 
     AllignedAllocator<float, 32> mResponseBufferStorage;
 	float *mResponseBuffer = nullptr;
-    
+
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     //cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     //bool   mUseClMemBufs = false;
@@ -270,7 +279,7 @@ protected:
 
 	// fft length must be power of 2
 	// 65536/48000 = reverb time of 1.37 seconds
-    int m_fftLen = 65536;  //default fft length
+    int mFFTLength = 65536;  //default fft length
 
 	// buffer length 4096 / 48000 = 85 ms update rate:
 	//int m_bufSize = 4096 * 4; // default buffer length

@@ -122,11 +122,9 @@ protected:
     bool m_useOCLOutputPipeline;
 
     std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
-	
+
     std::vector<WavContent>     mWavFiles;
     std::vector<bool>           mTrackHeadPos;
-
-    //Timer                       mRealtimeTimer;
 
     uint32_t                    mMaxSamplesCount = 0;
     std::vector<int16_t>        mStereoProcessedBuffer;
@@ -134,10 +132,10 @@ protected:
 	TANContextPtr mTANConvolutionContext;
 	TANContextPtr mTANRoomContext;
 
-	TANConvolutionPtr m_spConvolution;
-	TANConverterPtr m_spConverter;
-    TANMixerPtr m_spMixer;
-	TANFFTPtr m_spFft;
+	TANConvolutionPtr mConvolution;
+	TANConverterPtr mConverter;
+    TANMixerPtr mMixer;
+	TANFFTPtr mFft;
 	AmdTrueAudioVR *m_pTAVR = NULL;
 
     RoomDefinition room;
@@ -149,7 +147,7 @@ protected:
 
     AllignedAllocator<float, 32>mResponseBufferStorage;
 	float *mResponseBuffer = nullptr;
-    
+
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     bool   mUseClMemBufs = false;

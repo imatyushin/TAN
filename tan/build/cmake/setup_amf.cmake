@@ -12,7 +12,7 @@ if(NOT AMF_HOME)
   if(AMF_OPEN_DIR)
     message("Open AMF will be used")
     message("Open AMF path: " ${AMF_OPEN_DIR})
-    
+
     get_filename_component(AMF_HOME ${AMF_OPEN_DIR} REALPATH)
     message("AMF_HOME will be set to " ${AMF_HOME})
 

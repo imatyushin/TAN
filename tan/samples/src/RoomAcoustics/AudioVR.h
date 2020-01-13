@@ -70,17 +70,17 @@ private:
     long nSamples[MAX_SOURCES];
 	unsigned char *pBuffers[MAX_SOURCES];
     unsigned char *pProcessed;
-  
+
 	TANContextPtr m_spContext1;
 	TANContextPtr m_spContext2;
-	TANConvolutionPtr m_spConvolution;
-	TANConverterPtr m_spConverter;
-	TANFFTPtr m_spFft;
+	TANConvolutionPtr mConvolution;
+	TANConverterPtr mConverter;
+	TANFFTPtr mFft;
 	AmdTrueAudioVR *m_pTAVR = NULL;
 
 
     RoomDefinition room;
-    MonoSource sources[MAX_SOURCES];  
+    MonoSource sources[MAX_SOURCES];
 	StereoListener ears;
 
 
@@ -93,8 +93,8 @@ private:
     float *inputFloatBufs[MAX_SOURCES*2];
 	float *outputFloatBufs[MAX_SOURCES * 2];
 
-    int m_fftLen = 65536; // 2048;//  8192;
-    int m_bufSize = 2048 * 4;//4096 * 4; 
+    int mFFTLength = 65536; // 2048;//  8192;
+    int m_bufSize = 2048 * 4;//4096 * 4;
     int64_t m_samplePos;
 
 	// World To Room coordinate transform:
@@ -104,12 +104,12 @@ private:
 
 public:
 
-	int init(RoomDefinition room, int nFiles, char **inFiles, int fftLen, int bufSize, 
-		bool useGPU_Conv, int devIdx_Conv, int useRTQ_Conv, int cuRes_Conv, 
+	int init(RoomDefinition room, int nFiles, char **inFiles, int fftLen, int bufSize,
+		bool useGPU_Conv, int devIdx_Conv, int useRTQ_Conv, int cuRes_Conv,
 		bool useGPU_IRGen, int devIdx_IRGen, int useRTQ_IRGen, int cuRes_IRGen);
 
 	//To Do implement this:
-	int setWorldToRoomCoordTransform(float translationX, float translationY, float translationZ, 
+	int setWorldToRoomCoordTransform(float translationX, float translationY, float translationZ,
 									 float rotationY, float headingOffset, bool headingCCW);
 
 	int setSrc1Options(bool useMicSource, bool trackHeadPos);

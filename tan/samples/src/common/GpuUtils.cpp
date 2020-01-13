@@ -28,10 +28,12 @@
 #endif
 #include <CL/cl.h>
 
-#include "public/include/core/Variant.h"        //AMF
-#include "public/include/core/Context.h"        //AMF
-#include "public/include/core/ComputeFactory.h" //AMF
+#include "public/common/TraceAdapter.h"         //AMF
 #include "public/common/AMFFactory.h"           //AMF
+#include "public/include/core/Variant.h"        //AMF
+#include "public/include/core/ComputeFactory.h" //AMF
+
+#define AMF_FACILITY amf::AMF_FACILITY
 
 #ifdef RTQ_ENABLED
 #define AMFQUEPROPERTY L"MaxRealTimeComputeUnits"
@@ -50,14 +52,14 @@
 * @param[in] count		  : length of devNames
 
 * @return INT number of strings written to devNames array. (<= count)
-*         
+*
 *******************************************************************************
 */
 int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
 
     int foundCount = 0;
 
-    
+
     AMF_RESULT res = g_AMFFactory.Init();   // initialize AMF
     if (AMF_OK == res)
     {
@@ -364,7 +366,92 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
     return res;
 }
 
-//bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_device_type clDeviceType);
+AMF_RESULT CreateCommandQueuesVIAamf
+(
+    int                         deviceIndex,
+    amf_int32                   flag1,
+    amf::AMFCompute **          compute1,
+    amf_int32                   flag2,
+    amf::AMFCompute **          compute2,
+    AMF_CONTEXT_DEVICETYPE_ENUM amfDeviceType,
+    amf::AMFContext **          context = nullptr
+)
+{
+    bool AllIsOK = true;
+
+    if(*compute1)
+    {
+        (*compute1)->Release();
+        *compute1 = nullptr;
+    }
+
+    if(*compute2)
+    {
+        (*compute2)->Release();
+        *compute2 = nullptr;
+    }
+
+    AMF_RESULT result = g_AMFFactory.Init();
+	AMF_RETURN_IF_FAILED(result, L"Factory init failed\n");
+
+    // Create default CPU AMF context.
+    amf::AMFContextPtr contextAMF = nullptr;
+    result = g_AMFFactory.GetFactory()->CreateContext(&contextAMF);
+	AMF_RETURN_IF_FAILED(result, L"CreateContext failed\n");
+
+    if(context)
+    {
+        *context = contextAMF;
+        (*context)->Acquire();
+    }
+
+    result = contextAMF->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
+	AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+
+    amf::AMFComputeFactoryPtr computeFactory = nullptr;
+    result = contextAMF->GetOpenCLComputeFactory(&computeFactory);
+	AMF_RETURN_IF_FAILED(result, L"GetOpenCLComputeFactory failed\n");
+
+    amf_int32 deviceCount = computeFactory->GetDeviceCount();
+
+    if (deviceIndex >= deviceCount)
+    {
+	    AMF_RETURN_IF_FAILED(AMF_INVALID_ARG, L"Incorrect deviceIndex\n");
+    }
+
+    amf::AMFComputeDevicePtr computeDevice;
+    result = computeFactory->GetDeviceAt(deviceIndex, &computeDevice);
+	AMF_RETURN_IF_FAILED(result, L"GetDeviceAt failed\n");
+
+    result = contextAMF->InitOpenCLEx(computeDevice);
+    AMF_RETURN_IF_FAILED(result, L"InitOpenCLEx failed\n");
+
+    if(compute1)
+    {
+        amf_int64 param = flag1 & 0x0FFFF;
+        result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
+	    AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+
+
+        amf::AMFComputePtr AMFDevice;
+        result = computeDevice->CreateCompute(nullptr, compute1);
+	    AMF_RETURN_IF_FAILED(result, L"CreateCompute 1 failed\n");
+    }
+
+    if(compute2)
+    {
+        amf_int64 param = flag2 & 0x0FFFF;
+        result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
+	    AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+
+
+        amf::AMFComputePtr AMFDevice;
+        result = computeDevice->CreateCompute(nullptr, compute2);
+	    AMF_RETURN_IF_FAILED(result, L"CreateCompute 2 failed\n");
+    }
+
+    return result;
+}
 
 bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *context, cl_device_type clDeviceType){
 
@@ -401,7 +488,7 @@ bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue
     cl_device_id device = NULL;
     cl_context context = NULL;
     cl_device_partition_property props[] = { CL_DEVICE_PARTITION_BY_COUNTS,
-        Q2CUcount, Q1CUcount, CL_DEVICE_PARTITION_BY_COUNTS_LIST_END, 0 }; // count order seems reversed! 
+        Q2CUcount, Q1CUcount, CL_DEVICE_PARTITION_BY_COUNTS_LIST_END, 0 }; // count order seems reversed!
 
     GetDeviceFromIndex(deviceIndex, &device, &context, CL_DEVICE_TYPE_CPU); // only implemented for CPU
 
@@ -514,6 +601,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
     return AllIsOK;
 }
 
+#ifndef TAN_NO_OPENCL
 bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2)
 {
     bool bResult = false;
@@ -540,37 +628,31 @@ bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pc
         ;
     }
     return bResult;
-
-    return bResult;
 }
+#endif
 
-/*
-int create1QueueOnDevice(cl_command_queue *queue, int devIdx = 0)
+bool CreateGpuCommandQueues
+(
+    int                         deviceIndex,
+    int32_t                     flag1,
+    amf::AMFCompute **          compute1,
+    int32_t                     flag2,
+    amf::AMFCompute **          compute2,
+    amf::AMFContext **          context = nullptr
+)
 {
-    cl_context context;
-    cl_device_id device;
-    getDeviceAndContext(devIdx, &context, &device);
-
-    *queue = createQueue(context, device);
-
-    clReleaseContext(context);
-    clReleaseDevice(device);
-
-    return 0;
+    return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_GPU, context);
 }
-int create2QueuesOnDevice(cl_command_queue *queue1, cl_command_queue *queue2, int devIdx = 0)
+
+bool CreateCpuCommandQueues
+(
+    int                         deviceIndex,
+    int32_t                     flag1,
+    amf::AMFCompute **          compute1,
+    int32_t                     flag2,
+    amf::AMFCompute **          compute2,
+    amf::AMFContext **          context = nullptr
+)
 {
-    cl_context context;
-    cl_device_id device;
-    getDeviceAndContext(devIdx, &context, &device);
-
-    *queue1 = createQueue(context, device);
-    *queue2 = createQueue(context, device);
-
-    clReleaseContext(context);
-    clReleaseDevice(device);
-
-
-    return 0;
+    return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_CPU, context);
 }
-*/

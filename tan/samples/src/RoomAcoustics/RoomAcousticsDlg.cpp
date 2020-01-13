@@ -82,7 +82,7 @@ CRoomAcousticsDlg::CRoomAcousticsDlg(
     ) :
     CDialog(CRoomAcousticsDlg::IDD, pParent),
     m_pTAVR(pTAVR),
-    m_spConverter(pConverter),
+    mConverter(pConverter),
     src1EnableMic(0),
     src1TrackHeadPos(0),
     src1MuteDirectPath(0),
@@ -111,7 +111,7 @@ CRoomAcousticsDlg::CRoomAcousticsDlg(
     nFiles(1)
 {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
- 
+
 
 	for (int i = 0; i < MAX_SOURCES; i++){
 		srcX[i] = srcY[i] = srcZ[i] = 0.0;
@@ -134,7 +134,7 @@ CRoomAcousticsDlg::CRoomAcousticsDlg(
 }
 
 CRoomAcousticsDlg::~CRoomAcousticsDlg()
-{		
+{
     for (int i = 0; i < MAX_DEVICES; i++){
         if (deviceGPUNames[i])
         {
@@ -260,7 +260,7 @@ void CRoomAcousticsDlg::updateAllFields()
         pWnd = GetDlgItem(IDC_EDIT_SRC_Z);
         pWnd->EnableWindow(TRUE);
     }
-    
+
 	sprintf_s(buffer, fmt, srcX[sourceIdx]);
     SetDlgItemText(IDC_EDIT_SRC_X, buffer);
 	sprintf_s(buffer, fmt, srcY[sourceIdx]);
@@ -590,7 +590,7 @@ void CRoomAcousticsDlg::updateRoomInfo()
     float t60 = estReverb(room, 60, &nR60);
     float t120 = estReverb(room, 120, &nR120);
 
-    sprintf_s(buffer, 
+    sprintf_s(buffer,
         "Reverb time:\n\n T60 = %7.3f s,\n %d reflections.\n\n T120 = %7.3f s,\n %d reflections. ", t60,nR60,t120,nR120 );
     SetDlgItemText(IDC_ROOM_INFO, buffer);
 
@@ -1071,7 +1071,7 @@ bool CRoomAcousticsDlg::findElement(char **start, char **end, char *name)
 */
 
 bool CRoomAcousticsDlg::parseElement(char *start, char *end, struct element *elem)
-{ 
+{
     bool ok = false;
     start += strlen(elem->name) + 1;
 
@@ -1736,7 +1736,7 @@ void CRoomAcousticsDlg::OnBnClickedSave()
 
     dlgFile.DoModal();
     fileName.ReleaseBuffer();
-    
+
     fopen_s(&fpSaveFile, p, "w+");
 
     if (fpSaveFile == NULL){
@@ -1765,7 +1765,7 @@ void CRoomAcousticsDlg::OnBnClickedSave()
 		}
 
         fputs(" <Listener>\n", fpSaveFile);
-            fprintf(fpSaveFile, "  <positionL1 X=\"%f\" Y=\"%f\" Z=\"%f\" yaw=\"%f\" pitch=\"%f\" roll=\"%f\" />\n", 
+            fprintf(fpSaveFile, "  <positionL1 X=\"%f\" Y=\"%f\" Z=\"%f\" yaw=\"%f\" pitch=\"%f\" roll=\"%f\" />\n",
                 headX, headY, headZ, yaw, pitch, roll);
             fprintf(fpSaveFile, "  <earSpacing S=\"%f\"/>\n", earSpacing);
             fprintf(fpSaveFile, "  <autoSpin AS=\"%d\"/>\n", autoSpinHead);
@@ -1774,7 +1774,7 @@ void CRoomAcousticsDlg::OnBnClickedSave()
         fputs(" </Listener>\n", fpSaveFile);
         fputs(" <Room>\n", fpSaveFile);
         fprintf(fpSaveFile, "  <dimensions width=\"%f\" height=\"%f\" length=\"%f\" />\n", roomWidth, roomHeight, roomLength);
-        fprintf(fpSaveFile, "  <damping left=\"%f\" right=\"%f\" front=\"%f\" back=\"%f\" top=\"%f\" bottom=\"%f\"/>\n", 
+        fprintf(fpSaveFile, "  <damping left=\"%f\" right=\"%f\" front=\"%f\" back=\"%f\" top=\"%f\" bottom=\"%f\"/>\n",
             roomDampLeft, roomDampRight, roomDampFront, roomDampBack, roomDampTop, roomDampBottom);
 		fprintf(fpSaveFile, " <rendering nSources=\"%d\" withGPU=\"%d\" withRTQ=\"%d\" withMPr=\"%d\" withCus=\"%d\"/>\n", nFiles,
             (exModeRoom == OCL_GPU), (exModeRoom == OCL_GPU_RTQ), (exModeRoom == OCL_GPU_MPQ), cuCountRoom);
@@ -1819,7 +1819,7 @@ void CRoomAcousticsDlg::OnBnClickedExport()
     room.mRight.damp = DBTODAMP(roomDampRight);
     room.mTop.damp = DBTODAMP(roomDampTop);
     room.mBottom.damp = DBTODAMP(roomDampBottom);
-     
+
     MonoSource src;
     src.speakerX = srcX[0];
     src.speakerY = srcY[0];
@@ -1843,10 +1843,10 @@ void CRoomAcousticsDlg::OnBnClickedExport()
 
     m_pTAVR->generateRoomResponse(room, src, ears, 48000, convolutionLength, leftResponse, rightResponse);
 
-    (void)m_spConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
+    (void)mConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
     //m_pTA->NormFloatsToShorts(leftResponse, sSamples, convolutionLength, 2, 1.0);
 
-    (void)m_spConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
+    (void)mConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
     //m_pTA->NormFloatsToShorts(rightResponse, sSamples + 1, convolutionLength, 2, 1.0);
 
     WriteWaveFileS(pfName, 48000, 2, 16, convolutionLength, sSamples);
@@ -2049,7 +2049,7 @@ void CRoomAcousticsDlg::OnLbnSelchangeListDevicesRoom()
 	// TODO: Add your control notification handler code here
 	CWnd *pWnd;
 	pWnd = GetDlgItem(IDC_LIST_DEVICES_ROOM);
-	
+
 	roomDevIdx = (int) pWnd->SendMessage(LB_GETCURSEL, 0, (LPARAM)0);
 	printf("roomDevIdx=%d\n", roomDevIdx);
 
