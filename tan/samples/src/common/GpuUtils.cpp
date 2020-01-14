@@ -59,7 +59,6 @@ int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
 
     int foundCount = 0;
 
-
     AMF_RESULT res = g_AMFFactory.Init();   // initialize AMF
     if (AMF_OK == res)
     {

@@ -116,7 +116,7 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
         fprintf(stdout, "clGetPlatformIDs returned error: %d\n", status);
         return 0;
     }
-    if (0 < numPlatforms)
+    if (numPlatforms > 0)
     {
         platforms = new cl_platform_id[numPlatforms];
         status = clGetPlatformIDs(numPlatforms, platforms, NULL);
@@ -146,7 +146,6 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
                 NULL
                 );
             printf("OpenCL version for device %s: %s", vendor, version);
-
 
             if (status != CL_SUCCESS) {
                 fprintf(stdout, "clGetPlatformInfo returned error: %d\n", status);
