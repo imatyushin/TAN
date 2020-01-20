@@ -375,8 +375,11 @@ bool Audio3DAMF::Init
                 flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_IRGen;
             }
     #endif // RTQ_ENABLED
-            //CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
-            CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
+            //CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
+            amf::AMFCompute *compute1(nullptr), *compute2(nullptr);
+            CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &compute1, flagsQ2, &compute2, &mContext12);
+            mCompute1 = compute1;
+            mCompute2 = compute2;
 
             //CL room on GPU
             if(useCLRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
@@ -428,18 +431,17 @@ bool Audio3DAMF::Init
         }
     }
 
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext), L"TANCreateContext mTANConvolutionContext failed");
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext), L"TANCreateContext mTANRoomContext failed");
-
     //convolution over OpenCL
     if(useCLConvolution)
     {
+        AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext), L"TANCreateContext mTANConvolutionContext failed");
         AMF_RETURN_IF_FAILED(mTANConvolutionContext->InitAMF(mCompute1, mCompute2), L"mTANConvolutionContext->InitAMF failed");
     }
 
     //room processing over OpenCL
     if(useCLRoom)
     {
+        AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext), L"TANCreateContext mTANRoomContext failed");
         AMF_RETURN_IF_FAILED(mTANRoomContext->InitAMF(mCompute3, mCompute3), L"mTANRoomContext->InitAMF failed");
     }
 

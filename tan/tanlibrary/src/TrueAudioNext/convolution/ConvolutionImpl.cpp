@@ -180,7 +180,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
 #ifndef TAN_NO_OPENCL
         m_pContextTAN->GetOpenCLContext() != nullptr
 #else
-        m_pContextTAN->GetContext() != nullptr
+        m_pContextTAN->GetAMFContext() != nullptr
 #endif
         ,
         AMF_WRONG_STATE,
@@ -217,7 +217,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_pKernelCrossfade), L"Failed to release kernel");
 	}
 #else
-    if(m_pContextTAN->GetContext() != nullptr)
+    if(m_pContextTAN->GetAMFContext() != nullptr)
 	{
 		AMF_RETURN_IF_CL_FAILED(AMF_FAIL, L"Failed to release kernel");
 	}
@@ -869,14 +869,33 @@ AMF_RESULT  TANConvolutionImpl::Init(
     bool doProcessingOnGpu
 )
 {
-    return AMF_FAIL;
-    /*
-    if ((doProcessingOnGpu && !m_pContextTAN->GetOpenCLContext()) ||
-        (!doProcessingOnGpu && m_pContextTAN->GetOpenCLContext()))
+    //todo: investigate (block?) usage of CL and AMF contexts simultaneously
+#ifndef TAN_NO_OPENCL
+    if
+    (
+        (doProcessingOnGpu && !m_pContextTAN->GetOpenCLContext())
+        ||
+        (!doProcessingOnGpu && m_pContextTAN->GetOpenCLContext())
+    )
     {
         // Attempting to do processing in a state not initialized with the context
         return AMF_WRONG_STATE;
     }
+#else
+    if
+    (
+        //todo: investigate usage of CL and AMF context simultaneously
+        (doProcessingOnGpu && !m_pContextTAN->GetAMFContext())
+        //||
+        //(!doProcessingOnGpu && m_pContextTAN->GetAMFContext())
+    )
+    {
+        //todo: invesrigate why incorrect behaviour
+
+        // Attempting to do processing in a state not initialized with the context
+        return AMF_WRONG_STATE;
+    }
+#endif
 
     AMFLock lock(&m_sect);
 
@@ -910,11 +929,27 @@ AMF_RESULT  TANConvolutionImpl::Init(
     m_iBufferSizeInSamples = bufferSizeInSamples;
     m_iChannels = channels;
 
-    if (doProcessingOnGpu )
+    if(doProcessingOnGpu )
     {
-		bool OCLKenel_Err;
-		OCLKenel_Err = GetOclKernel(m_pKernelCrossfade, m_pProcContextAMF, m_pContextTAN->GetOpenCLGeneralQueue(), "crossfade", Crossfading_Str, CrossfadingCount, "crossfade", "");
-        if (!OCLKenel_Err){ printf("Failed to compile crossfade kernel "); return AMF_FAIL; }
+        return AMF_NOT_IMPLEMENTED;
+
+		/*bool OCLKenel_Err = GetOclKernel(
+            m_pKernelCrossfade,
+            m_pProcContextAMF,
+            m_pContextTAN->GetOpenCLGeneralQueue(),
+            "crossfade",
+            Crossfading_Str,
+            CrossfadingCount,
+            "crossfade",
+            ""
+            );
+
+        if(!OCLKenel_Err)
+        {
+            printf("Failed to compile crossfade kernel ");
+
+            return AMF_FAIL;
+        }*/
     }
 
     amf_int64 tmp = 0;
@@ -944,7 +979,6 @@ AMF_RESULT  TANConvolutionImpl::Init(
         ++log2len;
     }
 
-
     if (m_initialized){
         deallocateBuffers();
     }
@@ -962,8 +996,9 @@ AMF_RESULT  TANConvolutionImpl::Init(
     m_updThread.Init();
     m_updThread.Start();
 
-    return res;*/
+    return res;
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 channelId)
 {

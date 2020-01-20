@@ -431,8 +431,6 @@ AMF_RESULT CreateCommandQueuesVIAamf
         result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
 	    AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
 
-
-        amf::AMFComputePtr AMFDevice;
         result = computeDevice->CreateCompute(nullptr, compute1);
 	    AMF_RETURN_IF_FAILED(result, L"CreateCompute 1 failed\n");
     }
@@ -443,8 +441,6 @@ AMF_RESULT CreateCommandQueuesVIAamf
         result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
 	    AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
 
-
-        amf::AMFComputePtr AMFDevice;
         result = computeDevice->CreateCompute(nullptr, compute2);
 	    AMF_RETURN_IF_FAILED(result, L"CreateCompute 2 failed\n");
     }

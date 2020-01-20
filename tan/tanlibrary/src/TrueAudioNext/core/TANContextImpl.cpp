@@ -125,15 +125,11 @@ TAN_SDK_LINK const wchar_t*    AMF_CDECL_CALL TANGetCacheFolder()
 //-------------------------------------------------------------------------------------------------
 
 TANContextImpl::TANContextImpl(void)
-    : m_clfftInitialized(false),
-
-      m_pContextGeneralAMF(nullptr),
-      m_pContextConvolutionAMF(nullptr)
+    : m_clfftInitialized(false)
 {
-    AMF_RESULT res;
-
     // Create default CPU AMF context.
-    if (g_AMFFactory.GetFactory() != NULL) {
+    if(g_AMFFactory.GetFactory())
+    {
         AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&m_pContextGeneralAMF), L"CreateContext() failed");
         AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&m_pContextConvolutionAMF), L"CreateContext() failed");
     }
@@ -355,8 +351,6 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
 }
 
 //-------------------------------------------------------------------------------------------------
-
-//-------------------------------------------------------------------------------------------------
 AMF_RESULT amf::TANContextImpl::InitClfft()
 {
     clfftSetupData setupData;
@@ -375,6 +369,62 @@ AMF_RESULT amf::TANContextImpl::InitClfft()
 AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(AMFContext * pContext)
 {
     return AMF_FAIL;
+    /*AMF_RETURN_IF_FALSE(!m_pContextGeneralAMF, AMF_ALREADY_INITIALIZED);
+    AMF_RETURN_IF_FALSE(pContext, AMF_INVALID_ARG, L"pContext == nullptr");
+
+    // Remove default CPU AMF context.
+    m_pComputeGeneralAMF.Release();
+
+    pContext->GetCompute()
+
+    // Check context for correctness.
+    cl_int deviceCount = 0;
+    {
+        AMF_RETURN_IF_CL_FAILED(
+            clGetContextInfo(
+                static_cast<cl_context>(pClContext),
+                CL_CONTEXT_NUM_DEVICES,
+                sizeof(deviceCount),
+                &deviceCount,
+                nullptr),
+            L"pContext is not a valid cl_context"
+            );
+        AMF_RETURN_IF_FALSE(
+            deviceCount > 0,
+            AMF_INVALID_ARG,
+            L"pContext is not a valid cl_context"
+            );
+    }
+
+    cl_device_id* devices = new cl_device_id[deviceCount];
+
+    AMF_RETURN_IF_CL_FAILED(clGetContextInfo(static_cast<cl_context>(pClContext),
+                                             CL_CONTEXT_DEVICES,
+                                             sizeof(cl_device_id)*deviceCount, devices, nullptr),
+                            L"could not retrieve the device ids from context");
+    cl_int error;
+    m_oclConvQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
+    //printf("Queue created %llX\r\n", m_oclConvQueue);
+    AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
+                        L"cannot create the conv command queue");
+
+    m_oclGeneralQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
+    //printf("Queue created %llX\r\n", m_oclGeneralQueue);
+    AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
+                        L"cannot create the general command queue");
+
+    for (int idx = 0; idx < deviceCount; idx++)
+    {
+        if (NULL != devices[idx])
+            clReleaseDevice(devices[idx]);
+    }
+
+    delete [] devices;
+
+    AMF_RETURN_IF_FALSE(((NULL != m_oclGeneralQueue) && (NULL != m_oclConvQueue)), AMF_FAIL, L"Cannot create the queues");
+    InitOpenCL(m_oclGeneralQueue, m_oclConvQueue);
+
+    return AMF_OK;*/
 }
 
 AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(
@@ -385,18 +435,18 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(
     return AMF_FAIL;
 }
 
-AMFContext * AMF_STD_CALL AMF_STD_CALL TANContextImpl::GetContext()
+AMFContext * AMF_STD_CALL TANContextImpl::GetAMFContext()
 {
     // to do: return both??
-    return m_pContextGeneralAMF;
+    return m_pContextConvolutionAMF;
 }
 
-AMFCompute * AMF_STD_CALL AMF_STD_CALL TANContextImpl::GetGeneralQueue()
+AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFGeneralQueue()
 {
     return m_pComputeGeneralAMF;
 }
 
-AMFCompute * AMF_STD_CALL AMF_STD_CALL TANContextImpl::GetConvQueue()
+AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFConvQueue()
 {
     return m_pComputeConvolutionAMF;
 }

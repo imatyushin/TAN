@@ -97,7 +97,14 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
         return InitCpu();
     }
 #else
-    return AMF_FAIL;
+    if(m_pContextTAN->GetAMFContext())
+    {
+        return InitGpu();
+    }
+    else
+    {
+        return InitCpu();
+    }
 #endif
 }
 //-------------------------------------------------------------------------------------------------
