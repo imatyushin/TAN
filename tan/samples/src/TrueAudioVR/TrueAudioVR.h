@@ -149,16 +149,44 @@ public:
     virtual ~AmdTrueAudioVR() { };
     static bool useIntrinsics;
 
-    virtual void generateRoomResponse(RoomDefinition room, MonoSource source, StereoListener ear,
-        int inSampRate, int responseLength, void *responseL, void *responseR,
-        int flags = 0, int maxBounces = 0) = 0;
+    virtual void generateRoomResponse(
+        const RoomDefinition & room,
+        const MonoSource & source,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        void *responseL,
+        void *responseR,
+        int flags = 0,
+        int maxBounces = 0
+        ) = 0;
 
-    virtual void generateDirectResponse(RoomDefinition room, MonoSource source, StereoListener ear,
-        int inSampRate, int responseLength, void *responseL, void *responseR, int *pFirstNonZero, int *pLastNonZero) = 0;
+    virtual void generateDirectResponse(
+        const RoomDefinition & room,
+        const MonoSource & source,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        void *responseL,
+        void *responseR,
+        int *pFirstNonZero,
+        int *pLastNonZero
+        ) = 0;
 
 #ifdef DOORWAY_TRANSFORM
-    virtual void generateDoorwayResponse(RoomDefinition room1, RoomDefinition room2,
-        MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags, int maxBounces) = 0;
+    virtual void generateDoorwayResponse(
+        const RoomDefinition & room1,
+        const RoomDefinition & room2,
+        const MonoSource & source,
+        const Door & door,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        float *responseLeft,
+        float *responseRight,
+        int flags,
+        int maxBounces
+        ) = 0;
 #endif
 
     virtual void SetExecutionMode(VRExecutionMode executionMode) = 0;
@@ -201,8 +229,8 @@ extern "C"
 #ifndef TAN_NO_OPENCL
     TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR(
         AmdTrueAudioVR **taVR,
-        TANContextPtr pContext,
-        TANFFTPtr pFft,
+        const TANContextPtr & pContext,
+        const TANFFTPtr & pFft,
         cl_command_queue cmdQueue,
         float samplesPerSecond,
         int convolutionLength
@@ -210,8 +238,8 @@ extern "C"
 #else
     TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR(
         AmdTrueAudioVR **taVR,
-        TANContextPtr pContext,
-        TANFFTPtr pFft,
+        const TANContextPtr & pContext,
+        const TANFFTPtr & pFft,
         AMFCompute * cmdQueue,
         float samplesPerSecond,
         int convolutionLength

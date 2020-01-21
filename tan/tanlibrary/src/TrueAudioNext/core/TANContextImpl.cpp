@@ -125,7 +125,6 @@ TAN_SDK_LINK const wchar_t*    AMF_CDECL_CALL TANGetCacheFolder()
 //-------------------------------------------------------------------------------------------------
 
 TANContextImpl::TANContextImpl(void)
-    : m_clfftInitialized(false)
 {
     // Create default CPU AMF context.
     if(g_AMFFactory.GetFactory())

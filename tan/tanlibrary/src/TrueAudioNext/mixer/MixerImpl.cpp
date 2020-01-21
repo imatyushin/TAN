@@ -100,7 +100,9 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
         return InitCpu();
     }
 #else
-    return AMF_FAIL;
+    //todo: add gpu
+
+    return InitCpu();
 #endif
 }
 

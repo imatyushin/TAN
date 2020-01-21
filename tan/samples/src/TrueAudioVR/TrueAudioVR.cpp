@@ -96,15 +96,15 @@ private:
     /*char* m_pfNmae;
     FILE* m_fpLog;*/
 
-    void Initialize(StereoListener ears, int nW, int nH, int nL, int responseLength);
+    void Initialize(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
 
 #ifndef TAN_NO_OPENCL
-    void InitializeCL(StereoListener ears, int nW, int nH, int nL, int responseLength);
+    void InitializeCL(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
 #endif
 
     void generateRoomResponseGPU(
-        MonoSource sound,
-        RoomDefinition room,
+        const MonoSource & sound,
+        const RoomDefinition & room,
         float* response,
         float headX,
         float headY,
@@ -121,11 +121,12 @@ private:
         int filterLength,
         int nW,
         int nH,
-        int nL);
+        int nL
+        );
 
     void generateRoomResponseGPU(
-        MonoSource sound,
-        RoomDefinition room,
+        const MonoSource & sound,
+        const RoomDefinition & room,
         cl_mem response,
         float headX,
         float headY,
@@ -142,7 +143,8 @@ private:
         int filterLength,
         int nW,
         int nH,
-        int nL);
+        int nL
+        );
 
     void Release();
 
@@ -150,8 +152,8 @@ private:
     VRExecutionMode m_executionMode = VRExecutionMode::CPU;
 
     void generateRoomResponseCPU(
-        RoomDefinition room,
-        MonoSource sound,
+        const RoomDefinition & room,
+        const MonoSource & sound,
         float earSpacing,
         HeadModel *pHrtf,
         float* response,
@@ -167,11 +169,12 @@ private:
         int nW,
         int nH,
         int nL,
-        int flag = 0);
+        int flag = 0
+        );
 
     void generateDirectResponseCPU(
-        RoomDefinition room,
-        MonoSource sound,
+        const RoomDefinition & room,
+        const MonoSource & sound,
         float earSpacing,
         HeadModel *pHrtf,
         float* response,
@@ -193,8 +196,19 @@ private:
     /*void generateRoomResponseGPU(RoomDefinition room, MonoSource source, StereoListener ear,
     int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags = 0, int maxBounces = 0);*/
 
-    void generateDoorwayDirectResponse(RoomDefinition room1, RoomDefinition room2,
-        MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *responseIn, float *responseLeft, float *responseRight, int flags);
+    void generateDoorwayDirectResponse(
+        const RoomDefinition & room1,
+        const RoomDefinition & room2,
+        const MonoSource & source,
+        const Door & door,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        float *responseIn,
+        float *responseLeft,
+        float *responseRight,
+        int flags
+        );
 
     // void generateDoorwayReverbResponse(RoomDefinition room1, RoomDefinition room2,
     //     MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *response1, float *response2, int flags, int maxBounces = 0);
@@ -220,14 +234,43 @@ public:
 
     virtual ~TrueAudioVRimpl();
 
-    void generateRoomResponse(RoomDefinition room, MonoSource source, StereoListener ear,
-        int inSampRate, int responseLength, void *responseLeft, void *responseRight, int flags = 0, int maxBounces = 0);
+    void generateRoomResponse(
+        const RoomDefinition & room,
+        const MonoSource & source,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        void *responseLeft,
+        void *responseRight,
+        int flags = 0,
+        int maxBounces = 0
+        );
 
-    void generateDirectResponse(RoomDefinition room, MonoSource source, StereoListener ear,
-        int inSampRate, int responseLength, void *responseLeft, void *responseRight, int *firstNZ, int *lastNZ);
+    void generateDirectResponse(
+        const RoomDefinition & room,
+        const MonoSource & source,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        void *responseLeft,
+        void *responseRight,
+        int *firstNZ,
+        int *lastNZ
+        );
 
-    void generateDoorwayResponse(RoomDefinition room1, RoomDefinition room2,
-        MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags, int maxBounces);
+    void generateDoorwayResponse(
+        const RoomDefinition & room1,
+        const RoomDefinition & room2,
+        const MonoSource & source,
+        const Door & door,
+        const StereoListener & ear,
+        int inSampRate,
+        int responseLength,
+        float *responseLeft,
+        float *responseRight,
+        int flags,
+        int maxBounces
+        );
 
     void SetExecutionMode(VRExecutionMode executionMode)
     {
@@ -254,6 +297,50 @@ public:
     void applyHRTF(HeadModel * pHead, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
     void applyHRTFoptCPU(HeadModel * pHead, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
 };
+
+#ifndef TAN_NO_OPENCL
+    TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
+    (
+        AmdTrueAudioVR **taVR,
+        const TANContextPtr & context,
+        const TANFFTPtr & fft,
+        cl_command_queue cmdQueue,
+        float samplesPerSecond,
+        int convolutionLength
+    )
+    {
+        *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
+            context,
+            fft,
+            cmdQueue,
+            samplesPerSecond,
+            convolutionLength
+            );
+
+        return AMF_OK;
+    }
+#else
+    TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
+    (
+        AmdTrueAudioVR **taVR,
+        const TANContextPtr & context,
+        const TANFFTPtr & fft,
+        AMFCompute * compute,
+        float samplesPerSecond,
+        int convolutionLength
+    )
+    {
+        *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
+            context,
+            fft,
+            compute,
+            samplesPerSecond,
+            convolutionLength
+            );
+
+        return AMF_OK;
+    }
+#endif
 
 #ifndef TAN_NO_OPENCL
 TrueAudioVRimpl::TrueAudioVRimpl(
@@ -295,44 +382,6 @@ TrueAudioVRimpl::TrueAudioVRimpl(
 TrueAudioVRimpl::~TrueAudioVRimpl()
 {
 }
-
-#ifndef TAN_NO_OPENCL
-TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
-(
-    AmdTrueAudioVR **taVR,
-    const TANContextPtr & pContext,
-    const TANFFTPtr & pFft,
-    cl_command_queue cmdQueue,
-    float samplesPerSecond,
-    int convolutionLength
-)
-{
-    *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(pContext, pFft, cmdQueue, samplesPerSecond, convolutionLength);
-
-    return AMF_OK;
-}
-else
-TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
-(
-    AmdTrueAudioVR **taVR,
-    const TANContextPtr & context,
-    const TANFFTPtr & fft,
-    AMFCompute * compute,
-    float samplesPerSecond,
-    int convolutionLength
-)
-{
-    *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
-        pContext,
-        pFft,
-        compute,
-        samplesPerSecond,
-        convolutionLength
-        );
-
-    return AMF_OK;
-}
-#endif
 
 /**************************************************************************************************
 freq	-	compute the frequency corresponding to a point in an FFT:
@@ -657,10 +706,18 @@ Generates an impulse response for a rectangular room, given room dimensions, dam
 each of the six walls, source and microphone positions in the room.
 
 **************************************************************************************************/
-void TrueAudioVRimpl::generateRoomResponse(RoomDefinition room, MonoSource sound, StereoListener ears,
-    int inSampRate, int responseLength, void *responseL, void *responseR, int flags, int maxBounces)
+void TrueAudioVRimpl::generateRoomResponse(
+    const RoomDefinition & room,
+    MonoSource sound,
+    const StereoListener & ears,
+    int inSampRate,
+    int responseLength,
+    void *responseL,
+    void *responseR,
+    int flags,
+    int maxBounces
+    )
 {
-
     if (sound.speakerX > room.width) sound.speakerX = room.width;
     if (sound.speakerX < 0) sound.speakerX = 0;
     if (sound.speakerY > room.height) sound.speakerY = room.height;
@@ -784,10 +841,18 @@ Generates an impulse response for a rectangular room, given room dimensions, dam
 each of the six walls, source and microphone positions in the room.
 
 **************************************************************************************************/
-void TrueAudioVRimpl::generateDirectResponse(RoomDefinition room, MonoSource sound, StereoListener ears,
-    int inSampRate, int responseLength, void *responseL, void *responseR, int *pFirstNZ, int *pLastNZ)
+void TrueAudioVRimpl::generateDirectResponse(
+    const RoomDefinition & room,
+    const MonoSource & sound,
+    const StereoListener & ears,
+    int inSampRate,
+    int responseLength,
+    void *responseL,
+    void *responseR,
+    int *pFirstNZ,
+    int *pLastNZ
+    )
 {
-
     if (sound.speakerX > room.width) sound.speakerX = room.width;
     if (sound.speakerX < 0) sound.speakerX = 0;
     if (sound.speakerY > room.height) sound.speakerY = room.height;
@@ -852,7 +917,13 @@ void TrueAudioVRimpl::generateDirectResponse(RoomDefinition room, MonoSource sou
     }
 }
 
-void TrueAudioVRimpl::Initialize(StereoListener ears, int nW, int nH, int nL, int responseLength)
+void TrueAudioVRimpl::Initialize(
+    const StereoListener & ears,
+    int nW,
+    int nH,
+    int nL,
+    int responseLength
+    )
 {
     m_pResponseBuffer = new float[responseLength];
     m_responseLength = responseLength;
@@ -860,84 +931,20 @@ void TrueAudioVRimpl::Initialize(StereoListener ears, int nW, int nH, int nL, in
 }
 
 #ifndef TAN_NO_OPENCL
-void TrueAudioVRimpl::InitializeCL(StereoListener ears, int nW, int nH, int nL, int responseLength)
+void TrueAudioVRimpl::InitializeCL(
+    const StereoListener & ears,
+    int nW,
+    int nH,
+    int nL,
+    int responseLength
+    )
 {
     //AmdTAlogger::logMessage(m_fpLog, "GenerateRoomResponseGPU");
 
     cl_int status = CL_SUCCESS;
     m_responseLength = responseLength;
 
-#if 0   // Replaced by AMF functionality.
-    cl_device_id device;
-    cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU;
-
-
-    cl_uint numPlatforms = 0;
-    cl_platform_id platform = NULL;
-    status = clGetPlatformIDs(0, NULL, &numPlatforms);
-    if (status != CL_SUCCESS) {
-        return;
-    }
-    if (0 < numPlatforms)
-    {
-        cl_platform_id* platforms = new cl_platform_id[numPlatforms];
-        status = clGetPlatformIDs(numPlatforms, platforms, NULL);
-        if (status != CL_SUCCESS) {
-            return;
-        }
-        for (unsigned i = 0; i < numPlatforms; ++i)
-        {
-            char pbuf[100];
-            status = clGetPlatformInfo(platforms[i],
-                CL_PLATFORM_VENDOR,
-                sizeof(pbuf),
-                pbuf,
-                NULL);
-
-            if (status != CL_SUCCESS) {
-                return;
-            }
-
-            platform = platforms[i];
-            if (!strcmp(pbuf, "Advanced Micro Devices,Inc."))
-            {
-                break;
-            }
-        }
-        delete[] platforms;
-    }
-
-    cl_context_properties cps[3] =
-    {
-        CL_CONTEXT_PLATFORM,
-        (cl_context_properties)platform,
-        0
-    };
-
-    m_context = clCreateContextFromType(cps, clDeviceType, NULL, NULL, &status);
-    if (m_context == (cl_context)0){
-        return;
-    }
-
-    size_t cb;
-    cl_device_id *devices = 0;
-    clGetContextInfo(m_context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
-    devices = (cl_device_id*)malloc(cb);
-    clGetContextInfo(m_context, CL_CONTEXT_DEVICES, cb, devices, NULL);
-
-    cl_queue_properties queueProp[] = { 0 }; //CL_QUEUE_PROFILING_ENABLE --> Error -35: properties are valid but are not supported by the device (tonga)
-
-    m_cmdQueue = clCreateCommandQueueWithProperties(m_context,
-        devices[0],
-        queueProp,
-        &status);
-    if (m_cmdQueue == (cl_command_queue)0){
-        return;
-    }
-    device = devices[0];
-#else
     m_context = static_cast<cl_context>(m_pContext->GetOpenCLContext());
-#endif
 
     // Compile kernel
     {
@@ -1028,8 +1035,8 @@ void TrueAudioVRimpl::InitializeCL(StereoListener ears, int nW, int nH, int nL, 
 }
 
 void TrueAudioVRimpl::generateRoomResponseGPU(
-    MonoSource sound,
-    RoomDefinition room,
+    const MonoSource & sound,
+    const RoomDefinition & room,
     cl_mem floatResponse,
     float headX,
     float headY,
@@ -1046,7 +1053,8 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
     int filterLength,
     int nW,
     int nH,
-    int nL)
+    int nL
+    )
 {
     //Set kernel arguments
     //TODO: pass parameters as structures
@@ -1117,8 +1125,8 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
 #endif
 
 void TrueAudioVRimpl::generateRoomResponseGPU(
-    MonoSource sound,
-    RoomDefinition room,
+    const MonoSource & sound,
+    const RoomDefinition & room,
     float* response,
     float headX,
     float headY,
@@ -1135,7 +1143,8 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
     int filterLength,
     int nW,
     int nH,
-    int nL)
+    int nL
+    )
 {
 #ifndef TAN_NO_OPENCL
     int status = 0;
@@ -1225,8 +1234,8 @@ each of the six walls, source and microphone positions in the room.
 **************************************************************************************************/
 
 void TrueAudioVRimpl::generateRoomResponseCPU(
-    RoomDefinition room,
-    MonoSource sound,
+    const RoomDefinition & room,
+    const MonoSource & sound,
     float earSpacing,
     HeadModel *pHrtf,
     float* response,
@@ -1242,7 +1251,8 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
     int nW,
     int nH,
     int nL,
-    int flags)
+    int flags
+    )
 {
 #pragma omp parallel  for default(none) shared(flags, pHrtf, earSpacing, sound, inSampRate, responseLength, room, nW, nH, nL, mid, incy,responseL,responseR,earDxL, earDxR, earDyL, earDyR, earDzL, earDzR,earDxL, earVxR, earVyL, earVyR, earVzL, earVzR) num_threads(2)
 
@@ -1362,8 +1372,8 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
 
 
 void TrueAudioVRimpl::generateDirectResponseCPU(
-    RoomDefinition room,
-    MonoSource sound,
+    const RoomDefinition & room,
+    const MonoSource & sound,
     float earSpacing,
     HeadModel *pHrtf,
     float* response,
@@ -1393,7 +1403,6 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
         dr = maxGain;
     else
         dr = maxGain*dMin / d0;
-
 
     float W = room.width;
     float H = room.height;
@@ -1446,8 +1455,19 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
 
 // ToDo remove for distro
 #ifdef DOORWAY_TRANSFORM
-void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefinition room2,
-    MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags, int maxBounces)
+void TrueAudioVRimpl::generateDoorwayResponse(
+    const RoomDefinition & room1,
+    const RoomDefinition & room2,
+    const MonoSource & source,
+    const Door & door,
+    const StereoListener & ear,
+    int inSampRate,
+    int responseLength,
+    float *responseLeft,
+    float *responseRight,
+    int flags,
+    int maxBounces
+    )
 {
     int nSamplesW = int((room1.width / S) * inSampRate);
     int nSamplesH = int((room1.height / S) * inSampRate);
@@ -1569,9 +1589,19 @@ void TrueAudioVRimpl::generateDoorwayResponse(RoomDefinition room1, RoomDefiniti
 
 
 // source in room1, ear in room2, door in both:
-void  TrueAudioVRimpl::generateDoorwayDirectResponse(RoomDefinition room1, RoomDefinition room2, MonoSource source, Door door, StereoListener ear, int inSampRate,
+void  TrueAudioVRimpl::generateDoorwayDirectResponse(
+    const RoomDefinition & room1,
+    const RoomDefinition & room2,
+    const MonoSource & source,
+    const Door & door,
+    const StereoListener & ear,
+    int inSampRate,
     int responseLength,
-    float *responseIn, float *responseLeft, float *responseRight, int flags)
+    float *responseIn,
+    float *responseLeft,
+    float *responseRight,
+    int flags
+    )
 {
     float maxGain = 1.0;
     float dMin = 1.0;

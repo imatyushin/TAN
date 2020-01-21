@@ -68,7 +68,7 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateFFT(
 }
 
 //-------------------------------------------------------------------------------------------------
-TANFFTImpl::TANFFTImpl(TANContext *pContextTAN, bool useConvQueue) :
+TANFFTImpl::TANFFTImpl(TANContext *pContextTAN, bool useConvQueue):
     m_pContextTAN(pContextTAN),
     m_useConvQueue(useConvQueue)
 {
@@ -97,14 +97,10 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
         return InitCpu();
     }
 #else
-    if(m_pContextTAN->GetAMFContext())
-    {
-        return InitGpu();
-    }
-    else
-    {
-        return InitCpu();
-    }
+
+    //todo: gpu support
+
+    return InitCpu();
 #endif
 }
 //-------------------------------------------------------------------------------------------------

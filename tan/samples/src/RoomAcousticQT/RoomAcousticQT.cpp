@@ -189,6 +189,7 @@ void RoomAcousticQT::initializeEnvironment()
 void RoomAcousticQT::initializeAudioEngine()
 {
 	mAudioEngine.reset(
+		(IAudio3D *)
 #ifndef TAN_NO_OPENCL
 		new Audio3DOpenCL()
 #else

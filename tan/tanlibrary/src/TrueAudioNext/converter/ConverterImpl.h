@@ -55,7 +55,7 @@ namespace amf
                                             float conversionGain) override;
         AMF_RESULT  AMF_STD_CALL    Convert(float* inputBuffer, amf_size inputStep,
                                             amf_size numOfSamplesToProcess,
-                                            short* outputBuffer, amf_size outputStep, 
+                                            short* outputBuffer, amf_size outputStep,
                                             float conversionGain, bool* outputClipped = NULL) override;
 
         AMF_RESULT  AMF_STD_CALL    Convert(short** inputBuffers, amf_size inputStep,
@@ -70,11 +70,11 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
 		AMF_RESULT  AMF_STD_CALL    Convert(cl_mem inputBuffer, amf_size inputStep,
-											amf_size inputOffset,TAN_SAMPLE_TYPE inputType, 
+											amf_size inputOffset,TAN_SAMPLE_TYPE inputType,
 
-                                            cl_mem outputBuffer, amf_size outputOffset, 
+                                            cl_mem outputBuffer, amf_size outputOffset,
                                             amf_size outputStep, TAN_SAMPLE_TYPE outputType,
-                                            
+
                                             amf_size numOfSamplesToProcess,
                                             float conversionGain, bool* outputClipped = NULL) override;
 
@@ -93,15 +93,15 @@ namespace amf
         AMF_RESULT  AMF_STD_CALL    Convert(const AMFBuffer * inputBuffer,
                                             amf_size inputStep,
                                             amf_size inputOffset,
-                                            TAN_SAMPLE_TYPE inputType, 
-                                                    
+                                            TAN_SAMPLE_TYPE inputType,
+
                                             AMFBuffer * outputBuffer,
                                             amf_size outputStep,
                                             amf_size outputOffset,
-                                            TAN_SAMPLE_TYPE outputType,                                                
+                                            TAN_SAMPLE_TYPE outputType,
 
                                             amf_size numOfSamplesToProcess,
-                                            float conversionGain, 
+                                            float conversionGain,
                                             bool* outputClipped = nullptr
                                             ) override;
 
@@ -110,16 +110,16 @@ namespace amf
                                             amf_size inputStep,
                                             amf_size* inputOffsets,
                                             TAN_SAMPLE_TYPE inputType,
-                                            
+
                                             AMFBuffer ** outputBuffers,
                                             amf_size outputStep,
                                             amf_size* outputOffsets,
                                             TAN_SAMPLE_TYPE outputType,
-                                            
+
                                             amf_size numOfSamplesToProcess,
-                                            float conversionGain,                                                   
-                                            
-                                            int count, 
+                                            float conversionGain,
+
+                                            int count,
                                             bool* outputClipped = nullptr
                                             ) override;
 
@@ -145,6 +145,8 @@ namespace amf
 		cl_kernel					m_clkFloat2Float = nullptr;
 		cl_kernel					m_clkShort2Float = nullptr;
         cl_mem                      m_overflowBuffer = NULL;
+#else
+        
 #endif
 
     private:

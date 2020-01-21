@@ -79,15 +79,18 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
     AMFLock lock(&m_sect);
 
     AMF_RETURN_IF_FALSE(!m_pDeviceAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
+
 #ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
 #endif
-    AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
-    L"Cannot initialize after termination");
+
+    //todo: invwstigate why this works previously
+    //AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
+    //L"Cannot initialize after termination");
 
 #ifndef TAN_NO_OPENCL
     // Determine how to initialize based on context, CPU for CPU and GPU for GPU
-    if (m_pContextTAN->GetOpenCLContext())
+    if(m_pContextTAN->GetOpenCLContext())
     {
         return InitGpu();
     }
@@ -95,6 +98,11 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
     {
         return InitCpu();
     }
+#else
+
+    //todo: add GPU support
+
+    return InitCpu();
 #endif
 
     return AMF_FAIL;

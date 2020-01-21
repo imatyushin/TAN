@@ -83,12 +83,12 @@ namespace amf
 #endif
 
         AMF_RESULT AMF_STD_CALL UpdateResponseTD(
-                                                const AMFBuffer * ppBuffer[],
+                                                AMFBuffer * ppBuffer[],
                                                 amf_size numOfSamplesToProcess,
                                                 const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                 const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                 ) override;
- 
+
         AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(
                                                 float* ppBuffer[],
                                                 amf_size numOfSamplesToProcess,
@@ -273,7 +273,7 @@ namespace amf
 #ifndef TAN_NO_OPENCL
         cl_mem m_pCLXFadeMasterBuf[2];
 #endif
-        TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU 
+        TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU
         float *m_silence;       // Array filled with zeroes, used to emulate silent signal.
 
         TANSampleBuffer m_internalOutBufs;
@@ -444,9 +444,9 @@ namespace amf
             }
 
             void Negate(
-                const GraalArgs &from, 
-                amf_uint32 channelCnt, 
-                amf_uint32 fromVersion, 
+                const GraalArgs &from,
+                amf_uint32 channelCnt,
+                amf_uint32 fromVersion,
                 amf_uint32 toVersion)
             {
                 Clear(channelCnt);
@@ -487,8 +487,8 @@ namespace amf
         // response update parmeters (to pass to update facilities).
         GraalArgs m_updateArgs;
         // audio stream parameters (to pass to process facilities).
-        // Two buffers are used for storing the IR indices; so that back to back calls 
-        // to the ProcessInternal() during the crossfade will not corrupt the already stored data 
+        // Two buffers are used for storing the IR indices; so that back to back calls
+        // to the ProcessInternal() during the crossfade will not corrupt the already stored data
         const static int PARAM_BUF_COUNT = 2;
         int * m_s_versions[PARAM_BUF_COUNT];
         int * m_s_channels;

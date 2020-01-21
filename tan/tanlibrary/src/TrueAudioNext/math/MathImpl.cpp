@@ -91,7 +91,9 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
 		return InitCpu();
 	}
 #else
-	throw "Not implemented!";
+	//todo: gpu support
+
+	return InitCpu();
 #endif
 }
 //-------------------------------------------------------------------------------------------------

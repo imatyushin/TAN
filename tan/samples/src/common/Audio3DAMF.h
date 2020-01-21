@@ -36,6 +36,7 @@ protected:
 
     bool                        mUseAMFBuffers = false;
     AMFBufferPtr                mAMFResponses[MAX_SOURCES * 2];
+    AMFBuffer *                 mAMFResponsesInterfaces[MAX_SOURCES * 2] = {nullptr};
 
     AMFBufferPtr                mOutputAMFBufers[MAX_SOURCES * 2] = {nullptr};
 	AMFBufferPtr                mOutputMainAMFBuffer = nullptr;
@@ -116,23 +117,23 @@ public:
         float rotationY,
         float headingOffset,
         bool headingCCW
-        );
+        ) override;
 
 	// get's the current playback position in a stream:
     //int64_t getCurrentPosition(int stream);
 
 	// update the head (listener) position:
-    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll);
+    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll) override;
 
 	//update a source position:
-    virtual int updateSourcePosition(int srcNumber, float x, float y, float z);
+    virtual int updateSourcePosition(int srcNumber, float x, float y, float z) override;
 
 	//update a room's dimension:
-	virtual int updateRoomDimension(float _width, float _height, float _length);
+	virtual int updateRoomDimension(float _width, float _height, float _length) override;
 
 	//update a room's damping factor
-	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back);
+	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back) override;
 
     // export impulse response for source  + current listener and room:
-    virtual int exportImpulseResponse(int srcNumber, char * fname);
+    virtual int exportImpulseResponse(int srcNumber, char * fname) override;
 };

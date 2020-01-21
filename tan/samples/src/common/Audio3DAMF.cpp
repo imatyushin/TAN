@@ -431,17 +431,18 @@ bool Audio3DAMF::Init
         }
     }
 
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext), L"TANCreateContext mTANConvolutionContext failed");
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext), L"TANCreateContext mTANRoomContext failed");
+
     //convolution over OpenCL
     if(useCLConvolution)
     {
-        AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext), L"TANCreateContext mTANConvolutionContext failed");
         AMF_RETURN_IF_FAILED(mTANConvolutionContext->InitAMF(mCompute1, mCompute2), L"mTANConvolutionContext->InitAMF failed");
     }
 
     //room processing over OpenCL
     if(useCLRoom)
     {
-        AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext), L"TANCreateContext mTANRoomContext failed");
         AMF_RETURN_IF_FAILED(mTANRoomContext->InitAMF(mCompute3, mCompute3), L"mTANRoomContext->InitAMF failed");
     }
 
@@ -458,7 +459,8 @@ bool Audio3DAMF::Init
                 )
             );
     }
-    else
+    //todo, ivm:, investigate
+    else if(useGPUConvolution)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitCpu(
@@ -497,6 +499,8 @@ bool Audio3DAMF::Init
                     mFFTLength * sizeof(float),
                     &mAMFResponses[i]
                     ));
+
+                mAMFResponsesInterfaces[i] = mAMFResponses[i];
             }
 
             //HACK out for test
@@ -584,11 +588,10 @@ bool Audio3DAMF::Init
         */
     }
 
-    /*
 #ifdef _WIN32
     HMODULE TanVrDll;
     TanVrDll = LoadLibraryA("TrueAudioVR.dll");
-    typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
+    typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
     CREATEVR CreateAmdTrueAudioVR = nullptr;
 
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
@@ -598,7 +601,7 @@ bool Audio3DAMF::Init
         &m_pTAVR,
         mTANRoomContext,
         mFft,
-        mCmdQueue3,
+        mCompute3,
         FILTER_SAMPLE_RATE, //todo: other frequencies?
         mFFTLength
         );
@@ -620,21 +623,60 @@ bool Audio3DAMF::Init
     m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
 
     //To Do use gpu mem responses
-    for (int idx = 0; idx < mWavFiles.size(); idx++){
-        if (mUseClMemBufs) {
-            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
+    for (int idx = 0; idx < mWavFiles.size(); idx++)
+    {
+        if(mUseAMFBuffers)
+        {
+            m_pTAVR->generateRoomResponse(
+                room,
+                sources[idx],
+                ears,
+                FILTER_SAMPLE_RATE,
+                mFFTLength,
+                mAMFResponses[idx * 2],
+                mAMFResponses[idx * 2 + 1],
+                GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
+                50
+                );
         }
-        else {
-            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
+        else
+        {
+            m_pTAVR->generateRoomResponse(
+                room,
+                sources[idx],
+                ears,
+                FILTER_SAMPLE_RATE,
+                mFFTLength,
+                mResponses[idx * 2],
+                mResponses[idx * 2 + 1],
+                GENROOM_LIMIT_BOUNCES,
+                50
+                );
         }
     }
 
-    if (mUseClMemBufs) {
-        RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
+    if(mUseAMFBuffers)
+    {
+        AMF_RETURN_IF_FAILED(
+            mConvolution->UpdateResponseTD(
+                mAMFResponsesInterfaces,
+                mFFTLength,
+                nullptr,
+                TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
+                )
+            );
     }
-    else {
-        RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
-    }*/
+    else
+    {
+        AMF_RETURN_IF_FAILED(
+            mConvolution->UpdateResponseTD(
+                mResponses,
+                mFFTLength,
+                nullptr,
+                TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
+                )
+            );
+    }
 
     std::cout << "Playback started" << std::endl;
 
@@ -727,8 +769,6 @@ int Audio3DAMF::setWorldToRoomCoordTransform(
 bool Audio3DAMF::Run()
 {
     // start main processing thread:
-    //m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
-    //RETURN_IF_FALSE(m_hProcessThread != (HANDLE)-1);
     mProcessThread = std::thread(processThreadProc, this);
 
     // wait for processing thread to start:
@@ -738,8 +778,6 @@ bool Audio3DAMF::Run()
     }
 
     // start update processing thread:
-    //m_hUpdateThread = (HANDLE)_beginthreadex(0, 10000000, updateThreadProc, this, 0, 0);
-    //RETURN_IF_FALSE(m_hUpdateThread != (HANDLE)-1);
     mUpdateThread = std::thread(updateThreadProc, this);
 
     mUpdateParams = true;
@@ -861,7 +899,6 @@ unsigned Audio3DAMF::processThreadProc(void * ptr)
 
 int Audio3DAMF::ProcessProc()
 {
-    /*
     //uint32_t bytesRecorded(0);
 
     std::array<uint8_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t)> recordBuffer;
@@ -952,7 +989,7 @@ int Audio3DAMF::ProcessProc()
                     bytes2Extract,
                     false
                     );
-                /** /
+                /**/
             }
         }
         else
@@ -1017,7 +1054,7 @@ int Audio3DAMF::ProcessProc()
                 /*std::cout
                   << "pl " << bytesTotalPlayed
                   << " fr " << mWavFiles[fileIndex].Data.size()
-                  << std::endl;* /
+                  << std::endl;*/
             }
             else
             {
@@ -1040,7 +1077,7 @@ int Audio3DAMF::ProcessProc()
         for (int i = 0; i < mWavFiles.size(); i++)
         {
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
-        }* /
+        }*/
 
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -1080,7 +1117,7 @@ unsigned Audio3DAMF::updateThreadProc(void * ptr)
 
 int Audio3DAMF::UpdateProc()
 {
-    /*while(mRunning && !mStop)
+    while(mRunning && !mStop)
     {
         while(!mUpdateParams && mRunning && !mStop)
         {
@@ -1096,7 +1133,7 @@ int Audio3DAMF::UpdateProc()
                 sources[idx].speakerZ = ears.headZ;
             }
 
-            if(mUseClMemBufs)
+            if(mUseAMFBuffers)
             {
                 m_pTAVR->generateRoomResponse(
                     room,
@@ -1104,8 +1141,8 @@ int Audio3DAMF::UpdateProc()
                     ears,
                     FILTER_SAMPLE_RATE,
                     mFFTLength,
-                    mOCLResponses[idx * 2],
-                    mOCLResponses[idx * 2 + 1],
+                    mAMFResponsesInterfaces[idx * 2],
+                    mAMFResponsesInterfaces[idx * 2 + 1],
                     GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
                     50
                     );
@@ -1150,14 +1187,14 @@ int Audio3DAMF::UpdateProc()
 
         //todo: investigate about AMF_BUSY
         RETURN_IF_FALSE(
-            ret == AMF_OK /*|| ret == AMF_BUSY* /
+            ret == AMF_OK /*|| ret == AMF_BUSY*/
             );
 
         mUpdated = true;
 
         //Sleep(20);
         mUpdateParams = false;
-    }*/
+    }
 
     return 0;
 }

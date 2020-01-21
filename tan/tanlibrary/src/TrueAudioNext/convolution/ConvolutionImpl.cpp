@@ -503,12 +503,13 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 }
 
 AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
-    const AMFBuffer * ppBuffer[],
+    AMFBuffer * ppBuffer[],
     amf_size numOfSamplesToProcess,
     const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
     const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
     )
 {
+    return AMF_NOT_IMPLEMENTED;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -520,6 +521,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseFD(
 )
 {
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
+    
     return AMF_NOT_SUPPORTED;
 }
 

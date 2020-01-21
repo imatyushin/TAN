@@ -167,7 +167,7 @@ namespace amf
                                                          ) = 0;
 #endif
 
-        virtual AMF_RESULT AMF_STD_CALL UpdateResponseTD(const AMFBuffer * ppBuffer[],
+        virtual AMF_RESULT AMF_STD_CALL UpdateResponseTD(AMFBuffer * ppBuffer[],
                                                          amf_size numOfSamplesToProcess,
                                                          const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                          const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
