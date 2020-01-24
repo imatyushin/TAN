@@ -124,6 +124,7 @@ private:
         int nL
         );
 
+#ifndef TAN_NO_OPENCL
     void generateRoomResponseGPU(
         const MonoSource & sound,
         const RoomDefinition & room,
@@ -145,6 +146,29 @@ private:
         int nH,
         int nL
         );
+#else
+    void generateRoomResponseGPU(
+        const MonoSource & sound,
+        const RoomDefinition & room,
+        AMFBuffer * response,
+        float headX,
+        float headY,
+        float headZ,
+        float earVX,
+        float earVY,
+        float earVZ,
+        float earV,
+        float maxGain,
+        float dMin,
+        int inSampRate,
+        int responseLength,
+        int hrtfResponseLength,
+        int filterLength,
+        int nW,
+        int nH,
+        int nL
+        );
+#endif
 
     void Release();
 
@@ -155,7 +179,7 @@ private:
         const RoomDefinition & room,
         const MonoSource & sound,
         float earSpacing,
-        HeadModel *pHrtf,
+        const HeadModel & hrtf,
         float* response,
         float headX,
         float headY,
@@ -176,7 +200,7 @@ private:
         const RoomDefinition & room,
         const MonoSource & sound,
         float earSpacing,
-        HeadModel *pHrtf,
+        const HeadModel & hrtf,
         float* response,
         float headX,
         float headY,
@@ -236,7 +260,7 @@ public:
 
     void generateRoomResponse(
         const RoomDefinition & room,
-        const MonoSource & source,
+        MonoSource source,
         const StereoListener & ear,
         int inSampRate,
         int responseLength,
@@ -248,7 +272,7 @@ public:
 
     void generateDirectResponse(
         const RoomDefinition & room,
-        const MonoSource & source,
+        MonoSource source,
         const StereoListener & ear,
         int inSampRate,
         int responseLength,
@@ -292,10 +316,10 @@ public:
     180 impulse response curves for 1 degree increments from the direction the ear points.
 
     **************************************************************************************************/
-    void generateSimpleHeadRelatedTransform(HeadModel * pHead, float earSpacing);
+    void generateSimpleHeadRelatedTransform(HeadModel & head, float earSpacing);
 
-    void applyHRTF(HeadModel * pHead, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
-    void applyHRTFoptCPU(HeadModel * pHead, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
+    void applyHRTF(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
+    void applyHRTFoptCPU(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
 };
 
 #ifndef TAN_NO_OPENCL
@@ -409,7 +433,10 @@ and a complementary high pass filter, such that the two filters sum to all pass.
 
 **************************************************************************************************/
 
-void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(HeadModel * pHead, float earSpacing)
+void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
+    HeadModel & head,
+    float earSpacing
+    )
 {
 
     int fftLen = 1;
@@ -418,7 +445,7 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(HeadModel * pHead, floa
         fftLen <<= 1;
         ++log2len;
     }
-    pHead->filterLength = fftLen;
+    head.filterLength = fftLen;
 
 
     float *impulse = new float[fftLen * 2];
@@ -428,8 +455,8 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(HeadModel * pHead, floa
     // Wavelengths smaller than a head are blocked by it:
     //float cornerFreq = 0.25 * SPEED_OF_SOUND / (1.10*earSpacing); //~ 500Hz
     float cornerFreq = float(SPEED_OF_SOUND / (1.10*earSpacing)); //~ 2kHz
-    memset(pHead->lowPass, 0, sizeof(float)* fftLen);
-    memset(pHead->highPass, 0, sizeof(float)* fftLen);
+    memset(head.lowPass, 0, sizeof(float)* fftLen);
+    memset(head.highPass, 0, sizeof(float)* fftLen);
 
     if (m_pFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, log2len, 1, &impulse, &impulse) != AMF_OK)
     {
@@ -454,13 +481,13 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(HeadModel * pHead, floa
 
     // extract real part of each sample
     for (int k = 0; k<2 * fftLen; k += 2){
-        pHead->lowPass[k >> 1] = impulse[k];
+        head.lowPass[k >> 1] = impulse[k];
     }
 
     // complementary high pass filter
-    pHead->highPass[0] = 1.0;
+    head.highPass[0] = 1.0;
     for (int i = 0; i < fftLen; i++){
-        pHead->highPass[i] -= pHead->lowPass[i];
+        head.highPass[i] -= head.lowPass[i];
     }
     delete[] impulse;
 }
@@ -473,13 +500,16 @@ a human ear on a human head, as a function of angle to a sound source.
 
 **************************************************************************************************/
 
-void TrueAudioVRimpl::applyHRTF(HeadModel * pHead, float scale, float *response, int length,
+void TrueAudioVRimpl::applyHRTF(
+    const HeadModel & head,
+    float scale, float *response, int length,
     float earVX, float earVY, float earVZ,
-    float srcVX, float srcVY, float srcVZ)
+    float srcVX, float srcVY, float srcVZ
+    )
 {
 
     if (AmdTrueAudioVR::useIntrinsics){
-        return applyHRTFoptCPU(pHead, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
+        return applyHRTFoptCPU(head, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
     }
 
     // dot prod
@@ -489,14 +519,14 @@ void TrueAudioVRimpl::applyHRTF(HeadModel * pHead, float scale, float *response,
     float cosA = dp / (earV*srcV);
     float hf = float((cosA + 1.0) / 2.0);
 
-    int len = pHead->filterLength;
+    int len = head.filterLength;
     if (len > length)
         len = length;
 
     //#pragma omp parallel for
     for (int i = 0; i < len; i++)
     {
-        response[i] += scale*(pHead->lowPass[i] + hf*pHead->highPass[i]);
+        response[i] += scale*(head.lowPass[i] + hf*head.highPass[i]);
     }
 }
 
@@ -504,11 +534,14 @@ void TrueAudioVRimpl::applyHRTF(HeadModel * pHead, float scale, float *response,
 AmdTrueAudioVR::applyHRTFoptCPU:       CPU optimized version of applyHRTF
 **************************************************************************************************/
 
-void TrueAudioVRimpl::applyHRTFoptCPU(HeadModel * pHead, float scale, float *response, int length,
+void TrueAudioVRimpl::applyHRTFoptCPU(
+    const HeadModel & head,
+    float scale, float *response, int length,
     float earVX, float earVY, float earVZ,
-    float srcVX, float srcVY, float srcVZ)
+    float srcVX, float srcVY, float srcVZ
+    )
 {
-    if (length < pHead->filterLength)
+    if (length < head.filterLength)
         return;
 
     // dot prod
@@ -518,7 +551,7 @@ void TrueAudioVRimpl::applyHRTFoptCPU(HeadModel * pHead, float scale, float *res
     float cosA = dp / (earV*srcV);
     float hf = float((cosA + 1.0) / 2.0);
 
-    int len = pHead->filterLength;
+    int len = head.filterLength;
 
     // use AVX and FMA intrinsics to process 8 samples per pass
     register __m256 hfReg, scaleReg;
@@ -526,8 +559,8 @@ void TrueAudioVRimpl::applyHRTFoptCPU(HeadModel * pHead, float scale, float *res
     _mm256_zeroall();
     hfReg = _mm256_set1_ps(hf);
     scaleReg = _mm256_set1_ps(scale);
-    hpReg = (__m256 *)pHead->highPass;
-    lpReg = (__m256 *)pHead->lowPass;
+    hpReg = (__m256 *)head.highPass;
+    lpReg = (__m256 *)head.lowPass;
     respReg = (__m256 *)response;
 
     // unrolled version - a little faster
@@ -760,22 +793,28 @@ void TrueAudioVRimpl::generateRoomResponse(
         nL = (nL > maxBounces) ? maxBounces : nL;
     }
 
-#ifndef TAN_NO_OPENCL
     printf("Computing %d x %d x %d = %d reflections ...\r\n", nW, nH, nL, nW*nH*nL);
 
     if (m_executionMode == VRExecutionMode::GPU)
     {
+#ifndef TAN_NO_OPENCL
         if (!m_clInitialized)
         {
             InitializeCL(ears, 2 * nW, 2 * nH, 2 * nL, responseLength);
             m_clInitialized = true;
         }
+#endif
     }
 
     for (int chan = 0; chan < 2; chan++)
     {
         float *response = (float *)responseL;
+
+#ifndef TAN_NO_OPENCL
         cl_mem oclResponse = (cl_mem)responseL;
+#else
+        AMFBuffer *amfResponse = (AMFBuffer *)responseL;
+#endif
 
         float headX, headY, headZ;
         float earVX, earVY, earVZ;
@@ -786,7 +825,13 @@ void TrueAudioVRimpl::generateRoomResponse(
         switch (chan){
         case 0:
             response = (float *)responseL;
+
+#ifndef TAN_NO_OPENCL
             oclResponse = (cl_mem)responseL;
+#else
+            amfResponse = (AMFBuffer *)responseL;
+#endif
+
             headX = ears.headX + earDxL;
             headY = ears.headY + earDyL;
             headZ = ears.headZ + earDzL;
@@ -796,7 +841,13 @@ void TrueAudioVRimpl::generateRoomResponse(
             break;
         case 1:
             response = (float *)responseR;
+
+#ifndef TAN_NO_OPENCL
             oclResponse = (cl_mem)responseR;
+#else
+            amfResponse = (AMFBuffer *)responseR;
+#endif
+
             headX = ears.headX + earDxR;
             headY = ears.headY + earDyR;
             headZ = ears.headZ + earDzR;
@@ -817,21 +868,64 @@ void TrueAudioVRimpl::generateRoomResponse(
             float dMin = 2 * ears.earSpacing;
             int filterLength = ears.hrtf.filterLength;
 
-            if (flags & GENROOM_USE_GPU_MEM) {
-                generateRoomResponseGPU(sound, room, oclResponse, headX, headY, headZ, earVX, earVY, earVZ, earV, maxGain, dMin, inSampRate, responseLength, hrtfResponseLength, filterLength, 2 * nW, 2 * nH, 2 * nL);
+            if(flags & GENROOM_USE_GPU_MEM)
+            {
+                generateRoomResponseGPU(
+                    sound,
+                    room,
+#ifndef TAN_NO_OPENCL
+                    oclResponse,
+#else
+                    amfResponse,
+#endif
+                    headX,
+                    headY,
+                    headZ,
+                    earVX,
+                    earVY,
+                    earVZ,
+                    earV,
+                    maxGain,
+                    dMin,
+                    inSampRate,
+                    responseLength,
+                    hrtfResponseLength,
+                    filterLength,
+                    2 * nW,
+                    2 * nH,
+                    2 * nL
+                    );
             }
-            else {
-                generateRoomResponseGPU(sound, room, response, headX, headY, headZ, earVX, earVY, earVZ, earV, maxGain, dMin, inSampRate, responseLength, hrtfResponseLength, filterLength, 2 * nW, 2 * nH, 2 * nL);
+            else
+            {
+                generateRoomResponseGPU(
+                    sound,
+                    room,
+                    response,
+                    headX,
+                    headY,
+                    headZ,
+                    earVX,
+                    earVY,
+                    earVZ,
+                    earV,
+                    maxGain,
+                    dMin,
+                    inSampRate,
+                    responseLength,
+                    hrtfResponseLength,
+                    filterLength,
+                    2 * nW,
+                    2 * nH,
+                    2 * nL
+                    );
             }
         }
         else
         {
-            generateRoomResponseCPU(room, sound, ears.earSpacing, &ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, hrtfResponseLength, nW, nH, nL);
+            generateRoomResponseCPU(room, sound, ears.earSpacing, ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, hrtfResponseLength, nW, nH, nL);
         }
     }
-#else
-    throw "Not implemented!";
-#endif
 }
 
 /**************************************************************************************************
@@ -843,7 +937,7 @@ each of the six walls, source and microphone positions in the room.
 **************************************************************************************************/
 void TrueAudioVRimpl::generateDirectResponse(
     const RoomDefinition & room,
-    const MonoSource & sound,
+    MonoSource sound,
     const StereoListener & ears,
     int inSampRate,
     int responseLength,
@@ -913,7 +1007,23 @@ void TrueAudioVRimpl::generateDirectResponse(
             break;
         }
 
-        generateDirectResponseCPU(room, sound, ears.earSpacing, &ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, pFirstNZ, pLastNZ);
+        generateDirectResponseCPU(
+            room,
+            sound,
+            ears.earSpacing,
+            ears.hrtf,
+            response,
+            headX,
+            headY,
+            headZ,
+            earVX,
+            earVY,
+            earVZ,
+            inSampRate,
+            responseLength,
+            pFirstNZ,
+            pLastNZ
+            );
     }
 }
 
@@ -1030,8 +1140,6 @@ void TrueAudioVRimpl::InitializeCL(
     m_globalWorkSize[2] = RoundUp(localZ, nL);
 
     m_globaSizeFill = RoundUp(responseLength / 4, localSizeFill);
-
-
 }
 
 void TrueAudioVRimpl::generateRoomResponseGPU(
@@ -1121,6 +1229,31 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
     */
     //void *frMap = clEnqueueMapBuffer(m_cmdQueue, floatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
 
+}
+#else
+void TrueAudioVRimpl::generateRoomResponseGPU(
+    const MonoSource & sound,
+    const RoomDefinition & room,
+    AMFBuffer * floatResponse,
+    float headX,
+    float headY,
+    float headZ,
+    float earVX,
+    float earVY,
+    float earVZ,
+    float earV,
+    float maxGain,
+    float dMin,
+    int inSampRate,
+    int responseLength,
+    int hrtfResponseLength,
+    int filterLength,
+    int nW,
+    int nH,
+    int nL
+    )
+{
+    throw "Not implemented!";
 }
 #endif
 
@@ -1237,7 +1370,7 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
     const RoomDefinition & room,
     const MonoSource & sound,
     float earSpacing,
-    HeadModel *pHrtf,
+    const HeadModel & hrtf,
     float* response,
     float headX,
     float headY,
@@ -1358,7 +1491,7 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
                     amp *= powf(dampFront, nP) *powf(dampBack, nN);
 
                 if (ridx < hrtfResponseLength){
-                    applyHRTF(pHrtf, amp*dr, &response[ridx], responseLength - ridx, earVX, earVY, earVZ, dx, dy, dz);
+                    applyHRTF(hrtf, amp*dr, &response[ridx], responseLength - ridx, earVX, earVY, earVZ, dx, dy, dz);
                 }
                 else if (ridx < responseLength){
                     response[ridx] += amp*dr;
@@ -1375,7 +1508,7 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
     const RoomDefinition & room,
     const MonoSource & sound,
     float earSpacing,
-    HeadModel *pHrtf,
+    const HeadModel & hrtf,
     float* response,
     float headX,
     float headY,
@@ -1389,7 +1522,6 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
     int *lastNonZero
     )
 {
-
     float dx = sound.speakerX - headX;
     float dy = sound.speakerY - headY;
     float dz = sound.speakerZ - headZ;
@@ -1443,15 +1575,13 @@ void TrueAudioVRimpl::generateDirectResponseCPU(
 
     if (ridx < *firstNonZero)
         *firstNonZero = ridx;
-    if (ridx + pHrtf->filterLength > *lastNonZero)
-        *lastNonZero = ridx + pHrtf->filterLength;
+    if (ridx + hrtf.filterLength > *lastNonZero)
+        *lastNonZero = ridx + hrtf.filterLength;
 
     if (ridx < responseLength){
-        applyHRTF(pHrtf, dr, &response[ridx], responseLength - ridx, earVX, earVY, earVZ, dx, dy, dz);
+        applyHRTF(hrtf, dr, &response[ridx], responseLength - ridx, earVX, earVY, earVZ, dx, dy, dz);
     }
 }
-
-
 
 // ToDo remove for distro
 #ifdef DOORWAY_TRANSFORM

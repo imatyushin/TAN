@@ -151,7 +151,7 @@ public:
 
     virtual void generateRoomResponse(
         const RoomDefinition & room,
-        const MonoSource & source,
+        MonoSource source,
         const StereoListener & ear,
         int inSampRate,
         int responseLength,
@@ -163,7 +163,7 @@ public:
 
     virtual void generateDirectResponse(
         const RoomDefinition & room,
-        const MonoSource & source,
+        MonoSource source,
         const StereoListener & ear,
         int inSampRate,
         int responseLength,
@@ -215,10 +215,10 @@ public:
     180 impulse response curves for 1 degree increments from the direction the ear points.
 
     **************************************************************************************************/
-    virtual void generateSimpleHeadRelatedTransform(HeadModel * pHead, float earSpacing) = 0;
+    virtual void generateSimpleHeadRelatedTransform(HeadModel & head, float earSpacing) = 0;
 
-    virtual void applyHRTF(HeadModel * pHead, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) = 0;
-    virtual void applyHRTFoptCPU(HeadModel * pHead, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) = 0;
+    virtual void applyHRTF(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) = 0;
+    virtual void applyHRTFoptCPU(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) = 0;
 
 };
 

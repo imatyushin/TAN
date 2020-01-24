@@ -256,7 +256,7 @@ namespace amf
         bool                        m_doProcessOnGpu;
 
     private:
-        bool m_initialized;
+        bool                        m_initialized = false;
 
 #ifndef TAN_NO_OPENCL
         //cl_program m_TimeDomainProgram;

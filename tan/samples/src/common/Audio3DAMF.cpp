@@ -460,7 +460,7 @@ bool Audio3DAMF::Init
             );
     }
     //todo, ivm:, investigate
-    else if(useGPUConvolution)
+    else //if(useGPUConvolution)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitCpu(
@@ -620,7 +620,10 @@ bool Audio3DAMF::Init
         << std::endl;
 
     // head model:
-    m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
+    m_pTAVR->generateSimpleHeadRelatedTransform(
+        ears.hrtf,
+        ears.earSpacing
+        );
 
     //To Do use gpu mem responses
     for (int idx = 0; idx < mWavFiles.size(); idx++)
@@ -798,7 +801,6 @@ void Audio3DAMF::Stop()
 
 int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
 {
-    /*
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
     // Read from the files
@@ -825,7 +827,15 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
-        AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
+        AMF_RETURN_IF_FAILED(
+            mConvolution->Process(
+                mInputFloatBufs,
+                mOutputCLBufs,
+                sampleCount,
+                nullptr,
+                nullptr
+                )
+            );
 
         cl_mem outputCLBufLeft[MAX_SOURCES];
         cl_mem outputCLBufRight[MAX_SOURCES];
@@ -853,14 +863,23 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         cl_int clErr = clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
              0, sampleCountBytes, pOut, NULL, NULL, NULL);
         RETURN_IF_FALSE(clErr == CL_SUCCESS);
-        /** /
+        /**/
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
         // Mixing and short conversion are still performed on CPU.
 
-        RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputFloatBufs, sampleCount,
-            nullptr, nullptr));
+        AMF_RESULT ret(
+            mConvolution->Process(
+                mInputFloatBufs,
+                mOutputFloatBufs,
+                sampleCount,
+                nullptr,
+                nullptr
+                )
+            );
+
+        AMF_RETURN_IF_FAILED(ret);
 
         float * outputFloatBufLeft[MAX_SOURCES];
         float * outputFloatBufRight[MAX_SOURCES];
@@ -871,21 +890,18 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             outputFloatBufRight[src] = mOutputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        AMF_RESULT ret(AMF_OK);
-
         ret = mMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]);
-        RETURN_IF_FALSE(ret == AMF_OK);
+        AMF_RETURN_IF_FAILED(ret);
 
         ret = mMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]);
-        RETURN_IF_FALSE(ret == AMF_OK);
+        AMF_RETURN_IF_FAILED(ret);
 
         ret = mConverter->Convert(mOutputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
 
         ret = mConverter->Convert(mOutputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
     }
-    */
 
     return 0;
 }
@@ -1170,13 +1186,23 @@ int Audio3DAMF::UpdateProc()
 
         while(mRunning && !mStop)
         {
-            if(mUseClMemBufs)
+            if(mUseAMFBuffers)
             {
-                ret = mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, IR_UPDATE_MODE);
+                ret = mConvolution->UpdateResponseTD(
+                    mAMFResponsesInterfaces,
+                    mFFTLength,
+                    nullptr,
+                    TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
+                    );
             }
             else
             {
-                ret = mConvolution->UpdateResponseTD(mResponses, mFFTLength, nullptr, IR_UPDATE_MODE);
+                ret = mConvolution->UpdateResponseTD(
+                    mResponses,
+                    mFFTLength,
+                    nullptr,
+                    TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
+                    );
             }
 
             if(ret != AMF_INPUT_FULL)
@@ -1185,10 +1211,7 @@ int Audio3DAMF::UpdateProc()
             }
         }
 
-        //todo: investigate about AMF_BUSY
-        RETURN_IF_FALSE(
-            ret == AMF_OK /*|| ret == AMF_BUSY*/
-            );
+        AMF_RETURN_IF_FAILED(ret);
 
         mUpdated = true;
 
@@ -1202,7 +1225,10 @@ int Audio3DAMF::UpdateProc()
 int Audio3DAMF::exportImpulseResponse(int srcNumber, char * fileName)
 {
     int convolutionLength = this->mFFTLength;
-    m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
+    m_pTAVR->generateSimpleHeadRelatedTransform(
+        ears.hrtf,
+        ears.earSpacing
+        );
 
     float *leftResponse = mResponses[0];
     float *rightResponse = mResponses[1];
