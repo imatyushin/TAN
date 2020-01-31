@@ -100,7 +100,7 @@ bool Audio3DAMF::Init
 	int                     fftLen,
 	int                     bufferSizeInSamples,
 
-    bool                    useCLConvolution,
+    bool                    useAMFConvolution,
     bool                    useGPUConvolution,
     int                     deviceIndexConvolution,
 
@@ -110,7 +110,7 @@ bool Audio3DAMF::Init
     int                     cuRes_Conv,
 #endif
 
-    bool                    useCLRoom,
+    bool                    useAMFRoom,
     bool                    useGPURoom,
     int                     deviceIndexRoom,
 
@@ -128,7 +128,7 @@ bool Audio3DAMF::Init
     RoomUpdateMode          roomUpdateMode
 )
 {
-    if((useGPUConvolution && !useCLConvolution) || (useGPURoom && !useCLRoom))
+    if((useGPUConvolution && !useAMFConvolution) || (useGPURoom && !useAMFRoom))
     {
         std::cerr
             << "Error: GPU queues must be used only if OpenCL flag is set"
@@ -138,7 +138,7 @@ bool Audio3DAMF::Init
     }
 
     //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
-    //m_useOCLOutputPipeline = useCLConvolution || useCLRoom;
+    //m_useOCLOutputPipeline = useAMFConvolution || useAMFRoom;
 
     mSrc1EnableMic = useMicSource;
     mTrackHeadPos = trackHeadPos;
@@ -352,7 +352,7 @@ bool Audio3DAMF::Init
         int32_t flagsQ2 = 0;
 
         //CL convolution on GPU
-        if(useCLConvolution && useGPUConvolution)
+        if(useAMFConvolution && useGPUConvolution)
         {
     #ifdef RTQ_ENABLED
 
@@ -382,14 +382,14 @@ bool Audio3DAMF::Init
             mCompute2 = compute2;
 
             //CL room on GPU
-            if(useCLRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
+            if(useAMFRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
                 mCompute3 = mCompute2;
             }
         }
 
         //CL convolution on CPU
-        else if(useCLConvolution && !useGPUConvolution)
+        else if(useAMFConvolution && !useGPUConvolution)
         {
 #ifdef RTQ_ENABLED
             throw "Not implemented!";
@@ -409,14 +409,14 @@ bool Audio3DAMF::Init
 #endif
 
             //CL room on CPU
-            if(useCLRoom && !useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
+            if(useAMFRoom && !useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
                 mCompute3 = mCompute2;
             }
         }
 
         //room queue not yet created
-        if(!mCompute3 && useCLRoom)
+        if(!mCompute3 && useAMFRoom)
         {
             //CL over GPU
             if(useGPURoom)
@@ -435,20 +435,36 @@ bool Audio3DAMF::Init
     AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext), L"TANCreateContext mTANRoomContext failed");
 
     //convolution over OpenCL
-    if(useCLConvolution)
+    if(useAMFConvolution)
     {
-        AMF_RETURN_IF_FAILED(mTANConvolutionContext->InitAMF(mCompute1, mCompute2), L"mTANConvolutionContext->InitAMF failed");
+        AMF_RETURN_IF_FAILED(
+            mTANConvolutionContext->InitAMF(
+                mContext12,
+                mCompute1,
+                mContext12,
+                mCompute2
+                ),
+            L"mTANConvolutionContext->InitAMF failed"
+            );
     }
 
     //room processing over OpenCL
-    if(useCLRoom)
+    if(useAMFRoom)
     {
-        AMF_RETURN_IF_FAILED(mTANRoomContext->InitAMF(mCompute3, mCompute3), L"mTANRoomContext->InitAMF failed");
+        AMF_RETURN_IF_FAILED(
+            mTANRoomContext->InitAMF(
+                mContext3,
+                mCompute3,
+                mContext3,
+                mCompute3
+                ),
+            L"mTANRoomContext->InitAMF failed"
+            );
     }
 
     AMF_RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution), L"TANCreateConvolution failed");
 
-    if(useCLConvolution)
+    if(useAMFConvolution)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitGpu(
@@ -487,7 +503,7 @@ bool Audio3DAMF::Init
     }
 
     //CL over GPU for both Convolution and Room processing
-    if(useCLConvolution && useCLRoom)
+    if(useAMFConvolution && useAMFRoom)
     {
         if(mContext12 == mContext3)
         {

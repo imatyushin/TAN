@@ -671,12 +671,18 @@ namespace amf
                             AMF_STD_CALL    GetOpenCLConvQueue() = 0;
 #endif
 
-        virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
+        /*virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
                                                 AMFContext *pContext
                                                 ) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
                                                 AMFCompute *pGeneralQueue = nullptr,
                                                 AMFCompute *pConvolutionQueue = nullptr
+                                                ) = 0;*/
+        virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
+                                                AMFContext *generalContext,
+                                                AMFCompute *generalQueue,
+                                                AMFContext *convolutionContext,
+                                                AMFCompute *convolutionQueue
                                                 ) = 0;
 
         virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;

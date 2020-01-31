@@ -25,6 +25,7 @@
 #pragma once
 #include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Context.h"        //AMF
+#include "public/include/core/Buffer.h"         //AMF
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF
 
@@ -39,6 +40,101 @@
 
 namespace amf
 {
+    struct TANSampleBuffer
+    {
+        union
+        {
+            float **host;
+
+#ifndef TAN_NO_OPENCL
+            cl_mem *clmem;
+#else
+            //std::vector<AMFBuffer *> amfBuffers;
+            amf::AMFBuffer **amfBuffers;
+#endif
+        } buffer;
+
+        AMF_MEMORY_TYPE mType;
+
+#ifndef TAN_NO_OPENCL
+        void PrepareCL(amf::AMF_MEMORY_TYPE type, size_t channelsCount)
+        {
+            mType = type;
+
+            buffer.clmem = new cl_mem[channelsCount];
+            std::memset(buffer.clmem, 0, sizeof(cl_mem) * channelsCount);
+        }
+#else
+        void PrepareAMF(amf::AMF_MEMORY_TYPE type, size_t channelsCount)
+        {
+            mType = type;
+
+            buffer.amfBuffers = new amf::AMFBuffer *[channelsCount];
+            std::memset(buffer.amfBuffers, 0, sizeof(amf::AMFBuffer *) * channelsCount);
+        }
+#endif
+        void PrepareHost(amf::AMF_MEMORY_TYPE type, size_t channelsCount)
+        {
+            mType = type;
+
+            buffer.host = new float *[channelsCount];
+            std::memset(buffer.host, 0, sizeof(float *) * channelsCount);
+        }
+    };
+
+    typedef struct _tdFilterState
+    {
+        float **m_Filter;
+
+#ifndef TAN_NO_OPENCL
+        cl_mem *m_clFilter;
+        cl_mem *m_clTemp;
+#else
+        //std::vector<AMFBuffer *> amfFilter;
+        //std::vector<AMFBuffer *> amfTemp;
+        amf::AMFBuffer ** amfFilter;
+        amf::AMFBuffer ** amfTemp;
+#endif
+
+        int *firstNz;
+        int *lastNz;
+        float **m_SampleHistory;
+
+#ifndef TAN_NO_OPENCL
+        cl_mem *m_clSampleHistory;
+#else
+        std::vector<amf::AMFBuffer *> amfSampleHistory;
+#endif
+        int *m_sampHistPos;
+
+#ifndef TAN_NO_OPENCL
+        void SetupCL(size_t channelsCount)
+        {
+            m_clFilter = new cl_mem[channelsCount];
+            std::memset(m_clFilter, 0, sizeof(cl_mem) * channelsCount);
+
+            m_clTemp = new cl_mem[channelsCount];
+            std::memset(m_clTemp, 0, sizeof(cl_mem) * channelsCount);
+
+            m_clSampleHistory = new cl_mem[channelsCount];
+            std::memset(m_clSampleHistory, 0, sizeof(cl_mem) * channelsCount);
+        }
+#else
+        void SetupAMF(size_t channelsCount)
+        {
+            amfFilter = new amf::AMFBuffer *[channelsCount];
+            std::memset(amfFilter, 0, sizeof(amf::AMFBuffer *) * channelsCount);
+
+            amfTemp = new amf::AMFBuffer *[channelsCount];
+            std::memset(amfTemp, 0, sizeof(amf::AMFBuffer *) * channelsCount);
+        }
+#endif
+        void SetupHost(size_t channelsCount)
+        {
+
+        }
+    } tdFilterState;
+
     class TANConvolutionImpl
         : public virtual AMFInterfaceImpl < AMFPropertyStorageExImpl< TANConvolution> >
     {
@@ -195,17 +291,6 @@ namespace amf
 
         virtual AMF_RESULT Flush(amf_uint32 filterStateId, amf_uint32 channelId);
 
-        struct TANSampleBuffer {
-            union {
-                float ** host;
-#ifndef TAN_NO_OPENCL
-                cl_mem *clmem;
-#endif
-                AMFBuffer * amfBuffer;
-            } buffer;
-            AMF_MEMORY_TYPE mType;
-        };
-
         AMF_RESULT  AMF_STD_CALL UpdateResponseTD(
             TANSampleBuffer pBuffer,
             amf_size numOfSamplesToProcess,
@@ -233,7 +318,10 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
 		cl_kernel					m_pKernelCrossfade;
+#else
+        amf::AMFComputeKernelPtr    mKernelCrossfade;
 #endif
+
         AMF_MEMORY_TYPE             m_eOutputMemoryType;
 
         AMF_KERNEL_ID               m_KernelIdCrossfade;
@@ -269,10 +357,15 @@ namespace amf
         float **m_OutSamples;   // Buffer to store FFT, multiplication and ^FFT for a buffer.
         float** m_ovlAddLocalInBuffs;
         float** m_ovlAddLocalOutBuffs;
-        TANSampleBuffer m_pCLXFadeSubBuf[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
+
+        TANSampleBuffer m_FadeSubbufers[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
+
 #ifndef TAN_NO_OPENCL
         cl_mem m_pCLXFadeMasterBuf[2];
+#else
+        //amf::AMFBuffer *mAMFFadeMasterBuffer[2] = {nullptr};
 #endif
+
         TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU
         float *m_silence;       // Array filled with zeroes, used to emulate silent signal.
 
@@ -294,25 +387,10 @@ namespace amf
             float **m_internalOverlap;
         } ovlAddFilterState;
 
-        typedef struct _tdFilterState {
-            float **m_Filter;
-#ifndef TAN_NO_OPENCL
-            cl_mem *m_clFilter;
-            cl_mem *m_clTemp;
-#endif
-            int *firstNz;
-            int *lastNz;
-            float **m_SampleHistory;
-#ifndef TAN_NO_OPENCL
-            cl_mem *m_clSampleHistory;
-#endif
-            int *m_sampHistPos;
-        }tdFilterState;
-
 #  define N_FILTER_STATES 3
-        ovlAddFilterState *m_FilterState[N_FILTER_STATES];
-        tdFilterState *m_tdFilterState[N_FILTER_STATES];
-        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES];
+        ovlAddFilterState *m_FilterState[N_FILTER_STATES] = {0};
+        tdFilterState *m_tdFilterState[N_FILTER_STATES] = {0};
+        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES] = {0};
         int m_idxFilter;                        // Currently USED current index.
         int m_idxPrevFilter;                    // Currently USED previous index (for crossfading).
         int m_idxUpdateFilter;                  // Next FREE  index.

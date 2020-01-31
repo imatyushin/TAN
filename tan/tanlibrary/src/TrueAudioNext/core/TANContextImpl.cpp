@@ -129,16 +129,16 @@ TANContextImpl::TANContextImpl(void)
     // Create default CPU AMF context.
     if(g_AMFFactory.GetFactory())
     {
-        AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&m_pContextGeneralAMF), L"CreateContext() failed");
-        AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&m_pContextConvolutionAMF), L"CreateContext() failed");
+        AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&mContextGeneralAMF), L"CreateContext() failed");
+        AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&mContextConvolutionAMF), L"CreateContext() failed");
     }
 }
 //-------------------------------------------------------------------------------------------------
 TANContextImpl::~TANContextImpl(void)
 {
     Terminate();
-    m_pContextGeneralAMF.Release();
-    m_pContextConvolutionAMF.Release();
+    mContextGeneralAMF.Release();
+    mContextConvolutionAMF.Release();
     g_AMFFactory.Terminate();
 }
 //-------------------------------------------------------------------------------------------------
@@ -152,8 +152,8 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     m_clfftInitialized = false;
 
     // Terminate AMF contexts.
-    m_pComputeGeneralAMF.Release();
-    m_pComputeConvolutionAMF.Release();
+    mComputeGeneralAMF.Release();
+    mComputeConvolutionAMF.Release();
 
 #ifndef TAN_NO_OPENCL
     m_oclGeneralContext = 0;
@@ -191,6 +191,19 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
 #endif
 }
 
+AMF_RESULT amf::TANContextImpl::InitClfft()
+{
+    clfftSetupData setupData;
+    AMF_RETURN_IF_FALSE(clfftInitSetupData(&setupData) == CLFFT_SUCCESS, AMF_UNEXPECTED,
+                        L"Cannot initialize FFT component");
+    AMF_RETURN_IF_FALSE(clfftSetup(&setupData) == CLFFT_SUCCESS, AMF_UNEXPECTED,
+                        L"Cannot setup FFT component");
+    amf_atomic_inc(&m_clfftReferences);
+    m_clfftInitialized = true;
+
+    return AMF_OK;
+}
+
 #ifndef TAN_NO_OPENCL
 
 bool TANContextImpl::checkOpenCL2_XCompatibility(cl_command_queue cmdQueue)
@@ -226,7 +239,7 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     AMF_RETURN_IF_FALSE(pClContext != nullptr, AMF_INVALID_ARG, L"pClContext == nullptr");
 
     // Remove default CPU AMF context.
-    m_pComputeGeneralAMF.Release();
+    mComputeGeneralAMF.Release();
 
     // Check context for correctness.
     cl_int deviceCount = 0;
@@ -308,8 +321,8 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
         return AMF_OK;
 
     AMFContextPtr& pAMFContext = (queueType == eConvQueue)
-        ? m_pContextConvolutionAMF
-        : m_pContextGeneralAMF;
+        ? mContextConvolutionAMF
+        : mContextGeneralAMF;
     cl_context& clContext = (queueType == eConvQueue)
         ? m_oclConvContext
         : m_oclGeneralContext;
@@ -321,8 +334,8 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
         : m_oclGeneralQueue;
 
     AMFComputePtr& pCompute = (queueType == eConvQueue)
-        ? m_pComputeConvolutionAMF
-        : m_pComputeGeneralAMF;
+        ? mComputeConvolutionAMF
+        : mComputeGeneralAMF;
     queue = pQueue;
 
     clGetCommandQueueInfo(queue, CL_QUEUE_DEVICE, sizeof(device), &device, NULL);
@@ -349,103 +362,105 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     return AMF_OK;
 }
 
-//-------------------------------------------------------------------------------------------------
-AMF_RESULT amf::TANContextImpl::InitClfft()
+#else
+
+AMF_RESULT amf::TANContextImpl::InitAMFInternal(
+    AMFContext *generalContext,
+    AMFCompute *generalQueue,
+    AMFContext *convolutionContext,
+    AMFCompute *convolutionQueue
+    )
 {
-    clfftSetupData setupData;
-    AMF_RETURN_IF_FALSE(clfftInitSetupData(&setupData) == CLFFT_SUCCESS, AMF_UNEXPECTED,
-                        L"Cannot initialize FFT component");
-    AMF_RETURN_IF_FALSE(clfftSetup(&setupData) == CLFFT_SUCCESS, AMF_UNEXPECTED,
-                        L"Cannot setup FFT component");
-    amf_atomic_inc(&m_clfftReferences);
-    m_clfftInitialized = true;
+    if(generalContext)
+    {
+        mContextGeneralAMF = generalContext;
+    }
+
+    if(convolutionContext)
+    {
+        mContextConvolutionAMF = convolutionContext;
+    }
+
+    if(generalQueue)
+    {
+        AMF_RETURN_IF_FALSE(!mComputeGeneralAMF, AMF_FAIL);
+        mComputeGeneralAMF = generalQueue;
+    }
+
+    if(convolutionQueue)
+    {
+        AMF_RETURN_IF_FALSE(!mComputeConvolutionAMF, AMF_FAIL);
+        mComputeConvolutionAMF = convolutionQueue;
+    }
+
+    //todo: device?
+
+    //AMFComputeDevicePtr &device = (queueType == eConvQueue)
+    //    ? mConvolutionDeviceAMF
+    //    : mGeneralDeviceAMF;
+
+    //clGetCommandQueueInfo(queue, CL_QUEUE_DEVICE, sizeof(device), &device, NULL);
+    //cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU;
+    //clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(clDeviceType), &clDeviceType, NULL);
+    //clGetCommandQueueInfo(queue, CL_QUEUE_CONTEXT, sizeof(clContext), &clContext, NULL);
+    //AMF_RETURN_IF_FALSE(checkOpenCL2_XCompatibility(queue), AMF_NO_DEVICE, L"Device has no OpenCL 2.0 support.");
+
+    // Setting the AMFContext device type
+    //if(pAMFContext)
+    //{
+    //    int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU) ? AMF_CONTEXT_DEVICE_TYPE_GPU : AMF_CONTEXT_DEVICE_TYPE_CPU;
+    //    pAMFContext->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
+
+        // Initializing the AMFContexts, and getting the AMFCompute from it
+    //    AMFCompute* pAMFCompute = NULL;
+    //    AMF_RESULT res = pAMFContext->InitOpenCL(queue);
+    //    AMF_RETURN_IF_FAILED(res, L"InitOpenCL() failed");
+    //    pAMFContext->GetCompute(AMF_MEMORY_OPENCL, &pAMFCompute);
+    //    AMF_RETURN_IF_FALSE(pAMFCompute != NULL, AMF_FAIL, L"Could not get the AMFCompute.");
+    //    pCompute = pAMFCompute;
+    //}
 
     return AMF_OK;
 }
 
 #endif
 
-AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(AMFContext * pContext)
-{
-    return AMF_FAIL;
-    /*AMF_RETURN_IF_FALSE(!m_pContextGeneralAMF, AMF_ALREADY_INITIALIZED);
-    AMF_RETURN_IF_FALSE(pContext, AMF_INVALID_ARG, L"pContext == nullptr");
-
-    // Remove default CPU AMF context.
-    m_pComputeGeneralAMF.Release();
-
-    pContext->GetCompute()
-
-    // Check context for correctness.
-    cl_int deviceCount = 0;
-    {
-        AMF_RETURN_IF_CL_FAILED(
-            clGetContextInfo(
-                static_cast<cl_context>(pClContext),
-                CL_CONTEXT_NUM_DEVICES,
-                sizeof(deviceCount),
-                &deviceCount,
-                nullptr),
-            L"pContext is not a valid cl_context"
-            );
-        AMF_RETURN_IF_FALSE(
-            deviceCount > 0,
-            AMF_INVALID_ARG,
-            L"pContext is not a valid cl_context"
-            );
-    }
-
-    cl_device_id* devices = new cl_device_id[deviceCount];
-
-    AMF_RETURN_IF_CL_FAILED(clGetContextInfo(static_cast<cl_context>(pClContext),
-                                             CL_CONTEXT_DEVICES,
-                                             sizeof(cl_device_id)*deviceCount, devices, nullptr),
-                            L"could not retrieve the device ids from context");
-    cl_int error;
-    m_oclConvQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
-    //printf("Queue created %llX\r\n", m_oclConvQueue);
-    AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
-                        L"cannot create the conv command queue");
-
-    m_oclGeneralQueue = clCreateCommandQueue(pClContext, devices[0], NULL, &error);
-    //printf("Queue created %llX\r\n", m_oclGeneralQueue);
-    AMF_RETURN_IF_FALSE(error == CL_SUCCESS, AMF_FAIL,
-                        L"cannot create the general command queue");
-
-    for (int idx = 0; idx < deviceCount; idx++)
-    {
-        if (NULL != devices[idx])
-            clReleaseDevice(devices[idx]);
-    }
-
-    delete [] devices;
-
-    AMF_RETURN_IF_FALSE(((NULL != m_oclGeneralQueue) && (NULL != m_oclConvQueue)), AMF_FAIL, L"Cannot create the queues");
-    InitOpenCL(m_oclGeneralQueue, m_oclConvQueue);
-
-    return AMF_OK;*/
-}
-
 AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(
-    AMFCompute * pGeneralQueue,
-    AMFCompute * pConvolutionQueue
+    AMFContext *generalContext,
+    AMFCompute *generalQueue,
+    AMFContext *convolutionContext,
+    AMFCompute *convolutionQueue
     )
 {
-    return AMF_FAIL;
+    AMF_RETURN_IF_FALSE(
+        InitAMFInternal(
+            generalContext,
+            generalQueue,
+            convolutionContext,
+            convolutionQueue
+            ) == AMF_OK,
+        AMF_FAIL,
+        L"Could not initialize using the general queue"
+        );
+
+    // Initialize clFft library here.
+    AMF_RETURN_IF_FAILED(InitClfft(), L"Cannot initialize CLFFT");
+
+    return AMF_OK;
 }
 
 AMFContext * AMF_STD_CALL TANContextImpl::GetAMFContext()
 {
     // to do: return both??
-    return m_pContextConvolutionAMF;
+    return mContextConvolutionAMF;
 }
 
 AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFGeneralQueue()
 {
-    return m_pComputeGeneralAMF;
+    return mComputeGeneralAMF;
 }
 
 AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFConvQueue()
 {
-    return m_pComputeConvolutionAMF;
+    return mComputeConvolutionAMF;
 }

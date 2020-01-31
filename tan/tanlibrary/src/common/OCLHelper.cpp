@@ -22,6 +22,8 @@
 #include "OCLHelper.h"
 #include "StringUtility.h"
 
+#ifndef TAN_NO_OPENCL
+
 bool GetOclKernel
 (
     cl_kernel &                 resultKernel,
@@ -157,3 +159,59 @@ bool GetOclKernel
     return false;
 }
 
+#else
+
+bool GetOclKernel
+(
+    amf::AMFComputeKernelPtr &  resultKernel,
+    const amf::AMFComputePtr &  compute,
+    const std::string &         kernelID,
+    const std::string &         kernelName,
+    const std::string &         kernelSource,
+    size_t                      kernelSourceSize,
+    const std::string &         comp_options
+)
+{
+    resultKernel = nullptr;
+
+    ///First: Try to load kernel via AMF interface
+    if(compute)
+    {
+        std::wstring wKernelId(toWideString(kernelID));
+        amf::AMF_KERNEL_ID amfKernelID = -1;
+
+        amf::AMFPrograms *pPrograms(nullptr);
+        g_AMFFactory.GetFactory()->GetPrograms(&pPrograms);
+
+        if(pPrograms)
+        {
+            AMF_RESULT result(
+                pPrograms->RegisterKernelSource(
+                    &amfKernelID,
+                    wKernelId.c_str(),
+                    kernelName.c_str(),
+                    kernelSourceSize,
+                    reinterpret_cast<const amf_uint8 *>(kernelSource.c_str()),
+                    comp_options.c_str()
+                    )
+                );
+
+            if(AMF_OK == result)
+            {
+                amf::AMFComputeKernel* pAMFComputeKernel = nullptr;
+                compute->GetKernel(amfKernelID, &pAMFComputeKernel);
+
+                if(nullptr != pAMFComputeKernel)
+                {
+                    resultKernel = pAMFComputeKernel;
+
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+#endif

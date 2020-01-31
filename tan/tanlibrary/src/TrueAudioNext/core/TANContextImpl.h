@@ -60,11 +60,10 @@ namespace amf
 #endif
 
         AMF_RESULT  AMF_STD_CALL    InitAMF(
-            AMFContext *pContext
-            ) override;
-        AMF_RESULT  AMF_STD_CALL    InitAMF(
-            AMFCompute *pGeneralQueue = nullptr,
-            AMFCompute *pConvolutionQueue = nullptr
+            AMFContext *generalContext,
+            AMFCompute *generalQueue,
+            AMFContext *convolutionContext,
+            AMFCompute *convolutionQueue
             ) override;
 
         AMFContext * AMF_STD_CALL   GetAMFContext() override;
@@ -73,17 +72,27 @@ namespace amf
 
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }
-        AMFComputePtr GetGeneralCompute() const       { return m_pComputeGeneralAMF; }
-        AMFComputePtr GetConvolutionCompute() const   { return m_pComputeConvolutionAMF; }
+        AMFComputePtr GetGeneralCompute() const       { return mComputeGeneralAMF; }
+        AMFComputePtr GetConvolutionCompute() const   { return mComputeConvolutionAMF; }
 
     protected:
         enum QueueType { eConvQueue, eGeneralQueue };
-#ifndef TAN_NO_OPENCL
-        virtual AMF_RESULT InitOpenCLInt(cl_command_queue pClCommandQueue, QueueType queueType);
 
         virtual AMF_RESULT InitClfft();
 
+#ifndef TAN_NO_OPENCL
+        virtual AMF_RESULT InitOpenCLInt(cl_command_queue pClCommandQueue, QueueType queueType);
+
         bool checkOpenCL2_XCompatibility(cl_command_queue cmdQueue);
+#else
+
+        virtual AMF_RESULT InitAMFInternal(
+            AMFContext *generalContext,
+            AMFCompute *generalQueue,
+            AMFContext *convolutionContext,
+            AMFCompute *convolutionQueue
+            );
+
 #endif
 
     private:
@@ -95,16 +104,15 @@ namespace amf
         cl_device_id                m_oclGeneralDeviceId = nullptr;
         cl_device_id                m_oclConvDeviceId = nullptr;
 #endif
-        AMFContextPtr               m_pContextGeneralAMF;
-        AMFContextPtr               m_pContextConvolutionAMF;
-        AMFComputePtr               m_pComputeGeneralAMF;
-        AMFComputePtr               m_pComputeConvolutionAMF;
-        AMFComputeDevicePtr         m_pGeneralDeviceAMF;
-        AMFComputeDevicePtr         m_pConvolutionDeviceAMF;
+        AMFContextPtr               mContextGeneralAMF;
+        AMFContextPtr               mContextConvolutionAMF;
+        AMFComputePtr               mComputeGeneralAMF;
+        AMFComputePtr               mComputeConvolutionAMF;
+        AMFComputeDevicePtr         mGeneralDeviceAMF;
+        AMFComputeDevicePtr         mConvolutionDeviceAMF;
 
         bool m_clfftInitialized = false;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.
-
 
 #if AMF_BUILD_OPENCL
         AMFDeviceComputePtr m_pDeviceOpenCL;

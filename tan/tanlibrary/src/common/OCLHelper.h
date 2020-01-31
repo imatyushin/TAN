@@ -21,9 +21,11 @@
 //
 #pragma once
 
-#include <CL/cl.h>
-
 #include "public/common/AMFFactory.h"
+
+#ifndef TAN_NO_OPENCL
+
+#include <CL/cl.h>
 
 bool GetOclKernel
 (
@@ -36,3 +38,18 @@ bool GetOclKernel
     const std::string &         kernelName,
     const std::string &         comp_options
 );
+
+#else
+
+bool GetOclKernel
+(
+    amf::AMFComputeKernelPtr &  resultKernel,
+    const amf::AMFComputePtr &  compute,
+    const std::string &         kernelID,
+    const std::string &         kernelName,
+    const std::string &         kernelSource,
+    size_t                      kernelSourceSize,
+    const std::string &         comp_options
+);
+
+#endif
