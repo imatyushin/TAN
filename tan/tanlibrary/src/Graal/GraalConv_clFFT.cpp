@@ -22,7 +22,7 @@
 #include "GraalConv_clFFT.hpp"
 #include "GraalCLUtil/GraalUtil.hpp"
 #include "GraalConvOCL.hpp"
-#include "../common/OCLHelper.h"
+#include "OCLHelper.h"
 #include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
 #include "Utilities.h"
 
@@ -199,10 +199,10 @@ int CGraalConv_clFFT::initializeConv(
 
     num_blocks_ = static_cast<int>((_max_conv_sz + block_sz_ - 1) / block_sz_);
 
-    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);    
+    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);
     aligned_proc_bufffer_sz_ = static_cast<int>(max_proc_buffer_sz_);
     aligned_processing_sz_ = aligned_proc_bufffer_sz_ * 2;
-    
+
     //max_conv_sz_ = ((_max_conv_sz + 1023) / 1024 ) * 1024;
     max_conv_sz_ = num_blocks_ * block_sz_;
 

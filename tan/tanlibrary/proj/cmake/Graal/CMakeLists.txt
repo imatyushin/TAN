@@ -29,9 +29,10 @@ project(Graal)
 # sources
 set(
   SOURCE_LIB
-  ../../../src/common/OCLHelper.cpp
+
+  ${TAN_ROOT}/utils/common/OCLHelper.cpp
+
   ../../../src/Graal/amdFHT.cpp
-  
 )
 
 if(TAN_NO_OPENCL)
@@ -44,7 +45,9 @@ endif()
 
 set(
   HEADER_LIB
-  ../../../src/common/OCLHelper.h
+
+  ${TAN_ROOT}/utils/common/OCLHelper.h
+
   ../../../src/Graal/amdFHT.h
   ../../../src/Graal/GraalInternal.h
   )

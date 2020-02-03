@@ -23,7 +23,7 @@
 #include "MathImpl.h"
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
-#include "../../common/OCLHelper.h"
+#include "OCLHelper.h"
 
 #include "CLKernel_VectorComplexDivision.h"
 #include "CLKernel_VectorComplexMultiply.h"

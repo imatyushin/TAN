@@ -46,7 +46,7 @@ ADD_DEFINITIONS(-DNMC_VECTORIZE_TARGET=AVX2)
 set(
   SOURCE_LIB
 
-  ../../../src/common/OCLHelper.cpp
+  ${TAN_ROOT}/utils/common/OCLHelper.cpp
 
   ${TAN_ROOT}/utils/common/StringUtility.cpp
   ${TAN_ROOT}/utils/common/cpucaps.cpp
@@ -73,7 +73,7 @@ set(
 
   ${TAN_HEADERS}/TrueAudioNext.h
 
-  ../../../src/common/OCLHelper.h
+  ${TAN_ROOT}/utils/common/OCLHelper.h
   ../../../src/TrueAudioNext/converter/ConverterImpl.h
   #../../../src/TrueAudioNext/convolution/CLKernel_ConvolutionTD.h
   ../../../src/TrueAudioNext/convolution/ConvolutionImpl.h
@@ -180,7 +180,7 @@ if(NOT WIN32)
   if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(TrueAudioNext PUBLIC -g)
   endif()
-  
+
   if(NOT APPLE)
     target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
   endif()

@@ -42,8 +42,8 @@ set(
   ../../../src/FileToHeader/stdafx.h
   ../../../src/FileToHeader/targetver.h
 
-  ../../../common/FileUtility.h
-  ../../../common/StringUtility.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
   )
 
 # create binary

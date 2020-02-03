@@ -44,8 +44,8 @@ set(
   ../../../src/CLKernelPreprocessor/stdafx.h
   ../../../src/CLKernelPreprocessor/targetver.h
 
-  ../../../common/FileUtility.h
-  ../../../common/StringUtility.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
   )
 
 # create binary

@@ -41,6 +41,9 @@ set(
   SOURCE_LIB
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
+
+  ${TAN_ROOT}/utils/common/OCLHelper.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
   ${TAN_ROOT}/utils/common/cpucaps.cpp
   )
 
@@ -59,6 +62,8 @@ set(
   ../../../src/TrueAudioVR/targetver.h
   ../../../src/TrueAudioVR/TrueAudioVR.h
 
+  ${TAN_ROOT}/utils/common/OCLHelper.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
   ${TAN_ROOT}/utils/common/cpucaps.h
   )
 
@@ -106,7 +111,7 @@ if(NOT WIN32)
   if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(TrueAudioVR PUBLIC -g)
   endif()
-  
+
   if(NOT APPLE)
     target_compile_options(TrueAudioVR PUBLIC -Wpsabi)
   endif()

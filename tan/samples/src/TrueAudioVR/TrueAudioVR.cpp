@@ -22,18 +22,20 @@
 
 // TrueAudioVR.cpp : Defines the exported functions for the DLL application.
 //
-
 #include "stdafx.h"
-#if !defined(__APPLE__) && !defined(__MACOSX)
-#include <omp.h>
-#endif
-#include "cpucaps.h"
 #include "TrueAudioVR.h"
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+  #include <omp.h>
+#endif
 
 #include <immintrin.h>
 
 #include "Kernels/Fill.cl.h"
 #include "Kernels/GenerateRoomResponse.cl.h"
+
+#include "OCLHelper.h"
+#include "cpucaps.h"
 
 #include <fstream>
 #include <sstream>
@@ -70,24 +72,42 @@ private:
     }
 
 #ifndef TAN_NO_OPENCL
+
+    bool m_clInitialized = false;
+
     //OpenCL initialization
     cl_context m_context = nullptr;
     cl_command_queue m_cmdQueue = nullptr;
+
     cl_kernel m_kernel = nullptr;
     cl_kernel m_kernelFill = nullptr;
+
     cl_mem m_pReflection = nullptr;
     cl_mem m_pResponse = nullptr;
     cl_mem m_pFloatResponse = nullptr;
     cl_mem m_pLPF = nullptr;
     cl_mem m_pHPF = nullptr;
-    bool m_clInitialized = false;
+
 #else
-    AMFComputePtr mCompute;
+
     bool mInitialized = false;
+
+    amf::AMFContextPtr mContext;
+    amf::AMFComputePtr mCompute;
+
+    amf::AMFComputeKernelPtr mKernel;
+    amf::AMFComputeKernelPtr mKernelFill;
+
+    amf::AMFBufferPtr mReflection = nullptr;
+    amf::AMFBufferPtr mResponse = nullptr;
+    amf::AMFBufferPtr mFloatResponse = nullptr;
+    amf::AMFBufferPtr mLPF = nullptr;
+    amf::AMFBufferPtr mHPF = nullptr;
+
 #endif
 
-    float *m_pResponseBuffer = nullptr;
-    unsigned int m_responseLength = 0;
+    std::vector<float> mResponseBuffer;
+    uint32_t mResponseLength = 0;
 
     //speed of sound = 340 m/s
     size_t m_globalWorkSize[3] = {0};
@@ -100,6 +120,8 @@ private:
 
 #ifndef TAN_NO_OPENCL
     void InitializeCL(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
+#else
+    void InitializeAMF(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
 #endif
 
     void generateRoomResponseGPU(
@@ -364,9 +386,11 @@ public:
 
         return AMF_OK;
     }
+
 #endif
 
 #ifndef TAN_NO_OPENCL
+
 TrueAudioVRimpl::TrueAudioVRimpl(
     const TANContextPtr &   context,
     const TANFFTPtr &       fft,
@@ -386,7 +410,9 @@ TrueAudioVRimpl::TrueAudioVRimpl(
         //printf("Queue %llX +1\r\n", cmdQueue);
     }
 }
+
 #else
+
 TrueAudioVRimpl::TrueAudioVRimpl(
     const TANContextPtr &   context,
     const TANFFTPtr &       fft,
@@ -401,6 +427,7 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     m_samplesPerSecond(samplesPerSecond)
 {
 }
+
 #endif
 
 TrueAudioVRimpl::~TrueAudioVRimpl()
@@ -432,7 +459,6 @@ a low pass filter representing frequency response for a source shadowed by the h
 and a complementary high pass filter, such that the two filters sum to all pass.
 
 **************************************************************************************************/
-
 void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     HeadModel & head,
     float earSpacing
@@ -803,6 +829,12 @@ void TrueAudioVRimpl::generateRoomResponse(
             InitializeCL(ears, 2 * nW, 2 * nH, 2 * nL, responseLength);
             m_clInitialized = true;
         }
+#else
+        if(!mInitialized)
+        {
+            InitializeAMF(ears, 2 * nW, 2 * nH, 2 * nL, responseLength);
+            mInitialized = true;
+        }
 #endif
     }
 
@@ -1035,12 +1067,12 @@ void TrueAudioVRimpl::Initialize(
     int responseLength
     )
 {
-    m_pResponseBuffer = new float[responseLength];
-    m_responseLength = responseLength;
-
+    mResponseLength = responseLength;
+    mResponseBuffer.resize(responseLength);
 }
 
 #ifndef TAN_NO_OPENCL
+
 void TrueAudioVRimpl::InitializeCL(
     const StereoListener & ears,
     int nW,
@@ -1052,7 +1084,7 @@ void TrueAudioVRimpl::InitializeCL(
     //AmdTAlogger::logMessage(m_fpLog, "GenerateRoomResponseGPU");
 
     cl_int status = CL_SUCCESS;
-    m_responseLength = responseLength;
+    mResponseLength = responseLength;
 
     m_context = static_cast<cl_context>(m_pContext->GetOpenCLContext());
 
@@ -1230,7 +1262,98 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
     //void *frMap = clEnqueueMapBuffer(m_cmdQueue, floatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
 
 }
+
 #else
+
+void TrueAudioVRimpl::InitializeAMF(
+    const StereoListener & ears,
+    int nW,
+    int nH,
+    int nL,
+    int responseLength
+    )
+{
+    //AmdTAlogger::logMessage(m_fpLog, "GenerateRoomResponseGPU");
+
+    AMF_RESULT status = AMF_OK;
+
+    mResponseLength = responseLength;
+
+    // Compile kernel
+    {
+        GetOclKernel(
+            mKernel,
+            mCompute,
+            "GenerateRoomResponse",
+            "GenerateRoomResponse",
+            (const char *)GenerateRoomResponse,
+            GenerateRoomResponseCount,
+            ""
+            );
+    }
+
+    {
+        // TODO: include the proper path
+
+        GetOclKernel(
+            mKernelFill,
+            mCompute,
+            "Fill",
+            "Fill",
+            (const char *)Fill,
+            FillCount,
+            ""
+            );
+    }
+
+    printf("\n\nFIXME!!!!\n\n");
+
+    /*m_pResponse =  clCreateBuffer(m_context, CL_MEM_READ_WRITE, responseLength * sizeof(float), NULL, &status);
+
+    if (status != CL_SUCCESS)
+    {
+        return;
+    }
+
+    m_pFloatResponse =  clCreateBuffer(m_context, CL_MEM_READ_WRITE, responseLength * sizeof(float), NULL, &status);
+
+    // zero buffers
+    float fill = 0.0;
+    status = clEnqueueFillBuffer(m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
+    status = clEnqueueFillBuffer(m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
+
+    //void *frMap = clEnqueueMapBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
+
+    // TODO: log errors
+    if (status != CL_SUCCESS)
+    {
+        return;
+    }
+
+    //TODO: combine the LPF and HPF into one chunk of memory
+    m_pHPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+        HeadFilterSize * sizeof(float), ears.hrtf.highPass, &status);
+
+    if (status != CL_SUCCESS)
+    {
+        return;
+    }
+
+    m_pLPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+        HeadFilterSize * sizeof(float), ears.hrtf.lowPass, &status);
+
+    if (status != CL_SUCCESS)
+    {
+        return;
+    }*/
+
+    m_globalWorkSize[0] = RoundUp(localX, nW);
+    m_globalWorkSize[1] = RoundUp(localY, nH);
+    m_globalWorkSize[2] = RoundUp(localZ, nL);
+
+    m_globaSizeFill = RoundUp(responseLength / 4, localSizeFill);
+}
+
 void TrueAudioVRimpl::generateRoomResponseGPU(
     const MonoSource & sound,
     const RoomDefinition & room,
@@ -1279,21 +1402,51 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
-#ifndef TAN_NO_OPENCL
-    int status = 0;
-    generateRoomResponseGPU(sound, room, m_pFloatResponse,
-        headX,headY,headZ,
-        earVX,earVY,earVZ,earV,
-        maxGain,dMin,
-        inSampRate,responseLength,hrtfResponseLength,filterLength,
-        nW,nH,nL);
+    generateRoomResponseGPU(
+        sound,
+        room,
+        mFloatResponse,
+        headX,
+        headY,
+        headZ,
+        earVX,
+        earVY,
+        earVZ,
+        earV,
+        maxGain,
+        dMin,
+        inSampRate,
+        responseLength,
+        hrtfResponseLength,
+        filterLength,
+        nW,
+        nH,
+        nL
+        );
 
+#ifndef TAN_NO_OPENCL
     //ToDO fix this case -- returns empty buffer:
-    status = clEnqueueReadBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, 0, responseLength * sizeof(float), response, 0, nullptr, nullptr);
+    int status = clEnqueueReadBuffer(
+        m_cmdQueue,
+        m_pFloatResponse,
+        CL_TRUE,
+        0,
+        responseLength * sizeof(float),
+        response,
+        0,
+        nullptr,
+        nullptr
+        );
 
     clFinish(m_cmdQueue);
 #else
-    throw "Not implemented!";
+    mCompute->CopyBufferToHost(
+        mFloatResponse,
+        0,
+        responseLength * sizeof(float),
+        response,
+        true
+        );
 #endif
 }
 
@@ -1613,10 +1766,10 @@ void TrueAudioVRimpl::generateDoorwayResponse(
         nL = (nL > maxBounces) ? maxBounces : nL;
     }
 
-    if (responseLength > m_responseLength)
-        responseLength = m_responseLength;
+    if (responseLength > mResponseLength)
+        responseLength = mResponseLength;
 
-    memset(m_pResponseBuffer, 0, m_responseLength*sizeof(float));
+    memset(m_pResponseBuffer, 0, mResponseLength*sizeof(float));
 
     // no hrtf for virtual source, so hrtfResponseLength = 0. :
     //ToDo: apply doorway specific filter ???

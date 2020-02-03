@@ -23,7 +23,7 @@
 
 #include "GraalConv.hpp"
 #include "amdFHT.h"
-#include "../common/OCLHelper.h"
+#include "OCLHelper.h"
 #include "GraalCLUtil/GraalCLUtil.hpp"
 
 #include "OclKernels/CLKernel_GraalFHT.h"

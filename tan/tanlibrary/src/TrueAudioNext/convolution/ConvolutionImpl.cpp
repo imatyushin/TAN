@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 #include "ConvolutionImpl.h"
 #include "../core/TANContextImpl.h"
-#include "../../common/OCLHelper.h"
+#include "OCLHelper.h"
 #include "../fft/FFTImpl.h"
 #include "FileUtility.h"
 

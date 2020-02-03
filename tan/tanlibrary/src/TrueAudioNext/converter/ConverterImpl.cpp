@@ -21,7 +21,7 @@
 #include "ConverterImpl.h"
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
-#include "../../common/OCLHelper.h"
+#include "OCLHelper.h"
 #include "cpucaps.h"
 
 #include <math.h>

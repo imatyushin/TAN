@@ -19,19 +19,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #pragma once
 
-#include <stdio.h>
-
 #include "TrueAudioNext.h"       //TAN
-using namespace amf;
 
 #include "public/include/core/Result.h"
+#include "public/include/core/Context.h"
+#include "public/include/core/Buffer.h"
 #include "public/include/core/Compute.h"
+using namespace amf;
 
 #include <CL/cl.h>
+
 #include <cmath>
+#include <stdio.h>
 
 #ifndef AMD_TA_VR
 #define AMD_TA_VR
