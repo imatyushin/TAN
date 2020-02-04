@@ -33,8 +33,8 @@ set(
   ../../../src/FileToHeader/FileToHeader.cpp
   ../../../src/FileToHeader/stdafx.cpp
 
-  ../../../common/FileUtility.cpp
-  ../../../common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
   )
 
 set(

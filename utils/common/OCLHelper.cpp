@@ -179,9 +179,11 @@ bool GetOclKernel
     {
         std::wstring wKernelId(toWideString(kernelID));
         amf::AMF_KERNEL_ID amfKernelID = -1;
+        
+        auto factory(g_AMFFactory.GetFactory());
 
         amf::AMFPrograms *pPrograms(nullptr);
-        g_AMFFactory.GetFactory()->GetPrograms(&pPrograms);
+        factory->GetPrograms(&pPrograms);
 
         if(pPrograms)
         {

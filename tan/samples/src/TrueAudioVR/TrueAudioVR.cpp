@@ -192,7 +192,7 @@ private:
         );
 #endif
 
-    void Release();
+    virtual void Release();
 
 private:
     VRExecutionMode m_executionMode = VRExecutionMode::CPU;
@@ -1273,7 +1273,7 @@ void TrueAudioVRimpl::InitializeAMF(
     int responseLength
     )
 {
-    //AmdTAlogger::logMessage(m_fpLog, "GenerateRoomResponseGPU");
+    g_AMFFactory.Init();
 
     AMF_RESULT status = AMF_OK;
 
@@ -1509,6 +1509,8 @@ void TrueAudioVRimpl::Release()
     }
 #else
 #endif
+
+    g_AMFFactory.Terminate();
 }
 
 /**************************************************************************************************

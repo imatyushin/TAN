@@ -35,8 +35,8 @@ set(
   ../../../src/CLKernelPreprocessor/CLKernelPreprocessor.cpp
   ../../../src/CLKernelPreprocessor/stdafx.cpp
 
-  ../../../common/FileUtility.cpp
-  ../../../common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
   )
 
 set(
