@@ -191,20 +191,7 @@ public:
 #endif
 
     virtual void SetExecutionMode(VRExecutionMode executionMode) = 0;
-    //{
-    //    m_executionMode = executionMode;
-    //}
-
     virtual VRExecutionMode GetExecutionMode() = 0;
-    //{
-    //    return m_executionMode;
-    //}
-
-    /*void SetLogFile(char* pflogname, FILE* pFile)
-    {
-        m_pfNmae = pflogname;
-        m_fpLog = pFile;
-    }*/
 
     /**************************************************************************************************
     AmdTrueAudio::generateSimpleHeadRelatedTransform:
@@ -220,7 +207,6 @@ public:
 
     virtual void applyHRTF(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) = 0;
     virtual void applyHRTFoptCPU(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) = 0;
-
 };
 
 

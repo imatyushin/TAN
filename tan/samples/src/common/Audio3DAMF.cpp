@@ -74,6 +74,8 @@ void Audio3DAMF::Close()
         mPlayer.reset();
     }
 
+    mTrueAudioVR.reset();
+
     // release smart pointers:
     mFft.Release();
     mConvolution.Release();
@@ -497,11 +499,6 @@ bool Audio3DAMF::Init
     AMF_RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &mFft));
     AMF_RETURN_IF_FAILED(mFft->Init());
 
-    if (m_pTAVR != NULL) {
-        delete(m_pTAVR);
-        m_pTAVR = NULL;
-    }
-
     //CL over GPU for both Convolution and Room processing
     if(useAMFConvolution && useAMFRoom)
     {
@@ -613,30 +610,38 @@ bool Audio3DAMF::Init
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
 #endif
 
-    CreateAmdTrueAudioVR(
-        &m_pTAVR,
+    AmdTrueAudioVR *trueAudioVR(nullptr);
+    auto result = CreateAmdTrueAudioVR(
+        &trueAudioVR,
         mTANRoomContext,
         mFft,
         mCompute3,
         FILTER_SAMPLE_RATE, //todo: other frequencies?
         mFFTLength
         );
+    mTrueAudioVR.reset(trueAudioVR);
+
+    AMF_RETURN_IF_FAILED(result);
+    AMF_RETURN_IF_FALSE(nullptr != mTrueAudioVR.get(), AMF_FAIL, L"CreateAmdTrueAudioVR failed");
 
     if(useGPURoom)
     {
-        m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
+        mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
     else
     {
-        m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
+        mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
+
+    //todo: initialize here and check result
+    //mTrueAudioVR->Initialize();
 
     std::cout
         << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H"
         << std::endl;
 
     // head model:
-    m_pTAVR->generateSimpleHeadRelatedTransform(
+    mTrueAudioVR->generateSimpleHeadRelatedTransform(
         ears.hrtf,
         ears.earSpacing
         );
@@ -646,7 +651,7 @@ bool Audio3DAMF::Init
     {
         if(mUseAMFBuffers)
         {
-            m_pTAVR->generateRoomResponse(
+            mTrueAudioVR->generateRoomResponse(
                 room,
                 sources[idx],
                 ears,
@@ -660,7 +665,7 @@ bool Audio3DAMF::Init
         }
         else
         {
-            m_pTAVR->generateRoomResponse(
+            mTrueAudioVR->generateRoomResponse(
                 room,
                 sources[idx],
                 ears,
@@ -1167,7 +1172,7 @@ int Audio3DAMF::UpdateProc()
 
             if(mUseAMFBuffers)
             {
-                m_pTAVR->generateRoomResponse(
+                mTrueAudioVR->generateRoomResponse(
                     room,
                     sources[idx],
                     ears,
@@ -1184,7 +1189,7 @@ int Audio3DAMF::UpdateProc()
                 memset(mResponses[idx * 2], 0, sizeof(float )* mFFTLength);
                 memset(mResponses[idx * 2 + 1], 0, sizeof(float) * mFFTLength);
 
-                m_pTAVR->generateRoomResponse(
+                mTrueAudioVR->generateRoomResponse(
                     room,
                     sources[idx],
                     ears,
@@ -1241,7 +1246,7 @@ int Audio3DAMF::UpdateProc()
 int Audio3DAMF::exportImpulseResponse(int srcNumber, char * fileName)
 {
     int convolutionLength = this->mFFTLength;
-    m_pTAVR->generateSimpleHeadRelatedTransform(
+    mTrueAudioVR->generateSimpleHeadRelatedTransform(
         ears.hrtf,
         ears.earSpacing
         );

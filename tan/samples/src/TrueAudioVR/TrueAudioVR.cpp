@@ -25,17 +25,19 @@
 #include "stdafx.h"
 #include "TrueAudioVR.h"
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
-  #include <omp.h>
-#endif
-
-#include <immintrin.h>
+#include "public/common/TraceAdapter.h"
 
 #include "Kernels/Fill.cl.h"
 #include "Kernels/GenerateRoomResponse.cl.h"
 
 #include "OCLHelper.h"
 #include "cpucaps.h"
+
+#if !defined(__APPLE__) && !defined(__MACOSX)
+  #include <omp.h>
+#endif
+
+#include <immintrin.h>
 
 #include <fstream>
 #include <sstream>
@@ -45,31 +47,12 @@ bool AmdTrueAudioVR::useIntrinsics = InstructionSet::AVX() && InstructionSet::FM
 
 const float AmdTrueAudioVR::S = 340.0; //Speed of sound
 
-class  TrueAudioVRimpl : AmdTrueAudioVR
+class TrueAudioVRimpl: AmdTrueAudioVR
 {
 private:
-    bool initialized = false;
-    int m_length = 0;
-    float m_samplesPerSecond = .0f;
-    //AmdTrueAudio *m_ata;
     TANFFTPtr m_pFft;
     TANMathPtr m_pMath;
     TANContextPtr m_pContext;
-
-    static float freq(int i, int samplesPerSec, int fftLen);
-
-    size_t RoundUp(int groupSize, int globalSize)
-    {
-        int r = globalSize % groupSize;
-        if (r == 0)
-        {
-            return globalSize;
-        }
-        else
-        {
-            return globalSize + groupSize - r;
-        }
-    }
 
 #ifndef TAN_NO_OPENCL
 
@@ -113,16 +96,42 @@ private:
     size_t m_globalWorkSize[3] = {0};
     size_t m_globaSizeFill = 0;
 
-    /*char* m_pfNmae;
-    FILE* m_fpLog;*/
-
-    void Initialize(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
-
 #ifndef TAN_NO_OPENCL
-    void InitializeCL(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
+
+    AMF_RESULT InitializeCL(
+        const StereoListener & ears,
+        int nW,
+        int nH,
+        int nL,
+        int responseLength
+        );
+
 #else
-    void InitializeAMF(const StereoListener & ears, int nW, int nH, int nL, int responseLength);
+
+    AMF_RESULT InitializeAMF(
+        const StereoListener & ears,
+        int nW,
+        int nH,
+        int nL,
+        int responseLength
+        );
+
 #endif
+
+    static float freq(int i, int samplesPerSec, int fftLen);
+
+    size_t RoundUp(int groupSize, int globalSize)
+    {
+        int r = globalSize % groupSize;
+        if (r == 0)
+        {
+            return globalSize;
+        }
+        else
+        {
+            return globalSize + groupSize - r;
+        }
+    }
 
     void generateRoomResponseGPU(
         const MonoSource & sound,
@@ -147,6 +156,7 @@ private:
         );
 
 #ifndef TAN_NO_OPENCL
+
     void generateRoomResponseGPU(
         const MonoSource & sound,
         const RoomDefinition & room,
@@ -168,7 +178,9 @@ private:
         int nH,
         int nL
         );
+
 #else
+
     void generateRoomResponseGPU(
         const MonoSource & sound,
         const RoomDefinition & room,
@@ -190,9 +202,10 @@ private:
         int nH,
         int nL
         );
+
 #endif
 
-    virtual void Release();
+    void Release();
 
 private:
     VRExecutionMode m_executionMode = VRExecutionMode::CPU;
@@ -236,12 +249,6 @@ private:
         int *lastNonZero
         );
 
-    /*void generateRoomResponseCPU(RoomDefinition room, MonoSource source, StereoListener ear,
-    int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags = 0, int maxBounces = 0);*/
-
-    /*void generateRoomResponseGPU(RoomDefinition room, MonoSource source, StereoListener ear,
-    int inSampRate, int responseLength, float *responseLeft, float *responseRight, int flags = 0, int maxBounces = 0);*/
-
     void generateDoorwayDirectResponse(
         const RoomDefinition & room1,
         const RoomDefinition & room2,
@@ -256,11 +263,10 @@ private:
         int flags
         );
 
-    // void generateDoorwayReverbResponse(RoomDefinition room1, RoomDefinition room2,
-    //     MonoSource source, Door door, StereoListener ear, int inSampRate, int responseLength, float *response1, float *response2, int flags, int maxBounces = 0);
-
 public:
+
 #ifndef TAN_NO_OPENCL
+
     TrueAudioVRimpl(
         const TANContextPtr & context,
         const TANFFTPtr & fft,
@@ -268,7 +274,9 @@ public:
         float samplesPerSecond,
         int convolutionLength
         );
+
 #else
+
     TrueAudioVRimpl(
         const TANContextPtr & context,
         const TANFFTPtr & fft,
@@ -276,9 +284,18 @@ public:
         float samplesPerSecond,
         int convolutionLength
         );
+
 #endif
 
     virtual ~TrueAudioVRimpl();
+
+    AMF_RESULT Initialize(
+        const StereoListener & ears,
+        int nW,
+        int nH,
+        int nL,
+        int responseLength
+        );
 
     void generateRoomResponse(
         const RoomDefinition & room,
@@ -345,47 +362,57 @@ public:
 };
 
 #ifndef TAN_NO_OPENCL
-    TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
-    (
-        AmdTrueAudioVR **taVR,
-        const TANContextPtr & context,
-        const TANFFTPtr & fft,
-        cl_command_queue cmdQueue,
-        float samplesPerSecond,
-        int convolutionLength
-    )
+
+TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
+(
+    AmdTrueAudioVR **taVR,
+    const TANContextPtr & context,
+    const TANFFTPtr & fft,
+    cl_command_queue cmdQueue,
+    float samplesPerSecond,
+    int convolutionLength
+)
+{
+    auto trueAudioVR = new TrueAudioVRimpl(
+        context,
+        fft,
+        cmdQueue,
+        samplesPerSecond,
+        convolutionLength
+        );
+
+    if(trueAudioVR)
     {
-        *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
-            context,
-            fft,
-            cmdQueue,
-            samplesPerSecond,
-            convolutionLength
-            );
+        *taVR = trueAudioVR;
 
         return AMF_OK;
     }
+
+    return AMF_FAIL;
+}
+
 #else
-    TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
-    (
-        AmdTrueAudioVR **taVR,
-        const TANContextPtr & context,
-        const TANFFTPtr & fft,
-        AMFCompute * compute,
-        float samplesPerSecond,
-        int convolutionLength
-    )
-    {
-        *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
-            context,
-            fft,
-            compute,
-            samplesPerSecond,
-            convolutionLength
-            );
 
-        return AMF_OK;
-    }
+TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
+(
+    AmdTrueAudioVR **taVR,
+    const TANContextPtr & context,
+    const TANFFTPtr & fft,
+    AMFCompute * compute,
+    float samplesPerSecond,
+    int convolutionLength
+)
+{
+    *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
+        context,
+        fft,
+        compute,
+        samplesPerSecond,
+        convolutionLength
+        );
+
+    return AMF_OK;
+}
 
 #endif
 
@@ -400,11 +427,9 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     ):
     m_pContext(context),
     m_pFft(fft),
-    m_cmdQueue(queue),
-    m_length(convolutionLength),
-    m_samplesPerSecond(samplesPerSecond)
+    m_cmdQueue(queue)
 {
-    if(queue)
+    if(m_cmdQueue)
     {
         clRetainCommandQueue(queue);
         //printf("Queue %llX +1\r\n", cmdQueue);
@@ -422,9 +447,7 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     ):
     m_pContext(context),
     m_pFft(fft),
-    mCompute(compute),
-    m_length(convolutionLength),
-    m_samplesPerSecond(samplesPerSecond)
+    mCompute(compute)
 {
 }
 
@@ -432,6 +455,69 @@ TrueAudioVRimpl::TrueAudioVRimpl(
 
 TrueAudioVRimpl::~TrueAudioVRimpl()
 {
+}
+
+void TrueAudioVRimpl::Release()
+{
+#ifndef TAN_NO_OPENCL
+    if (m_context)
+    {
+        clReleaseContext(m_context);
+        m_context = NULL;
+    }
+
+    if (m_cmdQueue)
+    {
+        //printf("Queue release %llX\r\n", m_cmdQueue);
+        clReleaseCommandQueue(m_cmdQueue);
+        m_cmdQueue = NULL;
+    }
+
+    if (m_kernel)
+    {
+        clReleaseKernel(m_kernel);
+        m_kernel = NULL;
+    }
+
+    if (m_kernelFill)
+    {
+        clReleaseKernel(m_kernelFill);
+        m_kernelFill = NULL;
+    }
+
+    if (m_pReflection)
+    {
+        clReleaseMemObject(m_pReflection);
+        m_pReflection = NULL;
+    }
+
+    if (m_pResponse)
+    {
+        clReleaseMemObject(m_pResponse);
+        m_pResponse = NULL;
+    }
+
+    if (m_pFloatResponse)
+    {
+        clReleaseMemObject(m_pFloatResponse);
+        m_pFloatResponse = NULL;
+    }
+
+    if (m_pLPF)
+    {
+        clReleaseMemObject(m_pLPF);
+        m_pLPF = NULL;
+    }
+
+    if (m_pHPF)
+    {
+        clReleaseMemObject(m_pHPF);
+        m_pHPF = NULL;
+    }
+#else
+#endif
+
+    g_AMFFactory.Terminate();
 }
 
 /**************************************************************************************************
@@ -1059,7 +1145,7 @@ void TrueAudioVRimpl::generateDirectResponse(
     }
 }
 
-void TrueAudioVRimpl::Initialize(
+AMF_RESULT TrueAudioVRimpl::Initialize(
     const StereoListener & ears,
     int nW,
     int nH,
@@ -1069,6 +1155,8 @@ void TrueAudioVRimpl::Initialize(
 {
     mResponseLength = responseLength;
     mResponseBuffer.resize(responseLength);
+
+
 }
 
 #ifndef TAN_NO_OPENCL
@@ -1265,7 +1353,7 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
 
 #else
 
-void TrueAudioVRimpl::InitializeAMF(
+AMF_RESULT TrueAudioVRimpl::InitializeAMF(
     const StereoListener & ears,
     int nW,
     int nH,
@@ -1273,7 +1361,7 @@ void TrueAudioVRimpl::InitializeAMF(
     int responseLength
     )
 {
-    g_AMFFactory.Init();
+    AMF_RETURN_IF_FAILED(g_AMFFactory.Init());
 
     AMF_RESULT status = AMF_OK;
 
@@ -1281,71 +1369,87 @@ void TrueAudioVRimpl::InitializeAMF(
 
     // Compile kernel
     {
-        GetOclKernel(
-            mKernel,
-            mCompute,
-            "GenerateRoomResponse",
-            "GenerateRoomResponse",
-            (const char *)GenerateRoomResponse,
-            GenerateRoomResponseCount,
-            ""
+        AMF_RETURN_IF_FALSE(
+            GetOclKernel(
+                mKernel,
+                mCompute,
+                "GenerateRoomResponse",
+                "GenerateRoomResponse",
+                (const char *)GenerateRoomResponse,
+                GenerateRoomResponseCount,
+                ""
+                ),
+            AMF_FAIL
             );
     }
 
     {
         // TODO: include the proper path
 
-        GetOclKernel(
-            mKernelFill,
-            mCompute,
-            "Fill",
-            "Fill",
-            (const char *)Fill,
-            FillCount,
-            ""
+        AMF_RETURN_IF_FALSE(
+            GetOclKernel(
+                mKernelFill,
+                mCompute,
+                "Fill",
+                "Fill",
+                (const char *)Fill,
+                FillCount,
+                ""
+                ),
+            AMF_FAIL
             );
     }
 
+    AMF_RETURN_IF_FAILED(
+        mContext->AllocBuffer(
+            AMF_MEMORY_OPENCL,
+            responseLength * sizeof(float),
+            &mResponse
+            )
+        );
+
+    AMF_RETURN_IF_FAILED(
+        mContext->AllocBuffer(
+            AMF_MEMORY_OPENCL,
+            responseLength * sizeof(float),
+            &mFloatResponse
+            )
+        );
+
     printf("\n\nFIXME!!!!\n\n");
 
-    /*m_pResponse =  clCreateBuffer(m_context, CL_MEM_READ_WRITE, responseLength * sizeof(float), NULL, &status);
-
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }
-
-    m_pFloatResponse =  clCreateBuffer(m_context, CL_MEM_READ_WRITE, responseLength * sizeof(float), NULL, &status);
-
+    /*
     // zero buffers
     float fill = 0.0;
     status = clEnqueueFillBuffer(m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
     status = clEnqueueFillBuffer(m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
 
-    //void *frMap = clEnqueueMapBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
-
     // TODO: log errors
     if (status != CL_SUCCESS)
     {
         return;
-    }
+    }*/
 
     //TODO: combine the LPF and HPF into one chunk of memory
-    m_pHPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-        HeadFilterSize * sizeof(float), ears.hrtf.highPass, &status);
+    //m_pHPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+    //    HeadFilterSize * sizeof(float), ears.hrtf.highPass, &status);
+    AMF_RETURN_IF_FAILED(
+        mContext->AllocBuffer(
+            AMF_MEMORY_HOST,
+            HeadFilterSize * sizeof(float),
+            &mHPF
+            )
+        );
 
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }
-
-    m_pLPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-        HeadFilterSize * sizeof(float), ears.hrtf.lowPass, &status);
-
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }*/
+    //m_pLPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+    //    HeadFilterSize * sizeof(float), ears.hrtf.lowPass, &status);
+    AMF_RETURN_IF_FAILED(
+        mContext->AllocBuffer(
+            AMF_MEMORY_HOST,
+            HeadFilterSize * sizeof(float),
+            &mLPF
+            )
+        );
 
     m_globalWorkSize[0] = RoundUp(localX, nW);
     m_globalWorkSize[1] = RoundUp(localY, nH);
@@ -1448,69 +1552,6 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
         true
         );
 #endif
-}
-
-void TrueAudioVRimpl::Release()
-{
-#ifndef TAN_NO_OPENCL
-    if (m_context)
-    {
-        clReleaseContext(m_context);
-        m_context = NULL;
-    }
-
-    if (m_cmdQueue)
-    {
-        //printf("Queue release %llX\r\n", m_cmdQueue);
-        clReleaseCommandQueue(m_cmdQueue);
-        m_cmdQueue = NULL;
-    }
-
-    if (m_kernel)
-    {
-        clReleaseKernel(m_kernel);
-        m_kernel = NULL;
-    }
-
-    if (m_kernelFill)
-    {
-        clReleaseKernel(m_kernelFill);
-        m_kernelFill = NULL;
-    }
-
-    if (m_pReflection)
-    {
-        clReleaseMemObject(m_pReflection);
-        m_pReflection = NULL;
-    }
-
-    if (m_pResponse)
-    {
-        clReleaseMemObject(m_pResponse);
-        m_pResponse = NULL;
-    }
-
-    if (m_pFloatResponse)
-    {
-        clReleaseMemObject(m_pFloatResponse);
-        m_pFloatResponse = NULL;
-    }
-
-    if (m_pLPF)
-    {
-        clReleaseMemObject(m_pLPF);
-        m_pLPF = NULL;
-    }
-
-    if (m_pHPF)
-    {
-        clReleaseMemObject(m_pHPF);
-        m_pHPF = NULL;
-    }
-#else
-#endif
-
-    g_AMFFactory.Terminate();
 }
 
 /**************************************************************************************************

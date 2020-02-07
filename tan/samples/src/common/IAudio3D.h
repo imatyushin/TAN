@@ -199,7 +199,7 @@ public:
 
     virtual AmdTrueAudioVR * getAMDTrueAudioVR()
     {
-        return m_pTAVR;
+        return mTrueAudioVR.get();
     }
 
     virtual TANConverterPtr getTANConverter()
@@ -239,7 +239,8 @@ protected:
     TANMixerPtr                 mMixer;
 	TANFFTPtr                   mFft;
 
-    AmdTrueAudioVR *m_pTAVR = NULL;
+    std::unique_ptr<AmdTrueAudioVR>
+                                mTrueAudioVR;
 
     RoomDefinition room;
     MonoSource sources[MAX_SOURCES];
