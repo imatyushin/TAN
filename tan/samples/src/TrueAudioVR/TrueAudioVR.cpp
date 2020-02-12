@@ -1452,6 +1452,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
+    mLPF->Convert(amf::AMF_MEMORY_OPENCL);
 
     m_globalWorkSize[0] = RoundUp(localX, nW);
     m_globalWorkSize[1] = RoundUp(localY, nH);
