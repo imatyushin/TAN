@@ -482,21 +482,24 @@ void RoomAcousticQTConfig::storeRoomFields()
 	m_RoomAcousticInstance.mRoomOverCL = currentIndex > 0;
 	if(m_RoomAcousticInstance.mRoomOverCL)
 	{
-		if(currentIndex - 1 < m_RoomAcousticInstance.mCPUDevicesCount)
+		--currentIndex; //exclude first software item
+
+		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesCount)
 		{
 			m_RoomAcousticInstance.mRoomOverGPU = false;
-			m_RoomAcousticInstance.mRoomDeviceIndex =
-			    currentIndex - m_RoomAcousticInstance.mCPUDevicesCount;
+			m_RoomAcousticInstance.mRoomDeviceIndex = currentIndex;
 		}
 		else
 		{
+			currentIndex -= m_RoomAcousticInstance.mCPUDevicesCount;
+
 			m_RoomAcousticInstance.mRoomOverGPU = true;
-			m_RoomAcousticInstance.mRoomDeviceIndex =
-			    currentIndex - m_RoomAcousticInstance.mCPUDevicesCount - (m_RoomAcousticInstance.mGPUDevicesCount - 1);
+			m_RoomAcousticInstance.mRoomDeviceIndex = currentIndex;
 		}
 	}
 	else
 	{
+		m_RoomAcousticInstance.mRoomOverGPU = false;
 		m_RoomAcousticInstance.mRoomDeviceIndex = 0;
 	}
 
@@ -530,7 +533,9 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 
 	if(m_RoomAcousticInstance.mConvolutionOverCL)
 	{
-		if(currentIndex - 1 < m_RoomAcousticInstance.mCPUDevicesCount)
+		--currentIndex; //exclude first software item
+
+		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesCount)
 		{
 			if(m_RoomAcousticInstance.mConvolutionOverGPU)
 			{
@@ -538,18 +543,19 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 			}
 
 			m_RoomAcousticInstance.mConvolutionOverGPU = false;
-			m_RoomAcousticInstance.mConvolutionDeviceIndex =
-			    currentIndex - m_RoomAcousticInstance.mCPUDevicesCount;
+			m_RoomAcousticInstance.mConvolutionDeviceIndex = currentIndex;
 		}
 		else
 		{
+			currentIndex -= m_RoomAcousticInstance.mCPUDevicesCount;
+
 			m_RoomAcousticInstance.mConvolutionOverGPU = true;
-			m_RoomAcousticInstance.mConvolutionDeviceIndex =
-			    currentIndex - m_RoomAcousticInstance.mCPUDevicesCount - (m_RoomAcousticInstance.mGPUDevicesCount - 1);
+			m_RoomAcousticInstance.mConvolutionDeviceIndex = currentIndex;
 		}
 	}
 	else
 	{
+		m_RoomAcousticInstance.mConvolutionOverGPU = false;
 		m_RoomAcousticInstance.mConvolutionDeviceIndex = 0;
 	}
 
@@ -616,7 +622,7 @@ void RoomAcousticQTConfig::printConfiguration()
 	// Print Convolution Infomation
 	qInfo("\nConvolution length: %d, Buffer size: %d", this->m_RoomAcousticInstance.m_iConvolutionLength, this->m_RoomAcousticInstance.m_iBufferSize);
 #ifdef RTQ_ENABLED
-	qInfo("Convolution using OpenCL: %c, Running On GPU: %c, Normal queue: %c, Medium Queue: %c, RTQ: %c, CUS: %d",
+	qInfo("\nConvolution using OpenCL: %c, Running On GPU: %c, Normal queue: %c, Medium Queue: %c, RTQ: %c, CUS: %d",
 		m_RoomAcousticInstance.mConvolutionOverCL ? 'y' : 'n',
 		m_RoomAcousticInstance.mConvolutionOverGPU ? 'y' : 'n',
 		m_RoomAcousticInstance.mConvolutionPriority == 0 ? 'y' : 'n',
@@ -1337,6 +1343,11 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 				    ? m_RoomAcousticInstance.getLastError().c_str()
 					: "Could not start playing, please see output log!"
 				);
+
+			if(m_RoomAcousticInstance.getLastError().length())
+			{
+				std::cerr << m_RoomAcousticInstance.getLastError() << std::endl;
+			}
 		}
 	}
 	else
