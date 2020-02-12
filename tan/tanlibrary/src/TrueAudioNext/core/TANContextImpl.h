@@ -59,16 +59,16 @@ namespace amf
         cl_command_queue AMF_STD_CALL GetOpenCLConvQueue() override;
 #endif
 
-        AMF_RESULT  AMF_STD_CALL    InitAMF(
+        AMF_RESULT  AMF_STD_CALL InitAMF(
             AMFContext *generalContext,
             AMFCompute *generalQueue,
             AMFContext *convolutionContext,
             AMFCompute *convolutionQueue
             ) override;
 
-        AMFContext * AMF_STD_CALL   GetAMFContext() override;
-        AMFCompute * AMF_STD_CALL	GetAMFGeneralQueue() override;
-        AMFCompute * AMF_STD_CALL	GetAMFConvQueue() override;
+        AMFContext * AMF_STD_CALL GetAMFContext() override;
+        AMFCompute * AMF_STD_CALL GetAMFGeneralQueue() override;
+        AMFCompute * AMF_STD_CALL GetAMFConvQueue() override;
 
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }

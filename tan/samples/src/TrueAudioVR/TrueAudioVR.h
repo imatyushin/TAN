@@ -153,7 +153,7 @@ public:
     virtual void generateRoomResponse(
         const RoomDefinition & room,
         MonoSource source,
-        const StereoListener & ear,
+        StereoListener & ear,
         int inSampRate,
         int responseLength,
         void *responseL,

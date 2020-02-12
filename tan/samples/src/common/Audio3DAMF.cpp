@@ -386,6 +386,7 @@ bool Audio3DAMF::Init
             //CL room on GPU
             if(useAMFRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
+                mContext3 = mContext12;
                 mCompute3 = mCompute2;
             }
         }
@@ -413,6 +414,7 @@ bool Audio3DAMF::Init
             //CL room on CPU
             if(useAMFRoom && !useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
             {
+                mContext3 = mContext12;
                 mCompute3 = mCompute2;
             }
         }
@@ -508,7 +510,7 @@ bool Audio3DAMF::Init
             {
                 //mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, mFFTLength * sizeof(float), NULL, &status);
                 AMF_RETURN_IF_FAILED(mContext12->AllocBuffer(
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN,
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
                     mFFTLength * sizeof(float),
                     &mAMFResponses[i]
                     ));
