@@ -1155,7 +1155,7 @@ AMF_RESULT TrueAudioVRimpl::Initialize(
     mResponseLength = responseLength;
     mResponseBuffer.resize(responseLength);
 
-
+	return AMF_OK;
 }
 
 #ifndef TAN_NO_OPENCL
@@ -1458,6 +1458,8 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
     m_globalWorkSize[2] = RoundUp(localZ, nL);
 
     m_globaSizeFill = RoundUp(responseLength / 4, localSizeFill);
+
+	return AMF_OK;
 }
 
 void TrueAudioVRimpl::generateRoomResponseGPU(

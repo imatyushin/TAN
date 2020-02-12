@@ -29,7 +29,9 @@
 #include "public/include/core/Compute.h"
 using namespace amf;
 
-#include <CL/cl.h>
+#ifndef TAN_NO_OPENCL
+  #include <CL/cl.h>
+#endif
 
 #include <cmath>
 #include <stdio.h>
