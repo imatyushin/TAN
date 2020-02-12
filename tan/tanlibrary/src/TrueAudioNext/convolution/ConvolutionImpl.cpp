@@ -174,16 +174,19 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
-    AMF_RETURN_IF_FALSE(
 #ifndef TAN_NO_OPENCL
-        m_pContextTAN->GetOpenCLContext() != nullptr
+	AMF_RETURN_IF_FALSE(
+        m_pContextTAN->GetOpenCLContext() != nullptr,
+		AMF_WRONG_STATE,
+		L"Cannot initialize on GPU with a CPU context"
+		);
 #else
-        m_pContextTAN->GetAMFContext() != nullptr
-#endif
-        ,
+	AMF_RETURN_IF_FALSE(
+        m_pContextTAN->GetAMFContext() != nullptr,
         AMF_WRONG_STATE,
         L"Cannot initialize on GPU with a CPU context"
         );
+#endif
 
     return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, true);
 }
@@ -547,6 +550,8 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseFD(
     const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
     )
 {
+	AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
+	return AMF_NOT_SUPPORTED;
 }
 
 // Process direct (no update required), system memory buffers:

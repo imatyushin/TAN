@@ -606,8 +606,14 @@ bool Audio3DAMF::Init
 #ifdef _WIN32
     HMODULE TanVrDll;
     TanVrDll = LoadLibraryA("TrueAudioVR.dll");
+
+#ifndef TAN_NO_OPENCL
     typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
-    CREATEVR CreateAmdTrueAudioVR = nullptr;
+#else
+	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, AMFCompute * compute, float samplesPerSecond, int convolutionLength);
+#endif
+	
+	CREATEVR CreateAmdTrueAudioVR = nullptr;
 
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
 #endif
@@ -1140,11 +1146,11 @@ int Audio3DAMF::ProcessProc()
     else
     {
         puts("wrote output to RoomAcousticsRun.wav");
-    }* /
+    }*/
 
     mRunning = false;
 
-    return 0;*/
+    return 0;
 }
 
 unsigned Audio3DAMF::updateThreadProc(void * ptr)
