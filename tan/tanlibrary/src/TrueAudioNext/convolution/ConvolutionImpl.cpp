@@ -904,7 +904,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
     amf_uint32 bufferSizeInSamples,
     amf_uint32 channels,
     bool doProcessingOnGpu,
-    amf::AMFFactory *
+    amf::AMFFactory * factory
 )
 {
     //todo: investigate (block?) usage of CL and AMF contexts simultaneously
@@ -992,7 +992,8 @@ AMF_RESULT  TANConvolutionImpl::Init(
                 "crossfade",
                 Crossfading_Str,
                 CrossfadingCount,
-                ""
+                "",
+				factory
                 );
 #endif
 
