@@ -147,7 +147,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Init(
         responseLengthInSamples,
         bufferSizeInSamples,
         channels,
-        false
+        false,
+        nullptr
         );
 }
 
@@ -162,7 +163,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitCpu(
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
-    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, false);
+    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, false, nullptr);
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
@@ -188,7 +189,35 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
         );
 #endif
 
-    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, true);
+    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, true, nullptr);
+}
+
+AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpuAMF(
+    amf::AMFFactory * factory,
+    TAN_CONVOLUTION_METHOD convolutionMethod,
+    amf_uint32 responseLengthInSamples,
+    amf_uint32 bufferSizeInSamples,
+    amf_uint32 channels
+    )
+{
+    AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
+        L"Cannot initialize after termination");
+
+#ifndef TAN_NO_OPENCL
+	AMF_RETURN_IF_FALSE(
+        m_pContextTAN->GetOpenCLContext() != nullptr,
+		AMF_WRONG_STATE,
+		L"Cannot initialize on GPU with a CPU context"
+		);
+#else
+	AMF_RETURN_IF_FALSE(
+        m_pContextTAN->GetAMFContext() != nullptr,
+        AMF_WRONG_STATE,
+        L"Cannot initialize on GPU with a CPU context"
+        );
+#endif
+
+    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, true, factory);
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
@@ -874,7 +903,8 @@ AMF_RESULT  TANConvolutionImpl::Init(
     amf_uint32 responseLengthInSamples,
     amf_uint32 bufferSizeInSamples,
     amf_uint32 channels,
-    bool doProcessingOnGpu
+    bool doProcessingOnGpu,
+    amf::AMFFactory *
 )
 {
     //todo: investigate (block?) usage of CL and AMF contexts simultaneously

@@ -26,6 +26,7 @@
 #include "cpucaps.h"
 
 #include "public/common/TraceAdapter.h"
+#include "public/common/AMFFactory.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -251,6 +252,8 @@ bool Audio3DAMF::Init
 #endif
         );
 
+    auto factory = g_AMFFactory.GetFactory();
+
     //assume that all opened files has the same format
     //and we have at least one opened file
     auto openStatus = mPlayer->Init(
@@ -471,7 +474,8 @@ bool Audio3DAMF::Init
     if(useAMFConvolution)
     {
         AMF_RETURN_IF_FAILED(
-            mConvolution->InitGpu(
+            mConvolution->InitGpuAMF(
+                factory,
                 convMethod,
                 mFFTLength,
                 mBufferSizeInSamples,
@@ -612,7 +616,7 @@ bool Audio3DAMF::Init
 #else
 	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, AMFCompute * compute, float samplesPerSecond, int convolutionLength);
 #endif
-	
+
 	CREATEVR CreateAmdTrueAudioVR = nullptr;
 
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");

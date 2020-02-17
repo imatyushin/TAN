@@ -32,6 +32,7 @@
 #include "public/include/core/PropertyStorageEx.h"
 #include "public/include/core/Context.h"
 #include "public/include/core/Buffer.h"
+#include "public/common/AMFFactory.h"
 
 #ifdef RTQ_ENABLED
 ///This section is not related to RTQ, only listed so it can be strip away
@@ -130,18 +131,25 @@ namespace amf
         // Note: this method allocates internal buffers and initializes internal structures. Should
         // only be called once.
         virtual	AMF_RESULT	AMF_STD_CALL	Init(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                                 amf_uint32 responseLengthInSamples,
-                                                 amf_uint32 bufferSizeInSamples,
-                                                 amf_uint32 channels) = 0;
+                                                amf_uint32 responseLengthInSamples,
+                                                amf_uint32 bufferSizeInSamples,
+                                                amf_uint32 channels) = 0;
         // Slated to be removed
         virtual AMF_RESULT  AMF_STD_CALL    InitCpu(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                                    amf_uint32 responseLengthInSamples,
-                                                    amf_uint32 bufferSizeInSamples,
-                                                    amf_uint32 channels) = 0;
-        virtual AMF_RESULT  AMF_STD_CALL    InitGpu(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                                    amf_uint32 responseLengthInSamples,
-                                                    amf_uint32 bufferSizeInSamples,
-                                                    amf_uint32 channels) = 0;
+                                                amf_uint32 responseLengthInSamples,
+                                                amf_uint32 bufferSizeInSamples,
+                                                amf_uint32 channels) = 0;
+        virtual AMF_RESULT  AMF_STD_CALL    InitGpu(
+                                                TAN_CONVOLUTION_METHOD convolutionMethod,
+                                                amf_uint32 responseLengthInSamples,
+                                                amf_uint32 bufferSizeInSamples,
+                                                amf_uint32 channels) = 0;
+        virtual AMF_RESULT  AMF_STD_CALL    InitGpuAMF(
+                                                amf::AMFFactory * factory,
+                                                TAN_CONVOLUTION_METHOD convolutionMethod,
+                                                amf_uint32 responseLengthInSamples,
+                                                amf_uint32 bufferSizeInSamples,
+                                                amf_uint32 channels) = 0;
 
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;

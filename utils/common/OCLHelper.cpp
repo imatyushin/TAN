@@ -169,7 +169,8 @@ bool GetOclKernel
     const std::string &         kernelName,
     const std::string &         kernelSource,
     size_t                      kernelSourceSize,
-    const std::string &         comp_options
+    const std::string &         comp_options,
+    amf::AMFFactory *           factory
 )
 {
     resultKernel = nullptr;
@@ -179,8 +180,11 @@ bool GetOclKernel
     {
         std::wstring wKernelId(toWideString(kernelID));
         amf::AMF_KERNEL_ID amfKernelID = -1;
-        
-        auto factory(g_AMFFactory.GetFactory());
+
+        if(!factory)
+        {
+            factory = g_AMFFactory.GetFactory();
+        }
 
         amf::AMFPrograms *pPrograms(nullptr);
         factory->GetPrograms(&pPrograms);

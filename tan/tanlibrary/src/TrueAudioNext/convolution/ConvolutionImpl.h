@@ -151,18 +151,23 @@ namespace amf
 
 //TANConvolution interface
 
-		AMF_RESULT	AMF_STD_CALL	Init(TAN_CONVOLUTION_METHOD convolutionMethod,
-										 amf_uint32 responseLengthInSamples,
-										 amf_uint32 bufferSizeInSamples,
-										 amf_uint32 channels) override;
+		AMF_RESULT	AMF_STD_CALL Init(TAN_CONVOLUTION_METHOD convolutionMethod,
+										amf_uint32 responseLengthInSamples,
+										amf_uint32 bufferSizeInSamples,
+										amf_uint32 channels) override;
         AMF_RESULT  AMF_STD_CALL InitCpu(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                         amf_uint32 responseLengthInSamples,
-                                         amf_uint32 bufferSizeInSamples,
-                                         amf_uint32 channels) override;
+                                        amf_uint32 responseLengthInSamples,
+                                        amf_uint32 bufferSizeInSamples,
+                                        amf_uint32 channels) override;
         AMF_RESULT  AMF_STD_CALL InitGpu(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                         amf_uint32 responseLengthInSamples,
-                                         amf_uint32 bufferSizeInSamples,
-                                         amf_uint32 channels) override;
+                                        amf_uint32 responseLengthInSamples,
+                                        amf_uint32 bufferSizeInSamples,
+                                        amf_uint32 channels) override;
+        AMF_RESULT  AMF_STD_CALL InitGpuAMF(amf::AMFFactory * factory,
+                                        TAN_CONVOLUTION_METHOD convolutionMethod,
+                                        amf_uint32 responseLengthInSamples,
+                                        amf_uint32 bufferSizeInSamples,
+                                        amf_uint32 channels) override;
         AMF_RESULT  AMF_STD_CALL Terminate() override;
 
         AMF_RESULT  AMF_STD_CALL UpdateResponseTD(float* ppBuffer[],
@@ -284,10 +289,12 @@ namespace amf
 
     protected:
         virtual AMF_RESULT  Init(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                 amf_uint32 responseLengthInSamples,
-                                 amf_uint32 bufferSizeInSamples,
-                                 amf_uint32 channels,
-                                 bool doProcessingOnGpu);
+                                amf_uint32 responseLengthInSamples,
+                                amf_uint32 bufferSizeInSamples,
+                                amf_uint32 channels,
+                                bool doProcessingOnGpu,
+                                amf::AMFFactory * factory
+                                );
 
         virtual AMF_RESULT Flush(amf_uint32 filterStateId, amf_uint32 channelId);
 

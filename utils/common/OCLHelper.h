@@ -49,7 +49,8 @@ bool GetOclKernel
     const std::string &         kernelName,
     const std::string &         kernelSource,
     size_t                      kernelSourceSize,
-    const std::string &         comp_options
+    const std::string &         comp_options,
+    amf::AMFFactory *           factory = nullptr
 );
 
 #endif
