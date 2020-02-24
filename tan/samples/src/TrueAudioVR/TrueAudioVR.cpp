@@ -132,7 +132,7 @@ private:
         }
     }
 
-    void generateRoomResponseGPU(
+    AMF_RESULT generateRoomResponseGPU(
         const MonoSource & sound,
         const RoomDefinition & room,
         float* response,
@@ -156,7 +156,7 @@ private:
 
 #ifndef TAN_NO_OPENCL
 
-    void generateRoomResponseGPU(
+    AMF_RESULT generateRoomResponseGPU(
         const MonoSource & sound,
         const RoomDefinition & room,
         cl_mem response,
@@ -180,7 +180,7 @@ private:
 
 #else
 
-    void generateRoomResponseGPU(
+    AMF_RESULT generateRoomResponseGPU(
         const MonoSource & sound,
         const RoomDefinition & room,
         AMFBuffer * response,
@@ -1159,7 +1159,6 @@ AMF_RESULT TrueAudioVRimpl::Initialize(
 }
 
 #ifndef TAN_NO_OPENCL
-
 void TrueAudioVRimpl::InitializeCL(
     StereoListener & ears,
     int nW,
@@ -1260,98 +1259,7 @@ void TrueAudioVRimpl::InitializeCL(
 
     m_globaSizeFill = RoundUp(responseLength / 4, localSizeFill);
 }
-
-void TrueAudioVRimpl::generateRoomResponseGPU(
-    const MonoSource & sound,
-    const RoomDefinition & room,
-    cl_mem floatResponse,
-    float headX,
-    float headY,
-    float headZ,
-    float earVX,
-    float earVY,
-    float earVZ,
-    float earV,
-    float maxGain,
-    float dMin,
-    int inSampRate,
-    int responseLength,
-    int hrtfResponseLength,
-    int filterLength,
-    int nW,
-    int nH,
-    int nL
-    )
-{
-    //Set kernel arguments
-    //TODO: pass parameters as structures
-    int argIdx = 0;
-    int status = 0;
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(cl_mem), &m_pResponse);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(cl_mem), &m_pHPF);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(cl_mem), &m_pLPF);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &sound.speakerX);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &sound.speakerY);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &sound.speakerZ);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &headX);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &headY);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &headZ);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earVX);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earVY);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earVZ);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earV);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.width);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.length);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.height);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mRight.damp);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mLeft.damp);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mFront.damp);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mBack.damp);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mTop.damp);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mBottom.damp);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &maxGain);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &dMin);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &inSampRate);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &responseLength);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &hrtfResponseLength);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &filterLength);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nW);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nH);
-    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nL);
-
-    size_t localWorkSize[3] = { localX, localY, localZ };
-
-    status = clEnqueueNDRangeKernel(m_cmdQueue, m_kernel, 3, NULL, m_globalWorkSize, localWorkSize, 0, NULL, NULL);
-
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }
-
-    //convert the response buffer
-     size_t localSize = localSizeFill;
-    status = clSetKernelArg(m_kernelFill, 0, sizeof(cl_mem), &m_pResponse);
-    status |= clSetKernelArg(m_kernelFill, 1, sizeof(cl_mem), &floatResponse);
-    status |= clEnqueueNDRangeKernel(m_cmdQueue, m_kernelFill, 1, NULL, &m_globaSizeFill, &localSize, 0, NULL, NULL);
-
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }
-    /*
-    status = clEnqueueReadBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, 0, responseLength * sizeof(float), response, NULL, NULL, NULL);
-
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }
-    */
-    //void *frMap = clEnqueueMapBuffer(m_cmdQueue, floatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
-
-}
-
 #else
-
 AMF_RESULT TrueAudioVRimpl::InitializeAMF(
     StereoListener & ears,
     int nW,
@@ -1462,8 +1370,83 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
 	return AMF_OK;
 }
+#endif
 
-void TrueAudioVRimpl::generateRoomResponseGPU(
+#ifndef TAN_NO_OPENCL
+AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
+    const MonoSource & sound,
+    const RoomDefinition & room,
+    cl_mem floatResponse,
+    float headX,
+    float headY,
+    float headZ,
+    float earVX,
+    float earVY,
+    float earVZ,
+    float earV,
+    float maxGain,
+    float dMin,
+    int inSampRate,
+    int responseLength,
+    int hrtfResponseLength,
+    int filterLength,
+    int nW,
+    int nH,
+    int nL
+    )
+{
+    //Set kernel arguments
+    //TODO: pass parameters as structures
+    int argIdx = 0;
+    int status = 0;
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(cl_mem), &m_pResponse);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(cl_mem), &m_pHPF);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(cl_mem), &m_pLPF);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &sound.speakerX);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &sound.speakerY);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &sound.speakerZ);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &headX);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &headY);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &headZ);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earVX);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earVY);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earVZ);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &earV);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.width);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.length);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.height);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mRight.damp);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mLeft.damp);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mFront.damp);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mBack.damp);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mTop.damp);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &room.mBottom.damp);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &maxGain);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(float), &dMin);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &inSampRate);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &responseLength);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &hrtfResponseLength);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &filterLength);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nW);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nH);
+    status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nL);
+
+    size_t localWorkSize[3] = { localX, localY, localZ };
+
+    status = clEnqueueNDRangeKernel(m_cmdQueue, m_kernel, 3, NULL, m_globalWorkSize, localWorkSize, 0, NULL, NULL);
+
+    AMF_RETURN_IF_FAILED(status != CL_SUCCESS, AMF_FAIL);
+
+    //convert the response buffer
+     size_t localSize = localSizeFill;
+    status = clSetKernelArg(m_kernelFill, 0, sizeof(cl_mem), &m_pResponse);
+    status |= clSetKernelArg(m_kernelFill, 1, sizeof(cl_mem), &floatResponse);
+    status |= clEnqueueNDRangeKernel(m_cmdQueue, m_kernelFill, 1, NULL, &m_globaSizeFill, &localSize, 0, NULL, NULL);
+
+    AMF_RETURN_IF_FAILED(status != CL_SUCCESS, AMF_FAIL);
+}
+#else
+AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     const MonoSource & sound,
     const RoomDefinition & room,
     AMFBuffer * floatResponse,
@@ -1485,11 +1468,72 @@ void TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
-    throw "Not implemented!";
+    //Set kernel arguments
+    //TODO: pass parameters as structures
+    int argIdx = 0;
+    int status = 0;
+    mKernel->SetArgBuffer(argIdx++, mResponse, AMF_ARGUMENT_ACCESS_READWRITE);
+    mKernel->SetArgBuffer(argIdx++, mHPF, AMF_ARGUMENT_ACCESS_READWRITE);
+    mKernel->SetArgBuffer(argIdx++, mLPF, AMF_ARGUMENT_ACCESS_READWRITE);
+
+    mKernel->SetArgFloat(argIdx++, sound.speakerX);
+    mKernel->SetArgFloat(argIdx++, sound.speakerY);
+    mKernel->SetArgFloat(argIdx++, sound.speakerZ);
+
+    mKernel->SetArgFloat(argIdx++, headX);
+    mKernel->SetArgFloat(argIdx++, headY);
+    mKernel->SetArgFloat(argIdx++, headZ);
+
+    mKernel->SetArgFloat(argIdx++, earVX);
+    mKernel->SetArgFloat(argIdx++, earVY);
+    mKernel->SetArgFloat(argIdx++, earVZ);
+
+    mKernel->SetArgFloat(argIdx++, earV);
+
+    mKernel->SetArgFloat(argIdx++, room.width);
+    mKernel->SetArgFloat(argIdx++, room.length);
+    mKernel->SetArgFloat(argIdx++, room.height);
+
+
+    mKernel->SetArgFloat(argIdx++, room.mRight.damp);
+    mKernel->SetArgFloat(argIdx++, room.mLeft.damp);
+    mKernel->SetArgFloat(argIdx++, room.mFront.damp);
+    mKernel->SetArgFloat(argIdx++, room.mBack.damp);
+    mKernel->SetArgFloat(argIdx++, room.mTop.damp);
+    mKernel->SetArgFloat(argIdx++, room.mBottom.damp);
+
+    mKernel->SetArgFloat(argIdx++, maxGain);
+    mKernel->SetArgFloat(argIdx++, dMin);
+
+    mKernel->SetArgInt32(argIdx++, inSampRate);
+    mKernel->SetArgInt32(argIdx++, responseLength);
+    mKernel->SetArgInt32(argIdx++, hrtfResponseLength);
+    mKernel->SetArgInt32(argIdx++, filterLength);
+    mKernel->SetArgInt32(argIdx++, nW);
+    mKernel->SetArgInt32(argIdx++, nH);
+    mKernel->SetArgInt32(argIdx++, nL);
+
+    size_t localWorkSize[3] = { localX, localY, localZ };
+
+    AMF_RETURN_IF_FAILED(
+        mKernel->Enqueue(3, nullptr, m_globalWorkSize, localWorkSize)
+        );
+
+    //convert the response buffer
+    size_t localSize = localSizeFill;
+
+    mKernelFill->SetArgBuffer(0, mResponse, AMF_ARGUMENT_ACCESS_READWRITE);
+    mKernelFill->SetArgBuffer(1, floatResponse, AMF_ARGUMENT_ACCESS_READWRITE);
+
+    AMF_RETURN_IF_FAILED(
+        mKernelFill->Enqueue(1, nullptr, &m_globaSizeFill, &localSize)
+        );
+
+    return AMF_OK;
 }
 #endif
 
-void TrueAudioVRimpl::generateRoomResponseGPU(
+AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     const MonoSource & sound,
     const RoomDefinition & room,
     float* response,

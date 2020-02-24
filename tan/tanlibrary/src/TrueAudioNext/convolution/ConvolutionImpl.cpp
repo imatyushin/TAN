@@ -30,7 +30,7 @@
 #include "CLKernel_TimeDomainConvolution.h"
 
 #ifndef TAN_NO_OPENCL
-#include <CL/cl.h>
+  #include <CL/cl.h>
 #endif
 
 #include <tuple>
@@ -282,8 +282,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     // process
 
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.buffer.host = pBuffer;
-    sampleBuffer.mType = AMF_MEMORY_HOST;
+    sampleBuffer.SetHost(pBuffer);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
@@ -307,16 +306,41 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
 
     // process
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.buffer.clmem = pBuffer;
-    sampleBuffer.mType = AMF_MEMORY_OPENCL;
+    sampleBuffer.SetCLBuffers(AMF_MEMORY_OPENCL, pBuffer);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
 #endif
 
+AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
+    AMFBuffer * ppBuffer[],
+    amf_size numOfSamplesToProcess,
+    const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+    const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+    )
+{
+    AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
+    AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
+
+    AMF_RESULT res = AMF_OK;
+
+    bool needToUpdateInputBuf = false;
+
+    // process
+    TANSampleBuffer sampleBuffer;
+    sampleBuffer.SetAMFBuffers(ppBuffer);
+
+    return UpdateResponseTD(
+        sampleBuffer,
+        numOfSamplesToProcess,
+        flagMasks,
+        operationFlags
+        );
+}
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
-    TANSampleBuffer pBuffer,
+    const TANSampleBuffer & pBuffer,
     amf_size numOfSamplesToProcess,
     const amf_uint32 flagMasks[],
     const amf_uint32 operationFlags
@@ -361,8 +385,10 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
     switch (m_eConvolutionMethod) {
         case TAN_CONVOLUTION_METHOD_TIME_DOMAIN:
+            return AMF_NOT_IMPLEMENTED;
+            /*
             m_accumulatedArgs.updatesCnt = 0;
-            if (pBuffer.mType == AMF_MEMORY_HOST)
+            if (pBuffer.GetType() == AMF_MEMORY_HOST)
             {
                 float **filter = m_tdFilterState[m_idxUpdateFilter]->m_Filter;
                 for (amf_uint32 n = 0; n < m_iChannels; n++){
@@ -378,9 +404,11 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
             }
-            else {
+            else
+            {
                 return AMF_NOT_IMPLEMENTED;
             }
+            */
         break;
         case TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD:
             {
@@ -388,7 +416,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                 m_accumulatedArgs.updatesCnt = 0;
                 float** inputBuffers = pBuffer.buffer.host;
 
-                if(pBuffer.mType == AMF_MEMORY_OPENCL)
+                if(pBuffer.GetType() == AMF_MEMORY_OPENCL)
                 {
                     if (!m_doProcessOnGpu)
                     {
@@ -420,7 +448,26 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                     inputBuffers = m_ovlAddLocalInBuffs;
 #else
-                return AMF_NOT_IMPLEMENTED;
+                    // Read and pass the IRs to a local buffer
+                    auto generalQ = m_pContextTAN->GetAMFGeneralQueue();
+
+                    for(amf_uint32 n = 0; n < m_iChannels; n++)
+                    {
+                        memset(m_ovlAddLocalInBuffs[n], 0, numOfSamplesToProcess);
+
+                        AMF_RETURN_IF_CL_FAILED(
+                            generalQ->CopyBufferToHost(
+                                pBuffer.buffer.amfBuffers[n],
+                                0,
+                                numOfSamplesToProcess * sizeof(float),
+                                m_ovlAddLocalInBuffs[n],
+                                true
+                                ),
+                            L"Failed reading the IR OCL buffers"
+                            );
+                    }
+
+                    inputBuffers = m_ovlAddLocalInBuffs;
 #endif
                 }
                 else
@@ -457,7 +504,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             graal::CGraalConv*graalConv = (graal::CGraalConv*)m_graal_conv;
             amf_uint32 n_channels = 0;
 
-            if (pBuffer.mType == AMF_MEMORY_OPENCL)
+            if(pBuffer.GetType() == AMF_MEMORY_OPENCL)
             {
 
                 cl_mem *clResponses = new cl_mem[m_iChannels];
@@ -488,7 +535,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
                 delete clResponses;
             }
-            else if (pBuffer.mType == AMF_MEMORY_HOST)
+            else if (pBuffer.GetType() == AMF_MEMORY_HOST)
             {
                 for (amf_uint32 n = 0; n < m_iChannels; n++)
                 {
@@ -533,16 +580,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     }
 
     return AMF_OK;
-}
-
-AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
-    AMFBuffer * ppBuffer[],
-    amf_size numOfSamplesToProcess,
-    const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
-    const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
-    )
-{
-    return AMF_NOT_IMPLEMENTED;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -679,10 +716,9 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
     AMF_RESULT res = AMF_OK;
 
     TANSampleBuffer inBuf, outBuf;
-    inBuf.buffer.host = ppBufferInput;
-    inBuf.mType = AMF_MEMORY_HOST;
-    outBuf.buffer.clmem = pBufferOutput;
-    outBuf.mType = AMF_MEMORY_OPENCL;
+    inBuf.SetHost(ppBufferInput);
+    outBuf.SetCLBuffers(AMF_MEMORY_OPENCL, pBufferOutput);
+
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
 #endif
@@ -707,10 +743,9 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
 
     // process
     TANSampleBuffer inBuf, outBuf;
-    inBuf.buffer.host = ppBufferInput;
-    inBuf.mType = AMF_MEMORY_HOST;
-    outBuf.buffer.host = ppBufferOutput;
-    outBuf.mType = AMF_MEMORY_HOST;
+    inBuf.SetHost(ppBufferInput);
+    outBuf.SetHost(ppBufferOutput);
+
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
 
@@ -783,8 +818,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     }
 
     TANSampleBuffer xFadeBuffs[2];
-    xFadeBuffs[0] = (pBufferOutput.mType == AMF_MEMORY_HOST) ? pBufferOutput : m_FadeSubbufers[0];
-    xFadeBuffs[1] = (pBufferOutput.mType == AMF_MEMORY_HOST) ? m_pXFadeSamples : m_FadeSubbufers[1];
+    xFadeBuffs[0] = (pBufferOutput.GetType() == AMF_MEMORY_HOST) ? pBufferOutput : m_FadeSubbufers[0];
+    xFadeBuffs[1] = (pBufferOutput.GetType() == AMF_MEMORY_HOST) ? m_pXFadeSamples : m_FadeSubbufers[1];
     // Crossfade should never start if there is a pending TD->FD  (m_accumulatedArgs.updatesCnt == 0)
     if (m_updateFinishedProcessing.Lock(0) && (m_accumulatedArgs.updatesCnt == 0)) //IR_UPDATE_DETECTED_STATE;
     {
@@ -1100,7 +1135,7 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
     amf_size numOfSamplesToProcess
 )
 {
-    if (pBufferOutput.mType == AMF_MEMORY_OPENCL)
+    if (pBufferOutput.GetType() == AMF_MEMORY_OPENCL)
     {
 #ifndef TAN_NO_OPENCL
         int status;
@@ -1169,17 +1204,17 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 	if (m_doProcessOnGpu)
     {
 #ifndef TAN_NO_OPENCL
-        m_internalInBufs.PrepareCL(AMF_MEMORY_OPENCL, m_iChannels);
-        m_internalOutBufs.PrepareCL(AMF_MEMORY_OPENCL, m_iChannels);
+        m_internalInBufs.PrepareCL(m_iChannels);
+        m_internalOutBufs.PrepareCLm_iChannels);
 #else
-        m_internalInBufs.PrepareAMF(AMF_MEMORY_OPENCL, m_iChannels);
-        m_internalOutBufs.PrepareAMF(AMF_MEMORY_OPENCL, m_iChannels);
+        m_internalInBufs.PrepareAMF(m_iChannels);
+        m_internalOutBufs.PrepareAMF(m_iChannels);
 #endif
     }
     else
     {
-        m_internalInBufs.PrepareHost(AMF_MEMORY_HOST, m_iChannels);
-        m_internalOutBufs.PrepareHost(AMF_MEMORY_HOST, m_iChannels);
+        m_internalInBufs.PrepareHost(m_iChannels);
+        m_internalOutBufs.PrepareHost(m_iChannels);
     }
 
     m_availableChannels = new bool[m_iChannels];
@@ -1396,9 +1431,9 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         for (int bufIdx = 0; bufIdx < 2; bufIdx++)
         {
 #ifndef TAN_NO_OPENCL
-            m_FadeSubbufers[bufIdx].PrepareCL(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL, m_iChannels);
+            m_FadeSubbufers[bufIdx].PrepareCL(m_iChannels);
 #else
-            m_FadeSubbufers[bufIdx].PrepareAMF(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL, m_iChannels);
+            m_FadeSubbufers[bufIdx].PrepareAMF(m_iChannels);
 #endif
             // First create a big unified cl_mem buffer
             amf_size singleBufSize = sizeof(float)*m_iBufferSizeInSamples;
@@ -1441,9 +1476,10 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     }
 
     // allocate crossfade buffers on host memory
-    m_pXFadeSamples.mType = AMF_MEMORY_HOST;
-    m_pXFadeSamples.buffer.host = new float *[m_iChannels];
-    for (amf_uint32 i = 0; i < m_iChannels; i++){
+    m_pXFadeSamples.PrepareHost(m_iChannels);
+
+    for (amf_uint32 i = 0; i < m_iChannels; i++)
+    {
         m_pXFadeSamples.buffer.host[i] = new float[4 * m_iBufferSizeInSamples + 2];
         memset(m_pXFadeSamples.buffer.host[i], 0, sizeof(float) * (4 * m_iBufferSizeInSamples + 2));
     }
@@ -1453,84 +1489,55 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
 AMF_RESULT TANConvolutionImpl::deallocateBuffers()
 {
-    for (amf_uint32 n = 0; m_OutSamples && n < m_iChannels; n++){
+    for(amf_uint32 n = 0; m_OutSamples && n < m_iChannels; n++)
+    {
         SAFE_ARR_DELETE(m_OutSamples[n]);
-
     }
     SAFE_ARR_DELETE(m_OutSamples);
 
-    switch (m_internalOutBufs.mType) {
-    case AMF_MEMORY_HOST:
-        delete m_internalOutBufs.buffer.host;
-        m_internalOutBufs.buffer.host = nullptr;
-        break;
+    m_internalOutBufs.Release();
+
+    switch(m_pXFadeSamples.GetType())
+    {
     case AMF_MEMORY_OPENCL:
 #ifndef TAN_NO_OPENCL
-        delete m_internalOutBufs.buffer.clmem;
-        m_internalOutBufs.buffer.clmem = nullptr;
-        break;
-#else
-        return AMF_FAIL;
-#endif
-
-    default:
-        ;
-    }
-    m_internalOutBufs.mType = AMF_MEMORY_UNKNOWN;
-
-    switch (m_internalInBufs.mType) {
-    case AMF_MEMORY_HOST:
-        delete m_internalInBufs.buffer.host;
-        m_internalInBufs.buffer.host = nullptr;
-        break;
-    case AMF_MEMORY_OPENCL:
-#ifndef TAN_NO_OPENCL
-        delete m_internalInBufs.buffer.clmem;
-        m_internalInBufs.buffer.clmem = nullptr;
-        break;
-#else
-        return AMF_FAIL;
-#endif
-    default:
-        ;
-    }
-    m_internalInBufs.mType = AMF_MEMORY_UNKNOWN;
-
-    switch (m_pXFadeSamples.mType) {
-    case AMF_MEMORY_HOST:
-        for (amf_uint32 n = 0; n < m_iChannels; n++){
-            delete m_pXFadeSamples.buffer.host[n];
-        }
-        delete m_pXFadeSamples.buffer.host;
-        m_pXFadeSamples.buffer.host = nullptr;
-        break;
-    case AMF_MEMORY_OPENCL:
-#ifndef TAN_NO_OPENCL
-        for (amf_uint32 n = 0; n < m_iChannels; n++){
+        for (amf_uint32 n = 0; n < m_iChannels; n++)
+        {
              clReleaseMemObject(m_pXFadeSamples.buffer.clmem[n]);
         }
-        delete m_pXFadeSamples.buffer.clmem;
-        m_pXFadeSamples.buffer.clmem = nullptr;
 #else
-        return AMF_FAIL;
+        for (amf_uint32 n = 0; n < m_iChannels; n++)
+        {
+             m_pXFadeSamples.buffer.amfBuffers[n]->Release();
+        }
 #endif
         break;
     default:
         ;
     }
-    m_internalInBufs.mType = AMF_MEMORY_UNKNOWN;
+
+    m_pXFadeSamples.Release();
 
     if (m_doProcessOnGpu)
     {
 #ifndef TAN_NO_OPENCL
-        for (amf_uint32 bufIdx = 0; bufIdx < 2; bufIdx++) {
-            if (m_pCLXFadeMasterBuf[bufIdx] == nullptr) continue;
+        for (amf_uint32 bufIdx = 0; bufIdx < 2; bufIdx++)
+        {
+            if (m_pCLXFadeMasterBuf[bufIdx] == nullptr)
+                continue;
+
             clReleaseMemObject(m_pCLXFadeMasterBuf[bufIdx]);
-            for (amf_uint32 n = 0; n < m_iChannels; n++){
-                if (m_FadeSubbufers[bufIdx].buffer.clmem[n] == nullptr) continue;
+
+            for (amf_uint32 n = 0; n < m_iChannels; n++)
+            {
+                if (m_FadeSubbufers[bufIdx].buffer.clmem[n] == nullptr)
+                    continue;
+
                 clReleaseMemObject(m_FadeSubbufers[bufIdx].buffer.clmem[n]);
             }
         }
+#else
+        return AMF_NOT_IMPLEMENTED;
 #endif
     }
 
@@ -1768,12 +1775,12 @@ amf_size TANConvolutionImpl::ovlAddProcess(
     bool advanceOverlap
 )
 {
-    if (inputData.mType != AMF_MEMORY_HOST)
+    if (inputData.GetType() != AMF_MEMORY_HOST)
     {
         return 0;
     }
     float** output = outputData.buffer.host;
-    if (outputData.mType == AMF_MEMORY_OPENCL)
+    if (outputData.GetType() == AMF_MEMORY_OPENCL)
     {
         if (!m_doProcessOnGpu)
         {
@@ -1830,7 +1837,7 @@ amf_size TANConvolutionImpl::ovlAddProcess(
                 }
             }
         }
-        if (outputData.mType == AMF_MEMORY_OPENCL)
+        if (outputData.GetType() == AMF_MEMORY_OPENCL)
         {
 #ifndef TAN_NO_OPENCL
             // move samples to the OCL output buffers
@@ -2089,7 +2096,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 )
 {
     //ToDo handle audio buffers in GPU memory:
-    if (pInputData.mType != AMF_MEMORY_HOST){
+    if (pInputData.GetType() != AMF_MEMORY_HOST)
+    {
         return AMF_NOT_IMPLEMENTED;
     }
 
@@ -2141,19 +2149,29 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             m_flushedChannels[channelId] = false;
         }
     }
+
     // copy valid channel buffer pointers to internal list:
     int idxInt = 0;
-    m_internalInBufs.mType = pInputData.mType;
-    m_internalOutBufs.mType = pOutputData.mType;
-    for (amf_uint32 channelId = 0; channelId < static_cast<amf_uint32>(m_MaxChannels); channelId++){
-        if (!m_availableChannels[channelId]) { // !available == running
+
+    return AMF_NOT_IMPLEMENTED;
+    //ivm: m_internalInBufs.mType = pInputData.mType;
+    //ivm: m_internalOutBufs.mType = pOutputData.mType;
+
+    for (amf_uint32 channelId = 0; channelId < static_cast<amf_uint32>(m_MaxChannels); channelId++)
+    {
+        if (!m_availableChannels[channelId]) // !available == running
+        {
             m_internalOutBufs.buffer.host[idxInt] = pOutputData.buffer.host[channelId];
-            if (flagMasks && flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT) {
+
+            if (flagMasks && flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT)
+            {
                 m_internalInBufs.buffer.host[idxInt] = m_silence;
             }
-            else {
+            else
+            {
                 m_internalInBufs.buffer.host[idxInt] = pInputData.buffer.host[channelId];
             }
+
             ++idxInt;
         }
     }
@@ -2161,8 +2179,6 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     int n_channels = idxInt;
 	if (!(n_channels > 0)) { return AMF_WRONG_STATE; }
 	//AMF_RETURN_IF_FALSE(n_channels > 0, AMF_WRONG_STATE, L"No active channels found");
-
-
 
     switch (m_eConvolutionMethod) {
     case TAN_CONVOLUTION_METHOD_TIME_DOMAIN:
@@ -2261,9 +2277,11 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         if (nSamples < m_iBufferSizeInSamples)
         {
             // This case is only handled for host memory input/output cl_mem input or output will not be padded and will return error
-            if (pInputData.mType != AMF_MEMORY_HOST || pOutputData.mType != AMF_MEMORY_HOST) {
+            if (pInputData.GetType() != AMF_MEMORY_HOST || pOutputData.GetType() != AMF_MEMORY_HOST)
+            {
                 return AMF_NOT_IMPLEMENTED;
             }
+
             float **inp = (float**)malloc(2 * (sizeof(float*) + m_length * sizeof(float)) * n_channels);
             float **out = (float**)((char*)inp + (sizeof(float*) + m_length * sizeof(float)) * n_channels);
             memset(inp, 0, 2 * (sizeof(float*) + m_length * sizeof(float)) * n_channels);
@@ -2297,7 +2315,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         }
         else
         {
-            if (pOutputData.mType == AMF_MEMORY_HOST)
+            if (pOutputData.GetType() == AMF_MEMORY_HOST)
             {
                 ret = graalConv->process(n_channels,
                     m_s_versions[m_param_buf_idx],
