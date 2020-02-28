@@ -500,7 +500,7 @@ AMF_RESULT Audio3DAMF::Init
     AMF_RETURN_IF_FAILED(mConverter->Init());
 
     AMF_RETURN_IF_FAILED(TANCreateMixer(mTANRoomContext, &mMixer));
-	AMF_RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size()));
+	AMF_RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size(), factory));
 
     AMF_RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &mFft));
     AMF_RETURN_IF_FAILED(mFft->Init());

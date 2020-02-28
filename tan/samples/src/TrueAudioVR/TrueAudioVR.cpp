@@ -1600,6 +1600,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         true
         );
 #endif
+
+	return AMF_OK;
 }
 
 /**************************************************************************************************
