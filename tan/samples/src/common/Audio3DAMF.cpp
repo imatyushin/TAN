@@ -603,7 +603,15 @@ AMF_RESULT Audio3DAMF::Init
 #ifndef TAN_NO_OPENCL
     typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
 #else
-	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, AMFCompute * compute, float samplesPerSecond, int convolutionLength);
+	typedef int  (WINAPI *CREATEVR)(
+		AmdTrueAudioVR **taVR,
+		const TANContextPtr & pContext, 
+		const TANFFTPtr & pFft, 
+		AMFCompute * compute, 
+		float samplesPerSecond, 
+		int convolutionLength,
+		amf::AMFFactory * factory
+		);
 #endif
 
 	CREATEVR CreateAmdTrueAudioVR = nullptr;
@@ -618,7 +626,8 @@ AMF_RESULT Audio3DAMF::Init
         mFft,
         mCompute3,
         FILTER_SAMPLE_RATE, //todo: other frequencies?
-        mFFTLength
+        mFFTLength,
+		factory
         );
     mTrueAudioVR.reset(trueAudioVR);
 

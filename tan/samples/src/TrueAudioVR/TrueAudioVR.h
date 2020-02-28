@@ -231,7 +231,8 @@ extern "C"
         const TANFFTPtr & pFft,
         AMFCompute * cmdQueue,
         float samplesPerSecond,
-        int convolutionLength
+        int convolutionLength,
+		amf::AMFFactory * factory = nullptr
         );
 #endif
 

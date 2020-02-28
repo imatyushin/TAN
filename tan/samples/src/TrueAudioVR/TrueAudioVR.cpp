@@ -75,6 +75,9 @@ private:
 
     bool mInitialized = false;
 
+	//todo: smrtptr
+	amf::AMFFactory * mFactory = nullptr;
+
     amf::AMFComputePtr mCompute;
 
     amf::AMFComputeKernelPtr mKernel;
@@ -281,7 +284,8 @@ public:
         const TANFFTPtr & fft,
         const AMFComputePtr & queue,
         float samplesPerSecond,
-        int convolutionLength
+        int convolutionLength,
+		AMFFactory * factory
         );
 
 #endif
@@ -399,7 +403,8 @@ TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
     const TANFFTPtr & fft,
     AMFCompute * compute,
     float samplesPerSecond,
-    int convolutionLength
+    int convolutionLength,
+	amf::AMFFactory * factory
 )
 {
     *taVR = (AmdTrueAudioVR *) new TrueAudioVRimpl(
@@ -407,7 +412,8 @@ TAN_SDK_LINK AMF_RESULT TAN_CDECL_CALL CreateAmdTrueAudioVR
         fft,
         compute,
         samplesPerSecond,
-        convolutionLength
+        convolutionLength,
+		factory
         );
 
     return AMF_OK;
@@ -442,8 +448,10 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     const TANFFTPtr &       fft,
     const AMFComputePtr &   compute,
     float                   samplesPerSecond,
-    int                     convolutionLength
+    int                     convolutionLength,
+	AMFFactory *            factory
     ):
+	mFactory(factory),
     mContext(context),
     mFFT(fft),
     mCompute(compute)
@@ -1261,14 +1269,19 @@ void TrueAudioVRimpl::InitializeCL(
 }
 #else
 AMF_RESULT TrueAudioVRimpl::InitializeAMF(
-    StereoListener & ears,
+	StereoListener & ears,
     int nW,
     int nH,
     int nL,
     int responseLength
     )
 {
-    AMF_RETURN_IF_FAILED(g_AMFFactory.Init());
+	if(!mFactory)
+	{
+		AMF_RETURN_IF_FAILED(g_AMFFactory.Init());
+
+		mFactory = g_AMFFactory.GetFactory();
+	}
 
     AMF_RESULT status = AMF_OK;
 
@@ -1284,7 +1297,8 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
                 "GenerateRoomResponse",
                 (const char *)GenerateRoomResponse,
                 GenerateRoomResponseCount,
-                ""
+                "",
+				mFactory
                 ),
             AMF_FAIL
             );
@@ -1301,7 +1315,8 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
                 "Fill",
                 (const char *)Fill,
                 FillCount,
-                ""
+                "",
+				mFactory
                 ),
             AMF_FAIL
             );
