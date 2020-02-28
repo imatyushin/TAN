@@ -715,7 +715,7 @@ namespace amf
     public:
         AMF_DECLARE_IID(0xd2432f7f, 0xc646, 0x4764, 0x9d, 0x61, 0x60, 0xd2, 0x7c, 0x7e, 0x20, 0xc7)
 
-        virtual AMF_RESULT  AMF_STD_CALL    Init(amf_size buffer_size, int num_channels) = 0;
+        virtual AMF_RESULT  AMF_STD_CALL    Init(amf_size buffer_size, int num_channels, amf::AMFFactory * factory = nullptr) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;
 

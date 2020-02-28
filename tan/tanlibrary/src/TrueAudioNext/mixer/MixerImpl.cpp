@@ -79,7 +79,8 @@ TANMixerImpl::~TANMixerImpl(void)
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     amf_size buffer_size,
-    int num_channels
+    int num_channels,
+    amf::AMFFactory * factory
 	)
 {
     AMFLock lock(&m_sect);
@@ -97,15 +98,12 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     // Determine how to initialize based on context, CPU for CPU and GPU for GPU
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
-    {
-        return InitGpu();
-    }
 #else
     if(m_pContextTAN->GetAMFContext())
-    {
-        return InitGpu();
-    }
 #endif
+    {
+        return InitGpu(factory);
+    }
 
     return InitCpu();
 }
@@ -118,7 +116,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitCpu()
 }
 
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
+AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu(amf::AMFFactory * factory)
 {
 #ifndef TAN_NO_OPENCL
     cl_int ret;
@@ -182,7 +180,8 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
             "Mixer",
             (const char *)Mixer,
             MixerCount,
-            ""
+            "",
+            factory
             ),
         AMF_FAIL
         );

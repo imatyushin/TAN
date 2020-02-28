@@ -45,7 +45,11 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
 //TANMixer interface
-        AMF_RESULT  AMF_STD_CALL Init(amf_size buffer_size, int num_channels) override;
+        AMF_RESULT  AMF_STD_CALL Init(
+            amf_size buffer_size,
+            int num_channels,
+            amf::AMFFactory * factory = nullptr
+            ) override;
         AMF_RESULT  AMF_STD_CALL Terminate() override;
         TANContext* AMF_STD_CALL GetContext() override { return m_pContextTAN; }
 
@@ -98,7 +102,7 @@ namespace amf
     private:
         static bool useSSE2;
         AMF_RESULT	AMF_STD_CALL InitCpu();
-        AMF_RESULT	AMF_STD_CALL InitGpu();
+        AMF_RESULT	AMF_STD_CALL InitGpu(amf::AMFFactory * factory);
 		amf_size m_bufferSize = 0;
 
 #ifndef TAN_NO_OPENCL
