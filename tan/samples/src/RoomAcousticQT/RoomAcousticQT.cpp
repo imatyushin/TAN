@@ -78,7 +78,7 @@ bool RoomAcousticQT::start()
 		}
 	}
 
-	bool started = mAudioEngine->Init(
+	bool started = AMF_OK == mAudioEngine->Init(
 		mTANDLLPath,
 		m_RoomDefinition,
 

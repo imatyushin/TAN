@@ -736,12 +736,12 @@ namespace amf
                                                 ) = 0;
 #endif
 
-        virtual AMF_RESULT  AMF_STD_CALL    Mix(const AMFBuffer * pBufferInput[],
+        virtual AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput[],
                                                 AMFBuffer * pBufferOutput
                                                 ) = 0;
 
         // For contigous cl_mem input buffers. Each channel's sample offset is found using the inputStride and channel index.
-        virtual AMF_RESULT  AMF_STD_CALL    Mix(const AMFBuffer * pBufferInput,
+        virtual AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput,
                                                 AMFBuffer * pBufferOutput,
                                                 amf_size inputStride
                                                 ) = 0;

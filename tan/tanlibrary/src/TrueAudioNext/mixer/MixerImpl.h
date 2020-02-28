@@ -65,12 +65,12 @@ namespace amf
                                         amf_size inputStride
                                         ) override;
 #endif
-        AMF_RESULT  AMF_STD_CALL    Mix(const AMFBuffer * pBufferInput[],
+        AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput[],
                                         AMFBuffer * pBufferOutput
                                         ) override;
 
         // For contigous cl_mem input buffers
-        AMF_RESULT  AMF_STD_CALL    Mix(const AMFBuffer * pBufferInput,
+        AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput,
                                         AMFBuffer * pBufferOutput,
                                         amf_size inputStride
                                         ) override;
@@ -78,7 +78,7 @@ namespace amf
     protected:
         TANContextPtr               m_pContextTAN;
         AMFContextPtr               m_pContextAMF;
-        AMFComputePtr               m_pDeviceAMF;
+        AMFComputePtr               mAMFCompute;
 
         AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
         AMFCriticalSection          m_sect;
@@ -89,6 +89,8 @@ namespace amf
         cl_device_id				m_pDeviceCl = nullptr;
 
         cl_kernel					m_clMix = nullptr;
+#else
+        AMFComputeKernelPtr         mMixKernel;
 #endif
 
         /// It defines how many channels can be mixed together by a single call into the MixerMultiBuffer kernel
@@ -101,9 +103,12 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
 		cl_mem m_internalBuff;
+#else
+        AMFBuffer *mInternalBufferAMF;
 #endif
 
 		int m_numChannels = 0;
-		bool m_OCLInitialized = false;
+
+        bool mInitialized = false;
     };
 } //amf

@@ -47,7 +47,7 @@ public:
     Audio3D(Audio3D const &) = delete;
     virtual ~Audio3D();
 
-    bool Init
+    AMF_RESULT Init
     (
         const std::string &     dllPath,
         const RoomDefinition &  roomDef,
@@ -86,7 +86,7 @@ public:
                                 convMethod,
 
         const std::string &     playerType
-        );
+        ) override;
 
 	// finalize, deallocate resources, close files, etc.
 	void Close();

@@ -1472,46 +1472,45 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     //TODO: pass parameters as structures
     int argIdx = 0;
     int status = 0;
-    mKernel->SetArgBuffer(argIdx++, mResponse, AMF_ARGUMENT_ACCESS_READWRITE);
-    mKernel->SetArgBuffer(argIdx++, mHPF, AMF_ARGUMENT_ACCESS_READWRITE);
-    mKernel->SetArgBuffer(argIdx++, mLPF, AMF_ARGUMENT_ACCESS_READWRITE);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgBuffer(argIdx++, mResponse, AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgBuffer(argIdx++, mHPF, AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgBuffer(argIdx++, mLPF, AMF_ARGUMENT_ACCESS_READWRITE));
 
-    mKernel->SetArgFloat(argIdx++, sound.speakerX);
-    mKernel->SetArgFloat(argIdx++, sound.speakerY);
-    mKernel->SetArgFloat(argIdx++, sound.speakerZ);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, sound.speakerX));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, sound.speakerY));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, sound.speakerZ));
 
-    mKernel->SetArgFloat(argIdx++, headX);
-    mKernel->SetArgFloat(argIdx++, headY);
-    mKernel->SetArgFloat(argIdx++, headZ);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, headX));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, headY));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, headZ));
 
-    mKernel->SetArgFloat(argIdx++, earVX);
-    mKernel->SetArgFloat(argIdx++, earVY);
-    mKernel->SetArgFloat(argIdx++, earVZ);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earVX));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earVY));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earVZ));
 
-    mKernel->SetArgFloat(argIdx++, earV);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earV));
 
-    mKernel->SetArgFloat(argIdx++, room.width);
-    mKernel->SetArgFloat(argIdx++, room.length);
-    mKernel->SetArgFloat(argIdx++, room.height);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.width));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.length));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.height));
 
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mRight.damp));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mLeft.damp));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mFront.damp));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mBack.damp));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mTop.damp));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mBottom.damp));
 
-    mKernel->SetArgFloat(argIdx++, room.mRight.damp);
-    mKernel->SetArgFloat(argIdx++, room.mLeft.damp);
-    mKernel->SetArgFloat(argIdx++, room.mFront.damp);
-    mKernel->SetArgFloat(argIdx++, room.mBack.damp);
-    mKernel->SetArgFloat(argIdx++, room.mTop.damp);
-    mKernel->SetArgFloat(argIdx++, room.mBottom.damp);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, maxGain));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, dMin));
 
-    mKernel->SetArgFloat(argIdx++, maxGain);
-    mKernel->SetArgFloat(argIdx++, dMin);
-
-    mKernel->SetArgInt32(argIdx++, inSampRate);
-    mKernel->SetArgInt32(argIdx++, responseLength);
-    mKernel->SetArgInt32(argIdx++, hrtfResponseLength);
-    mKernel->SetArgInt32(argIdx++, filterLength);
-    mKernel->SetArgInt32(argIdx++, nW);
-    mKernel->SetArgInt32(argIdx++, nH);
-    mKernel->SetArgInt32(argIdx++, nL);
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, inSampRate));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, responseLength));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, hrtfResponseLength));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, filterLength));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, nW));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, nH));
+    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, nL));
 
     size_t localWorkSize[3] = { localX, localY, localZ };
 

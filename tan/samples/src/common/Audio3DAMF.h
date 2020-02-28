@@ -38,10 +38,14 @@ protected:
     AMFBufferPtr                mAMFResponses[MAX_SOURCES * 2];
     AMFBuffer *                 mAMFResponsesInterfaces[MAX_SOURCES * 2] = {nullptr};
 
-    AMFBufferPtr                mOutputAMFBufers[MAX_SOURCES * 2] = {nullptr};
 	AMFBufferPtr                mOutputMainAMFBuffer = nullptr;
-	AMFBufferPtr                mOutputMixAMFBuffer[2] = {nullptr};
-	AMFBufferPtr                mOutputShortBuffer = nullptr;
+    AMFBufferPtr                mOutputAMFBuffers[MAX_SOURCES * 2] = {nullptr};
+    AMFBuffer *                 mOutputAMFBuffersInterfaces[MAX_SOURCES * 2] = {nullptr};
+
+    AMFBufferPtr                mOutputMixAMFBuffers[2] = {nullptr};
+    AMFBuffer *                 mOutputMixAMFBuffersInterfaces[2] = {nullptr};
+
+	AMFBufferPtr                mOutputShortAMFBuffer = nullptr;
 
     int Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes);
     int ProcessProc();
@@ -55,7 +59,7 @@ public:
     Audio3DAMF(Audio3DAMF const &) = delete;
     virtual ~Audio3DAMF();
 
-    bool Init
+    AMF_RESULT Init
     (
         const std::string &     dllPath,
         const RoomDefinition &  roomDef,

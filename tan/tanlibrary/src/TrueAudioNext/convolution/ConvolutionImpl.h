@@ -54,7 +54,7 @@ namespace amf
         } buffer;
 
     protected:
-        AMF_MEMORY_TYPE mType;
+        AMF_MEMORY_TYPE mType = AMF_MEMORY_UNKNOWN;
         bool mAllocated = false;
 
     public:
@@ -90,6 +90,7 @@ namespace amf
             mType = AMF_MEMORY_UNKNOWN;
         }
 
+        inline bool IsSet() const {return amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN != mType && mAllocated;}
         inline AMF_MEMORY_TYPE GetType() const {return mType;}
 
 #ifndef TAN_NO_OPENCL

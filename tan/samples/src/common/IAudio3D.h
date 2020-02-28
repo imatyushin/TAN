@@ -110,7 +110,7 @@ public:
     {
     }
 
-    virtual bool Init
+    virtual AMF_RESULT Init
     (
         const std::string &     dllPath,
         const RoomDefinition &  roomDef,

@@ -88,7 +88,7 @@ void Audio3DAMF::Close()
     mWavFiles.resize(0);
 }
 
-bool Audio3DAMF::Init
+AMF_RESULT Audio3DAMF::Init
 (
 	const std::string &     dllPath,
 	const RoomDefinition &  roomDef,
@@ -137,7 +137,7 @@ bool Audio3DAMF::Init
             << "Error: GPU queues must be used only if OpenCL flag is set"
             << std::endl;
 
-        return false;
+        return AMF_INVALID_ARG;
     }
 
     //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
@@ -163,7 +163,7 @@ bool Audio3DAMF::Init
                     << FILTER_SAMPLE_RATE << " frequency is supported!"
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if(content.BitsPerSample != 16)
@@ -173,7 +173,7 @@ bool Audio3DAMF::Init
                     << 16 << " bits is supported!"
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if(content.ChannelsCount != 2)
@@ -182,7 +182,7 @@ bool Audio3DAMF::Init
                     << "Error: file " << fileName << " is not a stereo file. Currently only stereo files are supported!"
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if(content.SamplesCount < mBufferSizeInSamples)
@@ -191,7 +191,7 @@ bool Audio3DAMF::Init
                     << "Error: file " << fileName << " are too short."
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             //check that samples have compatible formats
@@ -202,7 +202,7 @@ bool Audio3DAMF::Init
                 {
                     std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
 
-                    return false;
+                    return AMF_FAIL;
                 }
             }
 
@@ -212,7 +212,7 @@ bool Audio3DAMF::Init
         {
             std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
 
-            return false;
+            return AMF_FAIL;
         }
     }
 
@@ -220,7 +220,7 @@ bool Audio3DAMF::Init
     {
         std::cerr << "Error: no files opened to play" << std::endl;
 
-        return false;
+        return AMF_FAIL;
     }
 
     //initialize hardware
@@ -269,7 +269,7 @@ bool Audio3DAMF::Init
     {
         std::cerr << "Error: could not initialize player " << std::endl;
 
-        return false;
+        return AMF_FAIL;
     }
 
     /* # fft buffer length must be power of 2: */
@@ -513,11 +513,13 @@ bool Audio3DAMF::Init
             for(int i = 0; i < mWavFiles.size() * 2; i++)
             {
                 //mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, mFFTLength * sizeof(float), NULL, &status);
-                AMF_RETURN_IF_FAILED(mContext12->AllocBuffer(
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
-                    mFFTLength * sizeof(float),
-                    &mAMFResponses[i]
-                    ));
+                AMF_RETURN_IF_FAILED(
+                    mContext12->AllocBuffer(
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                        mFFTLength * sizeof(float),
+                        &mAMFResponses[i]
+                        )
+                    );
 
                 mAMFResponsesInterfaces[i] = mAMFResponses[i];
             }
@@ -525,86 +527,73 @@ bool Audio3DAMF::Init
             //HACK out for test
             mUseAMFBuffers = true;
         }
-/*
-        // Initialize CL output buffers,
-        cl_int clErr;
+
+        // Initialize CL output buffers
 
         // First create a big cl_mem buffer then create small sub-buffers from it
-        mOutputMainCLbuf = clCreateBuffer(
-            mTANConvolutionContext->GetOpenCLContext(),
-            CL_MEM_READ_WRITE,
-            mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
-            nullptr,
-            &clErr
-            );
+        AMF_RETURN_IF_FAILED(
+            mContext12->AllocBuffer(
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
+                &mOutputMainAMFBuffer
+                ),
+                L"Could not create OpenCL buffer"
+                );
 
-        if(clErr != CL_SUCCESS)
-        {
-            std::cerr << "Could not create OpenCL buffer" << std::endl;
-
-            return false;
-        }
-
+        /**/
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
         {
+            //todo, ivm, cover over AMF
             cl_buffer_region region;
             region.origin = i * mBufferSizeInBytes;
             region.size = mBufferSizeInBytes;
-            mOutputCLBufs[i] = clCreateSubBuffer(
-                mOutputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
 
-            if (clErr != CL_SUCCESS)
-            {
-                std::cerr << "Could not create OpenCL subBuffer" << std::endl;
-
-                return false;
-            }
+            AMF_RETURN_IF_FAILED(
+                mOutputMainAMFBuffer->CreateSubBuffer(
+                    &mOutputAMFBuffers[i],
+                    i * mBufferSizeInBytes,
+                    mBufferSizeInBytes
+                    )
+                );
+            mOutputAMFBuffersInterfaces[i] = mOutputAMFBuffers[i];
 
             float zero = 0.0;
-            clErr = clEnqueueFillBuffer(mCmdQueue1, mOutputCLBufs[i], &zero, sizeof(zero), 0, region.size, 0, NULL, NULL);
-            if (clErr != CL_SUCCESS)
-            {
-                std::cerr << "Could not fill OpenCL subBuffer" << std::endl;
-
-                return false;
-            }
+            AMF_RETURN_IF_FAILED(
+                mCompute1->FillBuffer(
+                    mOutputAMFBuffers[i],
+                    0,
+                    region.size,
+                    &zero,
+                    sizeof(zero)
+                    )
+                );
         }
+        /**/
 
         for (int idx = 0; idx < 2; idx++)
         {
-            mOutputMixCLBufs[idx] = clCreateBuffer(
-                mTANConvolutionContext->GetOpenCLContext(),
-                CL_MEM_READ_WRITE,
-                mBufferSizeInBytes,
-                nullptr,
-                &clErr
-                );
+            AMF_RETURN_IF_FAILED(
+                mContext12->AllocBuffer(
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                    mBufferSizeInBytes,
+                    &mOutputMixAMFBuffers[idx]
+                    ),
+                    L"Could not create OpenCL buffer"
+                    );
 
-            if (clErr != CL_SUCCESS)
-            {
-                std::cerr << "Could not create OpenCL buffer" << std::endl;
-
-                return false;
-            }
-
-            if (clErr != CL_SUCCESS)
-            {
-                std::cerr << "Could not create OpenCL buffer" << std::endl;
-
-                return false;
-            }
+            mOutputMixAMFBuffersInterfaces[idx] = mOutputMixAMFBuffers[idx];
         }
 
         // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
         // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
-        mOutputShortBuf = clCreateBuffer(
-            mTANConvolutionContext->GetOpenCLContext(),
-            CL_MEM_READ_WRITE,
-            mBufferSizeInBytes,
-            nullptr,
-            &clErr
-            );
-        */
+        AMF_RETURN_IF_FAILED(
+            mContext12->AllocBuffer(
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                mBufferSizeInBytes,
+                &mOutputShortAMFBuffer
+                ),
+                L"Could not create OpenCL buffer"
+                );
     }
 
 #ifdef _WIN32
@@ -718,7 +707,7 @@ bool Audio3DAMF::Init
 
     mRunning = true;
 
-    return true;
+    return AMF_OK;
 }
 
 int Audio3DAMF::updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
@@ -856,46 +845,68 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 
     if(mUseAMFBuffers)
     {
-        /** /
+        /**/
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
-
         AMF_RETURN_IF_FAILED(
             mConvolution->Process(
                 mInputFloatBufs,
-                mOutputCLBufs,
+                mOutputAMFBuffersInterfaces,
                 sampleCount,
                 nullptr,
                 nullptr
                 )
             );
 
-        cl_mem outputCLBufLeft[MAX_SOURCES];
-        cl_mem outputCLBufRight[MAX_SOURCES];
+        AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
+        AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
 
-        for (int src = 0; src < MAX_SOURCES; src++)
+        for(int src = 0; src < MAX_SOURCES; src++)
         {
-            outputCLBufLeft[src] = mOutputCLBufs[src*2 ];// Even indexed channels for left ear input
-            outputCLBufRight[src] = mOutputCLBufs[src*2+1];// Odd indexed channels for right ear input
+            outputAMFBufferLeft[src] = mOutputAMFBuffers[src * 2];// Even indexed channels for left ear input
+            outputAMFBufferRight[src] = mOutputAMFBuffers[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        AMF_RESULT ret = mMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]);
-        RETURN_IF_FALSE(ret == AMF_OK);
+        AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
+        AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
-        ret = mMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]);
-        RETURN_IF_FALSE(ret == AMF_OK);
+        auto amfResult = mConverter->Convert(
+            mOutputMixAMFBuffers[0],
+            1,
+            0,
+            TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortAMFBuffer,
+            2,
+            0,
+            TAN_SAMPLE_TYPE_SHORT,
+            sampleCount,
+            1.f
+            );
+        AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
-        ret = mConverter->Convert(mOutputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
-            mOutputShortBuf, 2, 0, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        amfResult = mConverter->Convert(
+            mOutputMixAMFBuffers[1],
+            1,
+            0,
+            TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortAMFBuffer,
+            2,
+            1,
+            TAN_SAMPLE_TYPE_SHORT,
+            sampleCount,
+            1.f
+            );
+        AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
-        ret = mConverter->Convert(mOutputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
-            mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
-
-        cl_int clErr = clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
-             0, sampleCountBytes, pOut, NULL, NULL, NULL);
-        RETURN_IF_FALSE(clErr == CL_SUCCESS);
+        AMF_RETURN_IF_FAILED(
+            mCompute1->CopyBufferToHost(
+                mOutputShortAMFBuffer,
+                0,
+                sampleCountBytes,
+                pOut,
+                true
+                )
+            );
         /**/
     }
     else

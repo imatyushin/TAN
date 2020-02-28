@@ -115,8 +115,7 @@ TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     m_tailLeftOver = nullptr;
     m_availableChannels = nullptr;
     m_flushedChannels = nullptr;
-    m_internalOutBufs.buffer.host = nullptr;
-    m_internalInBufs.buffer.host = nullptr;
+
     m_silence = nullptr;
     m_OutSamples = nullptr;
     m_MaxChannels = -1;
@@ -306,7 +305,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
 
     // process
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetCLBuffers(AMF_MEMORY_OPENCL, pBuffer);
+    sampleBuffer.SetCLBuffers(pBuffer);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
@@ -697,7 +696,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
 }
 
 #ifndef TAN_NO_OPENCL
-AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
+AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     float* ppBufferInput[],
     cl_mem pBufferOutput[],
     amf_size numOfSamplesToProcess,
@@ -717,14 +716,14 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
 
     TANSampleBuffer inBuf, outBuf;
     inBuf.SetHost(ppBufferInput);
-    outBuf.SetCLBuffers(AMF_MEMORY_OPENCL, pBufferOutput);
+    outBuf.SetCLBuffers(pBufferOutput);
 
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
 #endif
 
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
+AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     float* ppBufferInput[],
     float* ppBufferOutput[],
     amf_size numOfSamplesToProcess,
@@ -751,7 +750,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
-AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
+AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     cl_mem pBufferInput[],
     cl_mem pBufferOutput[],
     amf_size numOfSamplesToProcess,
@@ -778,9 +777,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     return AMF_FAIL;
 }
 
-AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
-    float* pBufferInput[],
-    AMFBuffer * pBufferOutput[],
+AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
+    float* ppBufferInput[],
+    AMFBuffer * ppBufferOutput[],
     amf_size numOfSamplesToProcess,
     // Masks of flags from enum
     // TAN_CONVOLUTION_CHANNEL_FLAG.
@@ -788,7 +787,19 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
     amf_size *pNumOfSamplesProcessed
     )
 {
-    return AMF_FAIL;
+    AMF_RETURN_IF_FALSE(m_doProcessOnGpu, AMF_NOT_SUPPORTED);
+    AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
+
+    AMF_RETURN_IF_FALSE(ppBufferInput != nullptr, AMF_INVALID_ARG, L"pBufferInput == NULL");
+    AMF_RETURN_IF_FALSE(ppBufferOutput != nullptr, AMF_INVALID_ARG, L"pBufferOutput == NULL");
+
+    AMF_RESULT res = AMF_OK;
+
+    TANSampleBuffer inBuf, outBuf;
+    inBuf.SetHost(ppBufferInput);
+    outBuf.SetAMFBuffers(ppBufferOutput);
+
+    return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1862,7 +1873,29 @@ amf_size TANConvolutionImpl::ovlAddProcess(
                 AMF_RETURN_IF_CL_FAILED(result, L"Failed to write to OvlAdd output buffers");
             }
 #else
-            return AMF_FAIL;
+            return AMF_NOT_IMPLEMENTED;
+
+            /*// move samples to the OCL output buffers
+            cl_command_queue convQ = m_pContextTAN->GetOpenCLConvQueue();
+
+            for(amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+            {
+                auto result(
+                    clEnqueueWriteBuffer(
+                        convQ,
+                        outputData.buffer.clmem[iChan],
+                        CL_TRUE,
+                        0,
+                        nSamples * sizeof(float),
+                        m_ovlAddLocalOutBuffs[iChan],
+                        0,
+                        NULL,
+                        NULL
+                        )
+                    );
+
+                AMF_RETURN_IF_CL_FAILED(result, L"Failed to write to OvlAdd output buffers");
+            }*/
 #endif
         }
 
@@ -2153,14 +2186,35 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     // copy valid channel buffer pointers to internal list:
     int idxInt = 0;
 
-    return AMF_NOT_IMPLEMENTED;
-    //ivm: m_internalInBufs.mType = pInputData.mType;
-    //ivm: m_internalOutBufs.mType = pOutputData.mType;
+    //todo: ivm: investigate!
+    //m_internalInBufs.mType = pInputData.mType;
+    //m_internalOutBufs.mType = pOutputData.mType;
+    printf("\n\nTEST TYPE!!!\n\n");
+
+    if(m_internalInBufs.IsSet())
+    {
+        m_internalInBufs.Release();
+    }
+
+    if(m_internalOutBufs.IsSet())
+    {
+        m_internalOutBufs.Release();
+    }
 
     for (amf_uint32 channelId = 0; channelId < static_cast<amf_uint32>(m_MaxChannels); channelId++)
     {
         if (!m_availableChannels[channelId]) // !available == running
         {
+            if(!m_internalOutBufs.IsSet())
+            {
+                m_internalOutBufs.PrepareHost(m_iChannels);
+            }
+
+            if(!m_internalInBufs.IsSet())
+            {
+                m_internalInBufs.PrepareHost(m_iChannels);
+            }
+
             m_internalOutBufs.buffer.host[idxInt] = pOutputData.buffer.host[channelId];
 
             if (flagMasks && flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT)
