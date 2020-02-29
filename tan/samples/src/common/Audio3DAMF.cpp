@@ -543,11 +543,6 @@ AMF_RESULT Audio3DAMF::Init
         /**/
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
         {
-            //todo, ivm, cover over AMF
-            cl_buffer_region region;
-            region.origin = i * mBufferSizeInBytes;
-            region.size = mBufferSizeInBytes;
-
             AMF_RETURN_IF_FAILED(
                 mOutputMainAMFBuffer->CreateSubBuffer(
                     &mOutputAMFBuffers[i],
@@ -562,7 +557,7 @@ AMF_RESULT Audio3DAMF::Init
                 mCompute1->FillBuffer(
                     mOutputAMFBuffers[i],
                     0,
-                    region.size,
+					mBufferSizeInBytes,
                     &zero,
                     sizeof(zero)
                     )
