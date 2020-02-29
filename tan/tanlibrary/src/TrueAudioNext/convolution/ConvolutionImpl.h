@@ -65,30 +65,54 @@ namespace amf
 
         void Release()
         {
-            if(mAllocated)
+            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST == mType && buffer.host)
             {
-                if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST == mType && buffer.host)
-                {
-                    delete [] buffer.host;
-                    buffer.host = nullptr;
-                }
-#ifndef TAN_NO_OPENCL
-                else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
-                {
-                    delete [] buffer.clmem;
-                    buffer.clmem = nullptr;
-                }
-#else
-                else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.amfBuffers)
-                {
-                    delete [] buffer.amfBuffers;
-                    buffer.amfBuffers = nullptr;
-                }
-#endif
-            }
+				if(mAllocated)
+				{
+					delete[] buffer.host;
+				}
 
+                buffer.host = nullptr;
+            }
+#ifndef TAN_NO_OPENCL
+            else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
+            {
+				if(mAllocated)
+				{
+					delete[] buffer.clmem;
+				}
+                delete [] buffer.clmem;
+                buffer.clmem = nullptr;
+            }
+#else
+            else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.amfBuffers)
+            {
+				if(mAllocated)
+				{
+					delete[] buffer.amfBuffers;
+				}
+                    
+                buffer.amfBuffers = nullptr;
+            }
+#endif
+
+			mAllocated = false;
             mType = AMF_MEMORY_UNKNOWN;
         }
+
+		TANSampleBuffer & operator =(const TANSampleBuffer & other)
+		{
+			if(IsSet())
+			{
+				Release();
+			}
+
+			mType = other.mType;
+			mAllocated = false;
+			buffer = other.buffer;
+
+			return *this;
+		}
 
         inline bool IsSet() const {return amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN != mType && mAllocated;}
         inline AMF_MEMORY_TYPE GetType() const {return mType;}
@@ -368,8 +392,8 @@ namespace amf
             const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
             );
 
-        AMF_RESULT  AMF_STD_CALL    Process(TANSampleBuffer pBufferInput,
-                                            TANSampleBuffer pBufferOutput,
+        AMF_RESULT  AMF_STD_CALL    Process(const TANSampleBuffer & pBufferInput,
+                                            const TANSampleBuffer & pBufferOutput,
                                             amf_size numOfSamplesToProcess,
                                             // Masks of flags from enum
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.

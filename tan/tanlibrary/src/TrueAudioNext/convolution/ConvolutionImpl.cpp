@@ -793,19 +793,21 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferInput != nullptr, AMF_INVALID_ARG, L"pBufferInput == NULL");
     AMF_RETURN_IF_FALSE(ppBufferOutput != nullptr, AMF_INVALID_ARG, L"pBufferOutput == NULL");
 
-    AMF_RESULT res = AMF_OK;
+    {
+		TANSampleBuffer inBuf, outBuf;
+		inBuf.SetHost(ppBufferInput);
+		outBuf.SetAMFBuffers(ppBufferOutput);
 
-    TANSampleBuffer inBuf, outBuf;
-    inBuf.SetHost(ppBufferInput);
-    outBuf.SetAMFBuffers(ppBufferOutput);
+		AMF_RETURN_IF_FAILED(Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed));
+	}
 
-    return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
+	return AMF_OK;
 }
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
-    TANSampleBuffer pBufferInput,
-    TANSampleBuffer pBufferOutput,
+    const TANSampleBuffer & pBufferInput,
+    const TANSampleBuffer & pBufferOutput,
     amf_size numOfSamplesToProcess,
     // Masks of flags from enum
     // TAN_CONVOLUTION_CHANNEL_FLAG.
