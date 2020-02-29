@@ -190,10 +190,10 @@ namespace amf
             std::memset(amfTemp, 0, sizeof(amf::AMFBuffer *) * channelsCount);
         }
 #endif
-        void SetupHost(size_t channelsCount)
+        /*void SetupHost(size_t channelsCount)
         {
-
-        }
+            throw "Not implemented!"
+        }*/
     } tdFilterState;
 
     class TANConvolutionImpl
