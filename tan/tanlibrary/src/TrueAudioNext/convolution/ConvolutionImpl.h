@@ -91,7 +91,7 @@ namespace amf
 				{
 					delete[] buffer.amfBuffers;
 				}
-                    
+
                 buffer.amfBuffers = nullptr;
             }
 #endif
@@ -513,8 +513,15 @@ namespace amf
 
         AMF_RESULT VectorComplexMul(float *vA, float *vB, float *out, int count);
 
-        amf_size ovlAddProcess(ovlAddFilterState *state, TANSampleBuffer inputData, TANSampleBuffer outputData, amf_size length,
-                               amf_uint32 n_channels, bool advanceOverlap = true);
+        AMF_RESULT ovlAddProcess(
+            amf_size &              numberOfSamplesProcessed,
+            ovlAddFilterState *     state,
+            const TANSampleBuffer & inputData,
+            const TANSampleBuffer & outputData,
+            amf_size                length,
+            amf_uint32              n_channels,
+            bool                    advanceOverlap = true
+            );
 
         amf_size ovlTDProcess(tdFilterState *state, float **inputData, float **outputData, amf_size length,
             amf_uint32 n_channels);
@@ -535,8 +542,8 @@ namespace amf
 
         AMF_RESULT ProcessInternal(
             int idx,
-            TANSampleBuffer pBuffersInput,
-            TANSampleBuffer pBufferOutput,
+            const TANSampleBuffer & pBuffersInput,
+            const TANSampleBuffer & pBufferOutput,
             amf_size length,
             const amf_uint32 flagMasks[],
             amf_size *pNumOfSamplesProcessed,

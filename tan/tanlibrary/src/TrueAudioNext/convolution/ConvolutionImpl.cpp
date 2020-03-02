@@ -1779,34 +1779,42 @@ AMF_RESULT TANConvolutionImpl::VectorComplexMul(float *vA, float *vB, float *out
     return AMF_OK;
 }
 
-amf_size TANConvolutionImpl::ovlAddProcess(
-    ovlAddFilterState *state,
-    TANSampleBuffer inputData,
-    TANSampleBuffer outputData,
-    amf_size nSamples,
-    amf_uint32 n_channels,
-    bool advanceOverlap
+AMF_RESULT TANConvolutionImpl::ovlAddProcess(
+    amf_size &              numberOfSamplesProcessed,
+    ovlAddFilterState *     state,
+    const TANSampleBuffer & inputData,
+    const TANSampleBuffer & outputData,
+    amf_size                nSamples,
+    amf_uint32              n_channels,
+    bool                    advanceOverlap
 )
 {
-    if (inputData.GetType() != AMF_MEMORY_HOST)
+    numberOfSamplesProcessed = 0;
+
+    if(inputData.GetType() != AMF_MEMORY_HOST)
     {
-        return 0;
+        return AMF_OK;
     }
+
     float** output = outputData.buffer.host;
-    if (outputData.GetType() == AMF_MEMORY_OPENCL)
+
+    if(outputData.GetType() == AMF_MEMORY_OPENCL)
     {
         if (!m_doProcessOnGpu)
         {
-            return 0;
+            return AMF_OK;
         }
+
         output = m_ovlAddLocalOutBuffs;
     }
+
     float **filter = state->m_internalFilter;
     float **overlap = state->m_internalOverlap;
 
     // we process in bufSize blocks
     if (nSamples < m_iBufferSizeInSamples)
-        return 0;
+        return AMF_OK;
+
     // use fixed overlap size:
     nSamples = m_iBufferSizeInSamples;
 
@@ -1825,98 +1833,92 @@ amf_size TANConvolutionImpl::ovlAddProcess(
             );
     }
 
-    AMF_RETURN_IF_FAILED(m_pTanFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, m_log2len, m_iChannels,
-                                              m_OutSamples, m_OutSamples));
+    AMF_RETURN_IF_FAILED(
+        m_pTanFft->Transform(
+            TAN_FFT_TRANSFORM_DIRECTION_FORWARD,
+            m_log2len,
+            m_iChannels,
+            m_OutSamples,
+            m_OutSamples
+            )
+        );
 
     for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
         VectorComplexMul(m_OutSamples[iChan], filter[iChan], m_OutSamples[iChan], m_length);
     }
 
-    AMF_RETURN_IF_FAILED(m_pTanFft->Transform(TAN_FFT_TRANSFORM_DIRECTION_BACKWARD, m_log2len, m_iChannels,
-                                              m_OutSamples, m_OutSamples));
+    AMF_RETURN_IF_FAILED(
+        m_pTanFft->Transform(
+            TAN_FFT_TRANSFORM_DIRECTION_BACKWARD,
+            m_log2len,
+            m_iChannels,
+            m_OutSamples,
+            m_OutSamples
+            )
+        );
 
-        for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
-            if (advanceOverlap){
-                for (amf_size id = 0; id < m_length; id++)
-                {
-                    overlap[iChan][id] = m_OutSamples[iChan][id * 2] +
-                        (id + nSamples >= m_length ? 0 : overlap[iChan][id + nSamples]);
-                }
-                memcpy(output[iChan], overlap[iChan], nSamples * sizeof(float));
+    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
+        if (advanceOverlap){
+            for (amf_size id = 0; id < m_length; id++)
+            {
+                overlap[iChan][id] = m_OutSamples[iChan][id * 2] +
+                    (id + nSamples >= m_length ? 0 : overlap[iChan][id + nSamples]);
             }
-            else {
-                for (int i = 0; i < nSamples; i++){
-                    output[iChan][i] = m_OutSamples[iChan][i * 2] + overlap[iChan][i + nSamples];
-                }
+            memcpy(output[iChan], overlap[iChan], nSamples * sizeof(float));
+        }
+        else {
+            for (int i = 0; i < nSamples; i++){
+                output[iChan][i] = m_OutSamples[iChan][i * 2] + overlap[iChan][i + nSamples];
             }
         }
-        if (outputData.GetType() == AMF_MEMORY_OPENCL)
-        {
+    }
+
+    if (outputData.GetType() == AMF_MEMORY_OPENCL)
+    {
 #ifndef TAN_NO_OPENCL
-            // move samples to the OCL output buffers
-            cl_command_queue convQ = m_pContextTAN->GetOpenCLConvQueue();
+        // move samples to the OCL output buffers
+        cl_command_queue convQ = m_pContextTAN->GetOpenCLConvQueue();
 
-            for(amf_uint32 iChan = 0; iChan < n_channels; iChan++)
-            {
-                auto result(
-                    clEnqueueWriteBuffer(
-                        convQ,
-                        outputData.buffer.clmem[iChan],
-                        CL_TRUE,
-                        0,
-                        nSamples * sizeof(float),
-                        m_ovlAddLocalOutBuffs[iChan],
-                        0,
-                        NULL,
-                        NULL
-                        )
-                    );
+        for(amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+        {
+            auto result(
+                clEnqueueWriteBuffer(
+                    convQ,
+                    outputData.buffer.clmem[iChan],
+                    CL_TRUE,
+                    0,
+                    nSamples * sizeof(float),
+                    m_ovlAddLocalOutBuffs[iChan],
+                    0,
+                    NULL,
+                    NULL
+                    )
+                );
 
-                AMF_RETURN_IF_CL_FAILED(result, L"Failed to write to OvlAdd output buffers");
-            }
-#else
-            return AMF_NOT_IMPLEMENTED;
-
-            /*// move samples to the OCL output buffers
-            cl_command_queue convQ = m_pContextTAN->GetOpenCLConvQueue();
-
-            for(amf_uint32 iChan = 0; iChan < n_channels; iChan++)
-            {
-                auto result(
-                    clEnqueueWriteBuffer(
-                        convQ,
-                        outputData.buffer.clmem[iChan],
-                        CL_TRUE,
-                        0,
-                        nSamples * sizeof(float),
-                        m_ovlAddLocalOutBuffs[iChan],
-                        0,
-                        NULL,
-                        NULL
-                        )
-                    );
-
-                AMF_RETURN_IF_CL_FAILED(result, L"Failed to write to OvlAdd output buffers");
-            }*/
-#endif
+            AMF_RETURN_IF_CL_FAILED(result, L"Failed to write to OvlAdd output buffers");
         }
+#else
+        // move samples to the OCL output buffers
+        auto convQ = m_pContextTAN->GetAMFConvQueue();
 
-    //for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
-    //    for (amf_size id = 0; id < nSamples; id++)
-    //    {
-    //        outputData[iChan][id] = m_OutSamples[iChan][id * 2] + overlap[iChan][id];
-    //    }
+        for(amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+        {
+            AMF_RETURN_IF_FAILED(
+                convQ->CopyBufferFromHost(
+                    m_ovlAddLocalOutBuffs[iChan],
+                    nSamples * sizeof(float),
+                    outputData.buffer.amfBuffers[iChan],
+                    0,
+                    true
+                    )
+                );
+        }
+#endif
+    }
 
-    //    ZeroMemory(overlap[iChan],  nSamples * sizeof(float));
+    numberOfSamplesProcessed = nSamples;
 
-    //    for (amf_size id = 0; id < m_length - nSamples; id++)
-    //    {
-    //        overlap[iChan][id] += m_OutSamples[iChan][(id + nSamples) * 2];
-    //    }
-
-    //}
-
-    return nSamples;
+    return AMF_OK;
 }
 
 amf_size TANConvolutionImpl::ovlTDProcess(
@@ -2118,8 +2120,8 @@ void TANConvolutionImpl::ovlTimeDomainGPU(
 
 AMF_RESULT TANConvolutionImpl::ProcessInternal(
     int idx,
-    TANSampleBuffer pInputData,
-    TANSampleBuffer pOutputData,
+    const TANSampleBuffer & pInputData,
+    const TANSampleBuffer & pOutputData,
     amf_size nSamples,
     // Masks of flags from enum
     // TAN_CONVOLUTION_CHANNEL_FLAG.
@@ -2208,17 +2210,39 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     {
         if (!m_availableChannels[channelId]) // !available == running
         {
-            if(!m_internalOutBufs.IsSet())
-            {
-                m_internalOutBufs.PrepareHost(m_iChannels);
-            }
-
             if(!m_internalInBufs.IsSet())
             {
                 m_internalInBufs.PrepareHost(m_iChannels);
             }
 
-            m_internalOutBufs.buffer.host[idxInt] = pOutputData.buffer.host[channelId];
+            if(!m_internalOutBufs.IsSet())
+            {
+                if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL)
+                {
+#ifndef TAN_NO_OPENCL
+                    m_internalOutBufs.PrepareCL(m_iChannels);
+#else
+                    m_internalOutBufs.PrepareAMF(m_iChannels);
+#endif
+                }
+                else if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
+                {
+                    m_internalOutBufs.PrepareHost(m_iChannels);
+                }
+            }
+
+            if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL)
+            {
+#ifndef TAN_NO_OPENCL
+                m_internalOutBufs.buffer.clmem[idxInt] = pOutputData.buffer.clmem[channelId];
+#else
+                m_internalOutBufs.buffer.amfBuffers[idxInt] = pOutputData.buffer.amfBuffers[channelId];
+#endif
+            }
+            else if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
+            {
+                m_internalOutBufs.buffer.host[idxInt] = pOutputData.buffer.host[channelId];
+            }
 
             if (flagMasks && flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT)
             {
@@ -2234,12 +2258,18 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     }
 
     int n_channels = idxInt;
-	if (!(n_channels > 0)) { return AMF_WRONG_STATE; }
+	if (!(n_channels > 0))
+    {
+        return AMF_WRONG_STATE;
+    }
 	//AMF_RETURN_IF_FALSE(n_channels > 0, AMF_WRONG_STATE, L"No active channels found");
 
-    switch (m_eConvolutionMethod) {
+    switch (m_eConvolutionMethod)
+    {
     case TAN_CONVOLUTION_METHOD_TIME_DOMAIN:
     {
+        return AMF_NOT_IMPLEMENTED;
+
         for (amf_uint32 channelId = 0, chIdInt = 0;
             channelId < static_cast<amf_uint32>(m_MaxChannels); channelId++)
         {
@@ -2254,7 +2284,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     m_tdInternalFilterState[idx]->m_clTemp[chIdInt] = m_tdFilterState[idx]->m_clTemp[channelId];
 				}
 #else
-                return AMF_FAIL;
+                return AMF_NOT_IMPLEMENTED;
 #endif
 
 				m_tdInternalFilterState[idx]->m_SampleHistory[chIdInt] = m_tdFilterState[idx]->m_SampleHistory[channelId];
@@ -2296,13 +2326,18 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             }
         }
 
-        amf_size numOfSamplesProcessed = ovlAddProcess(
-            state,
-            m_internalInBufs,
-            m_internalOutBufs,
-            static_cast<int>(nSamples),
-            n_channels,
-            ocl_advance_time
+        amf_size numOfSamplesProcessed(0);
+
+        AMF_RETURN_IF_FAILED(
+            ovlAddProcess(
+                numOfSamplesProcessed,
+                state,
+                m_internalInBufs,
+                m_internalOutBufs,
+                static_cast<int>(nSamples),
+                n_channels,
+                ocl_advance_time
+                )
             );
 
         if(pNumOfSamplesProcessed)
