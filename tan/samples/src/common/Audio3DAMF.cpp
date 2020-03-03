@@ -497,13 +497,13 @@ AMF_RESULT Audio3DAMF::Init
     }
 
     AMF_RETURN_IF_FAILED(TANCreateConverter(mTANRoomContext, &mConverter));
-    AMF_RETURN_IF_FAILED(mConverter->Init());
+    AMF_RETURN_IF_FAILED(mConverter->Init(factory));
 
     AMF_RETURN_IF_FAILED(TANCreateMixer(mTANRoomContext, &mMixer));
 	AMF_RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size(), factory));
 
     AMF_RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &mFft));
-    AMF_RETURN_IF_FAILED(mFft->Init());
+    AMF_RETURN_IF_FAILED(mFft->Init(factory));
 
     //CL over GPU for both Convolution and Room processing
     if(useAMFConvolution && useAMFRoom)
@@ -600,10 +600,10 @@ AMF_RESULT Audio3DAMF::Init
 #else
 	typedef int  (WINAPI *CREATEVR)(
 		AmdTrueAudioVR **taVR,
-		const TANContextPtr & pContext, 
-		const TANFFTPtr & pFft, 
-		AMFCompute * compute, 
-		float samplesPerSecond, 
+		const TANContextPtr & pContext,
+		const TANFFTPtr & pFft,
+		AMFCompute * compute,
+		float samplesPerSecond,
 		int convolutionLength,
 		amf::AMFFactory * factory
 		);

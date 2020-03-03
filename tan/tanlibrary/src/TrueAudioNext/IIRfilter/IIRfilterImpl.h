@@ -83,7 +83,7 @@ namespace amf
             const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
             amf_size *pNumOfSamplesProcessed // Can be NULL.
             );
- 
+
     protected:
         TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pDeviceCompute;
@@ -96,8 +96,6 @@ namespace amf
 
 
     private:
-        //virtual AMF_RESULT  AMF_STD_CALL InitCpu();
-        //virtual AMF_RESULT  AMF_STD_CALL InitGpu();
         amf_uint32 m_numInputTaps;
         amf_uint32 m_numOutputTaps;
         amf_uint32 m_channels;

@@ -384,7 +384,7 @@ namespace amf
     public:
         AMF_DECLARE_IID(0x2c3e6c65, 0x1788, 0x4bbf, 0xb0, 0x70, 0xa1, 0x35, 0x8c, 0xbe, 0xe8, 0x9e)
 
-        virtual AMF_RESULT  AMF_STD_CALL    Init() = 0;
+        virtual AMF_RESULT  AMF_STD_CALL    Init(amf::AMFFactory * factory = nullptr) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;
 
@@ -437,7 +437,7 @@ namespace amf
 #endif
 
         virtual AMF_RESULT  AMF_STD_CALL    Convert(
-                                                    const AMFBuffer * inputBuffer,
+                                                    AMFBuffer * inputBuffer,
                                                     amf_size inputStep,
                                                     amf_size inputOffset,
                                                     TAN_SAMPLE_TYPE inputType,
@@ -451,7 +451,7 @@ namespace amf
                                                     ) = 0;
         // Method for batch processing
         virtual AMF_RESULT  AMF_STD_CALL    Convert(
-                                                    const AMFBuffer ** inputBuffers,
+                                                    AMFBuffer ** inputBuffers,
 													amf_size inputStep,
                                                     amf_size* inputOffsets,
                                                     TAN_SAMPLE_TYPE inputType,
@@ -484,7 +484,7 @@ namespace amf
         // {4B20F249-7286-4121-A153-12575011380D}
         AMF_DECLARE_IID(0x4b20f249, 0x7286, 0x4121, 0xa1, 0x53, 0x12, 0x57, 0x50, 0x11, 0x38, 0xd);
 
-        virtual AMF_RESULT  AMF_STD_CALL    Init() = 0;
+        virtual AMF_RESULT  AMF_STD_CALL    Init(amf::AMFFactory * factory = nullptr) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;
 
@@ -587,7 +587,7 @@ namespace amf
         AMF_DECLARE_IID(0x5f3965a1, 0x46c2, 0x4987, 0xb7, 0x1f, 0x3f, 0xf8, 0x1a, 0xe7, 0x5b, 0x6f)
 
 
-        virtual	AMF_RESULT	AMF_STD_CALL	Init() = 0;
+        virtual	AMF_RESULT	AMF_STD_CALL	Init(amf::AMFFactory * factory = nullptr) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;
 
@@ -612,13 +612,13 @@ namespace amf
                                                       amf_uint32 channels,
                                                       cl_mem pBufferInput[],
                                                       cl_mem pBufferOutput[]) = 0;
-#endif
-
+#else
         virtual AMF_RESULT  AMF_STD_CALL    Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                       amf_uint32 log2len,
                                                       amf_uint32 channels,
-                                                      const AMFBuffer * pBufferInput[],
+                                                      AMFBuffer * pBufferInput[],
                                                       AMFBuffer * pBufferOutput[]) = 0;
+#endif
     };
 	//----------------------------------------------------------------------------------------------
 	// smart pointer
@@ -631,7 +631,7 @@ namespace amf
         // {7A6E4BBD-03F4-4AAB-9824-ED6935327E92}
         AMF_DECLARE_IID(0x7a6e4bbd, 0x03f4, 0x4aab, 0x98, 0x24, 0xed, 0x69, 0x35, 0x32, 0x7e, 0x92)
 
-        virtual	AMF_RESULT	AMF_STD_CALL	Init() = 0;
+        virtual	AMF_RESULT	AMF_STD_CALL	Init(amf::AMFFactory * factory = nullptr) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;
 

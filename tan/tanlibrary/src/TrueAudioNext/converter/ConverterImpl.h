@@ -45,7 +45,7 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
 //TANConverter interface
-        AMF_RESULT  AMF_STD_CALL Init() override;
+        AMF_RESULT  AMF_STD_CALL Init(amf::AMFFactory * factory = nullptr) override;
         AMF_RESULT  AMF_STD_CALL Terminate() override;
         TANContext* AMF_STD_CALL GetContext() override { return m_pContextTAN; }
 
@@ -90,7 +90,7 @@ namespace amf
                                             int count, bool* outputClipped = NULL) override;
 
 #endif
-        AMF_RESULT  AMF_STD_CALL    Convert(const AMFBuffer * inputBuffer,
+        AMF_RESULT  AMF_STD_CALL    Convert(AMFBuffer * inputBuffer,
                                             amf_size inputStep,
                                             amf_size inputOffset,
                                             TAN_SAMPLE_TYPE inputType,
@@ -106,7 +106,7 @@ namespace amf
                                             ) override;
 
         AMF_RESULT  AMF_STD_CALL    Convert(
-                                            const AMFBuffer ** inputBuffers,
+                                            AMFBuffer ** inputBuffers,
                                             amf_size inputStep,
                                             amf_size* inputOffsets,
                                             TAN_SAMPLE_TYPE inputType,
@@ -146,13 +146,22 @@ namespace amf
 		cl_kernel					m_clkShort2Float = nullptr;
         cl_mem                      m_overflowBuffer = NULL;
 #else
-        
+
+        amf::AMFComputePtr          mGeneralQueue;
+        amf::AMFComputeKernelPtr    mKernel;
+
+        amf::AMFComputeKernelPtr    mFloat2Short;
+        amf::AMFComputeKernelPtr    mShort2Short;
+        amf::AMFComputeKernelPtr    mFloat2Float;
+        amf::AMFComputeKernelPtr    mShort2Float;
+
+        amf::AMFBufferPtr           mOverflowBuffer;
 #endif
 
     private:
         static bool useSSE2;
         AMF_RESULT	AMF_STD_CALL InitCpu();
-        AMF_RESULT	AMF_STD_CALL InitGpu();
+        AMF_RESULT	AMF_STD_CALL InitGpu(amf::AMFFactory * factory);
         AMF_RESULT	AMF_STD_CALL ConvertGpu(amf_handle inputBuffer,
                                             amf_size inputOffset,
                                             amf_size inputStep,

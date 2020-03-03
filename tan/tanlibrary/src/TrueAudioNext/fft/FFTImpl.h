@@ -48,7 +48,8 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
 //TANFFT interface
-        AMF_RESULT	AMF_STD_CALL Init()         override;
+        AMF_RESULT	AMF_STD_CALL Init(amf::AMFFactory * factory = nullptr)
+                                                override;
         AMF_RESULT  AMF_STD_CALL Terminate()    override;
         TANContext* AMF_STD_CALL GetContext()   override    { return m_pContextTAN; }
 
@@ -65,15 +66,15 @@ namespace amf
                                            amf_uint32 channels,
                                            cl_mem pBufferInput[],
                                            cl_mem pBufferOutput[]) override;
-#endif
-
+#else
         AMF_RESULT  AMF_STD_CALL Transform(
                                             TAN_FFT_TRANSFORM_DIRECTION direction,
                                             amf_uint32 log2len,
                                             amf_uint32 channels,
-                                            const AMFBuffer * pBufferInput[],
+                                            AMFBuffer * pBufferInput[],
                                             AMFBuffer * pBufferOutput[]
                                             ) override;
+#endif
 
     private:
 		//first 32 bit-> log2length, second 32 bit -> num of channel
@@ -81,7 +82,7 @@ namespace amf
 
         size_t getFFTPlan(int log2len, int numOfChannels);
         AMF_RESULT virtual AMF_STD_CALL InitCpu();
-        AMF_RESULT virtual AMF_STD_CALL InitGpu();
+        AMF_RESULT virtual AMF_STD_CALL InitGpu(amf::AMFFactory * factory);
 
     protected:
         AMF_RESULT virtual AMF_STD_CALL TransformImplCpu(TAN_FFT_TRANSFORM_DIRECTION direction,
@@ -101,11 +102,23 @@ namespace amf
                                                          amf_size channels,
                                                          cl_mem pBufferInput[],
                                                          cl_mem pBufferOutput[]);
+#else
+        AMF_RESULT virtual AMF_STD_CALL TransformImplGPUBatched(
+														TAN_FFT_TRANSFORM_DIRECTION direction,
+														amf_size log2len,
+														amf_size channels,
+														amf::AMFBuffer * pBufferInput,
+														amf::AMFBuffer * pBufferOutput);
+        AMF_RESULT virtual AMF_STD_CALL TransformImplGpu(TAN_FFT_TRANSFORM_DIRECTION direction,
+                                                         amf_size log2len,
+                                                         amf_size channels,
+                                                         amf::AMFBuffer * pBufferInput[],
+                                                         amf::AMFBuffer * pBufferOutput[]);
 #endif
 
     private:
 		void clearInternalBuffers();
-		void AdjustInternalBufferSize(size_t desireSizeInSampleLog2, size_t numofChannel);
+		AMF_RESULT AdjustInternalBufferSize(size_t desireSizeInSampleLog2, size_t numofChannel);
         TANContextPtr               m_pContextTAN;
 
         AMFComputeKernelPtr         m_pKernelCopy;
@@ -117,6 +130,9 @@ namespace amf
 #ifndef TAN_NO_OPENCL
         cl_mem                      m_pInputsOCL = nullptr;
         cl_mem                      m_pOutputsOCL = nullptr;
+#else
+        AMFBufferPtr                mInputsOCL;
+        AMFBufferPtr                mOutputsOCL;
 #endif
 
         bool                        m_doProcessingOnGpu;
@@ -127,10 +143,4 @@ namespace amf
     AMF_RESULT TANCreateFFT(amf::TANContext *pContext,
         amf::TANFFT** ppComponent,
         bool useConvQueue);
-    ////-------------------------------------------------------------------------------------------------
-    //AMF_RESULT TANCreateFFT(
-    //    amf::TANContextPtr pContext,
-    //    amf::TANFFT **ppComponent,
-    //    amf::AMFComputePtr pAmfContext
-    //    );
 } //amf

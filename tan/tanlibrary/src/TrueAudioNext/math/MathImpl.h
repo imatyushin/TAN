@@ -25,6 +25,7 @@
 ///-------------------------------------------------------------------------
 #pragma once
 #include "TrueAudioNext.h"	//TAN
+#include "public/include/core/Factory.h"
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"
@@ -45,7 +46,7 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
         //TANMath interface
-        virtual AMF_RESULT  AMF_STD_CALL Init();
+        virtual AMF_RESULT  AMF_STD_CALL Init(amf::AMFFactory * factory);
         virtual AMF_RESULT  AMF_STD_CALL Terminate();
         virtual TANContext* AMF_STD_CALL GetContext()	{ return m_pContextTAN; }
 
@@ -245,7 +246,7 @@ namespace amf
 
     private:
         virtual AMF_RESULT  AMF_STD_CALL InitCpu();
-        virtual AMF_RESULT  AMF_STD_CALL InitGpu();
+        virtual AMF_RESULT  AMF_STD_CALL InitGpu(amf::AMFFactory * factory);
 
 #ifndef TAN_NO_OPENCL
 		AMF_RESULT AdjustInternalBufferSize(

@@ -1005,7 +1005,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
 	AMF_RETURN_IF_FALSE(convolutionMethod < TAN_CONVOLUTION_METHOD_FFT_UINFORM_HEAD_TAIL, AMF_NOT_SUPPORTED,
                         L"convolutionMethod isn't supported");
 
-
+    mFactory = factory;
     m_doProcessOnGpu = doProcessingOnGpu;
 
     AMF_RESULT res = AMF_OK;
@@ -1061,7 +1061,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
     if (convolutionMethod == TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
     {
         AMF_RETURN_IF_FAILED(TANCreateFFT(m_pContextTAN, &m_pUpdateTanFft, false));
-        AMF_RETURN_IF_FAILED(m_pUpdateTanFft->Init());
+        AMF_RETURN_IF_FAILED(m_pUpdateTanFft->Init(mFactory));
         if (m_pProcContextAMF == m_pUpdateContextAMF)
         {
             m_pTanFft = m_pUpdateTanFft;

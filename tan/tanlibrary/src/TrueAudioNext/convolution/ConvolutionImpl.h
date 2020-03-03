@@ -24,6 +24,7 @@
 ///-------------------------------------------------------------------------
 #pragma once
 #include "TrueAudioNext.h"   //TAN
+#include "public/include/core/Factory.h"        //AMF
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/core/Buffer.h"         //AMF
 #include "public/include/components/Component.h"//AMF
@@ -214,10 +215,6 @@ namespace amf
             std::memset(amfTemp, 0, sizeof(amf::AMFBuffer *) * channelsCount);
         }
 #endif
-        /*void SetupHost(size_t channelsCount)
-        {
-            throw "Not implemented!"
-        }*/
     } tdFilterState;
 
     class TANConvolutionImpl
@@ -399,6 +396,8 @@ namespace amf
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr); // TAN Audio buffers
+
+        amf::AMFFactory *           mFactory;
 
         TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pProcContextAMF;

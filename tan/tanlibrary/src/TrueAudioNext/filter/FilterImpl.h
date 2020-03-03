@@ -50,10 +50,11 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
 //TANFFT interface
-        AMF_RESULT	AMF_STD_CALL Init()         override;
+        AMF_RESULT	AMF_STD_CALL Init(amf::AMFFactory * factory = nullptr)
+                                                override;
         AMF_RESULT  AMF_STD_CALL Terminate()    override;
         TANContext* AMF_STD_CALL GetContext()   override    { return m_pContextTAN; }
-        
+
         // log2len - arrays' length should be power of 2, the true lenght is expected to be
         //           (2 ^ log2len) * (2 * sizeof(float)) (due to complex numbers).
 
@@ -74,7 +75,5 @@ namespace amf
         TANFFTPtr m_pFft;
 
         float *m_eqFilter;
-
-
     };
 } //amf

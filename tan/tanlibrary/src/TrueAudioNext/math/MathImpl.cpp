@@ -75,26 +75,22 @@ TANMathImpl::~TANMathImpl(void)
     Terminate();
 }
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
+AMF_RESULT  AMF_STD_CALL TANMathImpl::Init(amf::AMFFactory * factory)
 {
 	AMF_RETURN_IF_FALSE(!m_pDeviceCompute, AMF_ALREADY_INITIALIZED, L"Already initialized");
 	AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
 		L"Cannot initialize after termination");
 
 #ifndef TAN_NO_OPENCL
-	if (m_pContextTAN->GetOpenCLContext())
-	{
-		return InitGpu();
-	}
-	else
-	{
-		return InitCpu();
-	}
+    if(m_pContextTAN->GetOpenCLContext())
 #else
-	//todo: gpu support
-
-	return InitCpu();
+    if(m_pContextTAN->GetAMFContext())
 #endif
+    {
+        return InitGpu(factory);
+    }
+
+    return InitCpu();
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMathImpl::InitCpu()
@@ -103,7 +99,7 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitCpu()
 	return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
+AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu(amf::AMFFactory * factory)
 {
 	AMF_RETURN_IF_FALSE(!m_pDeviceCompute, AMF_ALREADY_INITIALIZED, L"Already initialized");
 	AMF_RETURN_IF_FALSE((m_pContextTAN != NULL), AMF_WRONG_STATE,

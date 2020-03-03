@@ -1340,17 +1340,27 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     printf("\n\nFIXME!!!!\n\n");
 
-    /*
     // zero buffers
     float fill = 0.0;
-    status = clEnqueueFillBuffer(m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
-    status = clEnqueueFillBuffer(m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
 
-    // TODO: log errors
-    if (status != CL_SUCCESS)
-    {
-        return;
-    }*/
+    AMF_RETURN_IF_FAILED(
+        mCompute->FillBuffer(
+            mResponse,
+            0,
+            responseLength * sizeof(float),
+            &fill,
+            sizeof(float)
+            )
+        );
+    AMF_RETURN_IF_FAILED(
+        mCompute->FillBuffer(
+            mFloatResponse,
+            0,
+            responseLength * sizeof(float),
+            &fill,
+            sizeof(float)
+            )
+        );
 
     //TODO: combine the LPF and HPF into one chunk of memory
     //m_pHPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -1363,7 +1373,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
-    mHPF->Convert(amf::AMF_MEMORY_OPENCL);
+    AMF_RETURN_IF_FAILED(mHPF->Convert(amf::AMF_MEMORY_OPENCL));
 
     //m_pLPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
     //    HeadFilterSize * sizeof(float), ears.hrtf.lowPass, &status);
@@ -1375,7 +1385,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
-    mLPF->Convert(amf::AMF_MEMORY_OPENCL);
+    AMF_RETURN_IF_FAILED(mLPF->Convert(amf::AMF_MEMORY_OPENCL));
 
     m_globalWorkSize[0] = RoundUp(localX, nW);
     m_globalWorkSize[1] = RoundUp(localY, nH);
@@ -1952,8 +1962,7 @@ void TrueAudioVRimpl::generateDoorwayResponse(
 
     mFFT->Transform(TAN_FFT_TRANSFORM_DIRECTION_BACKWARD, log2len, 1, &responseRight, &responseRight);
 
-
-     /*
+    /*
     MonoSource vSource;
     vSource.speakerX = door.r2cX;
     vSource.speakerY = door.r2cY;
