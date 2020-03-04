@@ -712,7 +712,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     //amf_size local[3] = { 0, 0, 0 };
 
     AMF_RETURN_IF_FAILED(
-        mKernel->Enqueue(1, nullptr, global, nullptr)
+        kernel->Enqueue(1, nullptr, global, nullptr)
         );
 
     // Retrieve overflow results (if any) and finish OpenCL operations

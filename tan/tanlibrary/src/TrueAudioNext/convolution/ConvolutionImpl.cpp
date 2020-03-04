@@ -2194,7 +2194,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     //todo: ivm: investigate!
     //m_internalInBufs.mType = pInputData.mType;
     //m_internalOutBufs.mType = pOutputData.mType;
-    printf("\n\nTEST TYPE!!!\n\n");
+    //printf("\n\nTEST TYPE!!!\n\n");
 
     if(m_internalInBufs.IsSet())
     {

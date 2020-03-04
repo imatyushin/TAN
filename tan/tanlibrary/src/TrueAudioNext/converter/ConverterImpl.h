@@ -148,7 +148,7 @@ namespace amf
 #else
 
         amf::AMFComputePtr          mGeneralQueue;
-        amf::AMFComputeKernelPtr    mKernel;
+        //amf::AMFComputeKernelPtr    mKernel;
 
         amf::AMFComputeKernelPtr    mFloat2Short;
         amf::AMFComputeKernelPtr    mShort2Short;
