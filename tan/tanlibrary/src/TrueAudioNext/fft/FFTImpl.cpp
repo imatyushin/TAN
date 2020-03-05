@@ -671,13 +671,11 @@ void TANFFTImpl::clearInternalBuffers()
     //release ocl bufers
 	if(mInputsOCL)
     {
-        //mInputsOCL->Release();
         mInputsOCL = nullptr;
 	}
 
     if(mOutputsOCL)
     {
-        //mOutputsOCL->Release();
         mOutputsOCL = nullptr;
 	}
 
