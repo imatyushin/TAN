@@ -106,8 +106,11 @@ public:
     {
     }
     IAudio3D(IAudio3D const &) = delete;
+
     virtual ~IAudio3D()
     {
+        Close();
+
     }
 
     virtual AMF_RESULT Init
@@ -154,7 +157,28 @@ public:
         ) = 0;
 
 	// finalize, deallocate resources, close files, etc.
-	virtual void Close() = 0;
+	virtual void Close()
+    {
+        mRunning = false;
+
+        if(mPlayer)
+        {
+            mPlayer->Close();
+            mPlayer.reset();
+        }
+
+        mTrueAudioVR.reset();
+
+        // release smart pointers:
+        mFft.Release();
+        mConvolution.Release();
+        mConverter.Release();
+        mMixer.Release();
+        mTANRoomContext.Release();
+        mTANConvolutionContext.Release();
+
+        mWavFiles.resize(0);
+    }
 
 	// start audio engine:
     virtual bool Run() = 0;
@@ -177,25 +201,106 @@ public:
         float rotationY,
         float headingOffset,
         bool headingCCW
-        ) = 0;
+        )
+    {
+        m_mtxWorldToRoomCoords.setOffset(translationX, translationY, translationZ);
+        m_mtxWorldToRoomCoords.setAngles(rotationY, 0.0, 0.0);
+        m_headingOffset = headingOffset;
+        m_headingCCW = headingCCW;
+
+        return 0;
+    }
 
 	// get's the current playback position in a stream:
     //int64_t getCurrentPosition(int stream);
 
 	// update the head (listener) position:
-    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll) = 0;
+    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
+    {
+        // world to room coordinates transform:
+        m_mtxWorldToRoomCoords.transform(x, y, z);
+        yaw = m_headingOffset + (m_headingCCW ? yaw : -yaw);
+
+        if (x == ears.headX && y == ears.headY && z == ears.headZ //) {
+            && yaw == ears.yaw && pitch == ears.pitch && roll == ears.roll) {
+                return 0;
+        }
+
+        ears.headX = x;
+        ears.headY = y;
+        ears.headZ = z;
+
+        ears.yaw = yaw;
+        ears.pitch = pitch;
+        ears.roll = roll;
+
+        mUpdateParams = true;
+        return 0;
+    }
 
 	//update a source position:
-    virtual int updateSourcePosition(int srcNumber, float x, float y, float z) = 0;
+    virtual int updateSourcePosition(int srcNumber, float x, float y, float z)
+    {
+        if (srcNumber >= mWavFiles.size()){
+            return -1;
+        }
+        // world to room coordinates transform:
+        m_mtxWorldToRoomCoords.transform(x, y, z);
 
+        sources[srcNumber].speakerX = x;// +room.width / 2.0f;
+        sources[srcNumber].speakerY = y;
+        sources[srcNumber].speakerZ = z;// +room.length / 2.0f;
+
+        mUpdateParams = true;
+        return 0;
+    }
 	//update a room's dimension:
-	virtual int updateRoomDimension(float _width, float _height, float _length) = 0;
+	virtual int updateRoomDimension(float _width, float _height, float _length)
+    {
+        room.width = _width;
+        room.height = _height;
+        room.length = _length;
+
+        mUpdateParams = true;
+
+        return 0;
+    }
 
 	//update a room's damping factor
-	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back) = 0;
+	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back)
+    {
+        room.mTop.damp = _top;
+        room.mBottom.damp = _buttom;
+        room.mLeft.damp = _left;
+        room.mRight.damp = _right;
+        room.mFront.damp = _front;
+        room.mBack.damp = _back;
+
+        mUpdateParams = true;
+        return 0;
+    }
 
     // export impulse response for source  + current listener and room:
-    virtual int exportImpulseResponse(int srcNumber, char * fname) = 0;
+    virtual int exportImpulseResponse(int srcNumber, char * fileName)
+    {
+        int convolutionLength = this->mFFTLength;
+        mTrueAudioVR->generateSimpleHeadRelatedTransform(
+            ears.hrtf,
+            ears.earSpacing
+            );
+
+        float *leftResponse = mResponses[0];
+        float *rightResponse = mResponses[1];
+        short *sSamples = new short[2 * convolutionLength];
+        memset(sSamples, 0, 2 * convolutionLength*sizeof(short));
+
+        (void)mConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
+        (void)mConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
+
+        WriteWaveFileS(fileName, 48000, 2, 16, convolutionLength, sSamples);
+        delete[] sSamples;
+        return 0;
+    }
 
     virtual AmdTrueAudioVR * getAMDTrueAudioVR()
     {
@@ -254,7 +359,6 @@ protected:
 
     float *mResponses[MAX_SOURCES * 2] = {nullptr};
     //cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
-    //bool   mUseClMemBufs = false;
 
     std::string mLastError;
 

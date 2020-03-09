@@ -25,6 +25,9 @@
 #include "GpuUtils.h"
 #include "cpucaps.h"
 
+#include "public/common/TraceAdapter.h"
+#include "public/common/AMFFactory.h"
+
 #include <time.h>
 #include <stdio.h>
 #include <CL/cl.h>
@@ -55,7 +58,7 @@
 #include <iomanip>
 /**/
 
-bool Audio3D::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
+bool Audio3DOpenCL::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 #ifndef ERROR_MESSAGE
 
@@ -87,50 +90,31 @@ bool Audio3D::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 #define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
 
-unsigned Audio3D::processThreadProc(void * ptr)
+unsigned Audio3DOpenCL::processThreadProc(void * ptr)
 {
-    Audio3D *pAudio3D = static_cast<Audio3D*>(ptr);
+    Audio3DOpenCL *pAudio3D = static_cast<Audio3DOpenCL*>(ptr);
 
     return pAudio3D->ProcessProc();
 }
 
-unsigned Audio3D::updateThreadProc(void * ptr)
+unsigned Audio3DOpenCL::updateThreadProc(void * ptr)
 {
-    Audio3D *pAudio3D = static_cast<Audio3D*>(ptr);
+    Audio3DOpenCL *pAudio3D = static_cast<Audio3DOpenCL*>(ptr);
 
     return pAudio3D->UpdateProc();
 }
 
-Audio3D::Audio3D():
-    m_pTAVR(nullptr),
-    mProcessThread(true),
-    mStop(false),
-    m_headingOffset(0.),
-    m_headingCCW(true)
+Audio3DOpenCL::Audio3DOpenCL()
 {
 }
 
-Audio3D::~Audio3D()
+Audio3DOpenCL::~Audio3DOpenCL()
 {
     Close();
 }
 
-void Audio3D::Close()
+void Audio3DOpenCL::Close()
 {
-    mRunning = false;
-
-    if(mPlayer)
-    {
-        mPlayer->Close();
-        mPlayer.reset();
-    }
-
-    // destroy dumb pointer:
-    if (m_pTAVR != NULL) {
-        delete m_pTAVR;
-        m_pTAVR = nullptr;
-    }
-
     for (int i = 0; i < MAX_SOURCES*2; i++)
     {
         if (mOCLResponses[i] == NULL) continue;
@@ -191,7 +175,7 @@ void Audio3D::Close()
     mWavFiles.resize(0);
 }
 
-bool Audio3D::Init
+AMF_RESULT Audio3DOpenCL::Init
 (
 	const std::string &     dllPath,
 	const RoomDefinition &  roomDef,
@@ -229,7 +213,9 @@ bool Audio3D::Init
     amf::TAN_CONVOLUTION_METHOD
                             convMethod,
 
-    const std::string &     playerType
+    const std::string &     playerType,
+
+    RoomUpdateMode          roomUpdateMode
 )
 {
     if((useGPUConvolution && !useCLConvolution) || (useGPURoom && !useCLRoom))
@@ -238,7 +224,7 @@ bool Audio3D::Init
             << "Error: GPU queues must be used only if OpenCL flag is set"
             << std::endl;
 
-        return false;
+        return AMF_FAIL;
     }
 
     //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
@@ -264,7 +250,7 @@ bool Audio3D::Init
                     << FILTER_SAMPLE_RATE << " frequency is supported!"
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if(content.BitsPerSample != 16)
@@ -274,7 +260,7 @@ bool Audio3D::Init
                     << 16 << " bits is supported!"
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if(content.ChannelsCount != 2)
@@ -283,7 +269,7 @@ bool Audio3D::Init
                     << "Error: file " << fileName << " is not a stereo file. Currently only stereo files are supported!"
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if(content.SamplesCount < mBufferSizeInSamples)
@@ -292,7 +278,7 @@ bool Audio3D::Init
                     << "Error: file " << fileName << " are too short."
                     << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             //check that samples have compatible formats
@@ -303,7 +289,7 @@ bool Audio3D::Init
                 {
                     std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
 
-                    return false;
+                    return AMF_FAIL;
                 }
             }
 
@@ -313,7 +299,7 @@ bool Audio3D::Init
         {
             std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
 
-            return false;
+            return AMF_FAIL;
         }
     }
 
@@ -321,7 +307,7 @@ bool Audio3D::Init
     {
         std::cerr << "Error: no files opened to play" << std::endl;
 
-        return false;
+        return AMF_FAIL;
     }
 
     //initialize hardware
@@ -368,7 +354,7 @@ bool Audio3D::Init
     {
         std::cerr << "Error: could not initialize player " << std::endl;
 
-        return false;
+        return AMF_FAIL;
     }
 
     /* # fft buffer length must be power of 2: */
@@ -531,26 +517,26 @@ bool Audio3D::Init
         }
     }
 
-    RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext));
-    RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext));
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext));
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext));
 
     //convolution over OpenCL
     if(useCLConvolution)
     {
-        RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
+        AMF_RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
     }
 
     //room processing over OpenCL
     if(useCLRoom)
     {
-        RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
+        AMF_RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
     }
 
-    RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution));
+    AMF_RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution));
 
     if(useCLConvolution)
     {
-        RETURN_IF_FAILED(
+        AMF_RETURN_IF_FAILED(
             mConvolution->InitGpu(
                 convMethod,
                 mFFTLength,
@@ -561,7 +547,7 @@ bool Audio3D::Init
     }
     else
     {
-        RETURN_IF_FAILED(
+        AMF_RETURN_IF_FAILED(
             mConvolution->InitCpu(
                 convMethod,
                 mFFTLength,
@@ -571,19 +557,14 @@ bool Audio3D::Init
             );
     }
 
-    RETURN_IF_FAILED(TANCreateConverter(mTANRoomContext, &mConverter));
-    RETURN_IF_FAILED(mConverter->Init());
+    AMF_RETURN_IF_FAILED(TANCreateConverter(mTANRoomContext, &mConverter));
+    AMF_RETURN_IF_FAILED(mConverter->Init());
 
-    RETURN_IF_FAILED(TANCreateMixer(mTANRoomContext, &mMixer));
-	RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size()));
+    AMF_RETURN_IF_FAILED(TANCreateMixer(mTANRoomContext, &mMixer));
+	AMF_RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size()));
 
-    RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &mFft));
-    RETURN_IF_FAILED(mFft->Init());
-
-    if (m_pTAVR != NULL) {
-        delete(m_pTAVR);
-        m_pTAVR = NULL;
-    }
+    AMF_RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &mFft));
+    AMF_RETURN_IF_FAILED(mFft->Init());
 
     //CL over GPU for both Convolution and Room processing
     if(useCLConvolution && useCLRoom)
@@ -622,7 +603,7 @@ bool Audio3D::Init
         {
             std::cerr << "Could not create OpenCL buffer" << std::endl;
 
-            return false;
+            return AMF_FAIL;
         }
 
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
@@ -637,7 +618,7 @@ bool Audio3D::Init
             {
                 std::cerr << "Could not create OpenCL subBuffer" << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             float zero = 0.0;
@@ -646,7 +627,7 @@ bool Audio3D::Init
             {
                 std::cerr << "Could not fill OpenCL subBuffer" << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
         }
 
@@ -664,14 +645,14 @@ bool Audio3D::Init
             {
                 std::cerr << "Could not create OpenCL buffer" << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
 
             if (clErr != CL_SUCCESS)
             {
                 std::cerr << "Could not create OpenCL buffer" << std::endl;
 
-                return false;
+                return AMF_FAIL;
             }
         }
 
@@ -695,22 +676,27 @@ bool Audio3D::Init
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
 #endif
 
-    CreateAmdTrueAudioVR(
-        &m_pTAVR,
+    AmdTrueAudioVR *trueAudioVR(nullptr);
+    auto result = CreateAmdTrueAudioVR(
+        &trueAudioVR,
         mTANRoomContext,
         mFft,
         mCmdQueue3,
         FILTER_SAMPLE_RATE, //todo: other frequencies?
         mFFTLength
         );
+    mTrueAudioVR.reset(trueAudioVR);
+
+    AMF_RETURN_IF_FAILED(result);
+    AMF_RETURN_IF_FALSE(nullptr != mTrueAudioVR.get(), AMF_FAIL, L"CreateAmdTrueAudioVR failed");
 
     if(useGPURoom)
     {
-        m_pTAVR->SetExecutionMode(AmdTrueAudioVR::GPU);
+        mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
     else
     {
-        m_pTAVR->SetExecutionMode(AmdTrueAudioVR::CPU);
+        mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::CPU);
     }
 
     std::cout
@@ -718,114 +704,35 @@ bool Audio3D::Init
         << std::endl;
 
     // head model:
-    m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
+    mTrueAudioVR->generateSimpleHeadRelatedTransform(ears.hrtf, ears.earSpacing);
 
     //To Do use gpu mem responses
     for (int idx = 0; idx < mWavFiles.size(); idx++){
         if (mUseClMemBufs) {
-            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
+            mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
         }
         else {
-            m_pTAVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
+            mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
         }
     }
 
-    if (mUseClMemBufs) {
-        RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
+    if (mUseClMemBufs)
+    {
+        AMF_RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
     }
-    else {
-        RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
+    else
+    {
+        AMF_RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
     }
 
     std::cout << "Playback started" << std::endl;
 
     mRunning = true;
 
-    return true;
+    return AMF_OK;
 }
 
-int Audio3D::updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
-{
-    // world to room coordinates transform:
-    m_mtxWorldToRoomCoords.transform(x, y, z);
-    yaw = m_headingOffset + (m_headingCCW ? yaw : -yaw);
-
-    if (x == ears.headX && y == ears.headY && z == ears.headZ //) {
-        && yaw == ears.yaw && pitch == ears.pitch && roll == ears.roll) {
-            return 0;
-    }
-
-    ears.headX = x;
-    ears.headY = y;
-    ears.headZ = z;
-
-    ears.yaw = yaw;
-    ears.pitch = pitch;
-    ears.roll = roll;
-
-    mUpdateParams = true;
-    return 0;
-}
-
-int Audio3D::updateSourcePosition(int srcNumber, float x, float y, float z)
-{
-    if (srcNumber >= mWavFiles.size()){
-        return -1;
-    }
-    // world to room coordinates transform:
-    m_mtxWorldToRoomCoords.transform(x, y, z);
-
-    sources[srcNumber].speakerX = x;// +room.width / 2.0f;
-    sources[srcNumber].speakerY = y;
-    sources[srcNumber].speakerZ = z;// +room.length / 2.0f;
-
-    mUpdateParams = true;
-    return 0;
-}
-
-int Audio3D::updateRoomDimension(float _width, float _height, float _length)
-{
-	room.width = _width;
-	room.height = _height;
-	room.length = _length;
-
-	mUpdateParams = true;
-	return 0;
-}
-
-int Audio3D::updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back)
-{
-	room.mTop.damp = _top;
-	room.mBottom.damp = _buttom;
-	room.mLeft.damp = _left;
-	room.mRight.damp = _right;
-	room.mFront.damp = _front;
-	room.mBack.damp = _back;
-
-	mUpdateParams = true;
-	return 0;
-}
-
-int Audio3D::setWorldToRoomCoordTransform(
-    float translationX=0.,
-    float translationY=0.,
-    float translationZ=0.,
-
-    float rotationY=0.,
-
-    float headingOffset=0.,
-    bool headingCCW=true
-    )
-{
-    m_mtxWorldToRoomCoords.setOffset(translationX, translationY, translationZ);
-    m_mtxWorldToRoomCoords.setAngles(rotationY, 0.0, 0.0);
-    m_headingOffset = headingOffset;
-    m_headingCCW = headingCCW;
-
-    return 0;
-}
-
-bool Audio3D::Run()
+bool Audio3DOpenCL::Run()
 {
     // start main processing thread:
     //m_hProcessThread = (HANDLE)_beginthreadex(0, 10000000, processThreadProc, this, 0, 0);
@@ -849,7 +756,7 @@ bool Audio3D::Run()
     return true;
 }
 
-void Audio3D::Stop()
+void Audio3DOpenCL::Stop()
 {
     mStop = true;
 
@@ -859,7 +766,7 @@ void Audio3D::Stop()
     Close();
 }
 
-int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
+int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
@@ -997,7 +904,7 @@ int Audio3D::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sample
     return 0;
 }
 
-int Audio3D::ProcessProc()
+int Audio3DOpenCL::ProcessProc()
 {
     //uint32_t bytesRecorded(0);
 
@@ -1208,12 +1115,12 @@ int Audio3D::ProcessProc()
     return 0;
 }
 
-/*int64_t Audio3D::getCurrentPosition(int streamIdx)
+/*int64_t Audio3DOpenCL::getCurrentPosition(int streamIdx)
 {
     return m_samplePos[streamIdx];
 }*/
 
-int Audio3D::UpdateProc()
+int Audio3DOpenCL::UpdateProc()
 {
     while(mRunning && !mStop)
     {
@@ -1233,7 +1140,7 @@ int Audio3D::UpdateProc()
 
             if(mUseClMemBufs)
             {
-                m_pTAVR->generateRoomResponse(
+                mTrueAudioVR->generateRoomResponse(
                     room,
                     sources[idx],
                     ears,
@@ -1250,7 +1157,7 @@ int Audio3D::UpdateProc()
                 memset(mResponses[idx * 2], 0, sizeof(float )* mFFTLength);
                 memset(mResponses[idx * 2 + 1], 0, sizeof(float) * mFFTLength);
 
-                m_pTAVR->generateRoomResponse(
+                mTrueAudioVR->generateRoomResponse(
                     room,
                     sources[idx],
                     ears,
@@ -1292,24 +1199,5 @@ int Audio3D::UpdateProc()
         mUpdateParams = false;
     }
 
-    return 0;
-}
-
-int Audio3D::exportImpulseResponse(int srcNumber, char * fileName)
-{
-    int convolutionLength = this->mFFTLength;
-    m_pTAVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
-
-    float *leftResponse = mResponses[0];
-    float *rightResponse = mResponses[1];
-    short *sSamples = new short[2 * convolutionLength];
-     memset(sSamples, 0, 2 * convolutionLength*sizeof(short));
-
-    (void)mConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
-
-    (void)mConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
-
-    WriteWaveFileS(fileName, 48000, 2, 16, convolutionLength, sSamples);
-    delete[] sSamples;
     return 0;
 }

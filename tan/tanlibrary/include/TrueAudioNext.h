@@ -173,13 +173,13 @@ namespace amf
                                                          const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                          const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                          ) = 0;
-#endif
-
+#else
         virtual AMF_RESULT AMF_STD_CALL UpdateResponseTD(AMFBuffer * ppBuffer[],
                                                          amf_size numOfSamplesToProcess,
                                                          const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                          const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                          ) = 0;
+#endif
 
         // Frequency domain float data update responce functions.
         //
@@ -200,13 +200,13 @@ namespace amf
                                                              const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                              const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                              ) = 0;
-#endif
-
+#else
         virtual AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(const AMFBuffer * ppBuffer[],
                                                              amf_size numOfSamplesToProcess,
                                                              const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                              const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                              ) = 0;
+#endif
 
         // Convolution process functions.
         //
@@ -243,8 +243,7 @@ namespace amf
                                                     const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                     amf_size *pNumOfSamplesProcessed // Can be NULL.
                                                     ) = 0;
-#endif
-
+#else
         virtual AMF_RESULT  AMF_STD_CALL    Process(float* pBufferInput[],
                                                     AMFBuffer * pBufferOutput[],
                                                     amf_size numOfSamplesToProcess,
@@ -258,6 +257,7 @@ namespace amf
                                                     const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                     amf_size *pNumOfSamplesProcessed // Can be NULL.
                                                     ) = 0;
+#endif
 
         // Process direct (no update required), system memory buffers:
         virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(
@@ -677,15 +677,7 @@ namespace amf
                             AMF_STD_CALL    GetOpenCLGeneralQueue() = 0;
         virtual	cl_command_queue
                             AMF_STD_CALL    GetOpenCLConvQueue() = 0;
-#endif
-
-        /*virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
-                                                AMFContext *pContext
-                                                ) = 0;
-        virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
-                                                AMFCompute *pGeneralQueue = nullptr,
-                                                AMFCompute *pConvolutionQueue = nullptr
-                                                ) = 0;*/
+#else
         virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
                                                 AMFContext *generalContext,
                                                 AMFCompute *generalQueue,
@@ -696,6 +688,7 @@ namespace amf
         virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFGeneralQueue() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFConvQueue() = 0;
+#endif
     };
 
     //----------------------------------------------------------------------------------------------
@@ -734,8 +727,7 @@ namespace amf
                                                 cl_mem pBufferOutput,
                                                 amf_size inputStride
                                                 ) = 0;
-#endif
-
+#else
         virtual AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput[],
                                                 AMFBuffer * pBufferOutput
                                                 ) = 0;
@@ -745,7 +737,7 @@ namespace amf
                                                 AMFBuffer * pBufferOutput,
                                                 amf_size inputStride
                                                 ) = 0;
-
+#endif
     };
     //----------------------------------------------------------------------------------------------
     // smart pointer

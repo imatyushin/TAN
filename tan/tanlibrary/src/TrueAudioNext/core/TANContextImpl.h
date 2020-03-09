@@ -57,8 +57,7 @@ namespace amf
         cl_context AMF_STD_CALL GetOpenCLContext() override;
         cl_command_queue AMF_STD_CALL GetOpenCLGeneralQueue() override;
         cl_command_queue AMF_STD_CALL GetOpenCLConvQueue() override;
-#endif
-
+#else
         AMF_RESULT  AMF_STD_CALL InitAMF(
             AMFContext *generalContext,
             AMFCompute *generalQueue,
@@ -69,6 +68,7 @@ namespace amf
         AMFContext * AMF_STD_CALL GetAMFContext() override;
         AMFCompute * AMF_STD_CALL GetAMFGeneralQueue() override;
         AMFCompute * AMF_STD_CALL GetAMFConvQueue() override;
+#endif
 
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }

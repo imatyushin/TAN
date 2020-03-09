@@ -21,31 +21,16 @@
 //
 #pragma once
 
-#include <cstdint>
-
-#include "TrueAudioNext.h"       //TAN
-#include "TrueAudioVR.h"
-
-#include "fifo.h"
-#include "maxlimits.h"
-#include "threads.h"
-#include "IWavPlayer.h"
-#include "wav.h"
-#include "Timer.h"
-#include "Allocators.h"
-
-#include <memory>
-#include <string>
-#include <vector>
-#include <array>
+#include "IAudio3D.h"
 
 // Simple VR audio engine using True Audio Next GPU acceleration
-class Audio3D
+class Audio3DOpenCL:
+    public IAudio3D
 {
 public:
-    Audio3D();
-    Audio3D(Audio3D const &) = delete;
-    virtual ~Audio3D();
+    Audio3DOpenCL();
+    Audio3DOpenCL(Audio3DOpenCL const &) = delete;
+    virtual ~Audio3DOpenCL();
 
     AMF_RESULT Init
     (
@@ -85,7 +70,9 @@ public:
         amf::TAN_CONVOLUTION_METHOD
                                 convMethod,
 
-        const std::string &     playerType
+        const std::string &     playerType,
+
+        RoomUpdateMode          roomUpdateMode = RoomUpdateMode::Blocking
         ) override;
 
 	// finalize, deallocate resources, close files, etc.
@@ -108,65 +95,15 @@ protected:
     static unsigned processThreadProc(void *ptr);
     static unsigned updateThreadProc(void *ptr);
 
-    PrioritizedThread mProcessThread;
-    PrioritizedThread mUpdateThread;
-
     int ProcessProc();
     int UpdateProc();
     int Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
 
-    bool mRunning = false;
-    bool mUpdated = false;
-    bool mStop = false;
-    bool mUpdateParams = true;
-    bool m_useOCLOutputPipeline;
+    bool mUseClMemBufs = false;
+    bool m_useOCLOutputPipeline = false;
 
-    std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
-
-    std::vector<WavContent>     mWavFiles;
-    std::vector<bool>           mTrackHeadPos;
-
-    uint32_t                    mMaxSamplesCount = 0;
-    std::vector<int16_t>        mStereoProcessedBuffer;
-
-	TANContextPtr mTANConvolutionContext;
-	TANContextPtr mTANRoomContext;
-
-	TANConvolutionPtr mConvolution;
-	TANConverterPtr mConverter;
-    TANMixerPtr mMixer;
-	TANFFTPtr mFft;
-	AmdTrueAudioVR *m_pTAVR = NULL;
-
-    RoomDefinition room;
-    MonoSource sources[MAX_SOURCES];
-	StereoListener ears;
-
-    bool mSrc1EnableMic = false;
-    bool mSrc1MuteDirectPath = false;
-
-    AllignedAllocator<float, 32>mResponseBufferStorage;
-	float *mResponseBuffer = nullptr;
-
-    float *mResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
-    bool   mUseClMemBufs = false;
-
-    std::string mLastError;
-
-    //attention:
-    //the following buffers must be 32-bit aligned to use AVX/SSE instructions
-
-    AllignedAllocator<float, 32> mInputFloatBufsStorage[MAX_SOURCES * 2];
-    float *mInputFloatBufs[MAX_SOURCES * 2] = {nullptr};
-
-    AllignedAllocator<float, 32> mOutputFloatBufsStorage[MAX_SOURCES * 2];
-    float *mOutputFloatBufs[MAX_SOURCES * 2] = {nullptr};
-
-    AllignedAllocator<float, 32> mOutputMixFloatBufsStorage[STEREO_CHANNELS_COUNT];
-    float *mOutputMixFloatBufs[2] = {nullptr};
-
-	cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
+    cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
 	cl_mem mOutputMainCLbuf = nullptr;
 	cl_mem mOutputMixCLBufs[2] = {nullptr};
 	cl_mem mOutputShortBuf = nullptr;

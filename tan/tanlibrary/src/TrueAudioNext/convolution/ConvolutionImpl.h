@@ -128,7 +128,7 @@ namespace amf
             std::memset(buffer.clmem, 0, sizeof(cl_mem) * channelsCount);
         }
 
-        void SetCLBuffers(clmem *buffers)
+        void SetCLBuffers(cl_mem *buffers)
         {
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = false;
@@ -265,14 +265,14 @@ namespace amf
                                         const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                         const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                         ) override;
-#endif
-
+#else
         AMF_RESULT AMF_STD_CALL     UpdateResponseTD(
                                         AMFBuffer * ppBuffer[],
                                         amf_size numOfSamplesToProcess,
                                         const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                         const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                         ) override;
+#endif
 
         AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(
                                         float* ppBuffer[],
@@ -287,13 +287,13 @@ namespace amf
                                         const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                         const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                         ) override;
-#endif
-
+#else
         AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(const AMFBuffer * ppBuffer[],
                                         amf_size numOfSamplesToProcess,
                                         const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                         const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                         ) override;
+#endif
 
         AMF_RESULT  AMF_STD_CALL    Process(float* ppBufferInput[],
                                         float* ppBufferOutput[],
@@ -317,8 +317,7 @@ namespace amf
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr) override; // cl_mem
-#endif
-
+#else
         AMF_RESULT  AMF_STD_CALL    Process(const AMFBuffer * pBufferInput[],
                                             AMFBuffer * pBufferOutput[],
                                             amf_size numOfSamplesToProcess,
@@ -333,6 +332,7 @@ namespace amf
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr) override;
+#endif
 
         // Process direct (no update required), system memory buffers:
         AMF_RESULT  AMF_STD_CALL    ProcessDirect(

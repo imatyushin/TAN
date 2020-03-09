@@ -30,7 +30,6 @@
 
 #include <time.h>
 #include <stdio.h>
-#include <CL/cl.h>
 
 #if defined(_WIN32)
     #include "../common/WASAPIPlayer.h"
@@ -62,30 +61,10 @@ Audio3DAMF::Audio3DAMF()
 
 Audio3DAMF::~Audio3DAMF()
 {
-    Close();
 }
 
 void Audio3DAMF::Close()
 {
-    mRunning = false;
-
-    if(mPlayer)
-    {
-        mPlayer->Close();
-        mPlayer.reset();
-    }
-
-    mTrueAudioVR.reset();
-
-    // release smart pointers:
-    mFft.Release();
-    mConvolution.Release();
-    mConverter.Release();
-    mMixer.Release();
-    mTANRoomContext.Release();
-    mTANConvolutionContext.Release();
-
-    mWavFiles.resize(0);
 }
 
 AMF_RESULT Audio3DAMF::Init
@@ -152,7 +131,7 @@ AMF_RESULT Audio3DAMF::Init
 
     for(const auto& fileName: inFiles)
     {
-        WavContent content;
+        WavContent content = {0};
 
         if(content.ReadWaveFile(fileName))
         {
@@ -714,87 +693,6 @@ AMF_RESULT Audio3DAMF::Init
     return AMF_OK;
 }
 
-int Audio3DAMF::updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
-{
-    // world to room coordinates transform:
-    m_mtxWorldToRoomCoords.transform(x, y, z);
-    yaw = m_headingOffset + (m_headingCCW ? yaw : -yaw);
-
-    if (x == ears.headX && y == ears.headY && z == ears.headZ //) {
-        && yaw == ears.yaw && pitch == ears.pitch && roll == ears.roll) {
-            return 0;
-    }
-
-    ears.headX = x;
-    ears.headY = y;
-    ears.headZ = z;
-
-    ears.yaw = yaw;
-    ears.pitch = pitch;
-    ears.roll = roll;
-
-    mUpdateParams = true;
-    return 0;
-}
-
-int Audio3DAMF::updateSourcePosition(int srcNumber, float x, float y, float z)
-{
-    if (srcNumber >= mWavFiles.size()){
-        return -1;
-    }
-    // world to room coordinates transform:
-    m_mtxWorldToRoomCoords.transform(x, y, z);
-
-    sources[srcNumber].speakerX = x;// +room.width / 2.0f;
-    sources[srcNumber].speakerY = y;
-    sources[srcNumber].speakerZ = z;// +room.length / 2.0f;
-
-    mUpdateParams = true;
-    return 0;
-}
-
-int Audio3DAMF::updateRoomDimension(float _width, float _height, float _length)
-{
-	room.width = _width;
-	room.height = _height;
-	room.length = _length;
-
-	mUpdateParams = true;
-	return 0;
-}
-
-int Audio3DAMF::updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back)
-{
-	room.mTop.damp = _top;
-	room.mBottom.damp = _buttom;
-	room.mLeft.damp = _left;
-	room.mRight.damp = _right;
-	room.mFront.damp = _front;
-	room.mBack.damp = _back;
-
-	mUpdateParams = true;
-	return 0;
-}
-
-int Audio3DAMF::setWorldToRoomCoordTransform(
-    float translationX=0.,
-    float translationY=0.,
-    float translationZ=0.,
-
-    float rotationY=0.,
-
-    float headingOffset=0.,
-    bool headingCCW=true
-    )
-{
-    m_mtxWorldToRoomCoords.setOffset(translationX, translationY, translationZ);
-    m_mtxWorldToRoomCoords.setAngles(rotationY, 0.0, 0.0);
-    m_headingOffset = headingOffset;
-    m_headingCCW = headingCCW;
-
-    return 0;
-}
-
 bool Audio3DAMF::Run()
 {
     // start main processing thread:
@@ -829,9 +727,20 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
+    /*
+    std::cout << std::endl << "in stream:" << std::endl;
+    for(int i(0); i < 2 * sampleCount; ++i)
+    {
+        std::cout << short(pChan[0][i]) << " ";
+    }
+    std::cout << std::endl;
+    */
+
     // Read from the files
-    for (int idx = 0; idx < mWavFiles.size(); idx++) {
-        for (int chan = 0; chan < 2; chan++){
+    for (int idx = 0; idx < mWavFiles.size(); idx++)
+    {
+        for(int chan = 0; chan < 2; chan++)
+        {
             // The way sources in inputFloatBufs are ordered is: Even indexed elements for left channels, odd indexed ones for right,
             // this ordering matches with the way impulse responses are generated and indexed to be convolved with the sources.
             AMF_RETURN_IF_FAILED(
@@ -846,6 +755,17 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 );
         }
     }
+
+    /*
+    std::cout << std::endl << "out stream:" << std::endl;
+    for(int i(0); i < 2 * sampleCount; ++i)
+    {
+        std::cout << float(mInputFloatBufs[0][i]) << " ";
+    }
+    std::cout << std::endl;
+    */
+
+    //throw "stop";
 
     if(mUseAMFBuffers)
     {
@@ -1267,26 +1187,5 @@ int Audio3DAMF::UpdateProc()
         mUpdateParams = false;
     }
 
-    return 0;
-}
-
-int Audio3DAMF::exportImpulseResponse(int srcNumber, char * fileName)
-{
-    int convolutionLength = this->mFFTLength;
-    mTrueAudioVR->generateSimpleHeadRelatedTransform(
-        ears.hrtf,
-        ears.earSpacing
-        );
-
-    float *leftResponse = mResponses[0];
-    float *rightResponse = mResponses[1];
-    short *sSamples = new short[2 * convolutionLength];
-     memset(sSamples, 0, 2 * convolutionLength*sizeof(short));
-
-    (void)mConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
-    (void)mConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
-
-    WriteWaveFileS(fileName, 48000, 2, 16, convolutionLength, sSamples);
-    delete[] sSamples;
     return 0;
 }

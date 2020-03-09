@@ -61,10 +61,13 @@ TANMixerImpl::TANMixerImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextTAN(pContextTAN),
     m_pContextAMF(pContextAMF)
 {
+#ifndef TAN_NO_OPENCL
+#else
     if(!m_pContextAMF && m_pContextTAN)
     {
         m_pContextAMF = m_pContextTAN->GetAMFContext();
     }
+#endif
 
     AMFPrimitivePropertyInfoMapBegin
         AMFPropertyInfoEnum(TAN_OUTPUT_MEMORY_TYPE ,  L"Output Memory Type", AMF_MEMORY_HOST, AMF_MEMORY_ENUM_DESCRIPTION, false),
@@ -310,8 +313,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
 	AMF_RESULT ret = Mix(m_internalBuff, pBufferOutput, m_bufferSize);
 	return ret;
 }
-#endif
-
+#else
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     AMFBuffer * pBufferInput,
     AMFBuffer * pBufferOutput,
@@ -372,3 +374,4 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
 
     return ret;
 }
+#endif

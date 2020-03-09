@@ -309,7 +309,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
-#endif
+#else
 
 AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMFBuffer * ppBuffer[],
@@ -336,6 +336,7 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
         operationFlags
         );
 }
+#endif
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
@@ -604,10 +605,10 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseFD(
 )
 {
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
+
     return AMF_NOT_SUPPORTED;
 }
-#endif
-
+#else
 AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseFD(
     const AMFBuffer * ppBuffer[],
     amf_size numOfSamplesToProcess,
@@ -616,8 +617,10 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseFD(
     )
 {
 	AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
-	return AMF_NOT_SUPPORTED;
+
+    return AMF_NOT_SUPPORTED;
 }
+#endif
 
 // Process direct (no update required), system memory buffers:
 AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
@@ -762,8 +765,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 {
     return AMF_NOT_IMPLEMENTED;
 }
-#endif
-
+#else
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     const AMFBuffer * pBufferInput[],
     AMFBuffer * pBufferOutput[],
@@ -803,6 +805,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 
 	return AMF_OK;
 }
+#endif
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
@@ -1218,7 +1221,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     {
 #ifndef TAN_NO_OPENCL
         m_internalInBufs.PrepareCL(m_iChannels);
-        m_internalOutBufs.PrepareCLm_iChannels);
+        m_internalOutBufs.PrepareCL(m_iChannels);
 #else
         m_internalInBufs.PrepareAMF(m_iChannels);
         m_internalOutBufs.PrepareAMF(m_iChannels);
@@ -1977,6 +1980,9 @@ void TANConvolutionImpl::ovlTimeDomain(
         if (m_TimeDomainKernel == nullptr){
             char dllPath[MAX_PATH + 1];
 
+        throw "Not implemented";
+
+
 #ifdef _WIN32
             GetModuleFileNameA(NULL, dllPath, MAX_PATH);
 #else
@@ -1989,7 +1995,7 @@ void TANConvolutionImpl::ovlTimeDomain(
 
             //todo: macosx version!
 #endif
-            printf("\n\nTODO: Investigate!!!\n\n")
+            printf("\n\nTODO: Investigate!!!\n\n");
 
             char *pslash = strrchr(dllPath, '\\');
             if (pslash){

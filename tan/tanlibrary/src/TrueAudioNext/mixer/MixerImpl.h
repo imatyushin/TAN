@@ -68,7 +68,7 @@ namespace amf
                                         cl_mem pBufferOutput,
                                         amf_size inputStride
                                         ) override;
-#endif
+#else
         AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput[],
                                         AMFBuffer * pBufferOutput
                                         ) override;
@@ -78,6 +78,7 @@ namespace amf
                                         AMFBuffer * pBufferOutput,
                                         amf_size inputStride
                                         ) override;
+#endif
 
     protected:
         TANContextPtr               m_pContextTAN;

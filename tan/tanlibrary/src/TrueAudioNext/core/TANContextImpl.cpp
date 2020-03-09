@@ -423,8 +423,6 @@ AMF_RESULT amf::TANContextImpl::InitAMFInternal(
     return AMF_OK;
 }
 
-#endif
-
 AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(
     AMFContext *generalContext,
     AMFCompute *generalQueue,
@@ -464,3 +462,4 @@ AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFConvQueue()
 {
     return mComputeConvolutionAMF;
 }
+#endif
