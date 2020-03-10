@@ -50,7 +50,7 @@ bool RoomAcousticQT::start()
 	// TODO: Need to port the configuration back to the audio3D engine
 
 	//Initialize Audio 3D engine
-	
+
 	// Since cpu's device id is 0 in this demo, we need to decrease the device id if
 	// you want to run GPU
 	int convolutionDeviceIndex = mConvolutionOverCL ? mConvolutionDeviceIndex : 0;
@@ -71,7 +71,7 @@ bool RoomAcousticQT::start()
 		}
 	}
 
-	bool started = m_pAudioEngine->Init(
+	bool started = mAudioEngine->Init(
 		mTANDLLPath,
 		m_RoomDefinition,
 
@@ -110,22 +110,22 @@ bool RoomAcousticQT::start()
 
 	if(started)
 	{
-		m_pAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
+		mAudioEngine->setWorldToRoomCoordTransform(0., 0., 0., 0., 0., true);
 
 		updateAllSoundSourcesPosition();
 		updateListenerPosition();
 
-		return m_pAudioEngine->Run();
+		return mAudioEngine->Run();
 	}
 
-	mLastError = m_pAudioEngine->GetLastError();
+	mLastError = mAudioEngine->GetLastError();
 
 	return false;
 }
 
 void RoomAcousticQT::stop()
 {
-	m_pAudioEngine->Stop();
+	mAudioEngine->Stop();
 }
 
 void RoomAcousticQT::initializeEnvironment()
@@ -183,7 +183,7 @@ void RoomAcousticQT::initializeEnvironment()
 
 void RoomAcousticQT::initializeAudioEngine()
 {
-	m_pAudioEngine = new Audio3D();
+	mAudioEngine.reset(new Audio3D());
 }
 
 void RoomAcousticQT::initializeRoom()
@@ -285,7 +285,7 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 		//dont change anything for malformed files
 		return;
 	}
-	
+
 	m_iNumOfWavFile = settings.value("MAIN/Sources").toInt();
 
 	for(int waveFileIndex(0); waveFileIndex < MAX_SOURCES; ++waveFileIndex)
@@ -366,11 +366,11 @@ void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
 		std::snprintf(buffer,
 			MAX_PATH,
 			"%4d/%02d/%02d %02d:%02d:%02d",
-			2000 + (lt->tm_year % 100), 
+			2000 + (lt->tm_year % 100),
 			1 + lt->tm_mon,
-			lt->tm_mday, 
-			lt->tm_hour, 
-			lt->tm_min, 
+			lt->tm_mday,
+			lt->tm_hour,
+			lt->tm_min,
 			lt->tm_sec
 			);
 
@@ -491,13 +491,13 @@ bool RoomAcousticQT::removeSoundSource(int index2Remove)
 			m_SoundSources[m_iNumOfWavFile - 1].speakerY = 0.0f;
 			m_SoundSources[m_iNumOfWavFile - 1].speakerX = 0.0f;
 			m_SoundSources[m_iNumOfWavFile - 1].speakerZ = 0.0f;
-			
+
 			mSrcTrackHead[m_iNumOfWavFile - 1] = false;
 		}
 
 		--m_iNumOfWavFile;
 	}
-	
+
 	return false;
 }
 
@@ -580,7 +580,7 @@ void RoomAcousticQT::updateAllSoundSourcesPosition()
 
 void RoomAcousticQT::updateSoundSourcePosition(int index)
 {
-	m_pAudioEngine->updateSourcePosition(
+	mAudioEngine->updateSourcePosition(
 		index,
 		m_SoundSources[index].speakerX,
 		m_SoundSources[index].speakerY,
@@ -603,7 +603,7 @@ void RoomAcousticQT::UpdateSoundSourcesPositions()
 			m_SoundSources[index].speakerX += 0.5;
 			m_SoundSources[index].speakerZ += 0.5;
 
-			m_pAudioEngine->updateSourcePosition(
+			mAudioEngine->updateSourcePosition(
 				index,
 				m_SoundSources[index].speakerX,
 				m_SoundSources[index].speakerY,
@@ -615,27 +615,27 @@ void RoomAcousticQT::UpdateSoundSourcesPositions()
 
 void RoomAcousticQT::updateListenerPosition()
 {
-	m_pAudioEngine->updateHeadPosition(m_Listener.headX, m_Listener.headY, m_Listener.headZ,
+	mAudioEngine->updateHeadPosition(m_Listener.headX, m_Listener.headY, m_Listener.headZ,
 		m_Listener.yaw, m_Listener.pitch, m_Listener.roll);
 }
 
 void RoomAcousticQT::updateRoomDimention()
 {
-	m_pAudioEngine->updateRoomDimension(m_RoomDefinition.width, m_RoomDefinition.height, m_RoomDefinition.length);
+	mAudioEngine->updateRoomDimension(m_RoomDefinition.width, m_RoomDefinition.height, m_RoomDefinition.length);
 }
 
 void RoomAcousticQT::updateRoomDamping()
 {
-	m_pAudioEngine->updateRoomDamping(m_RoomDefinition.mLeft.damp, m_RoomDefinition.mRight.damp, m_RoomDefinition.mTop.damp,
+	mAudioEngine->updateRoomDamping(m_RoomDefinition.mLeft.damp, m_RoomDefinition.mRight.damp, m_RoomDefinition.mTop.damp,
 		m_RoomDefinition.mBottom.damp, m_RoomDefinition.mFront.damp, m_RoomDefinition.mBack.damp);
 }
 
 AmdTrueAudioVR* RoomAcousticQT::getAMDTrueAudioVR()
 {
-	return m_pAudioEngine->getAMDTrueAudioVR();
+	return mAudioEngine->getAMDTrueAudioVR();
 }
 
 TANConverterPtr RoomAcousticQT::getTANConverter()
 {
-	return m_pAudioEngine->getTANConverter();
+	return mAudioEngine->getTANConverter();
 }

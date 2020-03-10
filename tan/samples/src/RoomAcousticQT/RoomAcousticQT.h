@@ -14,11 +14,11 @@ public:
 	void initialize();															// Initialize the Room Acoustic
 	bool start();																// Start the demo
 	void stop();																// Stop the demo
-	
-	std::string getLastError() const 
+
+	std::string getLastError() const
 	{
 		return mLastError;
-	}															
+	}
 
 	void loadConfiguration(const std::string& xmlfilename);						// Load the configuration from the xml file
 	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
@@ -48,11 +48,11 @@ public:
 	TANConverterPtr getTANConverter();
 
 	void UpdateSoundSourcesPositions();
-	
+
 private:
 	void initializeEnvironment();												// Initialize TAN DLL
 	void initializeAudioEngine();												// Initialize TAN Audio3D Engine
-	
+
 	void initializeRoom();														// Initialize TAN Room definition
 	void initializeConvolution();
 	void initializeListener();													// Initialize TAN listener profile
@@ -69,11 +69,11 @@ public:
 	std::string mWavFileNames[MAX_SOURCES];
 	int m_iNumOfWavFile = 0;
 
-	Audio3D* m_pAudioEngine;											// Pointer to the main audio3d engine
+	std::unique_ptr<Audio3D> mAudioEngine;											// Pointer to the main audio3d engine
 	RoomDefinition m_RoomDefinition;									// Roombox definition, contains damping and dimension
 	StereoListener m_Listener;											// Listener configuration
 	int m_iHeadAutoSpin = 0;
-	
+
 	/*Sound Source*/
 	MonoSource m_SoundSources[MAX_SOURCES];								// All of the sound sources
 	bool mSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
@@ -85,7 +85,7 @@ public:
 	std::string mCPUDevicesNames[MAX_DEVICES];								// Device names
 	int mGPUDevicesCount = 0;												// Device count
 	std::string mGPUDevicesNames[MAX_DEVICES];
-	
+
 	/*Convolution*/
 	amf::TAN_CONVOLUTION_METHOD m_eConvolutionMethod =					// TAN Convolution method
 		amf::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
