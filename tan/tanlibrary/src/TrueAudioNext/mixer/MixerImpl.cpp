@@ -368,6 +368,25 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
                 i * m_bufferSize * sizeof(float)
                 )
             );
+
+        /*float pOut[128*1024] = {0};
+
+        AMF_RETURN_IF_FAILED(
+            mAMFCompute->CopyBufferToHost(
+                mInternalBufferAMF,
+                0,
+                m_bufferSize * sizeof(float),
+                pOut,
+                true
+                )
+            );
+
+        std::cout << std::endl << "tan mix intrnl:" << std::endl;
+        for(int i(0); i < m_bufferSize; ++i)
+        {
+            std::cout << pOut[i] << " ";
+        }
+        std::cout << std::endl;*/
     }
 
 	AMF_RESULT ret = Mix(mInternalBufferAMF, pBufferOutput, m_bufferSize);

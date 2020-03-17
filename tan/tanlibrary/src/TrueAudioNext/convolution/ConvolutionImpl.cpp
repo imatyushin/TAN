@@ -1836,6 +1836,8 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
             );
     }
 
+    PrintFloatArray("before m_pTanFft->Transform", m_OutSamples[0], m_log2len);
+
     AMF_RETURN_IF_FAILED(
         m_pTanFft->Transform(
             TAN_FFT_TRANSFORM_DIRECTION_FORWARD,
@@ -1845,6 +1847,8 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
             m_OutSamples
             )
         );
+
+    PrintFloatArray("after m_pTanFft->Transform", m_OutSamples[0], m_log2len);
 
     for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
         VectorComplexMul(m_OutSamples[iChan], filter[iChan], m_OutSamples[iChan], m_length);

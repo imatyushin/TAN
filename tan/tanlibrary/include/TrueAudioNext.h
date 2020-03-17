@@ -785,3 +785,79 @@ extern "C"
     TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANSetCacheFolder(const wchar_t* path);
     TAN_SDK_LINK const wchar_t*     AMF_CDECL_CALL TANGetCacheFolder();
 }
+
+#include <iostream>
+
+static void PrintFloatArray(const char * hint, float * array, size_t count, size_t max = 256)
+{
+    std::cout << std::endl << hint << ": " << count << std::endl;
+
+    uint8_t *data(reinterpret_cast<uint8_t *>(array));
+
+    for(size_t i(0); i < (count < max ? count : max); ++i)
+    {
+        std::cout << int(data[i]) << " ";
+    }
+
+    std::cout << std::endl;
+}
+
+#include <vector>
+
+static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 256)
+{
+    std::cout << std::endl << hint << ": " << count << std::endl;
+
+    std::vector<uint8_t> out(count);
+
+    auto result = compute->CopyBufferToHost(
+        buffer,
+        0,
+        count,
+        out.data(),
+        true
+        );
+
+    if(result != AMF_OK)
+    {
+        std::cout << "ERROR" << std::endl;
+
+        return;
+    }
+
+    for(size_t i(0); i < (count < max ? count : max); ++i)
+    {
+        std::cout << int(out[i]) << " ";
+    }
+
+    std::cout << std::endl;
+}
+
+static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 256)
+{
+    std::cout << std::endl << hint << ": " << count << std::endl;
+
+    std::vector<uint8_t> out(count);
+
+    auto result = compute->CopyBufferToHost(
+        buffer,
+        offset,
+        count,
+        out.data(),
+        true
+        );
+
+    if(result != AMF_OK)
+    {
+        std::cout << "ERROR" << std::endl;
+
+        return;
+    }
+
+    for(size_t i(0); i < (count < max ? count : max); ++i)
+    {
+        std::cout << int(out[i]) << " ";
+    }
+
+    std::cout << std::endl;
+}

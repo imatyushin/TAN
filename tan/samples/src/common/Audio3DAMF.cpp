@@ -137,41 +137,41 @@ AMF_RESULT Audio3DAMF::Init
         {
             if(content.SamplesPerSecond != FILTER_SAMPLE_RATE)
             {
-                std::cerr
-                    << "Error: file " << fileName << " has an unsupported frequency! Currently only "
-                    << FILTER_SAMPLE_RATE << " frequency is supported!"
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " has an unsupported frequency! Currently only "
+                    + std::to_string(FILTER_SAMPLE_RATE) + " frequency is supported!";
 
                 return AMF_FAIL;
             }
 
-            if(content.BitsPerSample != 16)
+            bool converted = content.Convert2Stereo16Bit();
+
+            if(!converted && content.BitsPerSample != 16)
             {
-                std::cerr
-                    << "Error: file " << fileName << " has an unsupported bits per sample count. Currently only "
-                    << 16 << " bits is supported!"
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " has an unsupported bits per sample count. Currently only "
+                    + std::to_string(16) + " bits is supported!";
 
                 return AMF_FAIL;
             }
-
-            if(content.ChannelsCount != 2)
+            else if(!converted && content.ChannelsCount != STEREO_CHANNELS_COUNT)
             {
-                std::cerr
-                    << "Error: file " << fileName << " is not a stereo file. Currently only stereo files are supported!"
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " is not a stereo file. Currently only stereo files are supported!";
 
                 return AMF_FAIL;
             }
 
             if(content.SamplesCount < mBufferSizeInSamples)
             {
-                std::cerr
-                    << "Error: file " << fileName << " are too short."
-                    << std::endl;
+                mLastError = std::string()
+                    + "Error: file " + fileName + " are too short (SamplesCount < single buffer size).";
 
                 return AMF_FAIL;
             }
+
+            //make mono
+            content.JoinChannels();
 
             //check that samples have compatible formats
             //becouse convertions are not yet implemented
@@ -179,7 +179,8 @@ AMF_RESULT Audio3DAMF::Init
             {
                 if(!mWavFiles[0].IsSameFormat(content))
                 {
-                    std::cerr << "Error: file " << fileName << " has a diffrent format with opened files" << std::endl;
+                    mLastError = std::string()
+                        + "Error: file " + fileName + " has a diffrent format with other opened files.";
 
                     return AMF_FAIL;
                 }
@@ -189,7 +190,7 @@ AMF_RESULT Audio3DAMF::Init
         }
         else
         {
-            std::cerr << "Error: could not load WAV data from file " << fileName << std::endl;
+            mLastError = std::string() + "Error: could not load WAV data from file " + fileName;
 
             return AMF_FAIL;
         }
@@ -727,15 +728,6 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    /*
-    std::cout << std::endl << "in stream:" << std::endl;
-    for(int i(0); i < 2 * sampleCount; ++i)
-    {
-        std::cout << short(pChan[0][i]) << " ";
-    }
-    std::cout << std::endl;
-    */
-
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
     {
@@ -756,17 +748,6 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         }
     }
 
-    /*
-    std::cout << std::endl << "out stream:" << std::endl;
-    for(int i(0); i < 2 * sampleCount; ++i)
-    {
-        std::cout << float(mInputFloatBufs[0][i]) << " ";
-    }
-    std::cout << std::endl;
-    */
-
-    //throw "stop";
-
     if(mUseAMFBuffers)
     {
         /**/
@@ -782,6 +763,14 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
 
+        static int i1 = 0;
+
+        std::cout << "cycle " << i1 << std::endl;
+        if(5 == ++i1)
+        {
+            return -1;
+        }
+
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
 
@@ -792,6 +781,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         }
 
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
+
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
         auto amfResult = mConverter->Convert(
@@ -831,7 +821,6 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 true
                 )
             );
-        /**/
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
@@ -904,6 +893,13 @@ int Audio3DAMF::ProcessProc()
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
 
+    /*std::cout << std::endl << "a1 wav:" << std::endl;
+    for(int i(0); i < 1024; ++i)
+    {
+        std::cout << mWavFiles[0].Data[i] << " ";
+    }
+    std::cout << std::endl;*/
+
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
         int16_t *data16Bit((int16_t *)&(mWavFiles[file].Data[0]));
@@ -916,6 +912,13 @@ int Audio3DAMF::ProcessProc()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
+
+    /*std::cout << std::endl << "a1 prepared:" << std::endl;
+    for(int i(0); i < mBufferSizeInBytes; ++i)
+    {
+        std::cout << short(pWaves[0][i]) << " ";
+    }
+    std::cout << std::endl;*/
 
     auto *processed = &mStereoProcessedBuffer.front();
 
@@ -1010,6 +1013,15 @@ int Audio3DAMF::ProcessProc()
                 //((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
             )
             {
+                /*
+                std::cout << std::endl << "a1 out:" << std::endl;
+                for(int i(0); i < mBufferSizeInBytes; ++i)
+                {
+                    std::cout << short(outputBufferData[i]) << " ";
+                }
+                std::cout << std::endl;
+                */
+
                 auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
                 bytesTotalPlayed += bytesPlayed;
 

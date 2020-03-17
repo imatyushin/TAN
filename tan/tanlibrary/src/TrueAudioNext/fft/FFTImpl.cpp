@@ -199,7 +199,6 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 )
 {
     AMFLock lock(&m_sect);
-    AMF_RESULT res = AMF_OK;
 
     AMF_RETURN_IF_FALSE(ppBufferInput != NULL, AMF_INVALID_ARG, L"pBufferInput == NULL");
     AMF_RETURN_IF_FALSE(ppBufferOutput != NULL, AMF_INVALID_ARG, L"pBufferOutput == NULL");
@@ -234,6 +233,8 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 
 		for (amf_uint32 i = 0; i < channels; i++)
         {
+            PrintFloatArray("CopyBufferFromHost ppBufferInput[i]", ppBufferInput[i], requiredChannelLengthInBytes);
+
             AMF_RETURN_IF_FAILED(
                 cmdQueue->CopyBufferFromHost(
                     ppBufferInput[i],
@@ -243,33 +244,44 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
                     true
                     )
                 );
+
+            //фурацилин окомистин аквалор називин 00.25 мирамистин стодаль от кашля
+
+            PrintAMFArrayWithOffset("CopyBufferFromHost result", mInputsOCL, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
         }
 
-		AMF_RETURN_IF_FAILED(
+        AMF_RETURN_IF_FAILED(
             TransformImplGPUBatched(direction, log2len, channels, mInputsOCL, mOutputsOCL)
             );
 
         for (amf_uint32 i = 0; i < channels; i++)
         {
+            PrintAMFArrayWithOffset("CopyBufferToHost mOutputsOCL", mOutputsOCL, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
+
             AMF_RETURN_IF_FAILED(
-                cmdQueue->CopyBufferFromHost(
-                    ppBufferOutput[i],
-                    requiredChannelLengthInBytes,
+                cmdQueue->CopyBufferToHost(
                     mOutputsOCL,
                     i*requiredChannelLengthInBytes,
+                    requiredChannelLengthInBytes,
+                    ppBufferOutput[i],
                     true
                     )
                 );
+
+            PrintFloatArray("TransformImplGPUBatched ppBufferOutput[i]", ppBufferOutput[i], requiredChannelLengthInBytes);
         }
-
 #endif
-        return res;
-    }
-    // process
-    res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
-    AMF_RETURN_IF_FAILED(res, L"Transform() failed");
 
-    return res;
+    }
+    else
+    {
+        // process
+        AMF_RETURN_IF_FAILED(
+            TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput)
+            );
+    }
+
+    return AMF_OK;
 }
 
 #ifndef TAN_NO_OPENCL
@@ -512,6 +524,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu(
 }
 
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 	TAN_FFT_TRANSFORM_DIRECTION direction,
 	amf_size log2len,
@@ -566,7 +579,9 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplGpu(
 	}
 	return res;
 }
+
 #else
+
 AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 	TAN_FFT_TRANSFORM_DIRECTION direction,
 	amf_size log2len,
@@ -575,7 +590,7 @@ AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 	amf::AMFBuffer * pBufferOutput
 	)
 {
-	AMF_RETURN_IF_FALSE(m_doProcessingOnGpu, AMF_UNEXPECTED, L"Internal error");
+    AMF_RETURN_IF_FALSE(m_doProcessingOnGpu, AMF_UNEXPECTED, L"Internal error");
 	clfftPlanHandle plan = (clfftPlanHandle)getFFTPlan(static_cast<int>(log2len), channels);
 	//clfftSetPlanBatchSize(plan, channels);
 
@@ -725,7 +740,6 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
             );
 
         float fill = 0.0;
-
         AMF_RETURN_IF_FAILED(
             cmdQueue->FillBuffer(
                 mInputsOCL,
@@ -744,6 +758,9 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
                 sizeof(float)
                 )
             );
+        //PrintAMFArray("clear mInputsOCL", mInputsOCL, cmdQueue, requiredBufferLengthInBytes);
+        //PrintAMFArray("clear mOutputsOCL", mOutputsOCL, cmdQueue, requiredBufferLengthInBytes);
+
 #endif
 	}
 

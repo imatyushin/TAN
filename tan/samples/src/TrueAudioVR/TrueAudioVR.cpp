@@ -547,16 +547,18 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     }
     head.filterLength = fftLen;
 
-
-    float *impulse = new float[fftLen * 2];
-    memset(impulse, 0, sizeof(float)* fftLen * 2);
+    std::vector<float> impulseHolder(fftLen * 2);
+    float *impulse(impulseHolder.data());
+    memset(impulse, 0, sizeof(float) * fftLen * 2);
     impulse[0] = 1.0;
 
     // Wavelengths smaller than a head are blocked by it:
     //float cornerFreq = 0.25 * SPEED_OF_SOUND / (1.10*earSpacing); //~ 500Hz
-    float cornerFreq = float(SPEED_OF_SOUND / (1.10*earSpacing)); //~ 2kHz
-    memset(head.lowPass, 0, sizeof(float)* fftLen);
-    memset(head.highPass, 0, sizeof(float)* fftLen);
+    float cornerFreq = float(SPEED_OF_SOUND / (1.10 * earSpacing)); //~ 2kHz
+    memset(head.lowPass, 0, sizeof(float) * fftLen);
+    memset(head.highPass, 0, sizeof(float) * fftLen);
+
+    PrintFloatArray("before transform: ", impulse, fftLen * 2);
 
     if (mFFT->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, log2len, 1, &impulse, &impulse) != AMF_OK)
     {
@@ -564,13 +566,20 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     }
     //m_ata->Fft(1, &impulse, &impulse, log2len, AmdTrueAudio::TA_FFT_DIR::FORWARD);
 
+    PrintFloatArray("before filter: ", impulse, fftLen * 2);
+
     // filter it...
-    for (int j = 0; j < fftLen; j++){
+    for (int j = 0; j < fftLen; j++)
+    {
         float f = freq(j, FILTER_SAMPLE_RATE, fftLen);
         float d = float(cornerFreq / (cornerFreq + f));
+        std::cout << "freq: " << f << " d: " << d << std::endl;
+
         impulse[j << 1] *= d;
         impulse[(j << 1) + 1] *= d;
     }
+
+    PrintFloatArray("after filter, ", impulse, fftLen * 2);
 
     if (mFFT->Transform(TAN_FFT_TRANSFORM_DIRECTION_BACKWARD, log2len, 1, &impulse, &impulse) != AMF_OK)
     {
@@ -589,7 +598,6 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     for (int i = 0; i < fftLen; i++){
         head.highPass[i] -= head.lowPass[i];
     }
-    delete[] impulse;
 }
 
 /**************************************************************************************************
