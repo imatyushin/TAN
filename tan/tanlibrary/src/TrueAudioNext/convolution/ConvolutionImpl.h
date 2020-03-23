@@ -454,9 +454,9 @@ namespace amf
         TANSampleBuffer m_FadeSubbufers[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
 
 #ifndef TAN_NO_OPENCL
-        cl_mem m_pCLXFadeMasterBuf[2];
+        cl_mem m_pCLXFadeMasterBuf[2] = {nullptr};
 #else
-        //amf::AMFBuffer *mAMFFadeMasterBuffer[2] = {nullptr};
+        amf::AMFBufferPtr mAMFCLXFadeMasterBuffers[2];
 #endif
 
         TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU

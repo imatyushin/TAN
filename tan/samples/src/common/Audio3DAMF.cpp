@@ -765,10 +765,10 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 
         static int i1 = 0;
 
-        std::cout << "cycle " << i1 << std::endl;
-        if(5 == ++i1)
+        //std::cout << "cycle " << i1 << std::endl;
+        if(3 == ++i1)
         {
-            return -1;
+            //return -1;
         }
 
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};

@@ -470,25 +470,27 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     inputBuffers = m_ovlAddLocalInBuffs;
 #endif
                 }
-                else
+
+                float **filter = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Filter;
+                float **overlap = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Overlap;
+
+                for (amf_uint32 n = 0; n < m_iChannels; n++)
                 {
-                    float **filter = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Filter;
-                    float **overlap = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Overlap;
+                    if (!flagMasks || !(flagMasks[n] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT))
+                    {
+                        memset(filter[n], 0, 2 * m_length * sizeof(float));
 
-                    for (amf_uint32 n = 0; n < m_iChannels; n++){
-                        if (!flagMasks || !(flagMasks[n] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT))
+                        for (int k = 0; k < numOfSamplesToProcess; k++)
                         {
-                            memset(filter[n], 0, 2 * m_length * sizeof(float));
-
-                            for (int k = 0; k < numOfSamplesToProcess; k++){
-                                // copy data to real part (even samples):
-                                filter[n][k << 1] = inputBuffers[n][k];
-                            }
-
-                            m_accumulatedArgs.responses[n] = filter[n];
-                            m_accumulatedArgs.lens[n] = static_cast<int>(numOfSamplesToProcess);
-                            m_accumulatedArgs.updatesCnt++;
+                            // copy data to real part (even samples):
+                            filter[n][k << 1] = inputBuffers[n][k];
                         }
+
+                        PrintFloatArray("updateResponceTD filter[n]", filter[n], numOfSamplesToProcess);
+
+                        m_accumulatedArgs.responses[n] = filter[n];
+                        m_accumulatedArgs.lens[n] = static_cast<int>(numOfSamplesToProcess);
+                        m_accumulatedArgs.updatesCnt++;
                     }
                 }
             }
@@ -1167,12 +1169,13 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
         {
             printf("Failed to enqueue OCL kernel");
             return AMF_FAIL;
-            }
+        }
+
         for (amf_uint32 c = 0; c < m_iChannels; c++)
         {
             int status = clEnqueueCopyBuffer(
                 generalQ,
-                m_pCLXFadeMasterBuf[1],
+                m_pCLXFadeMasterBuf[1], //todo, ivm: why [1]?
                 pBufferOutput.buffer.clmem[c],
                 c * m_iBufferSizeInSamples * sizeof(float),
                 0,
@@ -1184,7 +1187,34 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
             CHECK_OPENCL_ERROR(status, "copy failed.");
         }
 #else
-        return AMF_NOT_IMPLEMENTED;
+
+        auto generalQ = m_pContextTAN->GetAMFGeneralQueue();
+
+        int index = 0;
+        amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
+        amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 1, 0 };
+
+        AMF_RETURN_IF_FAILED(mKernelCrossfade->SetArgBuffer(index++, mAMFCLXFadeMasterBuffers[0], AMF_ARGUMENT_ACCESS_READWRITE));
+        AMF_RETURN_IF_FAILED(mKernelCrossfade->SetArgBuffer(index++, mAMFCLXFadeMasterBuffers[1], AMF_ARGUMENT_ACCESS_READWRITE));
+        AMF_RETURN_IF_FAILED(mKernelCrossfade->SetArgInt32(index++, numOfSamplesToProcess));
+
+        AMF_RETURN_IF_FAILED(
+            mKernelCrossfade->Enqueue(2, nullptr, global, local)
+            );
+
+        for (amf_uint32 c = 0; c < m_iChannels; c++)
+        {
+            AMF_RETURN_IF_CL_FAILED(
+                generalQ->CopyBuffer(
+                    mAMFCLXFadeMasterBuffers[1], //todo, ivm: why [1]?
+                    c * m_iBufferSizeInSamples * sizeof(float),
+                    numOfSamplesToProcess * sizeof(float),
+                    pBufferOutput.buffer.amfBuffers[c],
+                    0
+                    )
+                );
+        }
+
 #endif
     }
     else
@@ -1477,15 +1507,24 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                 AMF_RETURN_IF_FALSE((clErr == CL_SUCCESS), AMF_FAIL, L"Could not create OpenCL subbuffer\n")
             }
 #else
-            // Then split the big buffer into small contiguous subbuffers
+            AMF_RETURN_IF_FAILED(
+                m_pContextTAN->GetAMFContext()->AllocBuffer(
+                    AMF_MEMORY_OPENCL,
+                    singleBufSize * m_iChannels,
+                    &mAMFCLXFadeMasterBuffers[bufIdx]
+                    )
+                );
+
+            //Then split the big buffer into small contiguous subbuffers
             for(amf_uint32 i = 0; i < m_iChannels; i++)
             {
-                auto result = m_pContextTAN->GetAMFContext()->AllocBuffer(
-                    AMF_MEMORY_OPENCL,
-                    singleBufSize,
-                    &m_FadeSubbufers[bufIdx].buffer.amfBuffers[i]
+                AMF_RETURN_IF_FAILED(
+                    mAMFCLXFadeMasterBuffers[bufIdx]->CreateSubBuffer(
+                        &m_FadeSubbufers[bufIdx].buffer.amfBuffers[i],
+                        i * singleBufSize,
+                        singleBufSize
+                        )
                     );
-                AMF_RETURN_IF_FAILED(result, L"Could not create AMF buffer\n")
             }
 #endif
         }
@@ -1792,6 +1831,21 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
     bool                    advanceOverlap
 )
 {
+    if(inputData.GetType() == AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
+    {
+        for(uint32_t channel(0); channel < n_channels; ++channel)
+        {
+            PrintFloatArray("ovlAddProcess input [channel]", inputData.buffer.host[channel], nSamples);
+        }
+    }
+    else
+    {
+        for(uint32_t channel(0); channel < n_channels; ++channel)
+        {
+            PrintAMFArray("ovlAddProcess input[channel]", inputData.buffer.amfBuffers[channel], m_pContextTAN->GetAMFConvQueue(), nSamples);
+        }
+    }
+
     numberOfSamplesProcessed = 0;
 
     if(inputData.GetType() != AMF_MEMORY_HOST)
@@ -1816,27 +1870,36 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
 
     // we process in bufSize blocks
     if (nSamples < m_iBufferSizeInSamples)
+    {
         return AMF_OK;
+    }
 
     // use fixed overlap size:
     nSamples = m_iBufferSizeInSamples;
 
     // Convert to complex numbers.
-    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
+    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+    {
+        PrintFloatArray("filter[i]", filter[iChan], nSamples);
+        PrintFloatArray("overlap[i]", overlap[iChan], nSamples);
+
         // get next block of data, expand into real part of complex values:
-        for (int k = 0; k < nSamples; k++){
+        for (int k = 0; k < nSamples; k++)
+        {
             m_OutSamples[iChan][2 * k] = inputData.buffer.host[iChan][k];
             m_OutSamples[iChan][2 * k + 1] = 0.0;
         }
+
         // zero pad:
         std::memset(
             &m_OutSamples[iChan][2 * nSamples],
             0,
             2 * (m_length - nSamples) * sizeof(m_OutSamples[0][0])
             );
+
+        PrintFloatArray("before m_pTanFft->Transform", m_OutSamples[iChan], nSamples);
     }
 
-    PrintFloatArray("before m_pTanFft->Transform", m_OutSamples[0], m_log2len);
 
     AMF_RETURN_IF_FAILED(
         m_pTanFft->Transform(
@@ -1848,10 +1911,13 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
             )
         );
 
-    PrintFloatArray("after m_pTanFft->Transform", m_OutSamples[0], m_log2len);
+    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+    {
+        PrintFloatArray("after m_pTanFft->Transform", m_OutSamples[iChan], nSamples);
 
-    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
         VectorComplexMul(m_OutSamples[iChan], filter[iChan], m_OutSamples[iChan], m_length);
+
+        PrintFloatArray("before m_pTanFft->Transform 2", m_OutSamples[iChan], nSamples);
     }
 
     AMF_RETURN_IF_FAILED(
@@ -1864,7 +1930,11 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
             )
         );
 
-    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++){
+
+    for (amf_uint32 iChan = 0; iChan < n_channels; iChan++)
+    {
+        PrintFloatArray("after m_pTanFft->Transform 2", m_OutSamples[iChan], nSamples);
+
         if (advanceOverlap){
             for (amf_size id = 0; id < m_length; id++)
             {

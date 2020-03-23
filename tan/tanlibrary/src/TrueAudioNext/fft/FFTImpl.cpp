@@ -256,7 +256,7 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 
         for (amf_uint32 i = 0; i < channels; i++)
         {
-            PrintAMFArrayWithOffset("CopyBufferToHost mOutputsOCL", mOutputsOCL, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
+            PrintAMFArrayWithOffset("after TransformImplGPUBatched mOutputsOCL", mOutputsOCL, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
 
             AMF_RETURN_IF_FAILED(
                 cmdQueue->CopyBufferToHost(
@@ -268,7 +268,7 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
                     )
                 );
 
-            PrintFloatArray("TransformImplGPUBatched ppBufferOutput[i]", ppBufferOutput[i], requiredChannelLengthInBytes);
+            PrintFloatArray("copy to ppBufferOutput[i]", ppBufferOutput[i], requiredChannelLengthInBytes);
         }
 #endif
 

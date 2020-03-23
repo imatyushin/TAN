@@ -788,8 +788,9 @@ extern "C"
 
 #include <iostream>
 
-static void PrintFloatArray(const char * hint, float * array, size_t count, size_t max = 256)
+static void PrintFloatArray(const char * hint, float * array, size_t count, size_t max = 64)
 {
+    return;
     std::cout << std::endl << hint << ": " << count << std::endl;
 
     uint8_t *data(reinterpret_cast<uint8_t *>(array));
@@ -804,8 +805,9 @@ static void PrintFloatArray(const char * hint, float * array, size_t count, size
 
 #include <vector>
 
-static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 256)
+static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
 {
+    return;
     std::cout << std::endl << hint << ": " << count << std::endl;
 
     std::vector<uint8_t> out(count);
@@ -833,8 +835,9 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
     std::cout << std::endl;
 }
 
-static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 256)
+static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 64)
 {
+    return;
     std::cout << std::endl << hint << ": " << count << std::endl;
 
     std::vector<uint8_t> out(count);
