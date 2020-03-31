@@ -57,6 +57,7 @@ namespace amf
     protected:
         AMF_MEMORY_TYPE mType = AMF_MEMORY_UNKNOWN;
         bool mAllocated = false;
+        size_t mSize = 0;
 
     public:
         ~TANSampleBuffer()
@@ -101,6 +102,35 @@ namespace amf
             mType = AMF_MEMORY_UNKNOWN;
         }
 
+        void FreeObjects()
+        {
+#ifndef TAN_NO_OPENCL
+            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
+            {
+				for(size_t channel(0); channel < mSize; ++mSize)
+                {
+                    clReleaseMemObject(buffer.clmem[channel]);
+                    buffer.clmem[channel] = nullptr;
+                }
+            }
+#else
+            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.amfBuffers)
+            {
+				for(size_t channel(0); channel < mSize; ++channel)
+                {
+                    if(buffer.amfBuffers[channel])
+                    {
+                        buffer.amfBuffers[channel]->Release();
+                        buffer.amfBuffers[channel] = nullptr;
+                    }
+                }
+            }
+#endif
+
+			mAllocated = false;
+            mType = AMF_MEMORY_UNKNOWN;
+        }
+
 		TANSampleBuffer & operator =(const TANSampleBuffer & other)
 		{
 			if(IsSet())
@@ -123,6 +153,7 @@ namespace amf
         {
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = true;
+            mSize = channelsCount;
 
             buffer.clmem = new cl_mem[channelsCount];
             std::memset(buffer.clmem, 0, sizeof(cl_mem) * channelsCount);
@@ -139,6 +170,7 @@ namespace amf
         {
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = true;
+            mSize = channelsCount;
 
             buffer.amfBuffers = new amf::AMFBuffer *[channelsCount];
             std::memset(buffer.amfBuffers, 0, sizeof(amf::AMFBuffer *) * channelsCount);
@@ -155,6 +187,7 @@ namespace amf
         {
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST;
             mAllocated = true;
+            mSize = channelsCount;
 
             buffer.host = new float *[channelsCount];
             std::memset(buffer.host, 0, sizeof(float *) * channelsCount);
@@ -170,28 +203,58 @@ namespace amf
 
     typedef struct _tdFilterState
     {
-        float **m_Filter;
+        float **m_Filter = nullptr;
 
 #ifndef TAN_NO_OPENCL
-        cl_mem *m_clFilter;
-        cl_mem *m_clTemp;
+        cl_mem *m_clFilter = nullptr;
+        cl_mem *m_clTemp = nullptr;
 #else
-        //std::vector<AMFBuffer *> amfFilter;
-        //std::vector<AMFBuffer *> amfTemp;
-        amf::AMFBuffer ** amfFilter;
-        amf::AMFBuffer ** amfTemp;
+        //todo: use vectors
+        amf::AMFBuffer ** amfFilter = nullptr;
+        amf::AMFBuffer ** amfTemp = nullptr;
 #endif
 
-        int *firstNz;
-        int *lastNz;
-        float **m_SampleHistory;
+        int *firstNz = nullptr;
+        int *lastNz = nullptr;
+        float **m_SampleHistory = nullptr;
 
 #ifndef TAN_NO_OPENCL
-        cl_mem *m_clSampleHistory;
+        cl_mem *m_clSampleHistory = nullptr;
 #else
         std::vector<amf::AMFBuffer *> amfSampleHistory;
 #endif
-        int *m_sampHistPos;
+        int *m_sampHistPos = nullptr;
+
+        void SetupHost(size_t channelsCount)
+        {
+            m_Filter = new float *[channelsCount];
+            std::memset(m_Filter, 0, sizeof(float *) * channelsCount);
+
+			m_SampleHistory = new float*[channelsCount];
+            std::memset(m_SampleHistory, 0, sizeof(float *) * channelsCount);
+
+			m_sampHistPos = new int[channelsCount];
+            std::memset(m_sampHistPos, 0, sizeof(int) * channelsCount);
+
+			firstNz = new int[channelsCount];
+            std::memset(firstNz, 0, sizeof(int) * channelsCount);
+
+			lastNz = new int[channelsCount];
+            std::memset(lastNz, 0, sizeof(int) * channelsCount);
+        }
+
+        void SetupHostData(size_t index, size_t length)
+        {
+            m_Filter[index] = new float[length];
+            std::memset(m_Filter[index], 0, sizeof(float) * length);
+
+            m_SampleHistory[index] = new float[length];
+            std::memset(m_SampleHistory[index], 0, sizeof(float) * length);
+
+			m_sampHistPos[index] = 0;
+			firstNz[index] = 0;
+			lastNz[index] = 0;
+        }
 
 #ifndef TAN_NO_OPENCL
         void SetupCL(size_t channelsCount)
@@ -205,6 +268,38 @@ namespace amf
             m_clSampleHistory = new cl_mem[channelsCount];
             std::memset(m_clSampleHistory, 0, sizeof(cl_mem) * channelsCount);
         }
+
+        AMF_RESULT SetupCLData(cl_context context, size_t index, size_t length)
+        {
+            cl_int returnCode(0);
+
+            m_clFilter[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
+            AMF_RETURN_IF_CL_FAILED(returnCode);
+
+            m_clTemp[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
+            AMF_RETURN_IF_CL_FAILED(returnCode);
+
+            m_clSampleHistory[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
+            AMF_RETURN_IF_CL_FAILED(returnCode);
+        }
+
+        void ResetCL()
+        {
+            if(m_clFilter)
+            {
+                delete [] m_clFilter, m_clFilter = nullptr;
+            }
+
+            if(m_clTemp)
+            {
+                delete [] m_clTemp, m_clTemp = nullptr;
+            }
+
+            if(m_clSampleHistory)
+            {
+                delete [] m_clSampleHistory, m_clSampleHistory = nullptr;
+            }
+        }
 #else
         void SetupAMF(size_t channelsCount)
         {
@@ -213,6 +308,35 @@ namespace amf
 
             amfTemp = new amf::AMFBuffer *[channelsCount];
             std::memset(amfTemp, 0, sizeof(amf::AMFBuffer *) * channelsCount);
+
+            amfSampleHistory.resize(channelsCount);
+        }
+
+        AMF_RESULT SetupAMFData(AMFContext * context, size_t index, size_t length)
+        {
+            AMF_RETURN_IF_FAILED(
+                context->AllocBuffer(
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                    length * sizeof(float),
+                    &amfFilter[index]
+                    )
+                );
+
+            AMF_RETURN_IF_FAILED(
+                context->AllocBuffer(
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                    length * sizeof(float),
+                    &amfTemp[index]
+                    )
+                );
+
+            AMF_RETURN_IF_FAILED(
+                context->AllocBuffer(
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+                    length * sizeof(float),
+                    &amfSampleHistory[index]
+                    )
+                );
         }
 #endif
     } tdFilterState;
@@ -304,7 +428,7 @@ namespace amf
                                         amf_size *pNumOfSamplesProcessed = nullptr) override; // system memory
 #ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL    Process(cl_mem pBufferInput[],
-                                        cl_mem pBufferOutput[],
+                                            cl_mem pBufferOutput[],
                                             amf_size numOfSamplesToProcess,
                                             // Masks of flags from enum
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
@@ -353,9 +477,8 @@ namespace amf
                                             amf_size *pNumOfSamplesProcessed,
                                             int *nzFirstLast = NULL
                                             ) override;
-#endif
-
-        AMF_RESULT  AMF_STD_CALL    ProcessDirect(
+#else
+     AMF_RESULT  AMF_STD_CALL    ProcessDirect(
                                             const AMFBuffer * ppImpulseResponse[],
                                             const AMFBuffer * ppBufferInput[],
                                             AMFBuffer * ppBufferOutput[],
@@ -363,13 +486,14 @@ namespace amf
                                             amf_size *pNumOfSamplesProcessed,
                                             int *nzFirstLast = NULL
                                             ) override;
+#endif
 
 
         AMF_RESULT AMF_STD_CALL GetNextFreeChannel(amf_uint32 *pChannelIndex,
                                                    const amf_uint32 flagMasks[] // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG.
                                                    ) override;
 
-        virtual TANContext* AMF_STD_CALL GetContext(){return m_pContextTAN;}
+        virtual TANContext* AMF_STD_CALL GetContext() {return m_pContextTAN;}
 
     protected:
         virtual AMF_RESULT  Init(TAN_CONVOLUTION_METHOD convolutionMethod,
@@ -441,22 +565,24 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
         //cl_program m_TimeDomainProgram;
-        cl_kernel m_TimeDomainKernel = nullptr;
+        cl_kernel                   m_TimeDomainKernel = nullptr;
+#else
+        amf::AMFComputeKernelPtr    mTimeDomainKernel;
 #endif
 
-        int m_length = 0;           // Next power of two for the response's length.
-        int m_log2len = 0;          // =log2(m_length)
-        int m_MaxChannels = 0;      // Current number of channels, less or equal to m_iChannels.
-        float **m_OutSamples = nullptr;   // Buffer to store FFT, multiplication and ^FFT for a buffer.
-        float** m_ovlAddLocalInBuffs = nullptr;
-        float** m_ovlAddLocalOutBuffs = nullptr;
+        int                         m_length = 0;           // Next power of two for the response's length.
+        int                         m_log2len = 0;          // =log2(m_length)
+        int                         m_MaxChannels = 0;      // Current number of channels, less or equal to m_iChannels.
+        float **                    m_OutSamples = nullptr;   // Buffer to store FFT, multiplication and ^FFT for a buffer.
+        float **                    m_ovlAddLocalInBuffs = nullptr;
+        float **                    m_ovlAddLocalOutBuffs = nullptr;
 
-        TANSampleBuffer m_FadeSubbufers[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
+        TANSampleBuffer             m_FadeSubbufers[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
 
 #ifndef TAN_NO_OPENCL
-        cl_mem m_pCLXFadeMasterBuf[2] = {nullptr};
+        cl_mem                      m_pCLXFadeMasterBuf[2] = {nullptr};
 #else
-        amf::AMFBufferPtr mAMFCLXFadeMasterBuffers[2];
+        amf::AMFBufferPtr           mAMFCLXFadeMasterBuffers[2];
 #endif
 
         TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU
@@ -525,18 +651,38 @@ namespace amf
         amf_size ovlTDProcess(tdFilterState *state, float **inputData, float **outputData, amf_size length,
             amf_uint32 n_channels);
 
-        void ovlTimeDomainCPU(float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
+        AMF_RESULT ovlTimeDomainCPU(float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
             float *in, float *out, float *histBuf, amf_uint32 bufPos,
             amf_size datalength, amf_size convlength);
 
-#ifndef TAN_NO_OPENCL
-        void ovlTimeDomain(tdFilterState *state, int chIdx, float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
-            float *in, float *out, amf_uint32 bufPos,
-            amf_size datalength, amf_size convlength);
+        AMF_RESULT ovlTimeDomain(
+            tdFilterState *state,
+            int chIdx,
+            float *resp,
+            amf_uint32 firstNonZero,
+            amf_uint32 lastNonZero,
+            float *in,
+            float *out,
+            amf_uint32 bufPos,
+            amf_size datalength,
+            amf_size convlength
+            );
 
-        void ovlTimeDomainGPU(cl_mem resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
+#ifndef TAN_NO_OPENCL
+        AMF_RESULT ovlTimeDomainGPU(cl_mem resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
              cl_mem out, cl_mem histBuf, amf_uint32 bufPos,
             amf_size datalength, amf_size convlength);
+#else
+        AMF_RESULT ovlTimeDomainGPU(
+            AMFBuffer * resp,
+            amf_uint32 firstNonZero,
+            amf_uint32 lastNonZero,
+            AMFBuffer * out,
+            AMFBuffer * histBuf,
+            amf_uint32 bufPos,
+            amf_size datalength,
+            amf_size convlength
+            );
 #endif
 
         AMF_RESULT ProcessInternal(

@@ -34,7 +34,8 @@ bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pc
 bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
 
 bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount);
-#endif
+
+#else
 
 bool CreateGpuCommandQueues
 (
@@ -56,3 +57,4 @@ bool CreateCpuCommandQueues
 );
 
 bool CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute ** compute1, amf::AMFCompute ** compute2, int Q1CUcount, int Q2CUcount);
+#endif

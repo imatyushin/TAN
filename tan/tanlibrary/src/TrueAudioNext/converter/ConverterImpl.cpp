@@ -82,6 +82,8 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init(amf::AMFFactory * factory)
 
 #ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#else
+    printf("TODO: add check\n");
 #endif
 
     //todo: invwstigate why this works previously
@@ -262,11 +264,15 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
         m_overflowBuffer = NULL;
     }
 
-    return AMF_OK;
-#endif
+#else
 
     throw "Not implemented!";
-    return AMF_FAIL;
+
+	return AMF_NOT_IMPLEMENTED;
+
+#endif
+
+    return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
@@ -734,8 +740,9 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     return res;
 }
 
-#ifndef TAN_NO_OPENCL
 //-------------------------------------------------------------------------------------------------
+#ifndef TAN_NO_OPENCL
+
 AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     cl_mem inputBuffer,
 	amf_size inputStep,
@@ -788,7 +795,6 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
 
     AMF_RESULT ret = AMF_OK;
 
-
     // Process an arbitrary number of conversions; record clipping
     bool clipResult = false;
     for (int i = 0; i < count; i++)
@@ -806,7 +812,8 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::Convert(
     }
     return AMF_OK;
 }
-#endif
+
+#else
 
 AMF_RESULT  AMF_STD_CALL TANConverterImpl::Convert(
     AMFBuffer * inputBuffer,
@@ -857,7 +864,6 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Convert(
 
     AMF_RESULT ret = AMF_OK;
 
-
     // Process an arbitrary number of conversions; record clipping
     bool clipResult = false;
     for (int i = 0; i < count; i++)
@@ -876,3 +882,5 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Convert(
 
     return AMF_OK;
 }
+
+#endif

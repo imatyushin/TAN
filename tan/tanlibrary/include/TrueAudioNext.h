@@ -19,12 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-
 #pragma once
 
 #ifndef TAN_NO_OPENCL
-#include <CL/cl.h>
+  #include <CL/cl.h>
 #endif
 
 #include "public/include/core/Interface.h"
@@ -279,8 +277,7 @@ namespace amf
                                                 amf_size *pNumOfSamplesProcessed,
                                                 int *nzFirstLast = NULL
                                                 ) = 0;
-#endif
-
+#else
         virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(
                                                 const AMFBuffer * ppImpulseResponse[],
                                                 const AMFBuffer * ppBufferInput[],
@@ -289,6 +286,7 @@ namespace amf
                                                 amf_size *pNumOfSamplesProcessed,
                                                 int *nzFirstLast = NULL
                                                 ) = 0;
+#endif
 
         // Returns index for a stopped channel which's stopped fading out (or was flushed), if
         // available; if no such channel can be found AMF_NOT_FOUND is returned.
@@ -347,8 +345,7 @@ namespace amf
            const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
            amf_size *pNumOfSamplesProcessed // Can be NULL.
            ) = 0;
-#endif
-
+#else
        virtual AMF_RESULT  AMF_STD_CALL    Process(
            const AMFBuffer * ppBufferInput[],
            AMFBuffer * ppBufferOutput[],
@@ -356,6 +353,7 @@ namespace amf
            const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
            amf_size *pNumOfSamplesProcessed // Can be NULL.
            ) = 0;
+#endif
     };
     //----------------------------------------------------------------------------------------------
     // smart pointer
@@ -434,8 +432,7 @@ namespace amf
                                                     amf_size numOfSamplesToProcess,
                                                     float conversionGain,
                                                     int count, bool* outputClipped = NULL) = 0;
-#endif
-
+#else
         virtual AMF_RESULT  AMF_STD_CALL    Convert(
                                                     AMFBuffer * inputBuffer,
                                                     amf_size inputStep,
@@ -464,7 +461,7 @@ namespace amf
                                                     int count,
                                                     bool* outputClipped = nullptr
                                                     ) = 0;
-
+#endif
     };
     //----------------------------------------------------------------------------------------------
     // smart pointer
@@ -503,8 +500,7 @@ namespace amf
 														const amf_size outputBuffersOffsetInSamples[],
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
-#endif
-
+#else
         virtual AMF_RESULT ComplexMultiplication(		const AMFBuffer * inputBuffers1[],
 														const amf_size buffers1OffsetInSamples[],
 														const AMFBuffer * inputBuffers2[],
@@ -513,6 +509,7 @@ namespace amf
 														const amf_size outputBuffersOffsetInSamples[],
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
+#endif
 
 		virtual AMF_RESULT ComplexMultiplyAccumulate(	const float* const inputBuffers1[],
 														const float* const inputBuffers2[],
@@ -529,8 +526,7 @@ namespace amf
 														const amf_size accumBuffersOffsetInSamples[],
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
-#endif
-
+#else
 		virtual AMF_RESULT ComplexMultiplyAccumulate(	const AMFBuffer * inputBuffers1[],
 														const amf_size buffers1OffsetInSamples[],
 														const AMFBuffer * inputBuffers2[],
@@ -539,6 +535,7 @@ namespace amf
 														const amf_size accumBuffersOffsetInSamples[],
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
+#endif
 
         virtual AMF_RESULT ComplexDivision(				const float* const inputBuffers1[],
 														const float* const inputBuffers2[],
@@ -547,7 +544,7 @@ namespace amf
 														amf_size numOfSamplesToProcess) = 0;
 
 #ifndef TAN_NO_OPENCL
-        virtual AMF_RESULT ComplexDivision(				const cl_mem inputBuffers1[],
+        virtual AMF_RESULT ComplexDivision(			   const cl_mem inputBuffers1[],
 													   const amf_size buffers1OffsetInSamples[],
 													   const cl_mem inputBuffers2[],
 													   const amf_size buffers2OffsetInSamples[],
@@ -555,8 +552,7 @@ namespace amf
 													   const amf_size outputBuffersOffsetInSamples[],
 													   amf_uint32 channels,
 													   amf_size numOfSamplesToProcess) = 0;
-#endif
-
+#else
         virtual AMF_RESULT ComplexDivision(				const AMFBuffer * inputBuffers1[],
 													    const amf_size buffers1OffsetInSamples[],
 													    const AMFBuffer * inputBuffers2[],
@@ -565,6 +561,7 @@ namespace amf
 													    const amf_size outputBuffersOffsetInSamples[],
 													    amf_uint32 channels,
 													    amf_size numOfSamplesToProcess) = 0;
+#endif
     };
     //----------------------------------------------------------------------------------------------
     // smart pointer

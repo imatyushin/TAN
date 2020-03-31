@@ -137,6 +137,7 @@ TANContextImpl::TANContextImpl(void)
 TANContextImpl::~TANContextImpl(void)
 {
     Terminate();
+
     mContextGeneralAMF.Release();
     mContextConvolutionAMF.Release();
     g_AMFFactory.Terminate();
@@ -187,7 +188,14 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     return AMF_OK;
 
 #else
-    return AMF_FAIL;
+    mComputeConvolutionAMF = nullptr;
+    mComputeGeneralAMF = nullptr;
+
+    mGeneralDeviceAMF = nullptr;
+    mConvolutionDeviceAMF = nullptr;
+
+    mContextGeneralAMF = nullptr;
+    mContextConvolutionAMF = nullptr;
 #endif
 }
 
@@ -394,6 +402,8 @@ AMF_RESULT amf::TANContextImpl::InitAMFInternal(
         AMF_RETURN_IF_FALSE(!mComputeConvolutionAMF, AMF_FAIL);
         mComputeConvolutionAMF = convolutionQueue;
     }
+
+    printf("TODO: investigate skipped code!\n");
 
     //todo: device?
 

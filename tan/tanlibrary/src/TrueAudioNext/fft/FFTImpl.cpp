@@ -166,11 +166,9 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu(amf::AMFFactory * factory)
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 {
-#ifndef TAN_NO_OPENCL
     AMFLock lock(&m_sect);
 
     m_pContextTAN.Release();
-
     m_pKernelCopy.Release();
 
     //release ocl bufers
@@ -182,12 +180,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 			clfftDestroyPlan(&x->second);
 		}
 	}
-    return AMF_OK;
-#else
-    throw "Not implemented!";
 
-    return AMF_FAIL;
-#endif
+    return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
@@ -666,6 +660,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplGpu(
 	}
 	return res;
 }
+
 #endif
 
 // -----------------------------------------------------------------------------------------------

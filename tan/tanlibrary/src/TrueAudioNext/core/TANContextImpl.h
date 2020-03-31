@@ -99,17 +99,18 @@ namespace amf
 #ifndef TAN_NO_OPENCL
         cl_context                  m_oclGeneralContext = nullptr;
         cl_context                  m_oclConvContext = nullptr;
-        cl_command_queue			m_oclGeneralQueue = nullptr;
-        cl_command_queue			m_oclConvQueue = nullptr;
+        cl_command_queue	    m_oclGeneralQueue = nullptr;
+        cl_command_queue	    m_oclConvQueue = nullptr;
         cl_device_id                m_oclGeneralDeviceId = nullptr;
         cl_device_id                m_oclConvDeviceId = nullptr;
-#endif
+#else
         AMFContextPtr               mContextGeneralAMF;
         AMFContextPtr               mContextConvolutionAMF;
         AMFComputePtr               mComputeGeneralAMF;
         AMFComputePtr               mComputeConvolutionAMF;
         AMFComputeDevicePtr         mGeneralDeviceAMF;
         AMFComputeDevicePtr         mConvolutionDeviceAMF;
+#endif
 
         bool m_clfftInitialized = false;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.

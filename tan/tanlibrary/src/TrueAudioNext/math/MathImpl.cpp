@@ -143,12 +143,17 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu(amf::AMFFactory * factory)
 
 	return AMF_OK;
 #else
-	return AMF_FAIL;
+
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+
 #endif
 }
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
 	cl_mem* _buffer,
 	amf_size* size, // in bytes
@@ -173,6 +178,20 @@ AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
 	}
 	return AMF_OK;
 }
+
+#else
+
+AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
+	AMFBuffer ** _buffer,
+	amf_size* size, // in bytes
+	const amf_size requiredSize
+	)
+{
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+}
+
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -187,7 +206,11 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Terminate()
 
 	return AMF_OK;
 #else
-	return AMF_FAIL;
+
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+
 #endif
 }
 //-------------------------------------------------------------------------------------------------
@@ -242,10 +265,12 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
             inputBuffers1[channelId], inputBuffers2[channelId], accumbuffers[channelId], countOfComplexNumbers);
 		AMF_RETURN_IF_FAILED(result);
 	}
+
 	return AMF_OK;
 }
 
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	const cl_mem inputBuffers1[],
 	const amf_size buffers1OffsetInSamples[],
@@ -282,6 +307,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 			);
 		AMF_RETURN_IF_FAILED(result);
 	}
+
 	return AMF_OK;
 }
 
@@ -322,9 +348,11 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
                                         countOfComplexNumbers);
 		AMF_RETURN_IF_FAILED(result);
 	}
+
 	return AMF_OK;
 }
-#endif
+
+#else
 
 AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	const AMFBuffer * inputBuffers1[],
@@ -336,7 +364,9 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	amf_uint32 channels,
     amf_size countOfComplexNumbers)
 {
-	return AMF_FAIL;
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
 }
 
 AMF_RESULT TANMathImpl::ComplexMultiplication(
@@ -350,8 +380,12 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
     amf_size countOfComplexNumbers
 	)
 {
-	return AMF_FAIL;
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
 }
+
+#endif
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT TANMathImpl::ComplexDivision(
@@ -382,6 +416,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT TANMathImpl::ComplexDivision(
 	const cl_mem inputBuffers1[],
 	const amf_size buffers1OffsetInSamples[],
@@ -418,9 +453,11 @@ AMF_RESULT TANMathImpl::ComplexDivision(
                                     countOfComplexNumbers);
 		AMF_RETURN_IF_FAILED(result);
 	}
+
 	return AMF_OK;
 }
-#endif
+
+#else
 
 AMF_RESULT TANMathImpl::ComplexDivision(
 	const AMFBuffer * inputBuffers1[],
@@ -433,8 +470,12 @@ AMF_RESULT TANMathImpl::ComplexDivision(
     amf_size countOfComplexNumbers
 	)
 {
-	return AMF_FAIL;
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
 }
+
+#endif
 
 //-------------------------------------------------------------------------------------------------
 //protected----------------------------------------------------------------------------------------
@@ -493,7 +534,11 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
     return AMF_OK;
 
 #else
-	return AMF_FAIL;
+
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+
 #endif
 }
 
@@ -511,6 +556,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
     AMF_RETURN_IF_FALSE(countOfComplexNumbers > 0, AMF_INVALID_ARG, L"countOfComplexNumbers == 0");
 
 #ifndef TAN_NO_OPENCL
+
 	if (m_pContextTAN->GetOpenCLContext())
 	{
 		// Adjust internal buffer size
@@ -544,13 +590,19 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 		}
 	}
 	return AMF_OK;
+
 #else
-	return AMF_FAIL;
+
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+
 #endif
 }
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT TANMathImpl::ComplexMultiplication(
 	const cl_mem inputBuffer1,
     const amf_size buffer1OffsetInSamples,
@@ -726,6 +778,38 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	if (clErr != CL_SUCCESS) { printf("Faield to map OCL Buffer"); return AMF_FAIL; }
 	return AMF_OK;
 }
+
+#else
+
+AMF_RESULT TANMathImpl::ComplexMultiplication(
+	const AMFBuffer * inputBuffer1,
+    const amf_size buffer1OffsetInSamples,
+	const AMFBuffer * inputBuffer2,
+    const amf_size buffer2OffsetInSamples,
+	AMFBuffer * outputBuffer,
+    const amf_size outputBufferOffsetInSamples,
+    amf_size countOfComplexNumbers
+)
+{
+    throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+}
+
+AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
+	const AMFBuffer * inputBuffer1,
+	const amf_size buffer1OffsetInSamples,
+	const AMFBuffer * inputBuffer2,
+	const amf_size buffer2OffsetInSamples,
+	AMFBuffer * accumBuffer,
+	const amf_size accumBufferOffsetInSamples,
+    amf_size countOfComplexNumbers)
+{
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+}
+
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -777,13 +861,19 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 		}
 	}
     return AMF_OK;
+
 #else
-	return AMF_FAIL;
+
+	throw "Not implemented!";
+
+	return AMF_NOT_IMPLEMENTED;
+
 #endif
 }
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT TANMathImpl::ComplexDivision(
 	const cl_mem inputBuffer1,
     const amf_size buffer1OffsetInSamples,
@@ -840,7 +930,8 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 
     return AMF_OK;
 }
-#endif
+
+#else
 
 AMF_RESULT TANMathImpl::ComplexDivision(
 	const AMFBuffer * inputBuffer1,
@@ -852,5 +943,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
     amf_size countOfComplexNumbers
 )
 {
-	return AMF_FAIL;
+	throw "Not implemented!";
+	return AMF_NOT_IMPLEMENTED;
 }
+#endif

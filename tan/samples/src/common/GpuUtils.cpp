@@ -624,7 +624,8 @@ bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pc
     }
     return bResult;
 }
-#endif
+
+#else
 
 bool CreateGpuCommandQueues
 (
@@ -651,3 +652,4 @@ bool CreateCpuCommandQueues
 {
     return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_CPU, context);
 }
+#endif

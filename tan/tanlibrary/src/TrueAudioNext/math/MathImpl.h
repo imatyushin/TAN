@@ -65,7 +65,7 @@ namespace amf
                                                     const amf_size outputBuffersOffsetInSamples[],
                                                     amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
-#endif
+#else
 
         virtual AMF_RESULT ComplexMultiplication(	const AMFBuffer * inputBuffers1[],
                                                     const amf_size buffers1OffsetInSamples[],
@@ -75,6 +75,7 @@ namespace amf
                                                     const amf_size outputBuffersOffsetInSamples[],
                                                     amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
+#endif
 
 		virtual AMF_RESULT ComplexMultiplyAccumulate(
                                                     const float* const inputBuffers1[],
@@ -93,7 +94,7 @@ namespace amf
 													const amf_size accumBuffersOffsetInSamples[],
 													amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
-#endif
+#else
         virtual AMF_RESULT ComplexMultiplyAccumulate(
                                                     const AMFBuffer * inputBuffers1[],
 													const amf_size buffers1OffsetInSamples[],
@@ -103,6 +104,7 @@ namespace amf
 													const amf_size accumBuffersOffsetInSamples[],
 													amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
+#endif
 
 
         virtual AMF_RESULT ComplexDivision(	        const float* const inputBuffers1[],
@@ -121,7 +123,7 @@ namespace amf
                                                     const amf_size outputBuffersOffsetInSamples[],
                                                     amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
-#endif
+#else
         virtual AMF_RESULT ComplexDivision(	        const AMFBuffer * inputBuffers1[],
                                                     const amf_size buffers1OffsetInSamples[],
                                                     const AMFBuffer * inputBuffers2[],
@@ -130,6 +132,7 @@ namespace amf
                                                     const amf_size outputBuffersOffsetInSamples[],
                                                     amf_uint32 channels,
                                                     amf_size countOfComplexNumbers) override;
+#endif
 
     protected:
         virtual AMF_RESULT ComplexMultiplication(
@@ -162,6 +165,24 @@ namespace amf
 			cl_mem accumBuffer,
 			const amf_size accumBufferOffsetInSamples,
             amf_size countOfComplexNumbers);
+#else
+        virtual AMF_RESULT ComplexMultiplication(
+            const AMFBuffer * inputBuffer1,
+            const amf_size buffer1OffsetInSamples,
+            const AMFBuffer * inputBuffer2,
+            const amf_size buffer2OffsetInSamples,
+            AMFBuffer * outputBuffer,
+            const amf_size outputBufferOffsetInSamples,
+            amf_size countOfComplexNumbers);
+
+        virtual AMF_RESULT ComplexMultiplyAccumulate(
+			const AMFBuffer * inputBuffer1,
+			const amf_size buffer1OffsetInSamples,
+			const AMFBuffer * inputBuffer2,
+			const amf_size buffer2OffsetInSamples,
+			AMFBuffer * accumBuffer,
+			const amf_size accumBufferOffsetInSamples,
+            amf_size countOfComplexNumbers);
 #endif
 
         virtual AMF_RESULT ComplexDivision(
@@ -179,7 +200,7 @@ namespace amf
             cl_mem outputBuffer,
             const amf_size outputBufferOffsetInSamples,
             amf_size countOfComplexNumbers);
-#endif
+#else
         virtual AMF_RESULT ComplexDivision(
             const AMFBuffer * inputBuffer1,
             const amf_size buffer1OffsetInSamples,
@@ -188,6 +209,7 @@ namespace amf
             AMFBuffer * outputBuffer,
             const amf_size outputBufferOffsetInSamples,
             amf_size countOfComplexNumbers);
+#endif
 
     protected:
         TANContextPtr               m_pContextTAN;
@@ -197,6 +219,10 @@ namespace amf
         cl_kernel			m_pKernelComplexDiv = nullptr;
         cl_kernel			m_pKernelComplexMul = nullptr;
 		cl_kernel			m_pKernelComplexSum = nullptr;
+#else
+        AMFBufferPtr        m_pKernelComplexDiv;
+		AMFBufferPtr        m_pKernelComplexMul;
+		AMFBufferPtr        m_pKernelComplexSum;
 #endif
 
         AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
@@ -211,6 +237,12 @@ namespace amf
 		cl_mem	m_pInternalSwapBuffer2_MulAccu = nullptr;
 		cl_mem	m_pInternalBufferIn1_MulAccu = nullptr;
 		cl_mem	m_pInternalBufferIn2_MulAccu = nullptr;
+#else
+        // multiply accumulate internal buffer
+		AMFBufferPtr m_pInternalSwapBuffer1_MulAccu;
+		AMFBufferPtr m_pInternalSwapBuffer2_MulAccu;
+		AMFBufferPtr m_pInternalBufferIn1_MulAccu;
+		AMFBufferPtr m_pInternalBufferIn2_MulAccu;
 #endif
 
 		amf_size m_iInternalSwapBuffer1Size_MulAccu = 0;
@@ -220,6 +252,8 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
 		cl_mem	m_pInternalBufferOut_MulAccu = nullptr;
+#else
+        AMFBufferPtr m_pInternalBufferOut_MulAccu;
 #endif
 
 		amf_size m_iInternalBufferOutSize_MulAccu = 0;
@@ -229,7 +263,13 @@ namespace amf
 		cl_mem	m_pInternalBufferIn1_Division = nullptr;
 		cl_mem	m_pInternalBufferIn2_Division = nullptr;
 		cl_mem	m_pInternalBufferOut_Division = nullptr;
+#else
+        // Division internal buffer
+		AMFBufferPtr m_pInternalBufferIn1_Division;
+		AMFBufferPtr m_pInternalBufferIn2_Division;
+		AMFBufferPtr m_pInternalBufferOut_Division;
 #endif
+
 		amf_size m_iInternalBufferIn1Size_Division = 0;
 		amf_size m_iInternalBufferIn2Size_Division = 0;
 		amf_size m_iInternalBufferOutSize_Division = 0;
@@ -239,7 +279,13 @@ namespace amf
 		cl_mem	m_pInternalBufferIn1_Multiply = nullptr;
 		cl_mem	m_pInternalBufferIn2_Multiply = nullptr;
 		cl_mem	m_pInternalBufferOut_Multiply = nullptr;
+#else
+        // Multiplication internal buffer
+		AMFBufferPtr m_pInternalBufferIn1_Multiply;
+		AMFBufferPtr m_pInternalBufferIn2_Multiply;
+		AMFBufferPtr m_pInternalBufferOut_Multiply;
 #endif
+
 		amf_size m_iInternalBufferIn1Size_Multiply = 0;
 		amf_size m_iInternalBufferIn2Size_Multiply = 0;
 		amf_size m_iInternalBufferOutSize_Multiply = 0;
@@ -251,6 +297,12 @@ namespace amf
 #ifndef TAN_NO_OPENCL
 		AMF_RESULT AdjustInternalBufferSize(
 			cl_mem* _buffer,
+			amf_size* size,
+			const amf_size requiredSize
+		    );
+#else
+        AMF_RESULT AdjustInternalBufferSize(
+			amf::AMFBuffer ** _buffer,
 			amf_size* size,
 			const amf_size requiredSize
 		    );

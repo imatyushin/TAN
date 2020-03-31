@@ -55,7 +55,6 @@ private:
     TANContextPtr mContext;
 
 #ifndef TAN_NO_OPENCL
-
     bool m_clInitialized = false;
 
     //OpenCL initialization
@@ -77,6 +76,7 @@ private:
 
 	//todo: smrtptr
 	amf::AMFFactory * mFactory = nullptr;
+    bool mFactoryCreated = false;
 
     amf::AMFComputePtr mCompute;
 
@@ -88,7 +88,6 @@ private:
     amf::AMFBufferPtr mFloatResponse = nullptr;
     amf::AMFBufferPtr mLPF = nullptr;
     amf::AMFBufferPtr mHPF = nullptr;
-
 #endif
 
     std::vector<float> mResponseBuffer;
@@ -203,7 +202,7 @@ private:
 
 #endif
 
-    void Release();
+    AMF_RESULT Release();
 
 private:
     VRExecutionMode m_executionMode = VRExecutionMode::CPU;
@@ -445,7 +444,7 @@ TrueAudioVRimpl::~TrueAudioVRimpl()
 {
 }
 
-void TrueAudioVRimpl::Release()
+AMF_RESULT TrueAudioVRimpl::Release()
 {
 #ifndef TAN_NO_OPENCL
     if (m_context)
@@ -503,9 +502,17 @@ void TrueAudioVRimpl::Release()
         m_pHPF = NULL;
     }
 #else
+    throw "Not implemented!";
+
+    return AMF_NOT_IMPLEMENTED;
 #endif
 
-    g_AMFFactory.Terminate();
+    if(mFactoryCreated)
+    {
+        AMF_RETURN_IF_FAILED(g_AMFFactory.Terminate());
+    }
+
+    return AMF_OK;
 }
 
 /**************************************************************************************************
@@ -1247,6 +1254,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 		AMF_RETURN_IF_FAILED(g_AMFFactory.Init());
 
 		mFactory = g_AMFFactory.GetFactory();
+        mFactoryCreated = true;
 	}
 
     AMF_RESULT status = AMF_OK;
@@ -1303,8 +1311,6 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             &mFloatResponse
             )
         );
-
-    printf("\n\nFIXME!!!!\n\n");
 
     // zero buffers
     float fill = 0.0;
@@ -1594,6 +1600,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         response,
         true
         );
+
+    mCompute->FinishQueue();
 #endif
 
 	return AMF_OK;

@@ -246,10 +246,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_pKernelCrossfade), L"Failed to release kernel");
 	}
 #else
-    if(m_pContextTAN->GetAMFContext() != nullptr)
-	{
-		AMF_RETURN_IF_CL_FAILED(AMF_FAIL, L"Failed to release kernel");
-	}
+    mKernelCrossfade = nullptr;
 #endif
 
     m_pContextTAN.Release();
@@ -262,6 +259,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
     m_idxFilter = 0;
     m_idxPrevFilter = 2;
     m_idxUpdateFilter = 1;
+
+    mAMFCLXFadeMasterBuffers[0] = nullptr;
+    mAMFCLXFadeMasterBuffers[1] = nullptr;
 
     return AMF_OK;
 }
@@ -276,10 +276,6 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(pBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    AMF_RESULT res = AMF_OK;
-
-    // process
-
     TANSampleBuffer sampleBuffer;
     sampleBuffer.SetHost(pBuffer);
 
@@ -288,6 +284,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     cl_mem *pBuffer,
     amf_size numOfSamplesToProcess,
@@ -309,6 +306,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
+
 #else
 
 AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
@@ -383,10 +381,12 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
     m_idxUpdateFilterLatest = m_idxUpdateFilter;
 
-    switch (m_eConvolutionMethod) {
+    switch (m_eConvolutionMethod)
+    {
         case TAN_CONVOLUTION_METHOD_TIME_DOMAIN:
-            return AMF_NOT_IMPLEMENTED;
-            /*
+
+#ifndef TAN_NO_OPENCL
+
             m_accumulatedArgs.updatesCnt = 0;
             if (pBuffer.GetType() == AMF_MEMORY_HOST)
             {
@@ -408,7 +408,11 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             {
                 return AMF_NOT_IMPLEMENTED;
             }
-            */
+#else
+            throw "Not implemented!";
+
+            return AMF_NOT_IMPLEMENTED;
+#endif
         break;
         case TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD:
             {
@@ -508,7 +512,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
             if(pBuffer.GetType() == AMF_MEMORY_OPENCL)
             {
-
                 cl_mem *clResponses = new cl_mem[m_iChannels];
 
                 for (amf_uint32 n = 0; n < m_iChannels; n++)
@@ -563,6 +566,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     AMF_UNEXPECTED, L"Internal graal's failure");
             }
 #else
+            throw "Not implemented!";
+
             return AMF_NOT_IMPLEMENTED;
 #endif
         }
@@ -655,7 +660,9 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
                 ovlTimeDomain(m_tdFilterState[0], iChan, ppImpulseResponse[iChan], firstNZ, lastNZ, inputData[iChan], outputData[iChan],
                                sampHistPos[iChan], numOfSamplesToProcess, m_length);
 #else
-                return AMF_FAIL;
+                throw "Not implemented!";
+
+                return AMF_NOT_IMPLEMENTED;
 #endif
                 sampHistPos[iChan] += numOfSamplesToProcess;
             }
@@ -668,11 +675,12 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
         return AMF_NOT_SUPPORTED;
         break;
     }
-    return AMF_NOT_SUPPORTED;
 
+    return AMF_NOT_SUPPORTED;
 }
 
 #ifndef TAN_NO_OPENCL
+
 // Process direct (no update required),  OpenCL cl_mem  buffers:
 AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
     cl_mem* ppImpulseResponse[],
@@ -685,7 +693,8 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
 {
     return AMF_NOT_SUPPORTED;
 }
-#endif
+
+#else
 
 // Process direct (no update required),  OpenCL cl_mem  buffers:
 AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
@@ -697,10 +706,15 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::ProcessDirect(
     int *nzFirstLast
     )
 {
+    throw "Not implemented!";
+
     return AMF_NOT_SUPPORTED;
 }
 
+#endif
+
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     float* ppBufferInput[],
     cl_mem pBufferOutput[],
@@ -725,7 +739,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
-#endif
+
+#else
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
@@ -753,8 +768,11 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
 
+#endif
+
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     cl_mem pBufferInput[],
     cl_mem pBufferOutput[],
@@ -767,7 +785,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 {
     return AMF_NOT_IMPLEMENTED;
 }
+
 #else
+
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     const AMFBuffer * pBufferInput[],
     AMFBuffer * pBufferOutput[],
@@ -778,7 +798,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     amf_size *pNumOfSamplesProcessed
     )
 {
-    return AMF_FAIL;
+    throw "Not implemented!";
+
+    return AMF_NOT_IMPLEMENTED;
 }
 
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
@@ -1128,7 +1150,6 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
     }
     else if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_TIME_DOMAIN)
     {
-
         m_tdFilterState[filterStateId]->m_sampHistPos[channelId] = 0;
         memset(m_tdFilterState[filterStateId]->m_SampleHistory[channelId], 0, m_length*sizeof(float));
     }
@@ -1186,6 +1207,7 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
 
             CHECK_OPENCL_ERROR(status, "copy failed.");
         }
+
 #else
 
         auto generalQ = m_pContextTAN->GetAMFGeneralQueue();
@@ -1285,8 +1307,6 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     {
 
     case TAN_CONVOLUTION_METHOD_TIME_DOMAIN:
-        return AMF_NOT_IMPLEMENTED;
-        /*
         for (int i = 0; i < N_FILTER_STATES; i++)
         {
             m_tdFilterState[i] = new tdFilterState;
@@ -1300,32 +1320,32 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             {
 #ifndef TAN_NO_OPENCL
                 m_tdFilterState[i]->SetupCL(m_iChannels);
+#else
+                throw "Not implemented!";
+
+                return AMF_NOT_IMPLEMENTED;
 #endif
             }
 			else
             {
-				m_tdFilterState[i]->m_clFilter = nullptr;
-				m_tdFilterState[i]->m_clTemp = nullptr;
-				m_tdFilterState[i]->m_clSampleHistory = nullptr;
+#ifndef TAN_NO_OPENCL
+				m_tdFilterState[i]->ResetCL();
+#else
+                throw "Not implemented!";
+
+                return AMF_NOT_IMPLEMENTED;
+#endif
 			}
 
         	m_tdInternalFilterState[i] = new tdFilterState;
-			m_tdInternalFilterState[i]->m_Filter = new float *[m_iChannels];
-			m_tdInternalFilterState[i]->m_SampleHistory = new float*[m_iChannels];
-			m_tdInternalFilterState[i]->m_sampHistPos = new int[m_iChannels];
-			m_tdInternalFilterState[i]->firstNz = new int[m_iChannels];
-			m_tdInternalFilterState[i]->lastNz = new int[m_iChannels];
+			m_tdInternalFilterState[i]->SetupHost(m_iChannels);
 
 			if (context != nullptr )
             {
 #ifndef TAN_NO_OPENCL
-                m_tdInternalFilterState[i]->m_clFilter = new cl_mem[m_iChannels];
-                m_tdInternalFilterState[i]->m_clTemp = new cl_mem[m_iChannels];
-                m_tdInternalFilterState[i]->m_clSampleHistory = new cl_mem[m_iChannels];
+                m_tdInternalFilterState[i]->SetupCL(m_iChannels);
 #else
-                m_tdInternalFilterState[i]->amfFilter.resize(m_iChannels);
-                m_tdInternalFilterState[i]->amfTemp.resize(m_iChannels);
-                m_tdInternalFilterState[i]->amfSampleHistory.resize(m_iChannels);
+                m_tdInternalFilterState[i]->SetupAMF(m_iChannels);
 #endif
 			}
         }
@@ -1334,28 +1354,15 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         {
             for (int i = 0; i < N_FILTER_STATES; i++)
             {
-                m_tdFilterState[i]->m_Filter[n] = new float[m_length];
-                memset(m_tdFilterState[i]->m_Filter[n], 0, m_length*sizeof(float));
-
-                m_tdFilterState[i]->m_SampleHistory[n] = new float[m_length];
-                memset(m_tdFilterState[i]->m_SampleHistory[n], 0, m_length*sizeof(float));
-
-                m_tdFilterState[i]->m_sampHistPos[n] = 0;
-				m_tdFilterState[i]->lastNz[n] = 0;
-				m_tdFilterState[i]->firstNz[n] = 0;
+                m_tdFilterState[i]->SetupHostData(n, m_length);
 
                 if (context != nullptr)
                 {
 #ifndef TAN_NO_OPENCL
-                    cl_int ret = 0;
-                    m_tdFilterState[i]->m_clFilter[n] = clCreateBuffer(context, CL_MEM_READ_WRITE, m_length*sizeof(float), nullptr, &ret);
-                    m_tdFilterState[i]->m_clTemp[n] = clCreateBuffer(context, CL_MEM_READ_WRITE, m_length*sizeof(float), nullptr, &ret);
-                    m_tdFilterState[i]->m_clSampleHistory[n] = clCreateBuffer(context, CL_MEM_READ_WRITE, m_length*sizeof(float), nullptr, &ret);
+                    m_tdFilterState[i]->SetupCLData(context, n, m_length);
 #else
-                    cl_int ret = 0;
-                    m_tdFilterState[i]->m_clFilter[n] = clCreateBuffer(context, CL_MEM_READ_WRITE, m_length*sizeof(float), nullptr, &ret);
-                    m_tdFilterState[i]->m_clTemp[n] = clCreateBuffer(context, CL_MEM_READ_WRITE, m_length*sizeof(float), nullptr, &ret);
-                    m_tdFilterState[i]->m_clSampleHistory[n] = clCreateBuffer(context, CL_MEM_READ_WRITE, m_length*sizeof(float), nullptr, &ret);
+                    m_tdFilterState[i]->SetupAMFData(context, n, m_length);
+
 #endif
                 }
 
@@ -1372,10 +1379,14 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 					m_tdInternalFilterState[i]->m_clTemp[n] = nullptr;
 					m_tdInternalFilterState[i]->m_clSampleHistory[n] = nullptr;
 				}
+#else
+                throw "Not implemented!";
+
+                return AMF_NOT_IMPLEMENTED;
 #endif
             }
         }
-        */
+
         break;
 
     case TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD:
@@ -1411,8 +1422,6 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     case TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED:
     case TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED:
     case TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL:
-        return AMF_NOT_IMPLEMENTED;
-        /*
         {
 #ifndef TAN_NO_OPENCL
             graal::CGraalConv*graalConv = NULL;
@@ -1461,10 +1470,12 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             m_n_delays_onconv_switch = isPartitionedMethod ? 0 : 2;
             m_graal_conv = graalConv;
     #else
-            return AMF_OPENCL_FAILED;
+            throw "Not implemented!";
+
+            return AMF_NOT_IMPLEMENTED;
     #endif
         }
-        */
+
         break;
 
     default:
@@ -1575,27 +1586,31 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
 
     if (m_doProcessOnGpu)
     {
-#ifndef TAN_NO_OPENCL
         for (amf_uint32 bufIdx = 0; bufIdx < 2; bufIdx++)
         {
-            if (m_pCLXFadeMasterBuf[bufIdx] == nullptr)
+#ifndef TAN_NO_OPENCL
+            if(m_pCLXFadeMasterBuf[bufIdx] == nullptr)
+            {
                 continue;
+            }
 
             clReleaseMemObject(m_pCLXFadeMasterBuf[bufIdx]);
-
-            for (amf_uint32 n = 0; n < m_iChannels; n++)
-            {
-                if (m_FadeSubbufers[bufIdx].buffer.clmem[n] == nullptr)
-                    continue;
-
-                clReleaseMemObject(m_FadeSubbufers[bufIdx].buffer.clmem[n]);
-            }
         }
 #else
-        return AMF_NOT_IMPLEMENTED;
-#endif
-    }
+            if(!mAMFCLXFadeMasterBuffers[bufIdx])
+            {
+                continue;
+            }
 
+            mAMFCLXFadeMasterBuffers[bufIdx]->Release();
+
+#endif
+            for (amf_uint32 n = 0; n < m_iChannels; n++)
+            {
+                m_FadeSubbufers[bufIdx].FreeObjects();
+            }
+        }
+    }
 
     SAFE_ARR_DELETE(m_availableChannels);
     SAFE_ARR_DELETE(m_flushedChannels);
@@ -1622,7 +1637,9 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
                         clReleaseMemObject(m_tdFilterState[i]->m_clTemp[n]);
                     }
 #else
-                    return AMF_FAIL;
+                    throw "Not implemented!";
+
+                    return AMF_NOT_IMPLEMENTED;
 #endif
                 }
             }
@@ -2017,7 +2034,8 @@ amf_size TANConvolutionImpl::ovlTDProcess(
 #ifndef TAN_NO_OPENCL
         ovlTimeDomain(state, iChan, filter[iChan], 0, m_length, inputData[iChan], outputData[iChan], sampHistPos[iChan], nSamples, m_length);
 #else
-        throw "Not implemented";
+        throw "Not implemented!";
+
         return 0;
 #endif
         sampHistPos[iChan] += nSamples;
@@ -2026,9 +2044,8 @@ amf_size TANConvolutionImpl::ovlTDProcess(
     return nSamples;
 }
 
-#ifndef TAN_NO_OPENCL
 // host memory version
-void TANConvolutionImpl::ovlTimeDomain(
+AMF_RESULT TANConvolutionImpl::ovlTimeDomain(
     tdFilterState *state,
     int iChan,
     float *resp,
@@ -2040,15 +2057,17 @@ void TANConvolutionImpl::ovlTimeDomain(
     amf_size datalength,
     amf_size convlength)
 {
+#ifndef TAN_NO_OPENCL
     cl_context context = m_pContextTAN->GetOpenCLContext();
 
     float *histBuf = state->m_SampleHistory[iChan]; // ??? move inside ovlTimeDomain
-    if (context == nullptr){
 
+    if (context == nullptr)
+    {
         ovlTimeDomainCPU(resp, firstNonZero, lastNonZero, in, out, histBuf, bufPos, datalength, convlength);
     }
-    else {
-
+    else
+    {
        cl_command_queue cmdQueue = m_pContextTAN->GetOpenCLGeneralQueue();
        // build Time Domain kernel if necessary:
         if (m_TimeDomainKernel == nullptr){
@@ -2056,6 +2075,8 @@ void TANConvolutionImpl::ovlTimeDomain(
 
         throw "Not implemented";
 
+        return AMF_NOT_IMPLEMENTED;
+        //use getModuleFileName
 
 #ifdef _WIN32
             GetModuleFileNameA(NULL, dllPath, MAX_PATH);
@@ -2080,7 +2101,6 @@ void TANConvolutionImpl::ovlTimeDomain(
 			if (!OCLERR){ printf("Failed to create OCL Kernel"); return;}
         }
         //clCreateBuffer(context
-
 
         bufPos = bufPos % convlength;
         int len1, len2;
@@ -2116,11 +2136,17 @@ void TANConvolutionImpl::ovlTimeDomain(
 		clEnqueueFillBuffer(cmdQueue, state->m_clFilter[iChan], (const void *)&pat, sizeof(pat), firstNonZero*sizeof(float), (lastNonZero - firstNonZero)*sizeof(float), 0, nullptr, nullptr);
 
     }
-}
+
+    return AMF_OK;
+#else
+    throw "Not implemented!";
+
+    return AMF_NOT_IMPLEMENTED;
 #endif
+}
 
 // CPU implementation
-void TANConvolutionImpl::ovlTimeDomainCPU(
+AMF_RESULT TANConvolutionImpl::ovlTimeDomainCPU(
     float *resp,
     amf_uint32 firstNonZero,
     amf_uint32 lastNonZero,
@@ -2145,11 +2171,13 @@ void TANConvolutionImpl::ovlTimeDomainCPU(
         }
     }
 
+    return AMF_OK;
 }
 
 #ifndef TAN_NO_OPENCL
+
 // GPU implementation
-void TANConvolutionImpl::ovlTimeDomainGPU(
+AMF_RESULT TANConvolutionImpl::ovlTimeDomainGPU(
     cl_mem resp,
     amf_uint32 firstNonZero,
     amf_uint32 lastNonZero,
@@ -2195,6 +2223,26 @@ void TANConvolutionImpl::ovlTimeDomainGPU(
         amf_size local[3] = {1, 0, 0 };
 
         err = clEnqueueNDRangeKernel(cmdQueue, m_TimeDomainKernel, 1, NULL, global, local, 0, NULL, NULL);
+
+    return AMF_OK;
+}
+
+#else
+
+// GPU implementation
+AMF_RESULT TANConvolutionImpl::ovlTimeDomainGPU(
+    AMFBuffer * resp,
+    amf_uint32 firstNonZero,
+    amf_uint32 lastNonZero,
+    AMFBuffer * out,
+    AMFBuffer * histBuf,
+    amf_uint32 bufPos,
+    amf_size datalength,
+    amf_size convlength)
+{
+    throw "Not implemented!";
+
+    return AMF_NOT_IMPLEMENTED;
 }
 #endif
 
@@ -2364,6 +2412,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     m_tdInternalFilterState[idx]->m_clTemp[chIdInt] = m_tdFilterState[idx]->m_clTemp[channelId];
 				}
 #else
+                throw "Not implemented!";
+
                 return AMF_NOT_IMPLEMENTED;
 #endif
 
@@ -2514,7 +2564,9 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     ocl_crossfade_state
                     );
 #else
-                return AMF_FAIL;
+                throw "Not implemented!";
+
+                return AMF_NOT_IMPLEMENTED;
 #endif
             }
 

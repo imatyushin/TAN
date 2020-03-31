@@ -69,6 +69,7 @@ namespace amf
                                             float conversionGain, int count, bool* outputClipped = NULL) override;
 
 #ifndef TAN_NO_OPENCL
+
 		AMF_RESULT  AMF_STD_CALL    Convert(cl_mem inputBuffer, amf_size inputStep,
 											amf_size inputOffset,TAN_SAMPLE_TYPE inputType,
 
@@ -89,7 +90,8 @@ namespace amf
 
                                             int count, bool* outputClipped = NULL) override;
 
-#endif
+#else
+
         AMF_RESULT  AMF_STD_CALL    Convert(AMFBuffer * inputBuffer,
                                             amf_size inputStep,
                                             amf_size inputOffset,
@@ -122,6 +124,8 @@ namespace amf
                                             int count,
                                             bool* outputClipped = nullptr
                                             ) override;
+
+#endif
 
     protected:
         TANContextPtr               m_pContextTAN;

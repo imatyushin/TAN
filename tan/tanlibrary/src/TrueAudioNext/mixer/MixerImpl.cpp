@@ -62,6 +62,7 @@ TANMixerImpl::TANMixerImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextAMF(pContextAMF)
 {
 #ifndef TAN_NO_OPENCL
+    printf("TODO: whats must be here?\n")
 #else
     if(!m_pContextAMF && m_pContextTAN)
     {
@@ -93,6 +94,8 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
 
 #ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#else
+    printf("TODO: add related check\n");
 #endif
 
     AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
@@ -158,6 +161,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu(amf::AMFFactory * factory)
     if (!OCLKenel_Err){ printf("Failed to compile Mixer Kernel"); return AMF_FAIL; }
 	mInitialized = true;
     return res;
+
 #else
 
     amf_int64 tmp = 0;
@@ -191,6 +195,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu(amf::AMFFactory * factory)
     mInitialized = true;
 
     return AMF_OK;
+
 #endif
 }
 
@@ -221,7 +226,10 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
 
     return AMF_OK;
 #else
-    return AMF_FAIL;
+
+    throw "Not implemented!";
+    return AMF_NOT_IMPLEMENTED;
+
 #endif
 }
 
@@ -313,7 +321,9 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
 	AMF_RESULT ret = Mix(m_internalBuff, pBufferOutput, m_bufferSize);
 	return ret;
 }
+
 #else
+
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     AMFBuffer * pBufferInput,
     AMFBuffer * pBufferOutput,
@@ -368,29 +378,11 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
                 i * m_bufferSize * sizeof(float)
                 )
             );
-
-        /*float pOut[128*1024] = {0};
-
-        AMF_RETURN_IF_FAILED(
-            mAMFCompute->CopyBufferToHost(
-                mInternalBufferAMF,
-                0,
-                m_bufferSize * sizeof(float),
-                pOut,
-                true
-                )
-            );
-
-        std::cout << std::endl << "tan mix intrnl:" << std::endl;
-        for(int i(0); i < m_bufferSize; ++i)
-        {
-            std::cout << pOut[i] << " ";
-        }
-        std::cout << std::endl;*/
     }
 
 	AMF_RESULT ret = Mix(mInternalBufferAMF, pBufferOutput, m_bufferSize);
 
     return ret;
 }
+
 #endif

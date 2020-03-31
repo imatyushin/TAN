@@ -110,7 +110,6 @@ public:
     virtual ~IAudio3D()
     {
         Close();
-
     }
 
     virtual AMF_RESULT Init

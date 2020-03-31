@@ -1,6 +1,6 @@
-// 
-// MIT license 
-// 
+//
+// MIT license
+//
 // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -218,6 +218,7 @@ AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(float* ppBufferInput[],
 }
 
 #ifndef TAN_NO_OPENCL
+
 AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
     cl_mem ppBufferInput[],
     cl_mem ppBufferOutput[],
@@ -228,7 +229,8 @@ AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
 {
     return AMF_NOT_IMPLEMENTED;
 }
-#endif
+
+#else
 
 AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
     const AMFBuffer * ppBufferInput[],
@@ -240,3 +242,5 @@ AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(
 {
     return AMF_NOT_IMPLEMENTED;
 }
+
+#endif

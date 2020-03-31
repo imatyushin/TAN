@@ -65,6 +65,7 @@ Audio3DAMF::~Audio3DAMF()
 
 void Audio3DAMF::Close()
 {
+    IAudio3D::Close();
 }
 
 AMF_RESULT Audio3DAMF::Init
@@ -492,7 +493,6 @@ AMF_RESULT Audio3DAMF::Init
         {
             for(int i = 0; i < mWavFiles.size() * 2; i++)
             {
-                //mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, mFFTLength * sizeof(float), NULL, &status);
                 AMF_RETURN_IF_FAILED(
                     mContext12->AllocBuffer(
                         amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
@@ -576,22 +576,30 @@ AMF_RESULT Audio3DAMF::Init
     TanVrDll = LoadLibraryA("TrueAudioVR.dll");
 
 #ifndef TAN_NO_OPENCL
-    typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, const TANContextPtr & pContext, const TANFFTPtr & pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
+    typedef int (WINAPI *       CREATEVR)(
+        AmdTrueAudioVR **       taVR,
+        const TANContextPtr &   pContext,
+        const TANFFTPtr &       pFft,
+        cl_command_queue        cmdQueue,
+        float                   samplesPerSecond,
+        int                     convolutionLength
+        );
 #else
-	typedef int  (WINAPI *CREATEVR)(
-		AmdTrueAudioVR **taVR,
-		const TANContextPtr & pContext,
-		const TANFFTPtr & pFft,
-		AMFCompute * compute,
-		float samplesPerSecond,
-		int convolutionLength,
-		amf::AMFFactory * factory
+	typedef int (WINAPI *       CREATEVR)(
+		AmdTrueAudioVR **       taVR,
+		const TANContextPtr &   pContext,
+		const TANFFTPtr &       pFft,
+		AMFCompute *            compute,
+		float                   samplesPerSecond,
+		int                     convolutionLength,
+		amf::AMFFactory *       factory
 		);
 #endif
 
 	CREATEVR CreateAmdTrueAudioVR = nullptr;
 
     CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+
 #endif
 
     AmdTrueAudioVR *trueAudioVR(nullptr);
