@@ -260,9 +260,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
     m_idxPrevFilter = 2;
     m_idxUpdateFilter = 1;
 
-    mAMFCLXFadeMasterBuffers[0] = nullptr;
-    mAMFCLXFadeMasterBuffers[1] = nullptr;
-
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
@@ -1602,7 +1599,7 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
                 continue;
             }
 
-            mAMFCLXFadeMasterBuffers[bufIdx]->Release();
+            mAMFCLXFadeMasterBuffers[bufIdx] = nullptr;
 
 #endif
             for (amf_uint32 n = 0; n < m_iChannels; n++)

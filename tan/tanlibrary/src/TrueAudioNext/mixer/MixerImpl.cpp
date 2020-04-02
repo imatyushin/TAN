@@ -213,6 +213,13 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
         m_clMix = nullptr;
 
     }
+
+    if(m_internalBuff)
+    {
+        clReleaseMemObject(m_internalBuff);
+        m_internalBuff = nullptr;
+    }
+
     m_pDeviceCl = NULL;
     if (m_pCommandQueueCl)
     {
@@ -220,17 +227,26 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
         cl_int ret = clReleaseCommandQueue(m_pCommandQueueCl);
         AMF_RETURN_IF_CL_FAILED(ret, L"Failed to release command queue.");
     }
+
     m_pCommandQueueCl = NULL;
     m_pContextAMF = NULL;
     m_pContextTAN = NULL;
 
-    return AMF_OK;
 #else
 
-    throw "Not implemented!";
-    return AMF_NOT_IMPLEMENTED;
+    AMFLock lock(&m_sect);
+
+    mAMFCompute = nullptr;
+    mMixKernel = nullptr;
+
+    mInternalBufferAMF = nullptr;
+
+    m_pContextAMF = nullptr;
+    m_pContextTAN = nullptr;
 
 #endif
+
+    return AMF_OK;
 }
 
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(

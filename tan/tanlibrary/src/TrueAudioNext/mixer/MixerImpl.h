@@ -107,9 +107,9 @@ namespace amf
 		amf_size m_bufferSize = 0;
 
 #ifndef TAN_NO_OPENCL
-		cl_mem m_internalBuff;
+		cl_mem m_internalBuff = nullptr;
 #else
-        AMFBuffer *mInternalBufferAMF;
+        AMFBufferPtr mInternalBufferAMF;
 #endif
 
 		int m_numChannels = 0;

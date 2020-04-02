@@ -246,8 +246,10 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 		m_clkShort2Float = nullptr;
 		m_clkFloat2Short = nullptr;
 	}
+
     m_pDeviceCl = NULL;
-    if (m_pCommandQueueCl)
+
+    if(m_pCommandQueueCl)
     {
         //printf("Queue release %llX\r\n", m_pCommandQueueCl);
         cl_int ret = clReleaseCommandQueue(m_pCommandQueueCl);
@@ -266,9 +268,21 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 
 #else
 
-    throw "Not implemented!";
+    AMFLock lock(&m_sect);
 
-	return AMF_NOT_IMPLEMENTED;
+    m_pDeviceAMF = NULL;
+
+    mFloat2Short = nullptr;
+    mShort2Short = nullptr;
+    mFloat2Float = nullptr;
+    mShort2Float = nullptr;
+
+    mOverflowBuffer = nullptr;
+
+    mGeneralQueue = nullptr;
+
+    m_pContextAMF = nullptr;
+    m_pContextTAN = nullptr;
 
 #endif
 
