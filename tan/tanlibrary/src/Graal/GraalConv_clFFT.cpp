@@ -1,5 +1,6 @@
+// MIT license
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,12 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+#include "Utilities.h"
 #include "GraalConv_clFFT.hpp"
 #include "GraalCLUtil/GraalUtil.hpp"
 #include "GraalConvOCL.hpp"
-#include "OCLHelper.h"
+#include "../common/OCLHelper.h"
 #include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
-#include "Utilities.h"
 
 #include <iostream>
 #include <fstream>
@@ -199,10 +201,10 @@ int CGraalConv_clFFT::initializeConv(
 
     num_blocks_ = static_cast<int>((_max_conv_sz + block_sz_ - 1) / block_sz_);
 
-    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);
+    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);    
     aligned_proc_bufffer_sz_ = static_cast<int>(max_proc_buffer_sz_);
     aligned_processing_sz_ = aligned_proc_bufffer_sz_ * 2;
-
+    
     //max_conv_sz_ = ((_max_conv_sz + 1023) / 1024 ) * 1024;
     max_conv_sz_ = num_blocks_ * block_sz_;
 

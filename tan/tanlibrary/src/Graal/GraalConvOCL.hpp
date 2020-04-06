@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,11 +35,11 @@
 
 //#include "OclKernels/GraalUtil.cl.h"
 #include "OclKernels/CLKernel_GraalUtil.h"
-#include "TrueAudioNext.h" //TAN
+#  include "tanlibrary/include/TrueAudioNext.h" //TAN
 
-#include "public/include/core/Compute.h"      //AMF
-#include "public/include/core/Context.h"      //AMF
-#include "public/common/AMFFactory.h"         //AMF
+#  include "public/include/core/Compute.h"      //AMF
+#  include "public/include/core/Context.h"      //AMF
+#  include "public/common/AMFFactory.h"         //AMF
 
 /**
  */

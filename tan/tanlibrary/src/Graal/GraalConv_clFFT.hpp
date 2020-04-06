@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,12 +21,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#pragma once
+
+
 #ifndef GRAALCONV_CLFFT_H_
-#define GRAALCONV_CLFFT_H_
+#define GRAALCONF_CLFFT_H_
 
 #include <CL/cl.h>
-#include "clFFT.h"
+#include "tanlibrary/src/clFFT-master/src/include/clFFT.h"
 #include "GraalConv.hpp"
 #include "GraalConvOCL.hpp"
 #include <string>
