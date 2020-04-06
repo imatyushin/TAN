@@ -35,7 +35,7 @@
 
 //#include "OclKernels/GraalUtil.cl.h"
 #include "OclKernels/CLKernel_GraalUtil.h"
-#  include "tanlibrary/include/TrueAudioNext.h" //TAN
+#  include "TrueAudioNext.h" //TAN
 
 #  include "public/include/core/Compute.h"      //AMF
 #  include "public/include/core/Context.h"      //AMF
@@ -71,10 +71,10 @@ class CGraalConvOCL
      */
 
      ~CGraalConvOCL(void);
- 
+
 
     /**
-     * OpenCL related initialisations. 
+     * OpenCL related initialisations.
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int setupCL(
@@ -102,10 +102,10 @@ class CGraalConvOCL
         return(context_);
     }
 
-    cl_kernel getKernel(std::string kernel_id, 
+    cl_kernel getKernel(std::string kernel_id,
                         std::string kernel_src,
                         size_t kernel_src_size,
-                        std::string kernel_name, 
+                        std::string kernel_name,
                         std::string comp_options);
 
 protected:
@@ -201,7 +201,7 @@ public:
         if (_sz == 0 )
         {
             ret = GRAAL_FAILURE;
- 
+
            return ret;
         }
 
@@ -229,7 +229,7 @@ public:
         if (_sz == 0 )
         {
             ret = GRAAL_FAILURE;
- 
+
            return ret;
         }
         buf_ = clCreateBuffer(context_, _flags, _sz*sizeof(T), NULL, &ret);
@@ -246,10 +246,10 @@ public:
 
         cl_own_ = true;
         flags_ = _flags;
-    
+
         return(ret);
     }
-// TO DO :: CORECT 
+// TO DO :: CORECT
     int attach(const T *_buf, size_t _sz)
     {
         int ret = GRAAL_SUCCESS;
@@ -275,7 +275,7 @@ public:
         return(ret);
     }
 
-// TO DO : CORRECT 
+// TO DO : CORRECT
 
 
     int attach(cl_mem _buf, size_t _sz)
@@ -291,7 +291,7 @@ public:
 
         }
 
-        
+
         return(ret);
     }
 
@@ -302,7 +302,7 @@ public:
 
         if ( buf_ && !map_ptr_ ) {
             mappingQ_ = _mappingQ;
-    
+
                 ret = map_ptr_ = (T *)clEnqueueMapBuffer(mappingQ_,
                     buf_,
                     CL_TRUE,
@@ -334,7 +334,7 @@ public:
 
 
             mappingQ_ = _mappingQ;
-    
+
             ret = map_ptr_ = (T *)clEnqueueMapBuffer (mappingQ_,
                                                 buf_,
                                                 CL_FALSE,
@@ -399,7 +399,7 @@ public:
 #endif
             AMF_ASSERT(false, L"copyToDevice: wrong data");
             return(-1);
-        }   
+        }
 
 
         if ( !buf_ )
@@ -418,7 +418,7 @@ public:
 
         }
 
-        size_t len = (_len != -1 )? _len : len_; 
+        size_t len = (_len != -1 )? _len : len_;
         const T * sys_ptr = (_len != -1) ? _data : sys_ptr_;
         AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
                             L"Internal error: buffer hasn't been preallocated");
@@ -445,7 +445,7 @@ public:
 #endif
             AMF_ASSERT(false, L"copyToDeviceA: wrong data");
             return(-1);
-        }   
+        }
 
 
         if ( !buf_ )
@@ -464,7 +464,7 @@ public:
 
         }
 
-        size_t len = (_len!=-1 )? _len : len_; 
+        size_t len = (_len!=-1 )? _len : len_;
         const T * sys_ptr = (_len!=-1) ? _data : sys_ptr_;
         AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
                             L"Internal error: buffer hasn't been preallocated");
@@ -587,7 +587,7 @@ public:
     int release(void)
     {
         int ret = GRAAL_SUCCESS;
-        if ( sys_own_ && sys_ptr_) 
+        if ( sys_own_ && sys_ptr_)
         {
             delete [] sys_ptr_;
             sys_ptr_ = 0;
@@ -595,7 +595,7 @@ public:
         }
         sys_own_  = false;
 
-        if ( cl_own_ ) 
+        if ( cl_own_ )
         {
             unmap();
             if ( buf_ )
@@ -635,7 +635,7 @@ public:
         return(context_);
     }
 
-    inline const cl_mem & getCLMem(void) 
+    inline const cl_mem & getCLMem(void)
     {
         return(buf_);
     }
@@ -730,7 +730,7 @@ public:
         if (_sz == 0 )
         {
             ret = GRAAL_FAILURE;
- 
+
            return ret;
         }
 
@@ -746,8 +746,8 @@ public:
                                     CL_BUFFER_CREATE_TYPE_REGION,
                                     &sub_buf,
                                     &ret);
-        
-        
+
+
         if(ret != CL_SUCCESS)
         {
 #ifdef _DEBUG_PRINTF
@@ -760,7 +760,7 @@ public:
         CABuf< T >::len_ = _sz;
         CABuf< T >::cl_own_ = true;
         CABuf< T >::flags_ = _flags;
-    
+
         return(ret);
     }
 
