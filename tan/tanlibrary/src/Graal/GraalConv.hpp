@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,13 +42,15 @@
 #include <BaseTsd.h>
 
 #include "public/common/thread.h"
-#include "public/include/core/Compute.h"
-#include "public/include/core/Context.h"
-//#include "public/common/TraceAdapter.h"
 
-#include "TrueAudioNext.h"
+#  include "TrueAudioNext.h"
 
+#  include "public/include/core/Compute.h"
+#  include "public/include/core/Context.h"
+
+//#  include "public/common/TraceAdapter.h"
 //#  define AMF_FACILITY L"GraalConv"
+
 
 typedef unsigned int uint;
 
@@ -113,7 +117,7 @@ static double subtractTimes(double endTime, double startTime)
 namespace graal
 {
 // implemented pipelines
-    enum {
+    enum GRAAL_ALG {
 // selected by Graal
         ALG_ANY,
 // uniform "classical" pipeline:
@@ -124,8 +128,9 @@ namespace graal
 // direct transform-> MAD (with the 0th conv block) + tail sum->inverse transform
 // 2nd stage is done in background, bulids the "tail" sum.
 // MAD (with all conv blocks except 0th)
-        ALG_UNI_HEAD_TAIL
-    };
+        ALG_UNI_HEAD_TAIL,
+		ALG_USE_PROCESS_FINALIZE = 0x8000 // use ProcessFinalize() optimization for HEAD_TAIL mode
+	};
 
 class CGraalConv
 {
@@ -146,7 +151,7 @@ class CGraalConv
     /**
      * Allocate and initialize convolution class
      *
-     * @param n_max_channels		max number of channels to be processed
+     * @param n_max_channels		max number of channels tp be processed
      * @param max_conv_sz			max number of samples of IR
      * @param max_proc_buffer_sz	max size of the input buffers to be proccessed
      * @param n_upload_sets			max number of IR versions per 1 channnel (for double buffeering)
@@ -315,7 +320,7 @@ class CGraalConv
      *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
-    virtual int finishUpdate(void);
+     virtual int finishUpdate(void);
 
 #ifdef TAN_SDK_EXPORTS
      /**
@@ -323,7 +328,15 @@ class CGraalConv
       *
       * @return AMF_OK on success.
       */
-    virtual AMF_RESULT finishProcess(void);
+     virtual AMF_RESULT finishProcess(void)
+     {
+        cl_int status = CL_SUCCESS;
+        status = clFlush(m_pContextTAN->GetOpenCLConvQueue());
+        AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFlush" );
+        status = clFinish(m_pContextTAN->GetOpenCLConvQueue());
+        AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFinish" );
+        return AMF_OK;
+     }
 
      /**
       * Response copying utility function.
@@ -402,6 +415,7 @@ class CGraalConv
         int _crossfade_state = 0
         );
 
+	virtual AMF_RESULT processFinalize();
 
      /**
       * Flushes history.
@@ -609,6 +623,27 @@ protected:
         bool _use_xf_buff = false
         );
 
+	struct ProcessParams {
+		int prev_input;
+		int advance_time;
+		int skip_stage;
+		int n_channels;
+		ProcessParams() {
+			n_channels = 0;
+		}
+		void set(
+			int _prev_input,
+			int _advance_time,
+			int _skip_stage,
+			int _n_channels
+		) {
+			prev_input = _prev_input;
+			advance_time = _advance_time;
+			skip_stage = _skip_stage;
+			n_channels = _n_channels;
+		}
+	} m_processParams, m_processParams_xf;
+
     /*
         classic
     */
@@ -663,8 +698,9 @@ protected:
     int n_input_qs_;    // n process queues 2
     int n_accum_blocks_; // n blocks accumulated at one CMAD invokation
     int n_stages_;    // classic  = 1, head tail 2
+	int m_useProcessFinalize;
 
-// intenal state
+// internal state
     int algorithm_;
     int n_max_channels_;
     int max_conv_sz_;
@@ -733,6 +769,7 @@ protected:
     void* channels_map_;
 // set map
     void* sets_map_;
+	void* sets_map_xf;
 // input data
     CABuf<float> m_process_input_staging_;
 // input transformed history
