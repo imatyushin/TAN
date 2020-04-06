@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +25,17 @@
 
 #include "GraalConv.hpp"
 #include "amdFHT.h"
-#include "OCLHelper.h"
 #include "GraalCLUtil/GraalCLUtil.hpp"
 
+//#include "OclKernels/GraalFHT.cl.h"
 #include "OclKernels/CLKernel_GraalFHT.h"
 
 #if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
 #endif
-
 #include "public/common/Thread.h"
-#include "public/common/TraceAdapter.h"
-#include "public/common/AMFFactory.h"
-
+#include "public/common/AMFFactory.h"           //AMF
+#include "OCLHelper.h"
 #include <algorithm>
 
 #include <CL/cl_ext.h>
@@ -49,6 +49,16 @@
 //to allow std::min usage
 #ifdef min
 #undef min
+#endif
+
+#ifndef AMF_RETURN_IF_FALSE
+#define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
+#endif
+#ifndef AMF_RETURN_IF_FAILED
+#define AMF_RETURN_IF_FAILED(exp, ...)
+#endif
+#ifndef AMF_ASSERT_OK
+#define AMF_ASSERT_OK(exp, ... /*optional format, args*/)
 #endif
 
 namespace graal
@@ -106,6 +116,7 @@ CGraalConv:: CGraalConv( void )
     channels_map_ = NULL;
 // sets map
     sets_map_ = NULL;
+	sets_map_xf = NULL;
 // history, input transformed data
     history_transformed_ = NULL;
 // output data
@@ -174,7 +185,9 @@ int CGraalConv::initializeConv(
 {
     m_pContextTAN = pContextTAN;
 
-    algorithm_ = (_algorithm == ALG_ANY) ? ALG_UNI_HEAD_TAIL : _algorithm; // ALG_UNIFORMED;
+	m_useProcessFinalize = (_algorithm & ALG_USE_PROCESS_FINALIZE) != 0;
+	algorithm_ = _algorithm = GRAAL_ALG(_algorithm & ~ALG_USE_PROCESS_FINALIZE);
+	algorithm_ = (_algorithm == ALG_ANY) ? ALG_UNI_HEAD_TAIL : _algorithm; // ALG_UNIFORMED;
     n_max_channels_ = _n_max_channels;
     max_conv_sz_ = ((_max_conv_sz + 1023) / 1024 ) * 1024;
     max_proc_buffer_sz_ = _max_proc_buffer_sz;
@@ -215,11 +228,7 @@ CGraalConv::updateConv(
 {
     int ret = GRAAL_SUCCESS;
 
-#ifndef TAN_NO_OPENCL
-    cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
-#else
-    cl_command_queue uploadQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
-#endif
+    //cl_command_queue uploadQ = this->m_pContextTAN->GetOpenCLGeneralQueue();
 
     for( int j = 0; j < _n_channels; j++ )
     {
@@ -319,12 +328,11 @@ CGraalConv::updateConv(
 {
     int ret = GRAAL_SUCCESS;
 
-#ifndef TAN_NO_OPENCL
+    #ifndef TAN_NO_OPENCL
     cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
     cl_command_queue uploadQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
 #endif
-
     if ( NULL == uploadQ)
     {
         return false;
@@ -403,19 +411,8 @@ CGraalConv::finishUpdate(void)
 
 }
 
+
 #ifdef TAN_SDK_EXPORTS
-
-AMF_RESULT CGraalConv::finishProcess(void)
-{
-    cl_int status = CL_SUCCESS;
-    status = clFlush(m_pContextTAN->GetOpenCLConvQueue());
-    AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFlush" );
-    status = clFinish(m_pContextTAN->GetOpenCLConvQueue());
-    AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFinish" );
-
-    return AMF_OK;
-}
-
 AMF_RESULT CGraalConv::copyResponses(
     uint channelsCnt,
     const uint pFromUploadIds[],
@@ -576,7 +573,7 @@ CGraalConv:: getConvBuffers(int _n_channels, int *_uploadIDs, int *_convIDs, flo
     int ret = GRAAL_SUCCESS;
     int i = 0;
 
-#ifndef TAN_NO_OPENCL
+    #ifndef TAN_NO_OPENCL
     cl_command_queue graalQ_ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
     cl_command_queue graalQ_ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue());
@@ -858,7 +855,7 @@ CGraalConv::getDevInputPtrs(
 {
     int ret = GRAAL_SUCCESS;
 
-#ifndef TAN_NO_OPENCL
+    #ifndef TAN_NO_OPENCL
     cl_command_queue inQ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
     cl_command_queue inQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
@@ -909,7 +906,37 @@ CGraalConv::processDevPtrs(
 Internals
 -----------------------------------------------------------------------------------------------*/
 
-
+AMF_RESULT
+CGraalConv::processFinalize()
+{
+	if (!m_useProcessFinalize)
+	{
+		return AMF_OK;
+	}
+	switch (algorithm_)
+	{
+	case ALG_UNI_HEAD_TAIL:
+		// accumulate the tail CMAD
+		// for the next time step
+		if (m_processParams_xf.skip_stage != 2 && m_processParams_xf.n_channels)
+		{
+			int str_shift = -1;
+			int ret = processAccum(m_processParams_xf.n_channels, 1, str_shift, 1);
+			m_processParams_xf.n_channels = 0;// Reset the num of channels to zero after being used as the xf flag
+			if (ret != GRAAL_SUCCESS)
+				return AMF_UNEXPECTED;
+		}
+		if (m_processParams.skip_stage != 2)
+		{
+			int str_shift = -1;
+			int ret = processAccum(m_processParams.n_channels, 1, str_shift, 0);
+			if (ret != GRAAL_SUCCESS)
+				return AMF_UNEXPECTED;
+		}
+		break;
+	}
+	return AMF_OK;
+}
 
 
 /**
@@ -932,6 +959,18 @@ CGraalConv::processIntrnl(
             int _crossfade_state
 )
 {
+	if (m_useProcessFinalize)
+	{
+		if (_crossfade_state == 1)
+		{
+			m_processParams_xf.set(_prev_input, _advance_time, _skip_stage, _n_channels);
+		}
+		else
+		{
+			m_processParams.set(_prev_input, _advance_time, _skip_stage, _n_channels);
+		}
+	}
+
     int ret = GRAAL_SUCCESS;
 
     cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
@@ -943,7 +982,8 @@ CGraalConv::processIntrnl(
         // upload channel map
         CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
         // upload set map
-        CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
+        //CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
+		CABuf<int> &set_map_buf = (_crossfade_state == 1) ? *(CABuf<int> *)sets_map_xf : *(CABuf<int> *)sets_map_;
         // upload input data
         CABuf<float> &inp_buf = m_process_input_staging_;
 
@@ -1028,22 +1068,22 @@ CGraalConv::processIntrnl(
         }
         else if (_output.mType == GRAAL_MEMORY_OPENCL)
         {
-            for (int c = 0; c < _n_channels; c++)
-            {
-                int uploadId = _uploadIDs[c];
-                int convId = _convIDs[c];
-                int status = clEnqueueCopyBuffer(
-                    generalQ,
-                    out_buf.getCLMem(),
-                    _output.buffer.clmem[c],
-                    (uploadId * n_max_channels_ + convId) * aligned_proc_bufffer_sz_* sizeof(float),
-                    0,
-                    max_proc_buffer_sz_ * sizeof(float),
-                    (c == 0) ? 1 : 0,
-                    (c == 0) ? &m_pullKernelEvent : NULL,//Set the event for the first copy command only, the rest will line up since all in the same queue
-                    NULL);
-                CHECK_OPENCL_ERROR(status, "copy failed.");
-            }
+			for (int c = 0; c < _n_channels; c++)
+			{
+				int uploadId = _uploadIDs[c];
+				int convId = _convIDs[c];
+				int status = clEnqueueCopyBuffer(
+					outQ,
+					out_buf.getCLMem(),
+					_output.buffer.clmem[c],
+					(uploadId * n_max_channels_ + convId) * aligned_proc_bufffer_sz_ * sizeof(float),
+					0,
+					max_proc_buffer_sz_ * sizeof(float),
+					0,
+					NULL,//Set the event for the first copy command only, the rest will line up since all in the same queue
+					NULL);
+				CHECK_OPENCL_ERROR(status, "copy failed.");
+			}
         }
 
 
@@ -1092,23 +1132,23 @@ CGraalConv::processIntrnl(
                     int convId = _convIDs[c];
                     int uploadId = _uploadIDs[c];
                     int status = clEnqueueCopyBuffer(
-                        generalQ,
-                        out_buf.getCLMem(),
-                        _output.buffer.clmem[c],
-                        (uploadId * n_max_channels_ + convId) * aligned_proc_bufffer_sz_* sizeof(float),
-                        0,
-                        max_proc_buffer_sz_ * sizeof(float),
-                        (c == 0) ? 1 : 0,
-                        (c == 0) ? &m_headTailKernelEvent:NULL,//Set the event for the first copy command only, the rest will line up since all in the same queue
-                        NULL);
-                    CHECK_OPENCL_ERROR(status, "copy failed.");
+						outQ,
+						out_buf.getCLMem(),
+						_output.buffer.clmem[c],
+						(uploadId * n_max_channels_ + convId) * aligned_proc_bufffer_sz_ * sizeof(float),
+						0,
+						max_proc_buffer_sz_ * sizeof(float),
+						0,
+						NULL,
+						NULL);
+					CHECK_OPENCL_ERROR(status, "copy failed.");
                 }
             }
         }
 
 
-        if (_skip_stage != 2)
-        {
+		if (!m_useProcessFinalize && _skip_stage != 2)
+		{
             // accumulate the tail CMAD
             // for the next time step
             int str_shift = -1;
@@ -1972,8 +2012,9 @@ CGraalConv::processAccum(int _n_channels,
     CABuf<float> &data_store_buf = *(CABuf<float> *)history_transformed_;
     CABuf<float> &accum_buf = _use_xf_buff ? *(CABuf<float>*)cmad_accum_xf_ : *(CABuf<float>*)cmad_accum_;
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
-    CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
-    CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+   // CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
+	CABuf<int> &set_map_buf = _use_xf_buff ? *(CABuf<int> *)sets_map_xf : *(CABuf<int> *)sets_map_;
+	CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
 
     uint store_version_stride = aligned_conv_sz_ * n_max_channels_;
     uint accum_version_stride = accum_stride_ * n_max_channels_;
@@ -2105,8 +2146,8 @@ CGraalConv::processAccum(int _n_channels,
         cl_kernel tailAccumKernel = CMADKernels_[1];
 
         CABuf<float> &accum_buf = _use_xf_buff ? *(CABuf<float>*)cmad_accum_xf_ : *(CABuf<float>*)cmad_accum_;
-        CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
-        CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
+		CABuf<int> &set_map_buf = _use_xf_buff ? *(CABuf<int> *)sets_map_xf : *(CABuf<int> *)sets_map_;
+		CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
         uint accum_version_stride = accum_stride_ * n_max_channels_;
 
 #ifdef TAN_SDK_EXPORTS
@@ -2717,6 +2758,8 @@ int CGraalConv::setupCL
 )
 {
     int ret = GRAAL_SUCCESS;
+	//?? cl_queue_properties prop[] = { 0 };
+
 
     const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
 
@@ -2935,6 +2978,13 @@ int CGraalConv::setupCL
     initBuffer(sets_map_buf, graalQ_);
     sets_map_ = sets_map_buf;
 
+	CABuf<int> *sets_map_buf_xf = new CABuf<int>(CABufArgs);
+	assert(sets_map_buf_xf);
+	ret = sets_map_buf_xf->create(n_sets_ * n_max_channels_, CL_MEM_USE_PERSISTENT_MEM_AMD);
+	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
+	initBuffer(sets_map_buf_xf, graalQ_);
+	sets_map_xf = sets_map_buf_xf;
+
 // process input
 // fill input and keep previous inputs in a proper  places
     m_process_input_staging_ = CABuf<float>(CABufArgs);
@@ -3117,6 +3167,12 @@ CGraalConv::cleanup()
         sets_map_ = NULL;
     }
 
+	if (sets_map_xf)
+	{
+		delete (CABuf<uint> *)sets_map_xf;
+		sets_map_xf = NULL;
+	}
+
     if (history_transformed_)
     {
         delete (CABuf<float> *)history_transformed_;
@@ -3279,14 +3335,12 @@ CGraalConv::cleanup()
 
     if (graalTailQ_)
     {
-        //printf("Queue release %llX\r\n", graalTailQ_);
         clReleaseCommandQueue(graalTailQ_);
     }
     graalTailQ_ = NULL;
 
     if (own_queue_ && graalQ_)
     {
-        //printf("Queue release %llX\r\n", graalQ_);
         clReleaseCommandQueue(graalQ_);
     }
 
