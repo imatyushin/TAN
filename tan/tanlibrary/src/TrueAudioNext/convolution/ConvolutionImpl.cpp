@@ -501,7 +501,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
         case TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED:
         case TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL:
         {
-#ifndef TAN_NO_OPENCL
             //AMFLock *syncLock = new AMFLock(&m_sectUpdate);
             m_accumulatedArgs.updatesCnt = 0;
             graal::CGraalConv*graalConv = (graal::CGraalConv*)m_graal_conv;
@@ -517,7 +516,13 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     {
                         //m_uploadArgs.responses[n_channels] = pBuffer.buffer.host[n];
                         m_accumulatedArgs.updatesCnt++;
+
+#ifndef TAN_NO_OPENCL
                         clResponses[n_channels] = pBuffer.buffer.clmem[n];
+#else
+                        clResponses[n_channels] = (cl_mem)pBuffer.buffer.amfBuffers[n]->GetNative();
+#endif
+
                         m_uploadArgs.versions[n_channels] = m_idxUpdateFilter;
                         m_uploadArgs.channels[n_channels] = n;
                         m_uploadArgs.lens[n_channels] = static_cast<int>(numOfSamplesToProcess);
@@ -529,11 +534,18 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
 
-                AMF_RETURN_IF_FALSE(graalConv->uploadConvGpuPtrs(
-                    n_channels, m_uploadArgs.versions, m_uploadArgs.channels,
+                AMF_RETURN_IF_FALSE(
+                    graalConv->uploadConvGpuPtrs(
+                    n_channels,
+                    m_uploadArgs.versions,
+                    m_uploadArgs.channels,
                     clResponses,
-                    m_uploadArgs.lens, true) == GRAAL_SUCCESS,
-                    AMF_UNEXPECTED, L"Internal graal's failure");
+                    m_uploadArgs.lens,
+                    true
+                    ) == GRAAL_SUCCESS,
+                    AMF_UNEXPECTED,
+                    L"Internal graal's failure"
+                    );
 
                 delete clResponses;
             }
@@ -556,17 +568,18 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
 
-                AMF_RETURN_IF_FALSE(graalConv->uploadConvHostPtrs(
-                    n_channels, m_uploadArgs.versions, m_uploadArgs.channels,
-                    const_cast<const float**>(m_uploadArgs.responses),
-                    m_uploadArgs.lens, true) == GRAAL_SUCCESS,
-                    AMF_UNEXPECTED, L"Internal graal's failure");
+                AMF_RETURN_IF_FALSE(
+                    graalConv->uploadConvHostPtrs(
+                        n_channels,
+                        m_uploadArgs.versions,
+                        m_uploadArgs.channels,
+                        const_cast<const float**>(m_uploadArgs.responses),
+                        m_uploadArgs.lens, true
+                        ) == GRAAL_SUCCESS,
+                    AMF_UNEXPECTED,
+                    L"Internal graal's failure"
+                    );
             }
-#else
-            throw "Not implemented!";
-
-            return AMF_NOT_IMPLEMENTED;
-#endif
         }
         break;
 
@@ -1420,8 +1433,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     case TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED:
     case TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL:
         {
-#ifndef TAN_NO_OPENCL
-            graal::CGraalConv*graalConv = NULL;
+            graal::CGraalConv*graalConv = nullptr;
 
             if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED)
             {
@@ -1444,7 +1456,9 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                 (int)m_length,
                 (int)m_iBufferSizeInSamples,
                 N_FILTER_STATES,
-                isPartitionedMethod ? graal::ALG_UNIFORMED : graal::ALG_UNI_HEAD_TAIL
+                isPartitionedMethod
+                    ? graal::ALG_UNIFORMED
+                    : graal::ALG_UNI_HEAD_TAIL
                 );
 
             if(ret == GRAAL_EXPECTED_FAILURE)
@@ -1466,11 +1480,6 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             m_n_delays_onconv_switch = isPartitionedMethod ? 0 : 2;
             m_graal_conv = graalConv;
-    #else
-            throw "Not implemented!";
-
-            return AMF_NOT_IMPLEMENTED;
-    #endif
         }
 
         break;
