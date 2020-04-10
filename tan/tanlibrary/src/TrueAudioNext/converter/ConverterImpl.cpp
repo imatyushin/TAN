@@ -86,7 +86,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init(amf::AMFFactory * factory)
     printf("TODO: add check\n");
 #endif
 
-    //todo: invwstigate why this works previously
+    //todo: investigate why this works previously
     //AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
     //L"Cannot initialize after termination");
 
@@ -175,49 +175,60 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu(amf::AMFFactory * factory)
         GetOclKernel(
             mFloat2Float,
             m_pDeviceAMF,
-            "floatToFloat",
+
             "floatToFloat",
             (const char *)Converter,
             ConverterCount,
+            "floatToFloat",
+
             "",
             factory
             ),
         AMF_FAIL
         );
+
     AMF_RETURN_IF_FALSE(
         GetOclKernel(
             mFloat2Short,
             m_pDeviceAMF,
-            "floatToShort",
+
             "floatToShort",
             (const char *)Converter,
             ConverterCount,
+            "floatToShort",
+
             "",
             factory
             ),
         AMF_FAIL
         );
+
     AMF_RETURN_IF_FALSE(
         GetOclKernel(
             mShort2Short,
             m_pDeviceAMF,
-            "shortToShort",
+
             "shortToShort",
             (const char *)Converter,
             ConverterCount,
+            "shortToShort",
+
             "",
             factory
             ),
         AMF_FAIL
         );
+
     AMF_RETURN_IF_FALSE(
         GetOclKernel(
             mShort2Float,
             m_pDeviceAMF,
-            "shortToFloat",
+
             "shortToFloat",
             (const char *)Converter,
             ConverterCount,
+            "shortToFloat",
+
             "",
             factory
             ),

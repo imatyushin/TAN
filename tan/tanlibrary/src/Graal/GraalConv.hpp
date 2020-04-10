@@ -140,7 +140,7 @@ class CGraalConv
      * Constructor
      * Initialize member variables
      */
-     CGraalConv(void);
+     CGraalConv(amf::AMFFactory * factory);
 
     /**
      * Destructor
@@ -330,11 +330,22 @@ class CGraalConv
       */
      virtual AMF_RESULT finishProcess(void)
      {
+#ifndef TAN_NO_OPENCL
         cl_int status = CL_SUCCESS;
         status = clFlush(m_pContextTAN->GetOpenCLConvQueue());
+        cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
         AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFlush" );
+#else
+        AMF_RETURN_IF_FAILED(m_pContextTAN->GetAMFConvQueue()->FlushQueue());
+#endif
+
+#ifndef TAN_NO_OPENCL
         status = clFinish(m_pContextTAN->GetOpenCLConvQueue());
         AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFinish" );
+#else
+        AMF_RETURN_IF_FAILED(m_pContextTAN->GetAMFConvQueue()->FinishQueue());
+#endif
+
         return AMF_OK;
      }
 
@@ -492,6 +503,10 @@ class CGraalConv
 
 
 protected:
+#ifdef TAN_NO_OPENCL
+    amf::AMFFactory             *mFactory = nullptr;
+#endif
+
 #ifdef TAN_SDK_EXPORTS
     amf::TANContextPtr          m_pContextTAN;
 
@@ -721,8 +736,8 @@ protected:
     // single Graal OCL Q ???
 #ifndef TAN_SDK_EXPORTS
     bool own_queue_;
-    cl_command_queue graalQ_;
-    cl_command_queue graalTailQ_;
+    //cl_command_queue graalQ_;
+    //cl_command_queue graalTailQ_;
     // end of pipeline event
     cl_event eop_event_;
     // end of head event
@@ -747,15 +762,24 @@ protected:
     void * kernel_trasformed_union_;  // base union store
 
 private:
+//#ifndef TAN_NO_OPENCL
 // upload in a single run
     cl_kernel uploadKernel_;
 // upload per stream
     cl_kernel uploadKernel2_;
 
     cl_kernel resetKernel_;
+//#endif
 
 protected:
     cl_kernel m_copyWithPaddingKernel;
+#ifndef TAN_NO_OPENCL
+#else
+    amf::AMFComputeKernelPtr mUploadKernel;
+    amf::AMFComputeKernelPtr mUploadKernel2;
+    amf::AMFComputeKernelPtr mResetKernel;
+    amf::AMFComputeKernelPtr mCopyWithPaddingKernel;
+#endif
 
     int64_t round_counter_;
 
@@ -791,6 +815,16 @@ protected:
     cl_kernel inverseTransformKernel_;
     std::vector<cl_kernel> CMADKernels_;
     cl_kernel convHead1_;
+
+#ifdef TAN_NO_OPENCL
+    amf::AMFComputeKernelPtr mInputKernel;
+    amf::AMFComputeKernelPtr mInputStageKernel;
+    amf::AMFComputeKernelPtr mDirectTransformKernel;
+    amf::AMFComputeKernelPtr mInverseTransformKernel;
+    std::vector<amf::AMFComputeKernelPtr> mCMADKernels;
+    amf::AMFComputeKernelPtr mConvHead1;
+#endif
+
     cl_event m_headTailKernelEvent;
     cl_event m_pullKernelEvent;
     void * FHT_transformCPU_;

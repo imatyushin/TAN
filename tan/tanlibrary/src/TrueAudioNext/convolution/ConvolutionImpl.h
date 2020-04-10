@@ -521,7 +521,7 @@ namespace amf
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr); // TAN Audio buffers
 
-        amf::AMFFactory *           mFactory;
+        amf::AMFFactory *           mFactory = nullptr;
 
         TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pProcContextAMF;

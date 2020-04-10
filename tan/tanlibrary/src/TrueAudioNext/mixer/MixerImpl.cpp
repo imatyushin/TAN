@@ -183,10 +183,12 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu(amf::AMFFactory * factory)
         GetOclKernel(
             mMixKernel,
             mAMFCompute,
-            "Mixer",
+
             "Mixer",
             (const char *)Mixer,
             MixerCount,
+            "Mixer",
+
             "",
             factory
             ),

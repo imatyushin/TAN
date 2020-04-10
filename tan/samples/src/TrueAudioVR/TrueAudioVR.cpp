@@ -1267,10 +1267,12 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             GetOclKernel(
                 mKernel,
                 mCompute,
-                "GenerateRoomResponse",
+
                 "GenerateRoomResponse",
                 (const char *)GenerateRoomResponse,
                 GenerateRoomResponseCount,
+                "GenerateRoomResponse",
+
                 "",
 				mFactory
                 ),
@@ -1285,10 +1287,12 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             GetOclKernel(
                 mKernelFill,
                 mCompute,
-                "Fill",
+
                 "Fill",
                 (const char *)Fill,
                 FillCount,
+                "Fill",
+
                 "",
 				mFactory
                 ),

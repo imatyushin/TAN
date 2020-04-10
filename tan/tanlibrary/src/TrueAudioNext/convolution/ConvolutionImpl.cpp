@@ -1073,10 +1073,12 @@ AMF_RESULT  TANConvolutionImpl::Init(
 		    GetOclKernel(
                 mKernelCrossfade,
                 m_pContextTAN->GetAMFGeneralQueue(),
-                "crossfade",
+
                 "crossfade",
                 Crossfading_Str,
                 CrossfadingCount,
+                "crossfade",
+
                 "",
 				factory
                 );
@@ -1437,11 +1439,11 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED)
             {
-                graalConv = new graal::CGraalConv_clFFT;
+                graalConv = new graal::CGraalConv_clFFT(mFactory);
             }
             else
             {
-                graalConv = new graal::CGraalConv;
+                graalConv = new graal::CGraalConv(mFactory);
             }
 
             bool isPartitionedMethod =

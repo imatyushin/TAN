@@ -72,7 +72,7 @@ namespace graal
     }
 #endif
 
-CGraalConv:: CGraalConv( void )
+CGraalConv:: CGraalConv(amf::AMFFactory * factory)
 {
     algorithm_ = ALG_UNI_HEAD_TAIL; // ALG_UNIFORMED;
     n_max_channels_ = 0;
@@ -86,16 +86,21 @@ CGraalConv:: CGraalConv( void )
     processing_log2_ = 1;
     aligned_conv_sz_ = 0;
     aligned_processing_sz_ = 0;
+
+#ifndef TAN_NO_OPENCL
     uploadKernel_ = 0;
     uploadKernel2_ = 0;
+#else
+#endif
+
     resetKernel_ = 0;
     sincos_ = 0;  // precomputeted sincos table
     bit_reverse_ = 0;  // reverse bit table
 
 #ifndef TAN_SDK_EXPORTS
     own_queue_ = false;
-    graalQ_  = 0;
-    graalTailQ_ = 0;
+    //graalQ_  = 0;
+    //graalTailQ_ = 0;
     eop_event_ = 0;
     eoh_event_ = 0;
 #endif
@@ -328,11 +333,12 @@ CGraalConv::updateConv(
 {
     int ret = GRAAL_SUCCESS;
 
-    #ifndef TAN_NO_OPENCL
+#ifndef TAN_NO_OPENCL
     cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
     cl_command_queue uploadQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
 #endif
+
     if ( NULL == uploadQ)
     {
         return false;
@@ -573,7 +579,7 @@ CGraalConv:: getConvBuffers(int _n_channels, int *_uploadIDs, int *_convIDs, flo
     int ret = GRAAL_SUCCESS;
     int i = 0;
 
-    #ifndef TAN_NO_OPENCL
+#ifndef TAN_NO_OPENCL
     cl_command_queue graalQ_ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
     cl_command_queue graalQ_ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue());
@@ -973,7 +979,11 @@ CGraalConv::processIntrnl(
 
     int ret = GRAAL_SUCCESS;
 
-    cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue inQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+    cl_command_queue inQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
 
     {
         // Copying the control and input data needed for the convolution engine,
@@ -1008,11 +1018,11 @@ CGraalConv::processIntrnl(
     CABuf<float> & out_buf = *(CABuf<float>*)process2_output_staging_;
     float * d_out_ptr;
 
-    cl_command_queue outQ = this->m_pContextTAN->GetOpenCLConvQueue();
-
 #ifndef TAN_NO_OPENCL
+    cl_command_queue outQ = m_pContextTAN->GetOpenCLConvQueue();
     cl_command_queue generalQ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
+    cl_command_queue outQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
     cl_command_queue generalQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
 #endif
 
@@ -1457,7 +1467,11 @@ CGraalConv:: resetConvState(
     int ret = GRAAL_SUCCESS;
 // uload maps
 
-    cl_command_queue uploadQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
+#else
+    cl_command_queue uploadQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
+#endif
 
 // upload channel map
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)kernel_channels_map_;
@@ -1550,7 +1564,11 @@ CGraalConv::processHead1(
 {
     int ret = GRAAL_SUCCESS;
 
-    cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue inQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+    cl_command_queue inQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
 
     CABuf<float> &inp_buf = m_process_input_staging_;
     CABuf<float> &sincos = *(CABuf<float> *)sincos_;
@@ -1790,7 +1808,11 @@ CGraalConv::processPush(
         return(ret);
     }
 
-    cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue inQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+    cl_command_queue inQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
 
     CABuf<float> &inp_buf = m_process_input_staging_;
     CABuf<float> &dir_fht_buf = *(CABuf<float> *)history_transformed_;
@@ -2005,7 +2027,12 @@ CGraalConv::processAccum(int _n_channels,
     int headRun = ((total_n_bins + n_accum_blocks_ - 1) / n_accum_blocks_);
 
 // head
-    cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue inQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+    cl_command_queue inQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
+
     cl_kernel headAccumKernel = CMADKernels_[0];
 
     CASubBuf<float> &kern_store_buf = *(CASubBuf<float> *)kernel_trasformed_union_;
@@ -2142,7 +2169,12 @@ CGraalConv::processAccum(int _n_channels,
 
         int n_arg = 0, last_arg;
 
-        cl_command_queue inQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+        cl_command_queue inQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+        cl_command_queue inQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
+
         cl_kernel tailAccumKernel = CMADKernels_[1];
 
         CABuf<float> &accum_buf = _use_xf_buff ? *(CABuf<float>*)cmad_accum_xf_ : *(CABuf<float>*)cmad_accum_;
@@ -2278,7 +2310,11 @@ CGraalConv::processPull(
     int out_chnl_stride = aligned_proc_bufffer_sz_;
     float scale = (float)0.5 / (float)aligned_processing_sz_;
 
-    cl_command_queue outQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+        cl_command_queue outQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+        cl_command_queue outQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
 
     CABuf<float> & sum_buf = *(CABuf<float>*)cmad_accum_;
     CABuf<float> & out_buf = *(CABuf<float>*)process2_output_staging_;
@@ -2403,7 +2439,11 @@ CGraalConv::processPull(
         int out_chnl_stride = aligned_proc_bufffer_sz_;
         float scale = (float)0.5 / (float)aligned_processing_sz_;
 
-        cl_command_queue outQ = this->m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+        cl_command_queue outQ = m_pContextTAN->GetOpenCLConvQueue();
+#else
+        cl_command_queue outQ = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
 
         CABuf<float> & sum_buf = *(CABuf<float>*)cmad_accum_;
         CABuf<float> & out_buf = *(CABuf<float>*)process2_output_staging_;
@@ -2579,7 +2619,11 @@ CGraalConv::uploadConvHostPtrIntnl(
     int ret = GRAAL_SUCCESS;
 
 // move data into staging
-    cl_command_queue uploadQ = this->m_pContextTAN->GetOpenCLGeneralQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
+#else
+    cl_command_queue uploadQ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue());
+#endif
 
     for(int j = 0; j < _n_channels; j++)
     {
@@ -2607,7 +2651,13 @@ int
 CGraalConv::sincUpload( void )
 {
     int ret = GRAAL_SUCCESS;
-    clFinish(this->m_pContextTAN->GetOpenCLGeneralQueue() );
+
+#ifndef TAN_NO_OPENCL
+    clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
+#else
+    m_pContextTAN->GetAMFGeneralQueue()->FinishQueue();
+#endif
+
     return(ret);
 }
 
@@ -2728,7 +2778,7 @@ AMF_RESULT CGraalConv::zeroMemory(CABuf<float> *pBuf, amf_uint offset, amf_uint 
 #ifndef TAN_NO_OPENCL
         m_pContextTAN->GetOpenCLGeneralQueue(),
 #else
-        cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue())
+        cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue()),
 #endif
 
         pBuf->getCLMem(),
@@ -2761,12 +2811,14 @@ int CGraalConv::setupCL
 	//?? cl_queue_properties prop[] = { 0 };
 
 
-    const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
-
 #ifndef TAN_NO_OPENCL
+    const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
     cl_command_queue graalQ_ = m_pContextTAN->GetOpenCLGeneralQueue();
 #else
-    cl_command_queue graalQ_ = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
+    const cl_context Ctxt = static_cast<cl_context>(m_pContextTAN->GetAMFContext()->GetOpenCLContext());
+
+    const auto &graalQueue(m_pContextTAN->GetAMFGeneralQueue());
+    cl_command_queue graalQ_ = cl_command_queue(graalQueue->GetNativeCommandQueue());
 #endif
 
 #  define CABufArgs Ctxt
@@ -2881,13 +2933,19 @@ int CGraalConv::setupCL
     selectUploadOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
 
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         uploadKernel_,
+#else
+        mUploadKernel,
+#endif
+
         pComputeUpdate,
 
 #ifndef TAN_NO_OPENCL
-        m_pContextTAN->GetOpenCLGeneralQueue(),
+        graalQ_,
 #else
-        cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue()),
+        //graalQueue,
 #endif
 
         kernel_file,
@@ -2895,19 +2953,33 @@ int CGraalConv::setupCL
         kernel_src_size,
         kernel_name,
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
+
+#ifdef TAN_NO_OPENCL
+        uploadKernel_ = cl_kernel(mUploadKernel->GetNative());
+#endif
 
     selectUpload2Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
 
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         uploadKernel2_,
+#else
+        mUploadKernel2,
+#endif
+
         pComputeUpdate,
 
 #ifndef TAN_NO_OPENCL
-        m_pContextTAN->GetOpenCLGeneralQueue(),
+        graalQ_,
 #else
-        cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue()),
+        //graalQueue,
 #endif
 
         kernel_file,
@@ -2915,32 +2987,66 @@ int CGraalConv::setupCL
         kernel_src_size,
         kernel_name,
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
+
+#ifdef TAN_NO_OPENCL
+        uploadKernel2_ = cl_kernel(mUploadKernel2->GetNative());
+#endif
 
     selectResetOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
 
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         resetKernel_,
+#else
+        mResetKernel,
+#endif
+
         pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
         graalQ_,
+#else
+        //graalQueue,
+#endif
+
         kernel_file,
         kernel_src,
         kernel_src_size,
         kernel_name,
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
 
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
+#ifdef TAN_NO_OPENCL
+        resetKernel_ = cl_kernel(mResetKernel->GetNative());
+#endif
+
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         m_copyWithPaddingKernel,
+#else
+        mCopyWithPaddingKernel,
+#endif
+
         pComputeUpdate,
 
 #ifndef TAN_NO_OPENCL
-        m_pContextTAN->GetOpenCLGeneralQueue(),
+        graalQ_,
 #else
-        cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue()),
+        //graalQueue,
 #endif
 
         "GraalFHT.cl",
@@ -2948,8 +3054,16 @@ int CGraalConv::setupCL
         GraalFHTCount,
         "amdPadFFTBlock",
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", "amdPadFFTBlock");
+
+#ifdef TAN_NO_OPENCL
+        m_copyWithPaddingKernel = cl_kernel(mCopyWithPaddingKernel->GetNative());
+#endif
 
     cl_command_queue iniQ = graalQ_;
     // per stream counters
@@ -3069,16 +3183,36 @@ int CGraalConv::setupCL
     selectDirectFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
 
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         directTransformKernel_,
+#else
+        mDirectTransformKernel,
+#endif
+
         pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
         graalQ_,
+#else
+        //graalQueue,
+#endif
+
         kernel_file,
         kernel_src,
         kernel_src_size,
         kernel_name,
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
+
+#ifdef TAN_NO_OPENCL
+        directTransformKernel_ = cl_kernel(mDirectTransformKernel->GetNative());
+#endif
 
 //	CMADKernels_
     std::vector<std::string> kernel_names;
@@ -3088,47 +3222,112 @@ int CGraalConv::setupCL
     for(int i = 0; i < CMADKernels_.size(); i++)
     {
         goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
             CMADKernels_[i],
+#else
+            mCMADKernels[i],
+#endif
+
             pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
             graalQ_,
+#else
+            //graalQueue,
+#endif
+
             kernel_file,
             kernel_src,
             kernel_src_size,
             kernel_names[i],
             comp_options
+
+#ifdef TAN_NO_OPENCL
+            , mFactory
+#endif
             );
         AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_names[i].c_str());
+
+#ifdef TAN_NO_OPENCL
+        directTransformKernel_ = cl_kernel(mDirectTransformKernel->GetNative());
+#endif
     }
 
     selectInverseFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
 
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         inverseTransformKernel_,
+#else
+        mInverseTransformKernel,
+#endif
+
         pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
         graalQ_,
+#else
+        //graalQueue,
+#endif
+
         kernel_file,
         kernel_src,
         kernel_src_size,
         kernel_name,
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
+
+#ifdef TAN_NO_OPENCL
+    inverseTransformKernel_ = cl_kernel(mInverseTransformKernel->GetNative());
+#endif
 
     selectConvHead1Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
     goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
         convHead1_,
+#else
+        mConvHead1,
+#endif
+
         pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
         graalQ_,
+#else
+        //graalQueue,
+#endif
+
         kernel_file,
         kernel_src,
         kernel_src_size,
         kernel_name,
         comp_options
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
+#ifdef TAN_NO_OPENCL
+    convHead1_ = cl_kernel(mConvHead1->GetNative());
+#endif
+
+#ifndef TAN_NO_OPENCL
     clFinish(m_pContextTAN->GetOpenCLConvQueue());
     clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
+#else
+    m_pContextTAN->GetAMFConvQueue()->FinishQueue();
+    m_pContextTAN->GetAMFGeneralQueue()->FinishQueue();
+#endif
 
     return ret;
 }
@@ -3140,16 +3339,27 @@ CGraalConv::cleanup()
     int ret = GRAAL_SUCCESS;
     int status = CL_SUCCESS;
 
-    if (this->m_pContextTAN->GetOpenCLConvQueue() )
+#ifndef TAN_NO_OPENCL
+    if (m_pContextTAN->GetOpenCLConvQueue() )
     {
-        //clFinish(this->m_pContextTAN->GetOpenCLConvQueue());
-        clFlush(this->m_pContextTAN->GetOpenCLConvQueue());
+        clFlush(m_pContextTAN->GetOpenCLConvQueue());
     }
-    if (this->m_pContextTAN->GetOpenCLGeneralQueue() )
+
+    if (m_pContextTAN->GetOpenCLGeneralQueue() )
     {
-        //clFinish(this->m_pContextTAN->GetOpenCLGeneralQueue());
-        clFlush(this->m_pContextTAN->GetOpenCLGeneralQueue());
+        clFlush(m_pContextTAN->GetOpenCLGeneralQueue());
     }
+#else
+    if (m_pContextTAN->GetAMFConvQueue() )
+    {
+        m_pContextTAN->GetAMFConvQueue()->FlushQueue();
+    }
+
+    if (m_pContextTAN->GetAMFGeneralQueue() )
+    {
+        m_pContextTAN->GetAMFGeneralQueue()->FlushQueue();
+    }
+#endif
 
     if (round_counters_)
     {
@@ -3333,18 +3543,18 @@ CGraalConv::cleanup()
         convHead1_ = 0;
     }
 
-    if (graalTailQ_)
+    /*if (graalTailQ_)
     {
         clReleaseCommandQueue(graalTailQ_);
     }
-    graalTailQ_ = NULL;
+    graalTailQ_ = NULL;*/
 
     if (own_queue_ && graalQ_)
     {
         clReleaseCommandQueue(graalQ_);
     }
 
-    graalQ_ = 0;
+    //graalQ_ = 0;
     own_queue_ = false;
 
     ret = graal::getGraalOCL().cleanup();

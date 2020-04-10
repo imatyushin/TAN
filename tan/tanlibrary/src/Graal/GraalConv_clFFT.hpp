@@ -24,10 +24,10 @@
 
 
 #ifndef GRAALCONV_CLFFT_H_
-#define GRAALCONF_CLFFT_H_
+#define GRAALCONV_CLFFT_H_
 
 #include <CL/cl.h>
-#include "tanlibrary/src/clFFT-master/src/include/clFFT.h"
+#include "clFFT.h"
 #include "GraalConv.hpp"
 #include "GraalConvOCL.hpp"
 #include <string>
@@ -46,7 +46,7 @@ private:
     //HANDLE m_semaphore;
     std::mutex m_mutex;
 
- 
+
 public:
     RecursiveBenaphore::RecursiveBenaphore()
     {
@@ -55,12 +55,12 @@ public:
         m_recursion = 0;
         m_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
     }
- 
+
     RecursiveBenaphore::~RecursiveBenaphore()
     {
         CloseHandle(m_semaphore);
     }
- 
+
     void Lock()
     {
         DWORD tid = GetCurrentThreadId();
@@ -73,7 +73,7 @@ public:
         m_owner = tid;
         m_recursion++;
     }
- 
+
     void Unlock()
     {
         DWORD tid = GetCurrentThreadId();
@@ -98,7 +98,7 @@ class CGraalConv_clFFT: public CGraalConv
      * Initialize member variables
      * @param name name of sample (string)
      */
-     CGraalConv_clFFT(void);
+     CGraalConv_clFFT(amf::AMFFactory * factory);
 
     /**
      * Destructor
@@ -108,7 +108,7 @@ class CGraalConv_clFFT: public CGraalConv
 
     /**
      * Allocate and initialize convolution class
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int initializeConv(
@@ -133,7 +133,7 @@ class CGraalConv_clFFT: public CGraalConv
     void cleanup();
     /**
      * Returns a set of gpu_friendly system pointers - any upload set and kernel ID
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int getConvBuffers(
@@ -176,13 +176,13 @@ class CGraalConv_clFFT: public CGraalConv
         const int *convIDs,       // kernel IDs
         const float** conv_ptrs,  // arbitrary host ptrs
         const int * conv_lens,
-        bool synchronous   // synchronous call	
+        bool synchronous   // synchronous call
         ) override;
 
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
@@ -192,7 +192,7 @@ class CGraalConv_clFFT: public CGraalConv
 		const int *_convIDs,
 		const cl_mem * _conv_ptrs,
 		const int * _conv_lens,
-		bool synchronous	
+		bool synchronous
 		) override;
 
     int updateConv(
@@ -201,22 +201,22 @@ class CGraalConv_clFFT: public CGraalConv
         const int *convIDs,       // kernel IDs
         const float** conv_ptrs,
         const int * conv_lens,
-        bool synchronous = false   // synchronoius call	
+        bool synchronous = false   // synchronoius call
         ) override;
 
     /**
      * Upload kernels from arbitrary system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int updateConvHostPtrs(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         const float** conv_ptrs,  // arbitrary host ptrs
         const int * conv_lens,
-        bool synchronous = false   // synchronous call	
+        bool synchronous = false   // synchronous call
         ) override;
 
     /**
@@ -229,26 +229,26 @@ class CGraalConv_clFFT: public CGraalConv
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         const int * _conv_lens,
-        bool synchronous = false   // synchronoius call	
+        bool synchronous = false   // synchronoius call
         ) override;
 
     /**
      * Upload kernels from opencl mem objects
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int updateConv(
-        int n_channels, 
+        int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         const cl_mem* ocl_mems,
         const int * conv_lens,
-        bool synchronous = false   // synchronoius call	
+        bool synchronous = false   // synchronoius call
         ) override;
 
     /**
      * All kernels will be ready upon the return from the call
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int finishUpdate(void) override;
@@ -272,11 +272,11 @@ class CGraalConv_clFFT: public CGraalConv
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
-     * 
+     *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int processHostPtrs(
-        int n_channels, 
+        int n_channels,
         int uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
         float** inputs,
@@ -300,7 +300,7 @@ class CGraalConv_clFFT: public CGraalConv
         int skip_stage = 0,
         int crossfade_state = 0
         ) override;
-    
+
     /**
      * Flushes history.
      */
@@ -326,12 +326,12 @@ private:
     int getRoundCounter(int set, int ch) override
     {
         int ret = (int)round_counter_;
-        
+
         if(set > -1)
         {
             ret = roundCounter_[ch][set];
         }
-        
+
         return ret;
     }
 
@@ -353,15 +353,15 @@ private:
     std::vector<CABuf<float>*> clIRInputPaddedBuf;
     CABuf<float>* clIRBlocksBaseBuf;
     std::vector<std::vector<CASubBuf<float>*>> clIRBlocksBuf;
-    
+
     //for the signal to be convoluted
     CABuf<float>* clSignalHistBaseBuf;
-    //the new input signal	
+    //the new input signal
     CABuf<float>* clInputBaseBuf;
     //the new input signal in blocks for frequency domain
     CABuf<float>* clInputBlockBaseBuf;
 
-    CABuf<float>* clOutputBaseBuf; 
+    CABuf<float>* clOutputBaseBuf;
     CABuf<float>* clOutputComplexBaseBuf;
 
     CABuf<int>* clChannelMap;
@@ -380,6 +380,16 @@ private:
     cl_kernel madaccMultiChanKernel_;
     cl_kernel interleaveMultiChanKernel_;
     cl_kernel sigHistInsertMultiChanKernel_;
+
+#ifdef TAN_NO_OPENCL
+    amf::AMFComputeKernelPtr mPadKernel;
+    amf::AMFComputeKernelPtr mInterleaveKernel;
+    amf::AMFComputeKernelPtr mDeinterleaveKernel;
+    amf::AMFComputeKernelPtr mMadaccMultiChanKernel;
+    amf::AMFComputeKernelPtr mInterleaveMultiChanKernel;
+    amf::AMFComputeKernelPtr mSigHistInsertMultiChanKernel;
+#endif
+
 #ifndef TAN_SDK_EXPORTS
     cl_context clientContext_;
     cl_command_queue clientQ_;

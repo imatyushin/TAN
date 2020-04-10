@@ -29,10 +29,13 @@ bool GetOclKernel
     cl_kernel &                 resultKernel,
     const amf::AMFComputePtr &  device,
     const cl_command_queue      c_queue,
+
     const std::string &         kernelID,
+    const std::string &         kernelName,
+
     const std::string &         kernelSource,
     size_t                      kernelSourceSize,
-    const std::string &         kernelName,
+
     const std::string &         comp_options
 )
 {
@@ -165,10 +168,12 @@ bool GetOclKernel
 (
     amf::AMFComputeKernelPtr &  resultKernel,
     const amf::AMFComputePtr &  compute,
+
     const std::string &         kernelID,
-    const std::string &         kernelName,
     const std::string &         kernelSource,
     size_t                      kernelSourceSize,
+    const std::string &         kernelName,
+
     const std::string &         comp_options,
     amf::AMFFactory *           factory
 )
