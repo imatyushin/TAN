@@ -1,10 +1,7 @@
-// GPUUtilities.cpp : Defines the exported functions for the DLL application.
 //
-
-#include "stdafx.h"
-
+// MIT license
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +21,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
+// GPUUtilities.cpp : Defines the exported functions for the DLL application.
+//
+
 #include "stdafx.h"
 #include "GpuUtilities.h"
 #include "../../../../amf/public/include/core/Context.h"
@@ -368,7 +369,7 @@ int getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice,
             if (error == CL_SUCCESS){
                 char deviceName[100] = "\0";
                 clGetDeviceInfo(devices[deviceId], CL_DEVICE_NAME, sizeof(deviceName), deviceName, NULL);
-                fprintf(stdout, " Using OpenCL device %s\n", deviceName);
+                fprintf(stdout, " Using GPU device %s\n", deviceName);
             }
             else {
                 fprintf(stdout, "clCreateContext failed: %d \n", error);
@@ -398,6 +399,7 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
 
     // Create a command queue
 #if CL_TARGET_OPENCL_VERSION >= 200
+nnn
     if (flag != 0)
     {
         // use clCreateCommandQueueWithProperties to pass custom queue properties to driver:
@@ -419,7 +421,7 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
     }
 #endif
 
-    //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", cmdQueue, error);
+    printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", cmdQueue, error);
 
     return cmdQueue;
 }
@@ -661,7 +663,7 @@ int listTanDevicesAndCaps(TanDeviceCapabilities **deviceListPtr, int *listLength
                     deviceList[k].maxReservableComputeUnits = 0;
                     cl_context context = clCreateContext(contextProps, 1, &deviceList[k].devId, NULL, NULL, &error);
                     cl_command_queue queue = clCreateCommandQueue(context, deviceList[k].devId, NULL, &error);
-                    //printf("Queue created %llX\r\n", queue);
+                    printf("Queue created %llX\r\n", queue);
                     getAMFdeviceProperties(queue, &deviceList[k].maxReservableComputeUnits);
 
 

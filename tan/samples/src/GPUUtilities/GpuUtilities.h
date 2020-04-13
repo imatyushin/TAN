@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+
 #pragma once
 
 #include <cstdint>
@@ -37,6 +40,24 @@
 #define GPUUTILITIES_CDECL_CALL
 
 #endif
+
+#ifndef CLQUEUE_REFCOUNT
+#define CLQUEUE_REFCOUNT( clqueue ) { \
+		cl_uint refcount = 0; \
+		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
+		printf("\nFILE:%s line:%d Queue %llX ref count: %d\r\n", __FILE__ , __LINE__, clqueue, refcount); \
+}
+#endif
+
+#ifndef DBG_CLRELEASE
+#define DBG_CLRELEASE( clqueue, qname ) { \
+		cl_uint refcount = 0; \
+		clReleaseCommandQueue(clqueue); \
+		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
+		printf("\nFILE:%s line:%d %s %llX ref count: %d\r\n", __FILE__ , __LINE__,qname, clqueue, refcount); \
+}
+#endif
+
 
 typedef int(GPUUTILITIES_CDECL_CALL *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
 typedef int(GPUUTILITIES_CDECL_CALL *listCpuDeviceNamesType)(char *devNames[], unsigned int count);
