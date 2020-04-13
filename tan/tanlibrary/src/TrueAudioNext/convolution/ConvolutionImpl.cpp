@@ -273,8 +273,11 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(pBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
+    auto size(sizeof(pBuffer) / sizeof(float *));
+    printf("todo: control! %d", size);
+
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetHost(pBuffer);
+    sampleBuffer.SetHost(pBuffer, size);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
@@ -292,14 +295,12 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(pBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    AMF_RESULT res = AMF_OK;
-
-
-    bool needToUpdateInputBuf = false;
+    auto size(sizeof(pBuffer) / sizeof(cl_mem *));
+    printf("todo: control! %d", size);
 
     // process
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetCLBuffers(pBuffer);
+    sampleBuffer.SetCLBuffers(pBuffer, size);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
@@ -316,13 +317,12 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    AMF_RESULT res = AMF_OK;
-
-    bool needToUpdateInputBuf = false;
+    auto size(amf_countof(ppBuffer));
+    printf("todo: control! %d", size);
 
     // process
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetAMFBuffers(ppBuffer);
+    sampleBuffer.SetAMFBuffers(ppBuffer, size);
 
     return UpdateResponseTD(
         sampleBuffer,
@@ -768,12 +768,16 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferInput != NULL, AMF_INVALID_ARG, L"ppBufferInput == NULL");
     AMF_RETURN_IF_FALSE(ppBufferOutput != NULL, AMF_INVALID_ARG, L"ppBufferOutput == NULL");
 
-    AMF_RESULT res = AMF_OK;
+    auto size1(sizeof(ppBufferInput) / sizeof(float *));
+    printf("todo: control1! %d", size1);
+
+    auto size2(sizeof(ppBufferOutput) / sizeof(float *));
+    printf("todo: control2! %d", size2);
 
     // process
     TANSampleBuffer inBuf, outBuf;
-    inBuf.SetHost(ppBufferInput);
-    outBuf.SetHost(ppBufferOutput);
+    inBuf.SetHost(ppBufferInput, size1);
+    outBuf.SetHost(ppBufferOutput, size2);
 
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
@@ -830,9 +834,15 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferOutput != nullptr, AMF_INVALID_ARG, L"pBufferOutput == NULL");
 
     {
+        auto size1(sizeof(ppBufferInput) / sizeof(float *));
+        printf("todo: control1! %d", size1);
+
+        auto size2(sizeof(ppBufferOutput) / sizeof(float *));
+        printf("todo: control2! %d", size2);
+
 		TANSampleBuffer inBuf, outBuf;
-		inBuf.SetHost(ppBufferInput);
-		outBuf.SetAMFBuffers(ppBufferOutput);
+		inBuf.SetHost(ppBufferInput, size1);
+		outBuf.SetAMFBuffers(ppBufferOutput, size2);
 
 		AMF_RETURN_IF_FAILED(Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed));
 	}
@@ -2572,9 +2582,26 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     ocl_crossfade_state
                     );
 #else
-                throw "Not implemented!";
 
-                return AMF_NOT_IMPLEMENTED;
+                size_t channels(m_internalOutBufs.GetSize());
+                cl_mem buffers[channels];
+
+                for(size_t channel(0); channel < channels; ++channel)
+                {
+                    printf("fill %d\r\n", channel);
+                    buffers[channel] = cl_mem(m_internalOutBufs.buffer.amfBuffers[channel]->GetNative());
+                }
+
+                ret = graalConv->process(n_channels,
+                    m_s_versions[m_param_buf_idx],
+                    m_s_channels,
+                    m_internalInBufs.buffer.host,
+                    buffers,
+                    ocl_prev_input,
+                    ocl_advance_time,
+                    ocl_skip_stage,
+                    ocl_crossfade_state
+                    );
 #endif
             }
 

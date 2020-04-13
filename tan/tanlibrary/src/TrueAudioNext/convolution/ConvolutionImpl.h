@@ -147,10 +147,18 @@ namespace amf
 
         inline bool IsSet() const {return amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN != mType && mAllocated;}
         inline AMF_MEMORY_TYPE GetType() const {return mType;}
+        inline size_t GetSize() const
+        {
+            assert(mAllocated && mSize);
+
+            return mSize;
+        }
 
 #ifndef TAN_NO_OPENCL
         void PrepareCL(size_t channelsCount)
         {
+            assert(!mAllocated);
+
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = true;
             mSize = channelsCount;
@@ -159,15 +167,21 @@ namespace amf
             std::memset(buffer.clmem, 0, sizeof(cl_mem) * channelsCount);
         }
 
-        void SetCLBuffers(cl_mem *buffers)
+        void SetCLBuffers(cl_mem *buffers, size_t channelsCount)
         {
+            assert(!mAllocated);
+
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = false;
+            //mSize = channelsCount;
+
             buffer.clmem = buffers;
         }
 #else
         void PrepareAMF(size_t channelsCount)
         {
+            assert(!mAllocated);
+
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = true;
             mSize = channelsCount;
@@ -176,15 +190,23 @@ namespace amf
             std::memset(buffer.amfBuffers, 0, sizeof(amf::AMFBuffer *) * channelsCount);
         }
 
-        void SetAMFBuffers(amf::AMFBuffer ** amfBuffers)
+        void SetAMFBuffers(amf::AMFBuffer ** amfBuffers, size_t channelsCount)
         {
+            assert(!mAllocated);
+
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
             mAllocated = false;
+            //mSize = channelsCount;
+
             buffer.amfBuffers = amfBuffers;
         }
+
 #endif
+
         void PrepareHost(size_t channelsCount)
         {
+            assert(!mAllocated);
+
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST;
             mAllocated = true;
             mSize = channelsCount;
@@ -193,10 +215,14 @@ namespace amf
             std::memset(buffer.host, 0, sizeof(float *) * channelsCount);
         }
 
-        void SetHost(float ** buffers)
+        void SetHost(float ** buffers, size_t channelsCount)
         {
+            assert(!mAllocated);
+
             mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST;
             mAllocated = false;
+            //mSize = channelsCount;
+
             buffer.host = buffers;
         }
     };

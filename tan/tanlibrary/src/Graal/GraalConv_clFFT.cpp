@@ -403,6 +403,10 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdPadFFTBlock");
 
+#ifdef TAN_NO_OPENCL
+    padKernel_ = cl_kernel(mPadKernel->GetNative());
+#endif
+
     m_copyWithPaddingKernel = padKernel_;
 
     goit = GetOclKernel(
@@ -433,6 +437,10 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdInterleaveFFTBlock");
 
+#ifdef TAN_NO_OPENCL
+    interleaveKernel_ = cl_kernel(mInterleaveKernel->GetNative());
+#endif
+
     goit = GetOclKernel(
 
 #ifndef TAN_NO_OPENCL
@@ -460,6 +468,10 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
 #endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdDeinterleaveFFTBlock");
+
+#ifdef TAN_NO_OPENCL
+    deinterleaveKernel_ = cl_kernel(mDeinterleaveKernel->GetNative());
+#endif
 
     //These MuliChan kernels handle multiple channels at a time
     goit = GetOclKernel(
@@ -490,6 +502,10 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdInterleaveFFTBlockMultiChan");
 
+#ifdef TAN_NO_OPENCL
+    interleaveMultiChanKernel_ = cl_kernel(mInterleaveMultiChanKernel->GetNative());
+#endif
+
     goit = GetOclKernel(
 
 #ifndef TAN_NO_OPENCL
@@ -518,6 +534,10 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdMADAccBlocksMultiChan");
 
+#ifdef TAN_NO_OPENCL
+    madaccMultiChanKernel_ = cl_kernel(mMadaccMultiChanKernel->GetNative());
+#endif
+
     goit = GetOclKernel(
 
 #ifndef TAN_NO_OPENCL
@@ -545,6 +565,10 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
 #endif
         );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdSigHistoryInsertMultiChan");
+
+#ifdef TAN_NO_OPENCL
+    sigHistInsertMultiChanKernel_ = cl_kernel(mSigHistInsertMultiChanKernel->GetNative());
+#endif
 
     /////////////////
     cl_command_queue graalQ_ = static_cast<cl_command_queue>(convolutionQueue);
