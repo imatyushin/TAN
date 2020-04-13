@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,6 +20,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+//
 ///-------------------------------------------------------------------------
 ///  @file   TANContextImpl.h
 ///  @brief  AMFContext interface implementation
@@ -53,6 +56,8 @@ namespace amf
         cl_context   AMF_STD_CALL GetOpenCLContext() override;
         cl_command_queue	AMF_STD_CALL	GetOpenCLGeneralQueue() override;
         cl_command_queue	AMF_STD_CALL	GetOpenCLConvQueue() override;
+
+		AMF_RESULT AMF_STD_CALL InitOpenMP(int nThreads) override;
 
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }
