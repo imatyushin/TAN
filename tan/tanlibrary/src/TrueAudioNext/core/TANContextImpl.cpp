@@ -138,8 +138,6 @@ TANContextImpl::~TANContextImpl(void)
 {
     Terminate();
 
-    mContextGeneralAMF.Release();
-    mContextConvolutionAMF.Release();
     g_AMFFactory.Terminate();
 }
 //-------------------------------------------------------------------------------------------------
@@ -188,15 +186,12 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     return AMF_OK;
 
 #else
-    mComputeConvolutionAMF = nullptr;
-    mComputeGeneralAMF = nullptr;
-
-    mGeneralDeviceAMF = nullptr;
-    mConvolutionDeviceAMF = nullptr;
-
-    mContextGeneralAMF = nullptr;
-    mContextConvolutionAMF = nullptr;
+    mGeneralDeviceAMF.Release();
+    mConvolutionDeviceAMF.Release();
 #endif
+
+    mContextGeneralAMF.Release();
+    mContextConvolutionAMF.Release();
 }
 
 AMF_RESULT amf::TANContextImpl::InitClfft()

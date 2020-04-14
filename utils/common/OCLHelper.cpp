@@ -31,10 +31,9 @@ bool GetOclKernel
     const cl_command_queue      c_queue,
 
     const std::string &         kernelID,
-    const std::string &         kernelName,
-
     const std::string &         kernelSource,
     size_t                      kernelSourceSize,
+    const std::string &         kernelName,
 
     const std::string &         comp_options
 )

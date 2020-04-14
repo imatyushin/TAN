@@ -104,13 +104,15 @@ namespace amf
         cl_device_id                m_oclGeneralDeviceId = nullptr;
         cl_device_id                m_oclConvDeviceId = nullptr;
 #else
-        AMFContextPtr               mContextGeneralAMF;
-        AMFContextPtr               mContextConvolutionAMF;
-        AMFComputePtr               mComputeGeneralAMF;
-        AMFComputePtr               mComputeConvolutionAMF;
         AMFComputeDevicePtr         mGeneralDeviceAMF;
         AMFComputeDevicePtr         mConvolutionDeviceAMF;
 #endif
+
+        AMFContextPtr               mContextGeneralAMF;
+        AMFContextPtr               mContextConvolutionAMF;
+
+        AMFComputePtr               mComputeGeneralAMF;
+        AMFComputePtr               mComputeConvolutionAMF;
 
         bool m_clfftInitialized = false;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.

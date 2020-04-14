@@ -62,7 +62,7 @@ TANMixerImpl::TANMixerImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextAMF(pContextAMF)
 {
 #ifndef TAN_NO_OPENCL
-    printf("TODO: whats must be here?\n")
+    printf("TODO: implement this?\n");
 #else
     if(!m_pContextAMF && m_pContextTAN)
     {

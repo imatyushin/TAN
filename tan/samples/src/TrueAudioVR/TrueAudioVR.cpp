@@ -502,15 +502,15 @@ AMF_RESULT TrueAudioVRimpl::Release()
         m_pHPF = NULL;
     }
 #else
-    throw "Not implemented!";
-
-    return AMF_NOT_IMPLEMENTED;
-#endif
-
     if(mFactoryCreated)
     {
         AMF_RETURN_IF_FAILED(g_AMFFactory.Terminate());
     }
+
+    throw "Not implemented!";
+
+    return AMF_NOT_IMPLEMENTED;
+#endif
 
     return AMF_OK;
 }

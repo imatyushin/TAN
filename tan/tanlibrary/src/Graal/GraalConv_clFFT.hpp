@@ -98,7 +98,11 @@ class CGraalConv_clFFT: public CGraalConv
      * Initialize member variables
      * @param name name of sample (string)
      */
-     CGraalConv_clFFT(amf::AMFFactory * factory);
+     CGraalConv_clFFT(
+#ifdef TAN_NO_OPENCL
+        amf::AMFFactory * factory
+#endif
+        );
 
     /**
      * Destructor

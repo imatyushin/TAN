@@ -140,7 +140,11 @@ class CGraalConv
      * Constructor
      * Initialize member variables
      */
-     CGraalConv(amf::AMFFactory * factory);
+     CGraalConv(
+#ifdef TAN_NO_OPENCL
+        amf::AMFFactory * factory
+#endif
+        );
 
     /**
      * Destructor
@@ -773,8 +777,8 @@ private:
 
 protected:
     cl_kernel m_copyWithPaddingKernel;
-#ifndef TAN_NO_OPENCL
-#else
+
+#ifdef TAN_NO_OPENCL
     amf::AMFComputeKernelPtr mUploadKernel;
     amf::AMFComputeKernelPtr mUploadKernel2;
     amf::AMFComputeKernelPtr mResetKernel;

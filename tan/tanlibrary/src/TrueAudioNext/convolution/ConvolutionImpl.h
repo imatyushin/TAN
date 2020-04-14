@@ -167,7 +167,7 @@ namespace amf
             std::memset(buffer.clmem, 0, sizeof(cl_mem) * channelsCount);
         }
 
-        void SetCLBuffers(cl_mem *buffers, size_t channelsCount)
+        void SetCLBuffers(cl_mem *buffers/*, size_t channelsCount*/)
         {
             assert(!mAllocated);
 
@@ -190,7 +190,7 @@ namespace amf
             std::memset(buffer.amfBuffers, 0, sizeof(amf::AMFBuffer *) * channelsCount);
         }
 
-        void SetAMFBuffers(amf::AMFBuffer ** amfBuffers, size_t channelsCount)
+        void SetAMFBuffers(amf::AMFBuffer ** amfBuffers/*, size_t channelsCount*/)
         {
             assert(!mAllocated);
 
@@ -215,7 +215,7 @@ namespace amf
             std::memset(buffer.host, 0, sizeof(float *) * channelsCount);
         }
 
-        void SetHost(float ** buffers, size_t channelsCount)
+        void SetHost(float ** buffers/*, size_t channelsCount*/)
         {
             assert(!mAllocated);
 
@@ -446,12 +446,12 @@ namespace amf
 #endif
 
         AMF_RESULT  AMF_STD_CALL    Process(float* ppBufferInput[],
-                                        float* ppBufferOutput[],
-                                        amf_size numOfSamplesToProcess,
-                                        // Masks of flags from enum
-                                        // TAN_CONVOLUTION_CHANNEL_FLAG.
-                                        const amf_uint32 flagMasks[],
-                                        amf_size *pNumOfSamplesProcessed = nullptr) override; // system memory
+                                            float* ppBufferOutput[],
+                                            amf_size numOfSamplesToProcess,
+                                            // Masks of flags from enum
+                                            // TAN_CONVOLUTION_CHANNEL_FLAG.
+                                            const amf_uint32 flagMasks[],
+                                            amf_size *pNumOfSamplesProcessed = nullptr) override; // system memory
 #ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL    Process(cl_mem pBufferInput[],
                                             cl_mem pBufferOutput[],

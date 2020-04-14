@@ -67,8 +67,14 @@ namespace graal
     }
 #endif
 
-CGraalConv_clFFT::CGraalConv_clFFT(amf::AMFFactory * factory):
-    CGraalConv(factory)
+CGraalConv_clFFT::CGraalConv_clFFT(
+#ifdef TAN_NO_OPENCL
+        amf::AMFFactory * factory
+#endif
+    )
+#ifdef TAN_NO_OPENCL
+        : CGraalConv(factory)
+#endif
 {
 }
 

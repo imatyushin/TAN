@@ -273,11 +273,8 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(pBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    auto size(sizeof(pBuffer) / sizeof(float *));
-    printf("todo: control! %d", size);
-
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetHost(pBuffer, size);
+    sampleBuffer.SetHost(pBuffer);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
@@ -295,12 +292,9 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(pBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    auto size(sizeof(pBuffer) / sizeof(cl_mem *));
-    printf("todo: control! %d", size);
-
     // process
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetCLBuffers(pBuffer, size);
+    sampleBuffer.SetCLBuffers(pBuffer);
 
     return UpdateResponseTD(sampleBuffer, numOfSamplesToProcess, flagMasks, operationFlags);
 }
@@ -317,12 +311,9 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    auto size(amf_countof(ppBuffer));
-    printf("todo: control! %d", size);
-
     // process
     TANSampleBuffer sampleBuffer;
-    sampleBuffer.SetAMFBuffers(ppBuffer, size);
+    sampleBuffer.SetAMFBuffers(ppBuffer);
 
     return UpdateResponseTD(
         sampleBuffer,
@@ -750,9 +741,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
 
-#else
+#endif
 
-//-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     float* ppBufferInput[],
     float* ppBufferOutput[],
@@ -768,21 +758,13 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferInput != NULL, AMF_INVALID_ARG, L"ppBufferInput == NULL");
     AMF_RETURN_IF_FALSE(ppBufferOutput != NULL, AMF_INVALID_ARG, L"ppBufferOutput == NULL");
 
-    auto size1(sizeof(ppBufferInput) / sizeof(float *));
-    printf("todo: control1! %d", size1);
-
-    auto size2(sizeof(ppBufferOutput) / sizeof(float *));
-    printf("todo: control2! %d", size2);
-
     // process
     TANSampleBuffer inBuf, outBuf;
-    inBuf.SetHost(ppBufferInput, size1);
-    outBuf.SetHost(ppBufferOutput, size2);
+    inBuf.SetHost(ppBufferInput);
+    outBuf.SetHost(ppBufferOutput);
 
     return Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
 }
-
-#endif
 
 //-------------------------------------------------------------------------------------------------
 #ifndef TAN_NO_OPENCL
@@ -834,15 +816,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferOutput != nullptr, AMF_INVALID_ARG, L"pBufferOutput == NULL");
 
     {
-        auto size1(sizeof(ppBufferInput) / sizeof(float *));
-        printf("todo: control1! %d", size1);
-
-        auto size2(sizeof(ppBufferOutput) / sizeof(float *));
-        printf("todo: control2! %d", size2);
-
-		TANSampleBuffer inBuf, outBuf;
-		inBuf.SetHost(ppBufferInput, size1);
-		outBuf.SetAMFBuffers(ppBufferOutput, size2);
+        TANSampleBuffer inBuf, outBuf;
+		inBuf.SetHost(ppBufferInput);
+		outBuf.SetAMFBuffers(ppBufferOutput);
 
 		AMF_RETURN_IF_FAILED(Process(inBuf, outBuf, numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed));
 	}
@@ -1449,11 +1425,19 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED)
             {
-                graalConv = new graal::CGraalConv_clFFT(mFactory);
+                graalConv = new graal::CGraalConv_clFFT(
+#ifdef TAN_NO_OPENCL
+                    mFactory
+#endif
+                    );
             }
             else
             {
-                graalConv = new graal::CGraalConv(mFactory);
+                graalConv = new graal::CGraalConv(
+#ifdef TAN_NO_OPENCL
+                    mFactory
+#endif
+                    );
             }
 
             bool isPartitionedMethod =
@@ -1613,7 +1597,7 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
             }
 
             clReleaseMemObject(m_pCLXFadeMasterBuf[bufIdx]);
-        }
+
 #else
             if(!mAMFCLXFadeMasterBuffers[bufIdx])
             {
@@ -1866,20 +1850,22 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
     bool                    advanceOverlap
 )
 {
-    if(inputData.GetType() == AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
+    /*for(uint32_t channel(0); channel < n_channels; ++channel)
     {
-        for(uint32_t channel(0); channel < n_channels; ++channel)
+        if(inputData.GetType() == AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
         {
             PrintFloatArray("ovlAddProcess input [channel]", inputData.buffer.host[channel], nSamples);
         }
-    }
-    else
-    {
-        for(uint32_t channel(0); channel < n_channels; ++channel)
+        else
         {
-            PrintAMFArray("ovlAddProcess input[channel]", inputData.buffer.amfBuffers[channel], m_pContextTAN->GetAMFConvQueue(), nSamples);
+            PrintAMFArray(
+                "ovlAddProcess input[channel]",
+                inputData.buffer.amfBuffers[channel],
+                m_pContextTAN->GetAMFConvQueue(),
+                nSamples
+                );
         }
-    }
+    }*/
 
     numberOfSamplesProcessed = 0;
 
@@ -2116,7 +2102,7 @@ AMF_RESULT TANConvolutionImpl::ovlTimeDomain(
             }
 			bool OCLERR =
 				GetOclKernel(m_TimeDomainKernel, m_pProcContextAMF, m_pContextTAN->GetOpenCLGeneralQueue(), "TimeDomainConvolution", TimeDomainConvolution_Str, TimeDomainConvolutionCount, "TimeDomainConvolution", "");
-			if (!OCLERR){ printf("Failed to create OCL Kernel"); return;}
+			if (!OCLERR){ printf("Failed to create OCL Kernel"); return AMF_FAIL;}
         }
         //clCreateBuffer(context
 

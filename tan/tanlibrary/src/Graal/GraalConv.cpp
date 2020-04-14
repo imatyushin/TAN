@@ -72,8 +72,16 @@ namespace graal
     }
 #endif
 
-CGraalConv:: CGraalConv(amf::AMFFactory * factory)
+CGraalConv:: CGraalConv(
+#ifdef TAN_NO_OPENCL
+    amf::AMFFactory * factory
+#endif
+)
 {
+#ifdef TAN_NO_OPENCL
+    mFactory = factory;
+#endif
+
     algorithm_ = ALG_UNI_HEAD_TAIL; // ALG_UNIFORMED;
     n_max_channels_ = 0;
     max_conv_sz_ = 0;
@@ -86,13 +94,8 @@ CGraalConv:: CGraalConv(amf::AMFFactory * factory)
     processing_log2_ = 1;
     aligned_conv_sz_ = 0;
     aligned_processing_sz_ = 0;
-
-#ifndef TAN_NO_OPENCL
     uploadKernel_ = 0;
     uploadKernel2_ = 0;
-#else
-#endif
-
     resetKernel_ = 0;
     sincos_ = 0;  // precomputeted sincos table
     bit_reverse_ = 0;  // reverse bit table
@@ -2961,7 +2964,7 @@ int CGraalConv::setupCL
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel %s", kernel_name.c_str());
 
 #ifdef TAN_NO_OPENCL
-        uploadKernel_ = cl_kernel(mUploadKernel->GetNative());
+    uploadKernel_ = cl_kernel(mUploadKernel->GetNative());
 #endif
 
     selectUpload2Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
