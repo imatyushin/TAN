@@ -36,7 +36,7 @@ namespace amf
         public AMFInterfaceImpl < AMFPropertyStorageImpl <TANContext> >
     {
     public:
-        TANContextImpl(void);
+        TANContextImpl(amf::AMFFactory * factory);
         virtual ~TANContextImpl(void);
 
         AMF_BEGIN_INTERFACE_MAP
@@ -70,10 +70,14 @@ namespace amf
         AMFCompute * AMF_STD_CALL GetAMFConvQueue() override;
 #endif
 
+        amf::AMFFactory * GetFactory() override         { return mFactory; }
+
         // Internal methods.
         ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }
-        AMFComputePtr GetGeneralCompute() const       { return mComputeGeneralAMF; }
-        AMFComputePtr GetConvolutionCompute() const   { return mComputeConvolutionAMF; }
+        AMFComputePtr GetGeneralCompute() const         { return mComputeGeneralAMF; }
+        AMFComputePtr GetConvolutionCompute() const     { return mComputeConvolutionAMF; }
+
+        AMF_RESULT AMF_STD_CALL InitOpenMP(int nThreads) override { return AMF_NOT_IMPLEMENTED; }
 
     protected:
         enum QueueType { eConvQueue, eGeneralQueue };
@@ -96,6 +100,9 @@ namespace amf
 #endif
 
     private:
+        amf::AMFFactory             *mFactory = nullptr;
+        bool                        mFactoryCreated = false;
+
 #ifndef TAN_NO_OPENCL
         cl_context                  m_oclGeneralContext = nullptr;
         cl_context                  m_oclConvContext = nullptr;

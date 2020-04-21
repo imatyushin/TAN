@@ -58,7 +58,8 @@ amf_long TANContextImpl::m_clfftReferences = 0;
 
 TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANCreateContext(
     amf_uint64 version,
-    amf::TANContext** ppContext
+    amf::TANContext** ppContext,
+    amf::AMFFactory * factory
 )
 {
     // initialize AMF
@@ -94,7 +95,7 @@ TAN_SDK_LINK AMF_RESULT        AMF_CDECL_CALL TANCreateContext(
         (int)GET_SUBMINOR_VERSION(version),
         (int)GET_BUILD_VERSION(version));
 
-    *ppContext = new TANContextImpl();
+    *ppContext = new TANContextImpl(factory);
     AMF_RETURN_IF_FALSE((NULL != *ppContext), AMF_NOT_INITIALIZED, L"TANContext == NULL");
     (*ppContext)->Acquire();
     return AMF_OK;
@@ -124,13 +125,19 @@ TAN_SDK_LINK const wchar_t*    AMF_CDECL_CALL TANGetCacheFolder()
 }
 //-------------------------------------------------------------------------------------------------
 
-TANContextImpl::TANContextImpl(void)
+TANContextImpl::TANContextImpl(amf::AMFFactory * factory):
+    mFactory(
+        factory
+            ? factory
+            : g_AMFFactory.GetFactory()
+        ),
+    mFactoryCreated(factory != nullptr)
 {
     // Create default CPU AMF context.
-    if(g_AMFFactory.GetFactory())
+    if(mFactory)
     {
-        AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&mContextGeneralAMF), L"CreateContext() failed");
-        AMF_ASSERT_OK(g_AMFFactory.GetFactory()->CreateContext(&mContextConvolutionAMF), L"CreateContext() failed");
+        AMF_ASSERT_OK(mFactory->CreateContext(&mContextGeneralAMF), L"CreateContext() failed");
+        AMF_ASSERT_OK(mFactory->CreateContext(&mContextConvolutionAMF), L"CreateContext() failed");
     }
 }
 //-------------------------------------------------------------------------------------------------
@@ -138,7 +145,10 @@ TANContextImpl::~TANContextImpl(void)
 {
     Terminate();
 
-    g_AMFFactory.Terminate();
+    if(mFactoryCreated)
+    {
+        g_AMFFactory.Terminate();
+    }
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()

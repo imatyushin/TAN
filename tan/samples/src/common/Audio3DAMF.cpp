@@ -233,8 +233,6 @@ AMF_RESULT Audio3DAMF::Init
 #endif
         );
 
-    auto factory = g_AMFFactory.GetFactory();
-
     //assume that all opened files has the same format
     //and we have at least one opened file
     auto openStatus = mPlayer->Init(
@@ -329,8 +327,11 @@ AMF_RESULT Audio3DAMF::Init
             );
     }
 
-    //create amf pipeline
+    //
+    auto factory = g_AMFFactory.GetFactory();
 
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext, factory), L"TANCreateContext mTANConvolutionContext failed");
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext, factory), L"TANCreateContext mTANRoomContext failed");
 
     // Allocate RT-Queues
     {
@@ -419,9 +420,6 @@ AMF_RESULT Audio3DAMF::Init
         }
     }
 
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext), L"TANCreateContext mTANConvolutionContext failed");
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext), L"TANCreateContext mTANRoomContext failed");
-
     //convolution over OpenCL
     if(useAMFConvolution)
     {
@@ -455,8 +453,7 @@ AMF_RESULT Audio3DAMF::Init
     if(useAMFConvolution)
     {
         AMF_RETURN_IF_FAILED(
-            mConvolution->InitGpuAMF(
-                factory,
+            mConvolution->InitGpu(
                 convMethod,
                 mFFTLength,
                 mBufferSizeInSamples,
@@ -478,13 +475,13 @@ AMF_RESULT Audio3DAMF::Init
     }
 
     AMF_RETURN_IF_FAILED(TANCreateConverter(mTANRoomContext, &mConverter));
-    AMF_RETURN_IF_FAILED(mConverter->Init(factory));
+    AMF_RETURN_IF_FAILED(mConverter->Init());
 
     AMF_RETURN_IF_FAILED(TANCreateMixer(mTANRoomContext, &mMixer));
-	AMF_RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size(), factory));
+	AMF_RETURN_IF_FAILED(mMixer->Init(mBufferSizeInSamples, mWavFiles.size()));
 
     AMF_RETURN_IF_FAILED(TANCreateFFT(mTANRoomContext, &mFft));
-    AMF_RETURN_IF_FAILED(mFft->Init(factory));
+    AMF_RETURN_IF_FAILED(mFft->Init());
 
     //CL over GPU for both Convolution and Room processing
     if(useAMFConvolution && useAMFRoom)

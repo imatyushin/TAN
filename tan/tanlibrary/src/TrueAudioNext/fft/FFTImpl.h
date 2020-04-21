@@ -48,7 +48,7 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
 //TANFFT interface
-        AMF_RESULT	AMF_STD_CALL Init(amf::AMFFactory * factory = nullptr)
+        AMF_RESULT	AMF_STD_CALL Init()
                                                 override;
         AMF_RESULT  AMF_STD_CALL Terminate()    override;
         TANContext* AMF_STD_CALL GetContext()   override    { return m_pContextTAN; }
@@ -82,7 +82,7 @@ namespace amf
 
         size_t getFFTPlan(int log2len, int numOfChannels);
         AMF_RESULT virtual AMF_STD_CALL InitCpu();
-        AMF_RESULT virtual AMF_STD_CALL InitGpu(amf::AMFFactory * factory);
+        AMF_RESULT virtual AMF_STD_CALL InitGpu();
 
     protected:
         AMF_RESULT virtual AMF_STD_CALL TransformImplCpu(TAN_FFT_TRANSFORM_DIRECTION direction,

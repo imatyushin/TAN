@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +26,13 @@
 ///  @brief  TANMath interface implementation
 ///-------------------------------------------------------------------------
 #pragma once
+
+#ifdef USE_IPP
+  #include <ipp.h>
+  #include <ippcore_tl.h>
+  #include <ippversion.h>
+#endif
+
 #include "TrueAudioNext.h"	//TAN
 #include "public/include/core/Factory.h"
 #include "public/include/core/Context.h"        //AMF
@@ -34,11 +43,15 @@ namespace amf
 {
     class TANMathImpl :
         public virtual AMFInterfaceImpl < AMFPropertyStorageExImpl< TANMath> >    {
+
     public:
         typedef AMFInterfacePtr_T<TANMathImpl> Ptr;
 
-        TANMathImpl(TANContext *pContextTAN);
-        virtual ~TANMathImpl(void);
+		TANMathImpl(TANContext *pContextTAN, bool useConvQueue);
+		virtual ~TANMathImpl(void);
+
+        static bool useAVX256;
+		static bool useAVX512;
 
         // interface access
         AMF_BEGIN_INTERFACE_MAP
@@ -46,7 +59,7 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
         //TANMath interface
-        virtual AMF_RESULT  AMF_STD_CALL Init(amf::AMFFactory * factory);
+        virtual AMF_RESULT  AMF_STD_CALL Init();
         virtual AMF_RESULT  AMF_STD_CALL Terminate();
         virtual TANContext* AMF_STD_CALL GetContext()	{ return m_pContextTAN; }
 
@@ -84,6 +97,14 @@ namespace amf
 													amf_uint32 channels,
 													amf_size numOfSamplesToProcess) override;
 
+		virtual AMF_RESULT PlanarComplexMultiplyAccumulate(
+                                                    const float* const inputBuffers1[],
+													const float* const inputBuffers2[],
+													float *accumbuffers[],
+													amf_uint32 channels,
+													amf_size numOfSamplesToProcess,
+													amf_uint riPlaneSpacing) override;
+
 #ifndef TAN_NO_OPENCL
 		virtual AMF_RESULT ComplexMultiplyAccumulate(
                                                     const cl_mem inputBuffers1[],
@@ -106,13 +127,21 @@ namespace amf
                                                     amf_size countOfComplexNumbers) override;
 #endif
 
+#ifdef USE_IPP
+		virtual AMF_RESULT IPPComplexMultiplyAccumulate(
+                                                    const float* const inputBuffers1[],
+													const float* const inputBuffers2[],
+													float *accumbuffers[],
+													float *workbuffer[],
+													amf_uint32 channels,
+													amf_size numOfSamplesToProcess) override;
+#endif
 
         virtual AMF_RESULT ComplexDivision(	        const float* const inputBuffers1[],
                                                     const float* const inputBuffers2[],
                                                     float *outputBuffers[],
                                                     amf_uint32 channels,
                                                     amf_size numOfSamplesToProcess) override;
-
 #ifndef TAN_NO_OPENCL
         virtual AMF_RESULT ComplexDivision(
                                                     const cl_mem inputBuffers1[],
@@ -190,7 +219,6 @@ namespace amf
             const float inputBuffer2[],
             float outputBuffer[],
             amf_size countOfComplexNumbers);
-
 #ifndef TAN_NO_OPENCL
         virtual AMF_RESULT ComplexDivision(
             const cl_mem inputBuffer1,
@@ -212,24 +240,25 @@ namespace amf
 #endif
 
     protected:
-        TANContextPtr               m_pContextTAN;
-        AMFComputePtr               m_pDeviceCompute;
+        TANContextPtr       m_pContextTAN;
+        AMFComputePtr       m_pDeviceCompute;
+
 
 #ifndef TAN_NO_OPENCL
         cl_kernel			m_pKernelComplexDiv = nullptr;
         cl_kernel			m_pKernelComplexMul = nullptr;
 		cl_kernel			m_pKernelComplexSum = nullptr;
+        cl_kernel			m_pKernelComplexMulAccum = nullptr;
 #else
         AMFBufferPtr        m_pKernelComplexDiv;
 		AMFBufferPtr        m_pKernelComplexMul;
 		AMFBufferPtr        m_pKernelComplexSum;
+        AMFBufferPtr        m_pKernelComplexMulAccum;
 #endif
 
         AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
-        AMFCriticalSection          m_sect;
 
-        amf_uint32 m_gpuMultiplicationRunNum = 0;
-        amf_uint32 m_gpuDivisionRunNum = 0;
+        AMFCriticalSection          m_sect;
 
 #ifndef TAN_NO_OPENCL
 		// multiply accumulate internal buffer
@@ -237,26 +266,24 @@ namespace amf
 		cl_mem	m_pInternalSwapBuffer2_MulAccu = nullptr;
 		cl_mem	m_pInternalBufferIn1_MulAccu = nullptr;
 		cl_mem	m_pInternalBufferIn2_MulAccu = nullptr;
+		cl_mem	m_pInternalBufferOut_MulAccu = nullptr;
 #else
-        // multiply accumulate internal buffer
-		AMFBufferPtr m_pInternalSwapBuffer1_MulAccu;
-		AMFBufferPtr m_pInternalSwapBuffer2_MulAccu;
-		AMFBufferPtr m_pInternalBufferIn1_MulAccu;
-		AMFBufferPtr m_pInternalBufferIn2_MulAccu;
 #endif
 
 		amf_size m_iInternalSwapBuffer1Size_MulAccu = 0;
 		amf_size m_iInternalSwapBuffer2Size_MulAccu = 0;
        	amf_size m_iInternalBufferIn1Size_MulAccu = 0;
 		amf_size m_iInternalBufferIn2Size_MulAccu = 0;
+		amf_size m_iInternalBufferOutSize_MulAccu = 0;
+
+        amf_uint32 m_gpuMultiplicationRunNum = 0;
+        amf_uint32 m_gpuDivisionRunNum = 0;
 
 #ifndef TAN_NO_OPENCL
 		cl_mem	m_pInternalBufferOut_MulAccu = nullptr;
 #else
         AMFBufferPtr m_pInternalBufferOut_MulAccu;
 #endif
-
-		amf_size m_iInternalBufferOutSize_MulAccu = 0;
 
 #ifndef TAN_NO_OPENCL
 		// Division internal buffer
@@ -291,8 +318,16 @@ namespace amf
 		amf_size m_iInternalBufferOutSize_Multiply = 0;
 
     private:
+		bool                m_useConvQueue = false;
+
+#ifndef TAN_NO_OPENCL
+		cl_command_queue	m_clQueue = nullptr;
+#else
+        amf::AMFComputePtr  mQueue;
+#endif
+
         virtual AMF_RESULT  AMF_STD_CALL InitCpu();
-        virtual AMF_RESULT  AMF_STD_CALL InitGpu(amf::AMFFactory * factory);
+        virtual AMF_RESULT  AMF_STD_CALL InitGpu();
 
 #ifndef TAN_NO_OPENCL
 		AMF_RESULT AdjustInternalBufferSize(
@@ -308,4 +343,12 @@ namespace amf
 		    );
 #endif
     };
+
+	// Create a TANMath object:
+     AMF_RESULT  TANCreateMath(
+		amf::TANContext* pContext,
+		amf::TANMath** ppMath,
+		bool useConvolutionQueue
+        );
+
 } //amf

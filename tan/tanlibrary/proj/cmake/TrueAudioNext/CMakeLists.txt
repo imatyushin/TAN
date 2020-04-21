@@ -17,6 +17,64 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
+find_package(OpenMP)
+if(OpenMP_FOUND)
+  ADD_DEFINITIONS(-DOMP_ENABLED)
+else()
+  find_path(OMP_INCLUDE_DIR NAMES omp.h)
+  find_library(OpenMP_LIBRARY NAMES omp)
+
+  if(OMP_INCLUDE_DIR AND OpenMP_LIBRARY)
+    ADD_DEFINITIONS(-DOMP_ENABLED)
+    set(OpenMP_FOUND 1)
+    message("OMP_INCLUDE_DIR: ${OMP_INCLUDE_DIR}")
+    message("OpenMP_LIBRARY: ${OpenMP_LIBRARY}")
+  endif()
+endif()
+
+#if(OMP_INCLUDE_DIR)
+#  include_directories(${OMP_INCLUDE_DIR})
+#  message("found omp: ${OMP_INCLUDE_DIR}")
+#else()
+#  message("omp not found")
+#endif(OMP_INCLUDE_DIR)
+
+#include(FindOpenMP)
+#if(OPENMP_FOUND)
+#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+#  message("omp found")
+#else()
+#  message("OPENMP_FOUND not found")
+#endif()
+
+#if(OMP_LIBRARY)
+#  message("OMP_LIBRARY: ${OMP_LIBRARY}")
+#else()
+#  message("omp not found")
+#endif()
+
+if(OpenMP_FOUND)
+  if(NOT WIN32)
+    if(APPLE OR XCODE)
+      #SET (CMAKE_CXX_COMPILER "/usr/bin/c++")
+      set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Xpreprocessor -fopenmp -lomp")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -lomp")
+      #set(CMAKE_SHARED_LINKER_FLAGS " -lomp")
+    else()
+      set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif()
+  endif()
+endif()
+
+#if (APPLE AND XCODE)
+#    set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I/usr/local/opt/libomp/include" CACHE INTERNAL "OpenMP flags for Xcode toolchain.")
+#    set(OpenMP_CXX_LIB_NAMES "omp" CACHE INTERNAL "OpenMP lib name for Xcode toolchain.")
+#    set(OpenMP_omp_LIBRARY "/usr/local/opt/libomp/lib/libomp.dylib" CACHE INTERNAL "OpenMP lib name for Xcode toolchain.")
+#endif()
+
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
@@ -31,6 +89,10 @@ include_directories(${TAN_HEADERS})
 include_directories(${TAN_ROOT}/tan/tanlibrary/src/clFFT-master/src/include)
 include_directories(${TAN_ROOT}/tan/tanlibrary/src/Graal)
 include_directories(${TAN_ROOT}/utils/common)
+
+if(OpenMP_FOUND)
+  include_directories(${OMP_INCLUDE_DIR})
+endif()
 
 #
 ADD_DEFINITIONS(-DLEGACY_COPYING=1)
@@ -97,7 +159,9 @@ set(
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/math"
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/math"
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/math"
+  "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/math"
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/converter"
+  "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/IIRfilter"
   )
 set(
   Tan_CL_Files
@@ -108,7 +172,9 @@ set(
   "VectorComplexSum.cl"
   "VectorComplexMultiply.cl"
   "VectorComplexDivision.cl"
+  "VectorComplexMultiplyAccumulate.cl"
   "Converter.cl"
+  "IIRfilter.cl"
   )
 set(
   Tan_CL_Output
@@ -119,7 +185,9 @@ set(
   "CLKernel_VectorComplexSum.h"
   "CLKernel_VectorComplexMultiply.h"
   "CLKernel_VectorComplexDivision.h"
+  "CLKernel_VectorComplexMultiplyAccumulate.h"
   "CLKernel_Converter.h"
+  "CLKernel_IIRfilter.h"
   )
 
 markGenerated(
@@ -160,6 +228,10 @@ target_link_libraries(TrueAudioNext ${OpenCL_LIBRARY})
 target_link_libraries(TrueAudioNext ${AMF_NAME})
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
+
+if(OpenMP_FOUND)
+  target_link_libraries(TrueAudioNext ${OpenMP_LIBRARY})
+endif()
 
 # Declare public API of your library.
 # This API will be installed for third-party application.

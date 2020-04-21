@@ -1640,7 +1640,7 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
     int flags
     )
 {
-#pragma omp parallel  for default(none) shared(flags, pHrtf, earSpacing, sound, inSampRate, responseLength, room, nW, nH, nL, mid, incy,responseL,responseR,earDxL, earDxR, earDyL, earDyR, earDzL, earDzR,earDxL, earVxR, earVyL, earVyR, earVzL, earVzR) num_threads(2)
+//#pragma omp parallel  for default(none) shared(flags, hrtf, earSpacing, sound, inSampRate, responseLength, room, nW, nH, nL, mid, incy,responseL,responseR,earDxL, earDxR, earDyL, earDyR, earDzL, earDzR,earDxL, earVxR, earVyL, earVyR, earVzL, earVzR) num_threads(2)
 
     hrtfResponseLength = hrtfResponseLength > responseLength ? responseLength : hrtfResponseLength;
 

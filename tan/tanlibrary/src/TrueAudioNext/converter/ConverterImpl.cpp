@@ -74,7 +74,7 @@ TANConverterImpl::~TANConverterImpl(void)
     Terminate();
 }
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init(amf::AMFFactory * factory)
+AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
 {
     AMFLock lock(&m_sect);
 
@@ -97,7 +97,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init(amf::AMFFactory * factory)
     if(m_pContextTAN->GetAMFContext())
 #endif
     {
-        return InitGpu(factory);
+        return InitGpu();
     }
 
     return InitCpu();
@@ -109,7 +109,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitCpu()
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu(amf::AMFFactory * factory)
+AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 {
     AMF_RESULT res = AMF_OK;
 
@@ -182,7 +182,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu(amf::AMFFactory * factory)
             "floatToFloat",
 
             "",
-            factory
+            TANContextImplPtr(m_pContextTAN)->GetFactory()
             ),
         AMF_FAIL
         );
@@ -198,7 +198,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu(amf::AMFFactory * factory)
             "floatToShort",
 
             "",
-            factory
+            TANContextImplPtr(m_pContextTAN)->GetFactory()
             ),
         AMF_FAIL
         );
@@ -214,7 +214,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu(amf::AMFFactory * factory)
             "shortToShort",
 
             "",
-            factory
+            TANContextImplPtr(m_pContextTAN)->GetFactory()
             ),
         AMF_FAIL
         );
@@ -230,7 +230,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu(amf::AMFFactory * factory)
             "shortToFloat",
 
             "",
-            factory
+            TANContextImplPtr(m_pContextTAN)->GetFactory()
             ),
         AMF_FAIL
         );

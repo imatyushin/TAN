@@ -83,7 +83,7 @@ namespace amf
 				{
 					delete[] buffer.clmem;
 				}
-                delete [] buffer.clmem;
+
                 buffer.clmem = nullptr;
             }
 #else
@@ -395,11 +395,6 @@ namespace amf
                                         amf_uint32 responseLengthInSamples,
                                         amf_uint32 bufferSizeInSamples,
                                         amf_uint32 channels) override;
-        AMF_RESULT  AMF_STD_CALL    InitGpuAMF(amf::AMFFactory * factory,
-                                        TAN_CONVOLUTION_METHOD convolutionMethod,
-                                        amf_uint32 responseLengthInSamples,
-                                        amf_uint32 bufferSizeInSamples,
-                                        amf_uint32 channels) override;
         AMF_RESULT  AMF_STD_CALL    Terminate() override;
 
         AMF_RESULT  AMF_STD_CALL    UpdateResponseTD(
@@ -504,7 +499,7 @@ namespace amf
                                             int *nzFirstLast = NULL
                                             ) override;
 #else
-     AMF_RESULT  AMF_STD_CALL    ProcessDirect(
+        AMF_RESULT  AMF_STD_CALL    ProcessDirect(
                                             const AMFBuffer * ppImpulseResponse[],
                                             const AMFBuffer * ppBufferInput[],
                                             AMFBuffer * ppBufferOutput[],
@@ -513,6 +508,11 @@ namespace amf
                                             int *nzFirstLast = NULL
                                             ) override;
 #endif
+
+        virtual AMF_RESULT  AMF_STD_CALL    ProcessFinalize(void) override
+        {
+            return AMF_NOT_IMPLEMENTED;
+        }
 
 
         AMF_RESULT AMF_STD_CALL GetNextFreeChannel(amf_uint32 *pChannelIndex,
@@ -526,8 +526,7 @@ namespace amf
                                 amf_uint32 responseLengthInSamples,
                                 amf_uint32 bufferSizeInSamples,
                                 amf_uint32 channels,
-                                bool doProcessingOnGpu,
-                                amf::AMFFactory * factory
+                                bool doProcessingOnGpu
                                 );
 
         virtual AMF_RESULT Flush(amf_uint32 filterStateId, amf_uint32 channelId);
@@ -546,8 +545,6 @@ namespace amf
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr); // TAN Audio buffers
-
-        amf::AMFFactory *           mFactory = nullptr;
 
         TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pProcContextAMF;

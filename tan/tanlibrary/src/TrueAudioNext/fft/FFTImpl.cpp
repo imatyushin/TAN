@@ -82,7 +82,7 @@ TANFFTImpl::~TANFFTImpl(void)
     Terminate();
 }
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init(amf::AMFFactory * factory)
+AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 {
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
@@ -93,7 +93,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init(amf::AMFFactory * factory)
     if(m_pContextTAN->GetAMFContext())
 #endif
     {
-        return InitGpu(factory);
+        return InitGpu();
     }
 
     return InitCpu();
@@ -113,7 +113,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu(amf::AMFFactory * factory)
+AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
 {
 #ifndef TAN_NO_OPENCL
 

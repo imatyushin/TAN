@@ -74,7 +74,7 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConvolution(
 //-------------------------------------------------------------------------------------------------
 TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     :m_pContextTAN(pContextTAN)
-    ,m_eConvolutionMethod(TAN_CONVOLUTION_INVALID_METHOD)
+    ,m_eConvolutionMethod(TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
     ,m_iLengthInSamples(0)
     ,m_iBufferSizeInSamples(0)
     ,m_iChannels(0)
@@ -146,8 +146,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Init(
         responseLengthInSamples,
         bufferSizeInSamples,
         channels,
-        false,
-        nullptr
+        false
         );
 }
 
@@ -162,7 +161,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitCpu(
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
-    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, false, nullptr);
+    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, false);
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
@@ -188,36 +187,15 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
         );
 #endif
 
-    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, true, nullptr);
-}
-
-AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpuAMF(
-    amf::AMFFactory * factory,
-    TAN_CONVOLUTION_METHOD convolutionMethod,
-    amf_uint32 responseLengthInSamples,
-    amf_uint32 bufferSizeInSamples,
-    amf_uint32 channels
-    )
-{
-    AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
-        L"Cannot initialize after termination");
-
-#ifndef TAN_NO_OPENCL
-	AMF_RETURN_IF_FALSE(
-        m_pContextTAN->GetOpenCLContext() != nullptr,
-		AMF_WRONG_STATE,
-		L"Cannot initialize on GPU with a CPU context"
-		);
-#else
-	AMF_RETURN_IF_FALSE(
-        m_pContextTAN->GetAMFContext() != nullptr,
-        AMF_WRONG_STATE,
-        L"Cannot initialize on GPU with a CPU context"
+    return Init(
+        convolutionMethod,
+        responseLengthInSamples,
+        bufferSizeInSamples,
+        channels,
+        true
         );
-#endif
-
-    return Init(convolutionMethod, responseLengthInSamples, bufferSizeInSamples, channels, true, factory);
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 {
@@ -538,7 +516,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     L"Internal graal's failure"
                     );
 
-                delete clResponses;
+                delete [] clResponses;
             }
             else if (pBuffer.GetType() == AMF_MEMORY_HOST)
             {
@@ -974,8 +952,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
     amf_uint32 responseLengthInSamples,
     amf_uint32 bufferSizeInSamples,
     amf_uint32 channels,
-    bool doProcessingOnGpu,
-    amf::AMFFactory * factory
+    bool doProcessingOnGpu
 )
 {
     //todo: investigate (block?) usage of CL and AMF contexts simultaneously
@@ -1028,7 +1005,6 @@ AMF_RESULT  TANConvolutionImpl::Init(
 	AMF_RETURN_IF_FALSE(convolutionMethod < TAN_CONVOLUTION_METHOD_FFT_UINFORM_HEAD_TAIL, AMF_NOT_SUPPORTED,
                         L"convolutionMethod isn't supported");
 
-    mFactory = factory;
     m_doProcessOnGpu = doProcessingOnGpu;
 
     AMF_RESULT res = AMF_OK;
@@ -1066,7 +1042,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
                 "crossfade",
 
                 "",
-				factory
+				TANContextImplPtr(m_pContextTAN)->GetFactory()
                 );
 #endif
 
@@ -1086,7 +1062,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
     if (convolutionMethod == TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
     {
         AMF_RETURN_IF_FAILED(TANCreateFFT(m_pContextTAN, &m_pUpdateTanFft, false));
-        AMF_RETURN_IF_FAILED(m_pUpdateTanFft->Init(mFactory));
+        AMF_RETURN_IF_FAILED(m_pUpdateTanFft->Init());
         if (m_pProcContextAMF == m_pUpdateContextAMF)
         {
             m_pTanFft = m_pUpdateTanFft;
@@ -1427,7 +1403,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             {
                 graalConv = new graal::CGraalConv_clFFT(
 #ifdef TAN_NO_OPENCL
-                    mFactory
+                    TANContextImplPtr(m_pContextTAN)->GetFactory()
 #endif
                     );
             }
@@ -1435,7 +1411,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             {
                 graalConv = new graal::CGraalConv(
 #ifdef TAN_NO_OPENCL
-                    mFactory
+                    TANContextImplPtr(m_pContextTAN)->GetFactory()
 #endif
                     );
             }

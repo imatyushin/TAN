@@ -83,8 +83,7 @@ TANMixerImpl::~TANMixerImpl(void)
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     amf_size buffer_size,
-    int num_channels,
-    amf::AMFFactory * factory
+    int num_channels
 	)
 {
     AMFLock lock(&m_sect);
@@ -108,7 +107,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     if(m_pContextTAN->GetAMFContext())
 #endif
     {
-        return InitGpu(factory);
+        return InitGpu();
     }
 
     return InitCpu();
@@ -122,7 +121,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitCpu()
 }
 
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu(amf::AMFFactory * factory)
+AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 {
 #ifndef TAN_NO_OPENCL
     cl_int ret;
@@ -190,7 +189,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu(amf::AMFFactory * factory)
             "Mixer",
 
             "",
-            factory
+            TANContextImplPtr(m_pContextTAN)->GetFactory()
             ),
         AMF_FAIL
         );

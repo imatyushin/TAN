@@ -85,7 +85,7 @@ AMF_RESULT  AMF_STD_CALL TANFilterImpl::Terminate()
 }
 
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT  AMF_STD_CALL TANFilterImpl::Init(amf::AMFFactory * factory)
+AMF_RESULT  AMF_STD_CALL TANFilterImpl::Init()
 {
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
