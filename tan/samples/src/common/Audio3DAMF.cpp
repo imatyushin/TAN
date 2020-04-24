@@ -24,6 +24,7 @@
 #include "TrueAudioVR.h"
 #include "GpuUtils.h"
 #include "cpucaps.h"
+#include "Exceptions.h"
 
 #include "public/common/TraceAdapter.h"
 #include "public/common/AMFFactory.h"
@@ -380,7 +381,7 @@ AMF_RESULT Audio3DAMF::Init
         else if(useAMFConvolution && !useGPUConvolution)
         {
 #ifdef RTQ_ENABLED
-            throw "Not implemented!";
+            THROW_NOT_IMPLEMENTED;
 
             // For " core "reservation" on CPU" -ToDo test and enable
             if (cuRes_Conv > 0 && cuRes_IRGen > 0)

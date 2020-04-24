@@ -219,6 +219,7 @@ namespace amf
             const float inputBuffer2[],
             float outputBuffer[],
             amf_size countOfComplexNumbers);
+
 #ifndef TAN_NO_OPENCL
         virtual AMF_RESULT ComplexDivision(
             const cl_mem inputBuffer1,
@@ -240,20 +241,19 @@ namespace amf
 #endif
 
     protected:
-        TANContextPtr       m_pContextTAN;
-        AMFComputePtr       m_pDeviceCompute;
-
+        TANContextPtr               m_pContextTAN;
+        AMFComputePtr               m_pDeviceCompute;
 
 #ifndef TAN_NO_OPENCL
-        cl_kernel			m_pKernelComplexDiv = nullptr;
-        cl_kernel			m_pKernelComplexMul = nullptr;
-		cl_kernel			m_pKernelComplexSum = nullptr;
-        cl_kernel			m_pKernelComplexMulAccum = nullptr;
+        cl_kernel			        m_pKernelComplexDiv = nullptr;
+        cl_kernel			        m_pKernelComplexMul = nullptr;
+		cl_kernel			        m_pKernelComplexSum = nullptr;
+        cl_kernel			        m_pKernelComplexMulAccum = nullptr;
 #else
-        AMFBufferPtr        m_pKernelComplexDiv;
-		AMFBufferPtr        m_pKernelComplexMul;
-		AMFBufferPtr        m_pKernelComplexSum;
-        AMFBufferPtr        m_pKernelComplexMulAccum;
+        AMFComputeKernelPtr         mKernelComplexDiv;
+		AMFComputeKernelPtr         mKernelComplexMul;
+		AMFComputeKernelPtr         mKernelComplexSum;
+        AMFComputeKernelPtr         mKernelComplexMulAccum;
 #endif
 
         AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
@@ -262,27 +262,27 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
 		// multiply accumulate internal buffer
-		cl_mem	m_pInternalSwapBuffer1_MulAccu = nullptr;
-		cl_mem	m_pInternalSwapBuffer2_MulAccu = nullptr;
-		cl_mem	m_pInternalBufferIn1_MulAccu = nullptr;
-		cl_mem	m_pInternalBufferIn2_MulAccu = nullptr;
-		cl_mem	m_pInternalBufferOut_MulAccu = nullptr;
+		cl_mem	                    m_pInternalSwapBuffer1_MulAccu = nullptr;
+		cl_mem	                    m_pInternalSwapBuffer2_MulAccu = nullptr;
+		cl_mem	                    m_pInternalBufferIn1_MulAccu = nullptr;
+		cl_mem	                    m_pInternalBufferIn2_MulAccu = nullptr;
+		cl_mem	                    m_pInternalBufferOut_MulAccu = nullptr;
 #else
 #endif
 
-		amf_size m_iInternalSwapBuffer1Size_MulAccu = 0;
-		amf_size m_iInternalSwapBuffer2Size_MulAccu = 0;
-       	amf_size m_iInternalBufferIn1Size_MulAccu = 0;
-		amf_size m_iInternalBufferIn2Size_MulAccu = 0;
-		amf_size m_iInternalBufferOutSize_MulAccu = 0;
+		amf_size                    m_iInternalSwapBuffer1Size_MulAccu = 0;
+		amf_size                    m_iInternalSwapBuffer2Size_MulAccu = 0;
+       	amf_size                    m_iInternalBufferIn1Size_MulAccu = 0;
+		amf_size                    m_iInternalBufferIn2Size_MulAccu = 0;
+		amf_size                    m_iInternalBufferOutSize_MulAccu = 0;
 
-        amf_uint32 m_gpuMultiplicationRunNum = 0;
-        amf_uint32 m_gpuDivisionRunNum = 0;
+        amf_uint32                  m_gpuMultiplicationRunNum = 0;
+        amf_uint32                  m_gpuDivisionRunNum = 0;
 
 #ifndef TAN_NO_OPENCL
-		cl_mem	m_pInternalBufferOut_MulAccu = nullptr;
+		cl_mem	                    m_pInternalBufferOut_MulAccu = nullptr;
 #else
-        AMFBufferPtr m_pInternalBufferOut_MulAccu;
+        AMFBufferPtr                m_pInternalBufferOut_MulAccu;
 #endif
 
 #ifndef TAN_NO_OPENCL
@@ -343,12 +343,4 @@ namespace amf
 		    );
 #endif
     };
-
-	// Create a TANMath object:
-     AMF_RESULT  TANCreateMath(
-		amf::TANContext* pContext,
-		amf::TANMath** ppMath,
-		bool useConvolutionQueue
-        );
-
 } //amf

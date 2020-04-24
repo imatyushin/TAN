@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,13 +20,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+//
 ///-------------------------------------------------------------------------
 ///  @file   ConvolutionImpl.h
 ///  @brief  TANConvolutionImpl interface implementation
 ///-------------------------------------------------------------------------
 #pragma once
 #include "TrueAudioNext.h"   //TAN
-#include "public/include/core/Factory.h"        //AMF
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/core/Buffer.h"         //AMF
 #include "public/include/components/Component.h"//AMF
@@ -32,12 +34,22 @@
 
 #include "GraalConv.hpp"
 #include "GraalConv_clFFT.hpp"
+//#include "tanlibrary/src/Graal2/GraalWrapper.h"
+
 #ifdef AMF_FACILITY
 #  undef AMF_FACILITY
 #endif
 
-#define SAFE_DELETE(x) { delete x; (x) = nullptr; }
-#define SAFE_ARR_DELETE(x) { delete[] x; (x) = nullptr; }
+#define SAFE_DELETE(x) {if(x) { delete x;} (x) = nullptr; }
+#define SAFE_ARR_DELETE(x) {if(x){ delete[] x;} (x) = nullptr; }
+
+#define TRANSFORMTYPE_FFTCOMPLEX 1
+#define TRANSFORMTYPE_FFTREAL 2
+#define TRANSFORMTYPE_FFTREAL_PLANAR 3
+#define TRANSFORMTYPE_HARTLEY 4
+
+#define PARTITION_PAD_FFTREAL_PLANAR 16
+#define PARTITION_PAD_FFTREAL 4 // might break CPU ??? was 2
 
 namespace amf
 {
@@ -71,7 +83,12 @@ namespace amf
             {
 				if(mAllocated)
 				{
-					delete[] buffer.host;
+                    for(size_t channel(0); channel < mSize; ++mSize)
+                    {
+                        assert(!buffer.host[channel]);
+                    }
+
+                    delete[] buffer.host;
 				}
 
                 buffer.host = nullptr;
@@ -81,6 +98,11 @@ namespace amf
             {
 				if(mAllocated)
 				{
+                    for(size_t channel(0); channel < mSize; ++mSize)
+                    {
+                        assert(!buffer.clmem[channel]);
+                    }
+
 					delete[] buffer.clmem;
 				}
 
@@ -91,6 +113,11 @@ namespace amf
             {
 				if(mAllocated)
 				{
+                    for(size_t channel(0); channel < mSize; ++mSize)
+                    {
+                        assert(!buffer.amfBuffers[channel]);
+                    }
+
 					delete[] buffer.amfBuffers;
 				}
 
@@ -155,6 +182,7 @@ namespace amf
         }
 
 #ifndef TAN_NO_OPENCL
+        
         void PrepareCL(size_t channelsCount)
         {
             assert(!mAllocated);
@@ -177,7 +205,9 @@ namespace amf
 
             buffer.clmem = buffers;
         }
+        
 #else
+        
         void PrepareAMF(size_t channelsCount)
         {
             assert(!mAllocated);
@@ -224,6 +254,21 @@ namespace amf
             //mSize = channelsCount;
 
             buffer.host = buffers;
+        }
+
+        void AllocateHostData(size_t index, size_t size)
+        {
+            assert(!buffer.host[index]);
+            
+            buffer.host[index] = new float[size];
+            std::memset(buffer.host[index], 0, sizeof(float) * size);
+        }
+
+        void FreeHostData(size_t index)
+        {
+            assert(buffer.host[index]);
+            
+            delete [] buffer.host[index], buffer.host[index] = nullptr;
         }
     };
 
@@ -282,6 +327,16 @@ namespace amf
 			lastNz[index] = 0;
         }
 
+        void FreeHostData(size_t index)
+        {
+            SAFE_ARR_DELETE(m_Filter[index]);
+            SAFE_ARR_DELETE(m_SampleHistory[index]);
+
+            m_sampHistPos[index] = 0;
+			firstNz[index] = 0;
+			lastNz[index] = 0;
+        }
+
 #ifndef TAN_NO_OPENCL
         void SetupCL(size_t channelsCount)
         {
@@ -309,7 +364,16 @@ namespace amf
             AMF_RETURN_IF_CL_FAILED(returnCode);
         }
 
-        void ResetCL()
+        AMF_RESULT FreeCLData(size_t index)
+        {
+            assert(m_clFilter[index] && m_clTemp[index] && m_clSampleHistory[index]);
+
+            clReleaseMemObject(m_clFilter[index]), m_clFilter[index] = nullptr;
+            clReleaseMemObject(m_clTemp[index]), m_clTemp[index] = nullptr;
+            clReleaseMemObject(m_clSampleHistory[index]), m_clSampleHistory[index] = nullptr;
+        }
+
+        void DeallocateCL()
         {
             if(m_clFilter)
             {
@@ -363,6 +427,30 @@ namespace amf
                     &amfSampleHistory[index]
                     )
                 );
+        }
+
+        AMF_RESULT FreeAMFData(size_t index)
+        {
+            assert(amfFilter[index] && amfTemp[index] && amfSampleHistory[index]);
+
+            amfFilter[index] = nullptr;
+            amfTemp[index] = nullptr;
+            amfSampleHistory[index] = nullptr;
+        }
+
+        void DeallocateAMF()
+        {
+            if(amfFilter)
+            {
+                delete [] amfFilter, amfFilter = nullptr;
+            }
+
+            if(amfTemp)
+            {
+                delete [] amfTemp, amfTemp = nullptr;
+            }
+
+            amfSampleHistory.resize(0);
         }
 #endif
     } tdFilterState;
@@ -488,6 +576,7 @@ namespace amf
                                             amf_size *pNumOfSamplesProcessed,
                                             int *nzFirstLast = NULL
                                             ) override;
+
 #ifndef TAN_NO_OPENCL
         // Process direct (no update required),  OpenCL cl_mem  buffers:
         AMF_RESULT  AMF_STD_CALL    ProcessDirect(
@@ -509,11 +598,7 @@ namespace amf
                                             ) override;
 #endif
 
-        virtual AMF_RESULT  AMF_STD_CALL    ProcessFinalize(void) override
-        {
-            return AMF_NOT_IMPLEMENTED;
-        }
-
+		virtual AMF_RESULT  AMF_STD_CALL    ProcessFinalize() override;
 
         AMF_RESULT AMF_STD_CALL GetNextFreeChannel(amf_uint32 *pChannelIndex,
                                                    const amf_uint32 flagMasks[] // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG.
@@ -523,11 +608,11 @@ namespace amf
 
     protected:
         virtual AMF_RESULT  Init(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                amf_uint32 responseLengthInSamples,
-                                amf_uint32 bufferSizeInSamples,
-                                amf_uint32 channels,
-                                bool doProcessingOnGpu
-                                );
+                                 amf_uint32 responseLengthInSamples,
+                                 amf_uint32 bufferSizeInSamples,
+                                 amf_uint32 channels,
+                                 bool doProcessingOnGpu
+                                 );
 
         virtual AMF_RESULT Flush(amf_uint32 filterStateId, amf_uint32 channelId);
 
@@ -546,25 +631,28 @@ namespace amf
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr); // TAN Audio buffers
 
-        TANContextPtr               m_pContextTAN;
+        bool                        ReadyForIRUpdate();
+
+		TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pProcContextAMF;
         AMFComputePtr               m_pUpdateContextAMF;
+		TANMathPtr                  m_pMath;
 
-        TAN_CONVOLUTION_METHOD      m_eConvolutionMethod;
-        amf_uint32                  m_iLengthInSamples;
-        amf_uint32                  m_iBufferSizeInSamples;
-        amf_uint32                  m_iChannels;    // Number of channels our buffers are allocated
-                                                    // to, as opposed to m_MaxChannels.
+        TAN_CONVOLUTION_METHOD      m_eConvolutionMethod = TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
+		bool						m_bUseProcessFinalize = false;
+		amf_uint32                  m_iLengthInSamples = 0;
+        amf_uint32                  m_iBufferSizeInSamples = 0;
+        amf_uint32                  m_iChannels = 0; // Number of channels our buffers are allocated
+                                                     // to, as opposed to m_MaxChannels.
 
 #ifndef TAN_NO_OPENCL
 		cl_kernel					m_pKernelCrossfade;
 #else
         amf::AMFComputeKernelPtr    mKernelCrossfade;
 #endif
+        AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN;
 
-        AMF_MEMORY_TYPE             m_eOutputMemoryType;
-
-        AMF_KERNEL_ID               m_KernelIdCrossfade;
+        AMF_KERNEL_ID               m_KernelIdCrossfade = 0;
 
         AMFCriticalSection          m_sect;
 
@@ -581,10 +669,13 @@ namespace amf
         TANFFTPtr                   m_pTanFft;
         TANFFTPtr                   m_pUpdateTanFft;
 
-        bool                        m_doProcessOnGpu;
+        bool                        m_doProcessOnGpu = false;
+		int			                m_TransformType = 0;
+
 
     private:
         bool                        m_initialized = false;
+		//GraalWrapper                m_nonUniformGraal;
 
 #ifndef TAN_NO_OPENCL
         //cl_program m_TimeDomainProgram;
@@ -593,14 +684,17 @@ namespace amf
         amf::AMFComputeKernelPtr    mTimeDomainKernel;
 #endif
 
-        int                         m_length = 0;           // Next power of two for the response's length.
-        int                         m_log2len = 0;          // =log2(m_length)
-        int                         m_MaxChannels = 0;      // Current number of channels, less or equal to m_iChannels.
-        float **                    m_OutSamples = nullptr;   // Buffer to store FFT, multiplication and ^FFT for a buffer.
-        float **                    m_ovlAddLocalInBuffs = nullptr;
-        float **                    m_ovlAddLocalOutBuffs = nullptr;
+        int                         m_length = -1;                       // Next power of two for the response's length.
+        int                         m_log2len = -1;                      // =log2(m_length)
+		int                         m_log2bsz = 0;                      // = log2( m_iBufferSizeInSamples)
 
-        TANSampleBuffer             m_FadeSubbufers[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
+		int                         m_RunningChannels = -1;              // Current number of channels, less or equal to m_iChannels. //maxChannels
+        float                       **m_OutSamples = nullptr;           // Buffer to store FFT, multiplication and ^FFT for a buffer.
+		float                       **m_OutSamplesXFade = nullptr;      // Buffer to store FFT, multiplication and ^FFT for a buffer.
+		float                       **m_ovlAddLocalInBuffs = nullptr;
+        float                       **m_ovlAddLocalOutBuffs = nullptr;
+
+        TANSampleBuffer             mFadeSubbufers[2];                  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
 
 #ifndef TAN_NO_OPENCL
         cl_mem                      m_pCLXFadeMasterBuf[2] = {nullptr};
@@ -608,14 +702,14 @@ namespace amf
         amf::AMFBufferPtr           mAMFCLXFadeMasterBuffers[2];
 #endif
 
-        TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU
-        float *m_silence;       // Array filled with zeroes, used to emulate silent signal.
+        TANSampleBuffer             m_pXFadeSamples;                    // For cross-fading on CPU
+        float                       *m_silence = nullptr;               // Array filled with zeroes, used to emulate silent signal.
 
         TANSampleBuffer m_internalOutBufs;
         TANSampleBuffer m_internalInBufs;
-        bool *m_availableChannels;
-        bool *m_flushedChannels;// if a channel has just been flushed no need to flush it repeatedly
-        int *m_tailLeftOver;
+        bool *m_availableChannels = nullptr;
+        bool *m_flushedChannels = nullptr;                              // if a channel has just been flushed no need to flush it repeatedly
+        int *m_tailLeftOver = nullptr;
 
         AMF_RESULT allocateBuffers();
         AMF_RESULT deallocateBuffers();
@@ -629,15 +723,57 @@ namespace amf
             float **m_internalOverlap;
         } ovlAddFilterState;
 
+		int m_currentDataPartition = 0;
+		int m_dataRowLength = 0;
+		int m_DelayedUpdate = 0;
+		float **m_FilterTD = nullptr;
+
+		//const int m_PartitionPad = 8;
+		typedef struct _ovlUniformPartitionFilterState {
+			float **m_Filter;
+			float **m_DataPartitions;
+			float **m_Overlap;
+			float **m_internalFilter;
+			float **m_internalOverlap;
+			float **m_internalDataPartitions;
+			cl_mem *m_clFilters;
+			cl_mem *m_clDataPartitions;
+			cl_mem m_clOutput;
+			//cl_mem *m_clFilterSubParts;
+			//cl_mem *m_clDataSubParts;
+			//cl_mem *m_clOutputSubChans;
+		} ovlUniformPartitionFilterState;
+
+		int m_2ndBufSizeMultiple = 4;  // default 4
+		int m_2ndBufCurrentSubBuf = 0;  // 0 -> m_2ndBufSizeMultiple - 1
+		float **m_NUTailAccumulator = nullptr;   // store complex multiply accumulate data calculated in ovlNUPProcessTail
+		float **m_NUTailSaved = nullptr;   // save last complex multiply accumulate results
+		typedef struct _ovlNonUniformPartitionFilterState {
+			float **m_Filter;
+			float **m_DataPartitions;
+			float **m_Overlap;
+			float **m_internalFilter;
+			float **m_internalOverlap;
+			float **m_internalDataPartitions;
+			float **m_SubPartitions;
+			float **m_workBuffer;
+		} ovlNonUniformPartitionFilterState;
+
 #  define N_FILTER_STATES 3
-        ovlAddFilterState *m_FilterState[N_FILTER_STATES] = {0};
-        tdFilterState *m_tdFilterState[N_FILTER_STATES] = {0};
-        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES] = {0};
-        int m_idxFilter;                        // Currently USED current index.
-        int m_idxPrevFilter;                    // Currently USED previous index (for crossfading).
-        int m_idxUpdateFilter;                  // Next FREE  index.
-        int m_idxUpdateFilterLatest;
-        int m_first_round_ever;
+        ovlAddFilterState *m_FilterState[N_FILTER_STATES] = {nullptr};
+		_ovlUniformPartitionFilterState *m_upFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlUniformPartitionFilterState *m_upTailState = nullptr;
+		_ovlNonUniformPartitionFilterState *m_nupFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlNonUniformPartitionFilterState *m_nupTailState = nullptr;
+		tdFilterState *m_tdFilterState[N_FILTER_STATES] = {nullptr};
+        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES] = {nullptr};
+        int m_idxFilter = 1;                        // Currently USED current index.
+        int m_idxPrevFilter = 0;                    // Currently USED previous index (for crossfading).
+        int m_idxUpdateFilter = 2;                  // Next FREE  index.
+        int m_idxUpdateFilterLatest = 0;
+        int m_first_round_ever = 0;
+
+		int bestNUMultiple(int responseLength, int blockLength);
 
         AMFEvent m_procReadyForNewResponsesEvent;
         AMFEvent m_updateFinishedProcessing;
@@ -670,6 +806,15 @@ namespace amf
             amf_uint32              n_channels,
             bool                    advanceOverlap = true
             );
+
+		amf_size ovlNUPProcess(ovlNonUniformPartitionFilterState *state, TANSampleBuffer inputData, TANSampleBuffer outputData, amf_size length,
+			amf_uint32 n_channels, bool advanceOverlap = true, bool useXFadeAccumulator = false);
+
+		amf_size ovlNUPProcessCPU(ovlNonUniformPartitionFilterState *state, TANSampleBuffer inputData, TANSampleBuffer outputData, amf_size length,
+			amf_uint32 n_channels, bool advanceOverlap = true, bool useXFadeAccumulator = false);
+
+		int ovlNUPProcessTail(_ovlNonUniformPartitionFilterState *state = NULL, bool useXFadeAccumulator = false);
+
 
         amf_size ovlTDProcess(tdFilterState *state, float **inputData, float **outputData, amf_size length,
             amf_uint32 n_channels);
@@ -837,14 +982,15 @@ namespace amf
         // Two buffers are used for storing the IR indices; so that back to back calls
         // to the ProcessInternal() during the crossfade will not corrupt the already stored data
         const static int PARAM_BUF_COUNT = 2;
-        int * m_s_versions[PARAM_BUF_COUNT];
-        int * m_s_channels;
-        int m_n_delays_onconv_switch;
-        int m_onconv_switch_delay_counter;
-        bool m_doHeadTailXfade;
+        int * m_s_versions[PARAM_BUF_COUNT] = {nullptr};
+        int * m_s_channels = nullptr;
+        int m_n_delays_onconv_switch = 0;
+        int m_onconv_switch_delay_counter = 0;
+        bool m_doHeadTailXfade = false;
         // m_param_buf_idx is used to flip flop between alternate m_s_versions buffers,
-        int m_param_buf_idx;
-        /*************************************************************************************
+        int m_param_buf_idx = 0;
+		bool m_startNonUniformConvXFade = false;
+		/*************************************************************************************
         AmdTrueAudioConvolution destructor
         deallocates all internal buffers.
         *************************************************************************************/

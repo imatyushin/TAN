@@ -32,6 +32,7 @@
 
 #include "OCLHelper.h"
 #include "cpucaps.h"
+#include "Exceptions.h"
 
 #if !defined(__APPLE__) && !defined(__MACOSX)
   #include <omp.h>
@@ -507,7 +508,7 @@ AMF_RESULT TrueAudioVRimpl::Release()
         AMF_RETURN_IF_FAILED(g_AMFFactory.Terminate());
     }
 
-    throw "Not implemented!";
+    THROW_NOT_IMPLEMENTED;
 
     return AMF_NOT_IMPLEMENTED;
 #endif
@@ -1256,8 +1257,6 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 		mFactory = g_AMFFactory.GetFactory();
         mFactoryCreated = true;
 	}
-
-    AMF_RESULT status = AMF_OK;
 
     mResponseLength = responseLength;
 

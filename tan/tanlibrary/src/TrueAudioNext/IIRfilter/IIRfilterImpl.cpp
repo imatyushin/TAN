@@ -30,6 +30,7 @@
 #include "public/common/AMFFactory.h"
 #include "OCLHelper.h"
 #include "cpucaps.h"
+#include "Exceptions.h"
 
 #include <math.h>
 
@@ -168,7 +169,7 @@ AMF_RESULT  AMF_STD_CALL TANIIRfilterImpl::Terminate()
         m_pCommandQueueCl = NULL;
     }
 #else
-    throw "Not implemented";
+    THROW_NOT_IMPLEMENTED;
 
     return AMF_OK;
 #endif
@@ -329,7 +330,7 @@ AMF_RESULT	AMF_STD_CALL	TANIIRfilterImpl::InitGpu()
     return res;
 
 #else
-    throw "Not implemented";
+    THROW_NOT_IMPLEMENTED;
 
     return AMF_NOT_IMPLEMENTED;
 #endif
@@ -384,7 +385,7 @@ AMF_RESULT AMF_STD_CALL TANIIRfilterImpl::UpdateIIRResponses(float* ppInputRespo
 		clEnqueueWriteBuffer(this->m_pContextTAN->GetOpenCLGeneralQueue(), m_clInputTaps, CL_TRUE, 0, sizeof(float) * m_numInputTaps*m_channels, inputTaps, 0, NULL, NULL);
 		clEnqueueWriteBuffer(this->m_pContextTAN->GetOpenCLGeneralQueue(), m_clOutputTaps, CL_TRUE, 0, sizeof(float) * m_numOutputTaps*m_channels, outputTaps, 0, NULL, NULL);
 #else
-        throw "Not implemented";
+        THROW_NOT_IMPLEMENTED;
 
         return AMF_NOT_IMPLEMENTED;
 #endif
@@ -479,7 +480,7 @@ AMF_RESULT  AMF_STD_CALL    TANIIRfilterImpl::Process(float* ppBufferInput[],
 		*pNumOfSamplesProcessed = numOfSamplesToProcess;
 	}
 #else
-    throw "Not implemented";
+    THROW_NOT_IMPLEMENTED;
 
     return AMF_NOT_IMPLEMENTED;
 #endif

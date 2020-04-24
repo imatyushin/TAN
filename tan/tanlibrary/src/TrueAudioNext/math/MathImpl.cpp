@@ -23,6 +23,7 @@
 #include "MathImpl.h"
 #include "../core/TANContextImpl.h"
 #include "OCLHelper.h"
+#include "Exceptions.h"
 
 #include "CLKernel_VectorComplexDivision.h"
 #include "CLKernel_VectorComplexMultiply.h"
@@ -180,14 +181,90 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
         if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL; }
     }
 
-	return AMF_OK;
 #else
 
-	throw "Not implemented!";
+	AMF_RETURN_IF_FALSE(
+		GetOclKernel(
+			mKernelComplexDiv,
+			m_pDeviceCompute,
 
-	return AMF_NOT_IMPLEMENTED;
+			"VectorComplexDivision",
+			VectorComplexDivision_Str,
+			VectorComplexDivisionCount,
+			"VectorComplexDiv",
+			"",
+
+			TANContextImplPtr(m_pContextTAN)->GetFactory()
+			),
+		AMF_FAIL
+		);
+
+	AMF_RETURN_IF_FALSE(
+		GetOclKernel(
+			mKernelComplexMul,
+			m_pDeviceCompute,
+
+			"VectorComplexMul",
+			VectorComplexMultiply_Str,
+			VectorComplexMultiplyCount,
+			"VectorComplexMul",
+			"",
+
+			TANContextImplPtr(m_pContextTAN)->GetFactory()
+			),
+		AMF_FAIL
+		);
+
+	AMF_RETURN_IF_FALSE(
+		GetOclKernel(
+			mKernelComplexSum,
+			m_pDeviceCompute,
+
+			"VectorComplexSum",
+			VectorComplexSum_Str,
+			VectorComplexSumCount,
+			"VectorComplexSum",
+			"",
+
+			TANContextImplPtr(m_pContextTAN)->GetFactory()
+			),
+		AMF_FAIL
+		);
+	AMF_RETURN_IF_FALSE(
+		GetOclKernel(
+			mKernelComplexSum,
+			m_pDeviceCompute,
+
+			"VectorComplexSum",
+			VectorComplexSum_Str,
+			VectorComplexSumCount,
+			"VectorComplexSum",
+			"",
+
+			TANContextImplPtr(m_pContextTAN)->GetFactory()
+			),
+		AMF_FAIL
+		);
+
+	AMF_RETURN_IF_FALSE(
+		GetOclKernel(
+			mKernelComplexMulAccum,
+			m_pDeviceCompute,
+
+			"VectorComplexMulAccum",
+			VectorComplexMultiplyAccumulate_Str,
+			VectorComplexMultiplyAccumulateCount,
+            "VectorComplexMulAccum",
+			"",
+
+			TANContextImplPtr(m_pContextTAN)->GetFactory()
+			),
+		AMF_FAIL
+		);
 
 #endif
+
+	return AMF_OK;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -226,7 +303,7 @@ AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
 	const amf_size requiredSize
 	)
 {
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
@@ -246,7 +323,7 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Terminate()
 	return AMF_OK;
 #else
 
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 
@@ -493,7 +570,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 			clErr = clEnqueueReadBuffer(m_clQueue, m_pInternalBufferOut_MulAccu, CL_TRUE, 0, requiredbuffersize, accumbuffers[channelId], 0, NULL, NULL);
 			if (clErr != CL_SUCCESS) { printf("Failed to copy from OPENCL to HOST memory"); return AMF_FAIL; }
 #else
-			throw "Not implemented";
+			THROW_NOT_IMPLEMENTED;
 
 			return AMF_NOT_IMPLEMENTED;
 #endif
@@ -683,7 +760,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	amf_uint32 channels,
     amf_size countOfComplexNumbers)
 {
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
@@ -699,7 +776,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
     amf_size countOfComplexNumbers
 	)
 {
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
@@ -789,7 +866,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
     amf_size countOfComplexNumbers
 	)
 {
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
@@ -853,7 +930,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 
 #else
 
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 
@@ -948,7 +1025,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 
 #else
 
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 
@@ -1144,7 +1221,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
     amf_size countOfComplexNumbers
 )
 {
-    throw "Not implemented!";
+    THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
@@ -1158,7 +1235,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	const amf_size accumBufferOffsetInSamples,
     amf_size countOfComplexNumbers)
 {
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
@@ -1217,7 +1294,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
 
 #else
 
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 
@@ -1295,7 +1372,7 @@ AMF_RESULT TANMathImpl::ComplexDivision(
     amf_size countOfComplexNumbers
 )
 {
-	throw "Not implemented!";
+	THROW_NOT_IMPLEMENTED;
 
 	return AMF_NOT_IMPLEMENTED;
 }
