@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +46,25 @@
 #include <sstream>
 #include <cmath>
 
-bool AmdTrueAudioVR::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
+#ifndef CLQUEUE_REFCOUNT
+#define CLQUEUE_REFCOUNT( clqueue ) { \
+		cl_uint refcount = 0; \
+		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
+		printf("\nFILE:%s line:%d Queue %llX ref count: %d\r\n", __FILE__ , __LINE__, clqueue, refcount); \
+}
+#endif
+
+#ifndef DBG_CLRELEASE
+#define DBG_CLRELEASE( clqueue, qname ) { \
+		cl_uint refcount = 0; \
+		clReleaseCommandQueue(clqueue); \
+		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
+		printf("\nFILE:%s line:%d %s %llX ref count: %d\r\n", __FILE__ , __LINE__,qname, clqueue, refcount); \
+}
+#endif
+
+//const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
+bool AmdTrueAudioVR::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
 
 const float AmdTrueAudioVR::S = 340.0; //Speed of sound
 
@@ -420,8 +440,8 @@ TrueAudioVRimpl::TrueAudioVRimpl(
 {
     if(m_cmdQueue)
     {
-        clRetainCommandQueue(queue);
-        //printf("Queue %llX +1\r\n", cmdQueue);
+        clRetainCommandQueue(m_cmdQueue);
+        CLQUEUE_REFCOUNT(m_cmdQueue);
     }
 }
 #else
@@ -443,6 +463,12 @@ TrueAudioVRimpl::TrueAudioVRimpl(
 
 TrueAudioVRimpl::~TrueAudioVRimpl()
 {
+#ifndef TAN_NO_OPENCL
+    if (m_cmdQueue != 0)
+	{
+		DBG_CLRELEASE(m_cmdQueue,"m_cmdQueue");
+	}
+#endif
 }
 
 AMF_RESULT TrueAudioVRimpl::Release()
@@ -457,7 +483,7 @@ AMF_RESULT TrueAudioVRimpl::Release()
     if (m_cmdQueue)
     {
         //printf("Queue release %llX\r\n", m_cmdQueue);
-        clReleaseCommandQueue(m_cmdQueue);
+        DBG_CLRELEASE(m_cmdQueue,"m_cmdQueue");
         m_cmdQueue = NULL;
     }
 
@@ -623,10 +649,11 @@ void TrueAudioVRimpl::applyHRTF(
     float srcVX, float srcVY, float srcVZ
     )
 {
-
+#ifdef _WIN32
     if (AmdTrueAudioVR::useIntrinsics){
-        return applyHRTFoptCPU(head, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
+        return applyHRTFoptCPU(pHead, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
     }
+#endif
 
     // dot prod
     float earV = sqrtf(earVX*earVX + earVY*earVY + earVZ*earVZ);

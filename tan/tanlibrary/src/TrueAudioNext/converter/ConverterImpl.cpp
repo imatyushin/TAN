@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,10 +20,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+//
 #include "ConverterImpl.h"
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
 #include "OCLHelper.h"
+#include "Debug.h"
 #include "cpucaps.h"
 
 #include <math.h>
@@ -32,8 +36,8 @@
 
 
 using namespace amf;
-
-bool TANConverterImpl::useSSE2 = InstructionSet::SSE2();
+//const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
+bool TANConverterImpl::useSSE2 = true; // InstructionSet::SSE2();
 
 static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 {
@@ -58,10 +62,12 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConverter(
 TANConverterImpl::TANConverterImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextTAN(pContextTAN),
     m_pContextAMF(pContextAMF),
+
 #ifndef TAN_NO_OPENCL
-    m_pCommandQueueCl(nullptr),
+    m_pQueueCl(nullptr),
     m_overflowBuffer(NULL),
 #endif
+
     m_eOutputMemoryType(AMF_MEMORY_HOST)
 {
     AMFPrimitivePropertyInfoMapBegin
@@ -81,26 +87,26 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
     AMF_RETURN_IF_FALSE(!m_pDeviceAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
 
 #ifndef TAN_NO_OPENCL
-    AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
+    AMF_RETURN_IF_FALSE(!m_pQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
 #else
-    printf("TODO: add check\n");
+    AMF_RETURN_IF_FALSE(!mQueueAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
 #endif
 
-    //todo: investigate why this works previously
-    //AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
-    //L"Cannot initialize after termination");
+    AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE, L"Cannot initialize after termination");
 
     // Determine how to initialize based on context, CPU for CPU and GPU for GPU
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
 #else
-    if(m_pContextTAN->GetAMFContext())
+    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
 #endif
     {
         return InitGpu();
     }
-
-    return InitCpu();
+    else
+    {
+        return InitCpu();
+    }
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitCpu()
@@ -119,19 +125,19 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
     /* OpenCL Initialization */
 
     // Given some command queue, retrieve the cl_context...
-    m_pCommandQueueCl = m_pContextTAN->GetOpenCLGeneralQueue();
-    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context),
+    m_pQueueCl = m_pContextTAN->GetOpenCLConvQueue();
+    ret = clGetCommandQueueInfo(m_pQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context),
         &m_pContextCl, NULL);
         AMF_RETURN_IF_CL_FAILED(ret,  L"Cannot retrieve cl_context from cl_command_queue.");
 
     // ...and cl_device from it
-    ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_DEVICE, sizeof(cl_device_id),
+    ret = clGetCommandQueueInfo(m_pQueueCl, CL_QUEUE_DEVICE, sizeof(cl_device_id),
         &m_pDeviceCl, NULL);
     AMF_RETURN_IF_CL_FAILED(ret, L"Cannot retrieve cl_device_id from cl_command_queue.");
 
     // Retain the queue for use
-    ret = clRetainCommandQueue(m_pCommandQueueCl);
-    //printf("Queue %llX +1\r\n", m_pCommandQueueCl);
+    ret = clRetainCommandQueue(m_pQueueCl);
+	CLQUEUE_REFCOUNT(m_pQueueCl);
 
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to retain command queue.");
 
@@ -139,25 +145,29 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
 	TANContextImplPtr contextImpl(m_pContextTAN);
-	m_pDeviceAMF = contextImpl->GetGeneralCompute();
+	m_pDeviceAMF = contextImpl->GetConvolutionCompute();
     int temp = 0;
     m_overflowBuffer = clCreateBuffer(
         m_pContextCl, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(amf_int32), &temp, &ret);
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create buffer");
 	//... Preparing OCL Kernel
 	bool OCLKenel_Err = false;
-	OCLKenel_Err = GetOclKernel(m_clkFloat2Float, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "floatToFloat", Converter, ConverterCount, "floatToFloat", "");
+	OCLKenel_Err = GetOclKernel(m_clkFloat2Float, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "floatToFloat", Converter, ConverterCount, "floatToFloat", "");
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel floatToFloat"); return AMF_FAIL; }
-	OCLKenel_Err = GetOclKernel(m_clkFloat2Short, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "floatToShort", Converter, ConverterCount, "floatToShort", "");
+	OCLKenel_Err = GetOclKernel(m_clkFloat2Short, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "floatToShort", Converter, ConverterCount, "floatToShort", "");
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel floatToShort"); return AMF_FAIL; }
-	OCLKenel_Err = GetOclKernel(m_clkShort2Short, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "shortToShort", Converter, ConverterCount, "shortToShort", "");
+	OCLKenel_Err = GetOclKernel(m_clkShort2Short, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "shortToShort", Converter, ConverterCount, "shortToShort", "");
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToShort"); return AMF_FAIL; }
-	OCLKenel_Err = GetOclKernel(m_clkShort2Float, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "shortToFloat", Converter, ConverterCount, "shortToFloat", "");
+	OCLKenel_Err = GetOclKernel(m_clkShort2Float, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "shortToFloat", Converter, ConverterCount, "shortToFloat", "");
 	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToFloat"); return AMF_FAIL; }
 
 #else
+
+    mQueueAMF = m_pContextTAN->GetAMFConvQueue();
+
     // Given some command queue, retrieve the cl_context...
-    m_pDeviceAMF = m_pContextTAN->GetAMFGeneralQueue();
+    TANContextImplPtr contextImpl(m_pContextTAN);
+	m_pDeviceAMF = contextImpl->GetConvolutionCompute();
 
     amf_int32 temp = 0;
     AMF_RETURN_IF_FAILED(
@@ -260,13 +270,12 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 
     m_pDeviceCl = NULL;
 
-    if(m_pCommandQueueCl)
+    if (m_pQueueCl)
     {
-        //printf("Queue release %llX\r\n", m_pCommandQueueCl);
-        cl_int ret = clReleaseCommandQueue(m_pCommandQueueCl);
-        AMF_RETURN_IF_CL_FAILED(ret, L"Failed to release command queue.");
-    }
-    m_pCommandQueueCl = NULL;
+        printf("Queue release %llX\r\n", m_pQueueCl);
+        DBG_CLRELEASE(m_pQueueCl,"m_pQueueCl");
+	}
+    m_pQueueCl = NULL;
     m_pKernelCopy = NULL;
     m_pContextAMF = NULL;
     m_pContextTAN = NULL;
@@ -290,7 +299,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 
     mOverflowBuffer = nullptr;
 
-    mGeneralQueue = nullptr;
+    //mGeneralQueue = nullptr;
 
     m_pContextAMF = nullptr;
     m_pContextTAN = nullptr;
@@ -605,7 +614,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     if (canOverflow && outputClipped != NULL)
     {
         clErr = clEnqueueWriteBuffer(
-            m_pCommandQueueCl, m_overflowBuffer, CL_FALSE, 0, sizeof(amf_int32), &overflowBufferOut,
+            m_pQueueCl, m_overflowBuffer, CL_FALSE, 0, sizeof(amf_int32), &overflowBufferOut,
             0, NULL, NULL);
         if (clErr != CL_SUCCESS)
         {
@@ -641,14 +650,14 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     amf_size global[3] = { numOfSamplesToProcess, 0, 0 };
     amf_size local[3] = { 0, 0, 0 };
     clErr = clEnqueueNDRangeKernel(
-        m_pCommandQueueCl, clKernel, 1, NULL, global, NULL, 0, NULL, NULL);
+        m_pQueueCl, clKernel, 1, NULL, global, NULL, 0, NULL, NULL);
     if (clErr != CL_SUCCESS) { printf("Failed to enqueue OpenCL kernel\n"); return AMF_FAIL; }
 
     // Retrieve overflow results (if any) and finish OpenCL operations
     if (canOverflow && outputClipped != NULL)
     {
         clErr = clEnqueueReadBuffer(
-            m_pCommandQueueCl, m_overflowBuffer, CL_TRUE, 0, sizeof(amf_int32), &overflowBufferOut,
+            m_pQueueCl, m_overflowBuffer, CL_TRUE, 0, sizeof(amf_int32), &overflowBufferOut,
             0, NULL, NULL);
         if (clErr != CL_SUCCESS)
         {
@@ -709,7 +718,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     if (canOverflow && outputClipped != NULL)
     {
         AMF_RETURN_IF_FAILED(
-            mGeneralQueue->CopyBufferFromHost(
+            mQueueAMF->CopyBufferFromHost(
                 &overflowBufferOut,
                 sizeof(amf_int32),
                 mOverflowBuffer,
@@ -750,7 +759,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     if (canOverflow && outputClipped != NULL)
     {
         AMF_RETURN_IF_FAILED(
-            mGeneralQueue->CopyBufferToHost(
+            mQueueAMF->CopyBufferToHost(
                 mOverflowBuffer,
                 0,
                 sizeof(amf_int32),
@@ -761,7 +770,9 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
 
         *outputClipped = overflowBufferOut;
     }
+
 #endif
+
     return res;
 }
 

@@ -104,7 +104,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
 #else
-    if(m_pContextTAN->GetAMFContext())
+    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
 #endif
     {
         return InitGpu();

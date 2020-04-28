@@ -85,7 +85,10 @@ namespace amf
 				{
                     for(size_t channel(0); channel < mSize; ++mSize)
                     {
-                        assert(!buffer.host[channel]);
+                        if(buffer.host[channel])
+                        {
+                            assert(!buffer.host[channel]);
+                        }
                     }
 
                     delete[] buffer.host;
@@ -100,7 +103,10 @@ namespace amf
 				{
                     for(size_t channel(0); channel < mSize; ++mSize)
                     {
-                        assert(!buffer.clmem[channel]);
+                        if(buffer.clmem[channel])
+                        {
+                            assert(!buffer.clmem[channel]);
+                        }
                     }
 
 					delete[] buffer.clmem;
@@ -182,7 +188,7 @@ namespace amf
         }
 
 #ifndef TAN_NO_OPENCL
-        
+
         void PrepareCL(size_t channelsCount)
         {
             assert(!mAllocated);
@@ -205,9 +211,9 @@ namespace amf
 
             buffer.clmem = buffers;
         }
-        
+
 #else
-        
+
         void PrepareAMF(size_t channelsCount)
         {
             assert(!mAllocated);
@@ -259,7 +265,7 @@ namespace amf
         void AllocateHostData(size_t index, size_t size)
         {
             assert(!buffer.host[index]);
-            
+
             buffer.host[index] = new float[size];
             std::memset(buffer.host[index], 0, sizeof(float) * size);
         }
@@ -267,7 +273,7 @@ namespace amf
         void FreeHostData(size_t index)
         {
             assert(buffer.host[index]);
-            
+
             delete [] buffer.host[index], buffer.host[index] = nullptr;
         }
     };

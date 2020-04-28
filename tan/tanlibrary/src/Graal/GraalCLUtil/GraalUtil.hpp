@@ -643,6 +643,8 @@ int isPowerOf2(T val)
         */
 static std::string getPath()
 {
+    printf("todo: use utils!\n");
+
 #ifdef _WIN32
     char buffer[MAX_PATH];
 #ifdef UNICODE

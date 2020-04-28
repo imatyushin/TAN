@@ -98,7 +98,7 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
 #else
-    if(m_pContextTAN->GetAMFContext())
+    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
 #endif
     {
         return InitGpu();
@@ -654,7 +654,6 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 }
 
 #ifndef TAN_NO_OPENCL
-
 AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	const cl_mem inputBuffers1,
 	const cl_mem inputBuffers2,
@@ -672,7 +671,6 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	AMF_RETURN_IF_FALSE(channels > 0, AMF_INVALID_ARG, L"channels == 0");
 	AMF_RETURN_IF_FALSE(countOfComplexNumbers > 0, AMF_INVALID_ARG, L"countOfComplexNumbers == 0");
 	AMF_RETURN_IF_FALSE(!(countOfComplexNumbers & 1), AMF_INVALID_ARG, L"countOfComplexNumbers is odd not supported by OpenCL kernel");
-
 
 	AMFLock lock(&m_sect);
 
@@ -706,8 +704,25 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 
 	return AMF_OK;
 }
+#else
+AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
+	const AMFBuffer * inputBuffers1,
+	const AMFBuffer * inputBuffers2,
+	AMFBuffer * accumBuffers,
+	amf_uint32 channels,
+	amf_size countOfComplexNumbers,
+	amf_size inputOffset1,
+	amf_size inputOffset2,
+	amf_size inputStride1,
+	amf_size inputStride2)
+{
+	THROW_NOT_IMPLEMENTED;
 
-//-------------------------------------------------------------------------------------------------
+	return AMF_NOT_IMPLEMENTED;
+}
+#endif
+
+#ifndef TAN_NO_OPENCL
 AMF_RESULT TANMathImpl::ComplexMultiplication(
 	const cl_mem inputBuffers1[],
 	const amf_size buffers1OffsetInSamples[],
@@ -747,24 +762,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 
 	return AMF_OK;
 }
-
 #else
-
-AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
-	const AMFBuffer * inputBuffers1[],
-	const amf_size buffers1OffsetInSamples[],
-	const AMFBuffer * inputBuffers2[],
-	const amf_size buffers2OffsetInSamples[],
-	AMFBuffer * accumBuffers[],
-	const amf_size accumBuffersOffsetInSamples[],
-	amf_uint32 channels,
-    amf_size countOfComplexNumbers)
-{
-	THROW_NOT_IMPLEMENTED;
-
-	return AMF_NOT_IMPLEMENTED;
-}
-
 AMF_RESULT TANMathImpl::ComplexMultiplication(
 	const AMFBuffer * inputBuffers1[],
 	const amf_size buffers1OffsetInSamples[],
@@ -780,7 +778,6 @@ AMF_RESULT TANMathImpl::ComplexMultiplication(
 
 	return AMF_NOT_IMPLEMENTED;
 }
-
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -964,7 +961,9 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 		if (clErr != CL_SUCCESS){ printf("Failed to copy from HOST to OPENCL memory"); return AMF_FAIL; }
 		clErr = clEnqueueWriteBuffer(m_clQueue, m_pInternalBufferIn2_MulAccu, CL_TRUE, 0, requiredbuffersize, inputBuffer2, 0, NULL, NULL);
 		if (clErr != CL_SUCCESS){ printf("Failed to copy from HOST to OPENCL memory"); return AMF_FAIL; }
-        ComplexMultiplyAccumulate(m_pInternalBufferIn1_MulAccu, 0, m_pInternalBufferIn2_MulAccu, 0, m_pInternalBufferOut_MulAccu, 0, countOfComplexNumbers);
+
+		ComplexMultiplyAccumulate(m_pInternalBufferIn1_MulAccu, 0, m_pInternalBufferIn2_MulAccu, 0, m_pInternalBufferOut_MulAccu, 0, countOfComplexNumbers);
+
 		clErr = clEnqueueReadBuffer(m_clQueue, m_pInternalBufferOut_MulAccu, CL_TRUE, 0, 2 * sizeof(float), accumBuffer, 0, NULL, NULL);
 		if (clErr != CL_SUCCESS){ printf("Failed to copy from OPENCL to HOST memory"); return AMF_FAIL; }
 	}

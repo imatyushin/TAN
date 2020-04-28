@@ -137,7 +137,7 @@ namespace amf
         AMFCriticalSection          m_sect;
 
 #ifndef TAN_NO_OPENCL
-        cl_command_queue			m_pCommandQueueCl;
+        cl_command_queue			m_pQueueCl;
         cl_context					m_pContextCl;
         cl_device_id				m_pDeviceCl;
 
@@ -151,7 +151,7 @@ namespace amf
         cl_mem                      m_overflowBuffer = NULL;
 #else
 
-        amf::AMFComputePtr          mGeneralQueue;
+        amf::AMFComputePtr          mQueueAMF;
         //amf::AMFComputeKernelPtr    mKernel;
 
         amf::AMFComputeKernelPtr    mFloat2Short;

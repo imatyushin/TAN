@@ -551,6 +551,30 @@ namespace amf
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
 
+#ifndef TAN_NO_OPENCL
+        virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                        const cl_mem inputBuffers1,
+                                                        const cl_mem inputBuffers2,
+                                                        cl_mem accumBuffers,
+                                                        amf_uint32 channels,
+                                                        amf_size countOfComplexNumbers,
+                                                        amf_size inputOffset1,
+                                                        amf_size inputOffset2,
+                                                        amf_size inputStride1,
+                                                        amf_size inputStride2) = 0;
+#else
+        virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                        const AMFBuffer * inputBuffers1,
+                                                        const AMFBuffer * inputBuffers2,
+                                                        AMFBuffer * accumBuffers,
+                                                        amf_uint32 channels,
+                                                        amf_size countOfComplexNumbers,
+                                                        amf_size inputOffset1,
+                                                        amf_size inputOffset2,
+                                                        amf_size inputStride1,
+                                                        amf_size inputStride2) = 0;
+#endif
+
 		virtual AMF_RESULT PlanarComplexMultiplyAccumulate(const float* const inputBuffers1[],
 			const float* const inputBuffers2[],
 			float *accumbuffers[],
@@ -567,27 +591,23 @@ namespace amf
 #endif
 
 #ifndef TAN_NO_OPENCL
-
-        virtual AMF_RESULT ComplexMultiplyAccumulate(	const cl_mem inputBuffers1[],
+        /*virtual AMF_RESULT ComplexMultiplyAccumulate(	const cl_mem inputBuffers1[],
 														const amf_size buffers1OffsetInSamples[],
 														const cl_mem inputBuffers2[],
 														const amf_size buffers2OffsetInSamples[],
 														cl_mem accumBuffers[],
 														const amf_size accumBuffersOffsetInSamples[],
 														amf_uint32 channels,
-														amf_size numOfSamplesToProcess) = 0;
-
+														amf_size numOfSamplesToProcess) = 0;*/
 #else
-
-		virtual AMF_RESULT ComplexMultiplyAccumulate(	const AMFBuffer * inputBuffers1[],
+		/*virtual AMF_RESULT ComplexMultiplyAccumulate(	const AMFBuffer * inputBuffers1[],
 														const amf_size buffers1OffsetInSamples[],
 														const AMFBuffer * inputBuffers2[],
 														const amf_size buffers2OffsetInSamples[],
 														AMFBuffer * accumBuffers[],
 														const amf_size accumBuffersOffsetInSamples[],
 														amf_uint32 channels,
-														amf_size numOfSamplesToProcess) = 0;
-
+														amf_size numOfSamplesToProcess) = 0;*/
 #endif
 
 
@@ -668,27 +688,19 @@ namespace amf
 
 
 #ifndef TAN_NO_OPENCL
-
-        virtual AMF_RESULT  AMF_STD_CALL    Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
-                                                      amf_uint32 log2len,
-                                                      amf_uint32 channels,
-                                                      cl_mem pBufferInput[],
-                                                      cl_mem pBufferOutput[]) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    TransformBatchGPU(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                       amf_uint32 log2len,
                                                       amf_uint32 channels,
                                                       cl_mem pBufferInput,
                                                       cl_mem pBufferOutput,
                                                       int dataSpacing) = 0;
-
 #else
-
-        virtual AMF_RESULT  AMF_STD_CALL    Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
+        virtual AMF_RESULT  AMF_STD_CALL    TransformBatchGPU(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                       amf_uint32 log2len,
                                                       amf_uint32 channels,
-                                                      AMFBuffer * pBufferInput[],
-                                                      AMFBuffer * pBufferOutput[]) = 0;
-
+                                                      AMFBuffer * pBufferInput,
+                                                      AMFBuffer * pBufferOutput,
+			                                          int dataSpacing) = 0;
 #endif
 
 	};
@@ -759,19 +771,15 @@ namespace amf
 		virtual AMF_RESULT  AMF_STD_CALL    InitOpenMP(int nThreads) = 0;
 
 #ifndef TAN_NO_OPENCL
-
         virtual cl_context  AMF_STD_CALL    GetOpenCLContext() = 0;
         virtual	cl_command_queue
                             AMF_STD_CALL    GetOpenCLGeneralQueue() = 0;
         virtual	cl_command_queue
                             AMF_STD_CALL    GetOpenCLConvQueue() = 0;
-
 #else
-
         virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFGeneralQueue() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFConvQueue() = 0;
-
 #endif
 
         virtual amf::AMFFactory *           GetFactory() = 0;

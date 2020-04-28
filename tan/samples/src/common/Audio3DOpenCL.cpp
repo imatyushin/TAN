@@ -433,6 +433,11 @@ AMF_RESULT Audio3DOpenCL::Init
             );
     }
 
+    auto factory = g_AMFFactory.GetFactory();
+
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext, factory), L"TANCreateContext mTANConvolutionContext failed");
+    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext, factory), L"TANCreateContext mTANRoomContext failed");
+
     // Allocate RT-Queues
     {
         mCmdQueue1 = mCmdQueue2 = mCmdQueue3 = nullptr;
@@ -516,9 +521,6 @@ AMF_RESULT Audio3DOpenCL::Init
             }
         }
     }
-
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext));
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext));
 
     //convolution over OpenCL
     if(useCLConvolution)

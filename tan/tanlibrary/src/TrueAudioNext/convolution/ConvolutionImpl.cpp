@@ -1729,7 +1729,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 			else
             {
 #ifndef TAN_NO_OPENCL
-				m_tdFilterState[i]->ResetCL();
+				m_tdFilterState[i]->DeallocateCL();
 #else
                 THROW_NOT_IMPLEMENTED;
 
