@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +25,7 @@
 
 #include "TrueAudioVR.h"
 #include "GpuUtils.h"
+#include "Debug.h"
 #include "cpucaps.h"
 
 #include "public/common/TraceAdapter.h"
@@ -58,7 +61,7 @@
 #include <iomanip>
 /**/
 
-bool Audio3DOpenCL::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
+bool Audio3DOpenCL::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
 
 #ifndef ERROR_MESSAGE
 
@@ -787,6 +790,8 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
                     1.f
                     )
                 );
+
+            PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
 
@@ -821,7 +826,7 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
             mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
         RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 
-        cl_int clErr = clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLGeneralQueue(), mOutputShortBuf, CL_TRUE,
+        cl_int clErr = clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLConvQueue(), mOutputShortBuf, CL_TRUE,
              0, sampleCountBytes, pOut, NULL, NULL, NULL);
         RETURN_IF_FALSE(clErr == CL_SUCCESS);
         /**/

@@ -46,6 +46,7 @@
 
 #include "cpucaps.h"
 #include "Exceptions.h"
+#include "Debug.h"
 
 #include "clFFT.h"
 #include "sharedLibrary.h"
@@ -65,7 +66,8 @@
 #define AMF_FACILITY L"TANFFTImpl"
 
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
-bool amf::TANFFTImpl::useIntrinsics = false; // InstructionSet::AVX() && InstructionSet::FMA();
+//ivm: bool amf::TANFFTImpl::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
+bool amf::TANFFTImpl::useIntrinsics = false;
 
 using namespace amf;
 
@@ -636,7 +638,7 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 
             //фурацилин окомистин аквалор називин 00.25 мирамистин стодаль от кашля
 
-            PrintAMFArrayWithOffset("CopyBufferFromHost result", mInputsAMF, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
+            //PrintAMFArrayWithOffset("CopyBufferFromHost result", mInputsAMF, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
         }
 
         AMF_RETURN_IF_FAILED(
@@ -645,7 +647,7 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 
         for (amf_uint32 i = 0; i < channels; i++)
         {
-            PrintAMFArrayWithOffset("after TransformImplGPUBatched mOutputsAMF", mOutputsAMF, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
+            //PrintAMFArrayWithOffset("after TransformImplGPUBatched mOutputsAMF", mOutputsAMF, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
 
             AMF_RETURN_IF_FAILED(
                 cmdQueue->CopyBufferToHost(

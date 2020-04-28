@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,10 +20,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+//
+
 #include "MixerImpl.h"
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
 #include "OCLHelper.h"
+#include "Debug.h"
 #include "cpucaps.h"
 
 #include <math.h>
@@ -35,7 +40,7 @@
 
 using namespace amf;
 
-bool TANMixerImpl::useSSE2 = InstructionSet::SSE2();
+bool TANMixerImpl::useSSE2 = true; // InstructionSet::SSE2();
 
 static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 {
@@ -109,10 +114,11 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     {
         return InitGpu();
     }
-
-    return InitCpu();
+    else
+    {
+        return InitCpu();
+    }
 }
-
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitCpu()
 {
@@ -130,7 +136,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     /* OpenCL Initialization */
 
     // Given some command queue, retrieve the cl_context...
-    m_pCommandQueueCl = m_pContextTAN->GetOpenCLGeneralQueue();
+    m_pCommandQueueCl = m_pContextTAN->GetOpenCLConvQueue();
     ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context),
         &m_pContextCl, NULL);
         AMF_RETURN_IF_CL_FAILED(ret,  L"Cannot retrieve cl_context from cl_command_queue.");
@@ -142,7 +148,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     // Retain the queue for use
     ret = clRetainCommandQueue(m_pCommandQueueCl);
-    //printf("Queue %llX +1\r\n", m_pCommandQueueCl);
+	CLQUEUE_REFCOUNT(m_pCommandQueueCl);
 
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to retain command queue.");
 
@@ -150,25 +156,24 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
     TANContextImplPtr contextImpl(m_pContextTAN);
-    mAMFCompute = contextImpl->GetGeneralCompute();
+    mAMFCompute = contextImpl->GetConvolutionCompute();
 
     m_internalBuff = clCreateBuffer(m_pContextTAN->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufferSize * m_numChannels * sizeof(float), nullptr, &ret);
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create CL buffer");
     //... Preparing OCL Kernel
     bool OCLKenel_Err = false;
-    OCLKenel_Err = GetOclKernel(m_clMix, mAMFCompute, contextImpl->GetOpenCLGeneralQueue(), "Mixer", Mixer, MixerCount, "Mixer", "");
+    OCLKenel_Err = GetOclKernel(m_clMix, mAMFCompute, contextImpl->GetOpenCLConvQueue(), "Mixer", Mixer, MixerCount, "Mixer", "");
     if (!OCLKenel_Err){ printf("Failed to compile Mixer Kernel"); return AMF_FAIL; }
 	mInitialized = true;
     return res;
 
 #else
-
     amf_int64 tmp = 0;
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
 
     TANContextImplPtr contextImpl(m_pContextTAN);
-    mAMFCompute = contextImpl->GetGeneralCompute();
+    mAMFCompute = contextImpl->GetConvolutionCompute();
     AMF_RETURN_IF_FALSE(mAMFCompute != nullptr, AMF_FAIL);
 
     AMF_RETURN_IF_FAILED(
@@ -199,7 +204,6 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
 #endif
 }
-
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
 {
@@ -214,21 +218,11 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
         m_clMix = nullptr;
 
     }
-
-    if(m_internalBuff)
-    {
-        clReleaseMemObject(m_internalBuff);
-        m_internalBuff = nullptr;
-    }
-
     m_pDeviceCl = NULL;
     if (m_pCommandQueueCl)
     {
-        //printf("Queue release %llX\r\n", m_pCommandQueueCl);
-        cl_int ret = clReleaseCommandQueue(m_pCommandQueueCl);
-        AMF_RETURN_IF_CL_FAILED(ret, L"Failed to release command queue.");
+        DBG_CLRELEASE(m_pCommandQueueCl,"m_pCommandQueueCl");
     }
-
     m_pCommandQueueCl = NULL;
     m_pContextAMF = NULL;
     m_pContextTAN = NULL;
@@ -307,7 +301,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     amf_size global[3] = { numOfSamplesToProcess, 0, 0 };
     amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 0, 0 };
     //amf_size local[3] = { 1, 0, 0 };
-    int status = clEnqueueNDRangeKernel(m_pContextTAN->GetOpenCLGeneralQueue(), m_clMix, 1, NULL, global, local, 0, NULL, NULL);
+    int status = clEnqueueNDRangeKernel(m_pContextTAN->GetOpenCLConvQueue(), m_clMix, 1, NULL, global, local, 0, NULL, NULL);
     AMF_RETURN_IF_CL_FAILED(status, L"Failed to enqueue OCL kernel");
     return AMF_OK;
 }
@@ -323,7 +317,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     for (int i = 0; i < m_numChannels; i++)
     {
         int status = clEnqueueCopyBuffer(
-            m_pContextTAN->GetOpenCLGeneralQueue(),
+            m_pContextTAN->GetOpenCLConvQueue(),
             pBufferInput[i],
             m_internalBuff,
             0,

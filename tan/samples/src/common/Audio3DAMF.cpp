@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +27,7 @@
 #include "GpuUtils.h"
 #include "cpucaps.h"
 #include "Exceptions.h"
+#include "Debug.h"
 
 #include "public/common/TraceAdapter.h"
 #include "public/common/AMFFactory.h"
@@ -751,8 +754,11 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                     1.f
                     )
                 );
+
+            PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
+
 
     if(mUseAMFBuffers)
     {
@@ -819,7 +825,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
         AMF_RETURN_IF_FAILED(
-            mCompute1->CopyBufferToHost(
+            //mCompute1->CopyBufferToHost(
+            mCompute2->CopyBufferToHost(
                 mOutputShortAMFBuffer,
                 0,
                 sampleCountBytes,

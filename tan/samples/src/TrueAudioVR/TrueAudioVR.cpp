@@ -35,6 +35,7 @@
 #include "OCLHelper.h"
 #include "cpucaps.h"
 #include "Exceptions.h"
+#include "Debug.h"
 
 #if !defined(__APPLE__) && !defined(__MACOSX)
   #include <omp.h>
