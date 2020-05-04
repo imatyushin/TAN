@@ -1,4 +1,4 @@
-TrueAudio Next 1.2 release notes
+TrueAudio Next 1.3 release notes
 New features in this release:
 
 •	GPU accelerated Mixer
@@ -7,4 +7,5 @@ New features in this release:
 •	Time domain convolution and Doppler sample
 •	GPU utility function to list TAN enabled devices and their capabilities
 •	TAN is now integrated in Steam Audio
+
 https://gpuopen.com/trueaudio-next-now-integrated-steam-audio/
