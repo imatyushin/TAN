@@ -1,0 +1,1 @@
+#define TRUE_AUDIO_NEXT_VERSION "1.2.2"
