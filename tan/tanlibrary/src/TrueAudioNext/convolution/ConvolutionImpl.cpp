@@ -3319,14 +3319,14 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     //m_internalOutBufs.mType = pOutputData.mType;
     //printf("\n\nTEST TYPE!!!\n\n");
 
-    if(m_internalInBufs.IsSet())
+    //if(m_internalInBufs.IsSet())
     {
-        m_internalInBufs.Release();
+        //m_internalInBufs.Release();
     }
 
-    if(m_internalOutBufs.IsSet())
+    //if(m_internalOutBufs.IsSet())
     {
-        m_internalOutBufs.Release();
+        //m_internalOutBufs.Release();
     }
 
 	for (amf_uint32 channelId = 0; channelId < static_cast<amf_uint32>(m_iChannels); channelId++)
@@ -3337,6 +3337,10 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             {
                 m_internalInBufs.PrepareHost(m_iChannels);
             }
+            //else
+            //{
+            //    assert(m_internalInBufs.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST);
+            //}
 
             if(!m_internalOutBufs.IsSet())
             {
@@ -3356,6 +3360,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
             if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL)
             {
+                assert(m_internalOutBufs.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL);
+                
 #ifndef TAN_NO_OPENCL
                 m_internalOutBufs.buffer.clmem[idxInt] = pOutputData.buffer.clmem[channelId];
 #else
@@ -3364,6 +3370,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             }
             else if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
             {
+                assert(m_internalOutBufs.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST);
+                
                 //m_internalInBufs.buffer.host[channelId] = m_silence;
 		        //hack
 		        m_internalOutBufs.buffer.host[idxInt] = pOutputData.buffer.host[channelId];

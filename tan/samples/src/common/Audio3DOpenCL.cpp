@@ -73,24 +73,6 @@ bool Audio3DOpenCL::useIntrinsics = true; // InstructionSet::AVX() && Instructio
 
 #endif
 
-#define RETURN_IF_FAILED(x) \
-{ \
-    AMF_RESULT tmp = (x); \
-    if (tmp != AMF_OK) { \
-        ERROR_MESSAGE(int(x)); \
-        return -1; \
-    } \
-}
-
-#define RETURN_IF_FALSE(x) \
-{ \
-    bool tmp = (x); \
-    if (!tmp) { \
-        ERROR_MESSAGE(int(x)); \
-        return -1; \
-    } \
-}
-
 #define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
 
 unsigned Audio3DOpenCL::processThreadProc(void * ptr)
@@ -780,7 +762,7 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
         for (int chan = 0; chan < 2; chan++){
             // The way sources in inputFloatBufs are ordered is: Even indexed elements for left channels, odd indexed ones for right,
             // this ordering matches with the way impulse responses are generated and indexed to be convolved with the sources.
-            RETURN_IF_FAILED(
+            AMF_RETURN_IF_FAILED(
                 mConverter->Convert(
                     pChan[idx] + chan,
                     2,
@@ -797,11 +779,13 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
 
     if (m_useOCLOutputPipeline)
     {
-        /**/
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
 
-        RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
+        AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
+
+        PrintCLArray("::Convolution->Process[0]", mOutputCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArray("::Convolution->Process[1]", mOutputCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
         cl_mem outputCLBufLeft[MAX_SOURCES];
         cl_mem outputCLBufRight[MAX_SOURCES];
@@ -812,30 +796,31 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
             outputCLBufRight[src] = mOutputCLBufs[src*2+1];// Odd indexed channels for right ear input
         }
 
-        AMF_RESULT ret = mMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]);
-        RETURN_IF_FALSE(ret == AMF_OK);
+        AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]));
+        AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]));
 
-        ret = mMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]);
-        RETURN_IF_FALSE(ret == AMF_OK);
+        PrintCLArray("::Mixer->Mix[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArray("::Mixer->Mix[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
-        ret = mConverter->Convert(mOutputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
+        auto ret = mConverter->Convert(mOutputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
             mOutputShortBuf, 2, 0, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
         ret = mConverter->Convert(mOutputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
             mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
-        cl_int clErr = clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLConvQueue(), mOutputShortBuf, CL_TRUE,
-             0, sampleCountBytes, pOut, NULL, NULL, NULL);
-        RETURN_IF_FALSE(clErr == CL_SUCCESS);
-        /**/
+        PrintCLArray("::Convolution->Process[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArray("::Convolution->Process[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
+
+        AMF_RETURN_IF_CL_FAILED(clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLConvQueue(), mOutputShortBuf, CL_TRUE,
+             0, sampleCountBytes, pOut, NULL, NULL, NULL));
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
         // Mixing and short conversion are still performed on CPU.
 
-        RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputFloatBufs, sampleCount,
+        AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputFloatBufs, sampleCount,
             nullptr, nullptr));
 
         float * outputFloatBufLeft[MAX_SOURCES];
@@ -847,21 +832,18 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
             outputFloatBufRight[src] = mOutputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        AMF_RESULT ret(AMF_OK);
+        AMF_RETURN_IF_FAILED(mMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]));
+        AMF_RETURN_IF_FAILED(mMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]));
 
-        ret = mMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]);
-        RETURN_IF_FALSE(ret == AMF_OK);
-
-        ret = mMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]);
-        RETURN_IF_FALSE(ret == AMF_OK);
-
-        ret = mConverter->Convert(mOutputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        auto ret = mConverter->Convert(mOutputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
         ret = mConverter->Convert(mOutputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
-        RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
     }
 
+    PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
+    PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
 #if 0// Old code: Crossfade, Mixing and Conversion on CPU
 
@@ -908,6 +890,16 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
     ret = mConverter->Convert(outputFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
     RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
 #endif
+
+    static int counter(0);
+
+    std::cout << "Process " << counter << std::endl;
+
+    if(++counter == 2)
+    {
+        //assert(false);
+    }
+
     return 0;
 }
 
@@ -1198,7 +1190,7 @@ int Audio3DOpenCL::UpdateProc()
         }
 
         //todo: investigate about AMF_BUSY
-        RETURN_IF_FALSE(ret == AMF_OK /*|| ret == AMF_BUSY*/);
+        AMF_RETURN_IF_FAILED(ret);
 
         mUpdated = true;
 

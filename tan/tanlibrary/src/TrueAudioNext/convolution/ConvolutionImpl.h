@@ -83,11 +83,12 @@ namespace amf
             {
 				if(mAllocated)
 				{
-                    for(size_t channel(0); channel < mSize; ++mSize)
+                    for(size_t channel(0); channel < mSize; ++channel)
                     {
                         if(buffer.host[channel])
                         {
-                            assert(!buffer.host[channel]);
+                            std::cerr << "delete not deallocated data" << std::endl;
+                            assert(false);
                         }
                     }
 
@@ -101,11 +102,11 @@ namespace amf
             {
 				if(mAllocated)
 				{
-                    for(size_t channel(0); channel < mSize; ++mSize)
+                    for(size_t channel(0); channel < mSize; ++channel)
                     {
                         if(buffer.clmem[channel])
                         {
-                            assert(!buffer.clmem[channel]);
+                            assert(false);
                         }
                     }
 
@@ -119,7 +120,7 @@ namespace amf
             {
 				if(mAllocated)
 				{
-                    for(size_t channel(0); channel < mSize; ++mSize)
+                    for(size_t channel(0); channel < mSize; ++channel)
                     {
                         assert(!buffer.amfBuffers[channel]);
                     }
@@ -140,7 +141,7 @@ namespace amf
 #ifndef TAN_NO_OPENCL
             if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
             {
-				for(size_t channel(0); channel < mSize; ++mSize)
+				for(size_t channel(0); channel < mSize; ++channel)
                 {
                     clReleaseMemObject(buffer.clmem[channel]);
                     buffer.clmem[channel] = nullptr;

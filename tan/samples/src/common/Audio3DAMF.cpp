@@ -759,10 +759,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         }
     }
 
-
     if(mUseAMFBuffers)
     {
-        /**/
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
         AMF_RETURN_IF_FAILED(
@@ -774,6 +772,9 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 nullptr
                 )
             );
+
+        PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         static int i1 = 0;
 
@@ -793,8 +794,10 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         }
 
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
-
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
+
+        PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         auto amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[0],
@@ -824,6 +827,9 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
+        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer[0], mCompute1, sampleCount * sizeof(short));
+        PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer[1], mCompute1, sampleCount * sizeof(short));
+
         AMF_RETURN_IF_FAILED(
             //mCompute1->CopyBufferToHost(
             mCompute2->CopyBufferToHost(
@@ -849,6 +855,9 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
 
+        PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
+        PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
+
         AMF_RETURN_IF_FAILED(ret);
 
         float * outputFloatBufLeft[MAX_SOURCES];
@@ -871,6 +880,16 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 
         ret = mConverter->Convert(mOutputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
+    }
+
+    PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
+    PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
+
+    static int counter(0);
+
+    if(++counter == 2)
+    {
+        assert(false);
     }
 
     return 0;

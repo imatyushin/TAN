@@ -34,6 +34,20 @@ static void PrintFloatArray(const char * hint, float * array, size_t count, size
     std::cout << std::endl;
 }
 
+static void PrintShortArray(const char * hint, int16_t * array, size_t count, size_t max = 64)
+{
+    std::cout << std::endl << hint << ": " << count << std::endl;
+
+    uint8_t *data(reinterpret_cast<uint8_t *>(array));
+
+    for(size_t i(0); i < (count < max ? count : max); ++i)
+    {
+        std::cout << int(data[i]) << " ";
+    }
+
+    std::cout << std::endl;
+}
+
 #ifndef TAN_NO_OPENCL
 static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
 {

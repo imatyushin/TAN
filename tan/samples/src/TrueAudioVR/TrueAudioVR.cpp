@@ -622,6 +622,14 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     }
     //m_ata->Fft(1, &impulse, &impulse, log2len, AmdTrueAudio::TA_FFT_DIR::REVERSE);
 
+//для начала их версию потестировать
+//
+//standard deviation of the differeneces (squares)
+//shift (correlation)
+//
+//simple responce
+
+//описание работ для тестов
 
     // extract real part of each sample
     for (int k = 0; k<2 * fftLen; k += 2){
