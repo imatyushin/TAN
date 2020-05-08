@@ -41,7 +41,7 @@
 #define TAN_VERSION_MAJOR          1
 #define TAN_VERSION_MINOR          2
 #define TAN_VERSION_RELEASE        2
-#define TAN_VERSION_BUILD          4
+#define TAN_VERSION_BUILD          5
 
 #define TAN_FULL_VERSION ( (uint64_t(TAN_VERSION_MAJOR) << 48ull) |   \
                            (uint64_t(TAN_VERSION_MINOR) << 32ull) |   \
