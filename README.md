@@ -17,4 +17,4 @@ AMD TrueAudio Next is a software development kit for GPU accelerated and multi-c
 
 ### Attribution
 * AMD, the AMD Arrow logo, Radeon, LiquidVR and combinations thereof are either registered trademarks or trademarks of Advanced Micro Devices, Inc. in the United States and/or other countries.
-* Microsoft, Visual Studio, and Windows are either registered trademarks or trademarks of Microsoft Corporation in the United States and/or other countries.
+* Microsoft, Visual Studio, and Windows are either registered trademarks or trademarks of Microsoft Corporation in the United States and/or other countries. 
