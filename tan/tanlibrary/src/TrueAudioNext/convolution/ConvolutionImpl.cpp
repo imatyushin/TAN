@@ -124,7 +124,7 @@ TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     m_n_delays_onconv_switch = 0;
     m_onconv_switch_delay_counter = 0;
 
-    //memset(m_FilterState, 0, sizeof(m_FilterState));
+    memset(m_FilterState, 0, sizeof(m_FilterState));
 	memset(m_upFilterState, 0, sizeof(m_upFilterState));
 	m_tailLeftOver = nullptr;
     m_availableChannels = nullptr;
@@ -490,7 +490,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             if (pBuffer.GetType() == AMF_MEMORY_HOST)
             {
                 float **filter = m_tdFilterState[m_idxUpdateFilter]->m_Filter;
-
                 for (amf_uint32 n = 0; n < m_iChannels; n++){
                     if (!flagMasks || !(flagMasks[n] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT))
                     {
@@ -573,18 +572,14 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
                     inputBuffers = m_ovlAddLocalInBuffs;
                 }
-
-                //std::vector<float *> &filter = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Filter;
-                auto &filter = m_FilterState[m_idxUpdateFilter].m_Filter;
-                //std::vector<float *> &overlap = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Overlap;
-                auto &overlap = m_FilterState[m_idxUpdateFilter].m_Overlap;
+                float **filter = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Filter;
+                float **overlap = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Overlap;
 
                 for (amf_uint32 n = 0; n < m_iChannels; n++)
                 {
                     if (!flagMasks || !(flagMasks[n] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT))
                     {
-                        //memset(filter[n], 0, 2 * m_length * sizeof(float));
-                        m_FilterState[m_idxUpdateFilter].ClearFilter(n, 2 * m_length * sizeof(float));
+                        memset(filter[n], 0, 2 * m_length * sizeof(float));
 
                         for (int k = 0; k < numOfSamplesToProcess; k++)
                         {
@@ -592,8 +587,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 							filter[n][k << 1] = *(inputBuffers[n] + k); // inputBuffers[n][k];
 						}
 
-                        //m_accumulatedArgs.responses[n] = filter[n];
-                        m_accumulatedArgs.responses[n] = &filter[n].front();
+                        m_accumulatedArgs.responses[n] = filter[n];
                         m_accumulatedArgs.lens[n] = static_cast<int>(numOfSamplesToProcess);
                         m_accumulatedArgs.updatesCnt++;
                      }
@@ -1509,17 +1503,15 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
 
 	if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
 	{
-		auto &pFilterState = m_FilterState[filterStateId];
-		//float **overlap = pFilterState->m_Overlap;
-		//memset(overlap[channelId], 0, m_length * sizeof(float));
-        pFilterState.ClearOverlap(channelId, m_length * sizeof(float));
+		auto pFilterState = m_FilterState[filterStateId];
+		float **overlap = pFilterState->m_Overlap;
+		memset(overlap[channelId], 0, m_length * sizeof(float));
 	}
 	else if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM)
 	{
-		auto &pFilterState = m_upFilterState[filterStateId];
-		//float **overlap = pFilterState->m_Overlap;
-		//memset(overlap[channelId], 0, m_length * sizeof(float));
-        pFilterState.ClearOverlap(channelId, m_length * sizeof(float));
+		auto pFilterState = m_upFilterState[filterStateId];
+		float **overlap = pFilterState->m_Overlap;
+		memset(overlap[channelId], 0, m_length * sizeof(float));
 
 		int nParts = (1 << m_log2len) / (1 << m_log2bsz);
 
@@ -1544,10 +1536,9 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
 	}
 	else if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM)
 	{
-		auto &pFilterState = m_upFilterState[filterStateId];
-		//float **overlap = pFilterState->m_Overlap;
-		//memset(overlap[channelId], 0, m_length * sizeof(float));
-        pFilterState.ClearOverlap(channelId, m_length * sizeof(float));
+		auto pFilterState = m_upFilterState[filterStateId];
+		float **overlap = pFilterState->m_Overlap;
+		memset(overlap[channelId], 0, m_length * sizeof(float));
 
 		int nParts = (1 << m_log2len) / (1 << m_log2bsz);
 		nParts /= m_2ndBufSizeMultiple; //NU
@@ -1809,38 +1800,26 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         m_OutSamples = new float *[m_iChannels];
         m_ovlAddLocalInBuffs = new float *[m_iChannels];
         m_ovlAddLocalOutBuffs = new float *[m_iChannels];
-
         // allocate state data for ovlAddProcess:
-        //for (int i = 0; i < N_FILTER_STATES; i++)
-        //{
-        //    m_FilterState[i] = new ovlAddFilterState(m_iChannels);
-        //}
-        m_FilterState.assign(N_FILTER_STATES, m_iChannels);
-
-        for (int i = 0; i < N_FILTER_STATES; i++)
-        {
-            
+        for (int i = 0; i < N_FILTER_STATES; i++){
+            m_FilterState[i] = new ovlAddFilterState;
+            ((ovlAddFilterState *)m_FilterState[i])->m_Filter = new float *[m_iChannels];
+            ((ovlAddFilterState *)m_FilterState[i])->m_Overlap = new float *[m_iChannels];
+            ((ovlAddFilterState *)m_FilterState[i])->m_internalFilter = new float *[m_iChannels];
+            ((ovlAddFilterState *)m_FilterState[i])->m_internalOverlap = new float *[m_iChannels];
         }
-
-        for (amf_uint32 n = 0; n < m_iChannels; n++)
-        {
+        for (amf_uint32 n = 0; n < m_iChannels; n++){
             m_ovlAddLocalInBuffs[n] = new float[m_length];
             m_ovlAddLocalOutBuffs[n] = new float[m_iBufferSizeInSamples];
             m_OutSamples[n] = new float[2 * m_length];
             memset(m_OutSamples[n], 0, (2 * m_length) * sizeof(float));
-
-            for (int i = 0; i < N_FILTER_STATES; i++)
-            {
+            for (int i = 0; i < N_FILTER_STATES; i++){
                 ((ovlAddFilterState *)m_FilterState[i])->m_Filter[n] = new float[2 * m_length];
                 memset(((ovlAddFilterState *)m_FilterState[i])->m_Filter[n], 0, 2 * m_length*sizeof(float));
-
-                if (i == 0)
-                {
+                if (i == 0) {
                     ((ovlAddFilterState *)m_FilterState[i])->m_Overlap[n] = new float[m_length];
                     memset(((ovlAddFilterState *)m_FilterState[i])->m_Overlap[n], 0, m_length*sizeof(float));
-                }
-                else
-                {
+                } else{
                     ((ovlAddFilterState *)m_FilterState[i])->m_Overlap[n] = ((ovlAddFilterState *)m_FilterState[0])->m_Overlap[n];
                 }
             }
@@ -2229,19 +2208,9 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
        break;
 
     case TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD:
-        for (int i = 0; i < N_FILTER_STATES; i++)
-        {
-            m_FilterState[i].Deallocate();
-        }
-
-        /*
         // deallocate state data for ovlAddProcess:
-        for (amf_uint32 n = 0; n < m_iChannels; n++)
-        {
-            for (int i = 0; i < N_FILTER_STATES; i++)
-            {
-                m_FilterState[i].Deallocate();
-
+        for (amf_uint32 n = 0; n < m_iChannels; n++){
+            for (int i = 0; i < N_FILTER_STATES; i++) {
                 if (m_FilterState[i] && ((ovlAddFilterState *)m_FilterState[i])->m_Filter[n]) {
                     SAFE_ARR_DELETE(((ovlAddFilterState *)m_FilterState[i])->m_Filter[n]);
                     if (i == 0)
@@ -2250,9 +2219,6 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
                 }
             }
         }
-        */
-
-
         SAFE_ARR_DELETE(m_ovlAddLocalInBuffs);
         SAFE_ARR_DELETE(m_ovlAddLocalOutBuffs);
         for (int i = 0; m_FilterState[i] && i < N_FILTER_STATES; i++){
@@ -2262,7 +2228,6 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
             SAFE_ARR_DELETE(((ovlAddFilterState *)m_FilterState[i])->m_internalOverlap);
             SAFE_ARR_DELETE(m_FilterState[i]);
         }
-        */
         break;
 	case TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM:
 	case TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM:

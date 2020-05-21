@@ -743,50 +743,11 @@ namespace amf
         AMF_RESULT AMF_FAST_CALL Crossfade(
             TANSampleBuffer pBufferOutput, amf_size numOfSamplesToProcess);
 
-        typedef struct _ovlAddFilterState
-        {
-            std::vector<std::vector<float>> m_Filter;
-            std::vector<std::vector<float>> m_Overlap;
-            std::vector<std::vector<float>> m_internalFilter;
-            std::vector<std::vector<float>> m_internalOverlap;
-
-            _ovlAddFilterState(size_t channelsCount):
-                m_Filter(channelsCount),
-                m_Overlap(channelsCount),
-                m_internalFilter(channelsCount),
-                m_internalOverlap(channelsCount)
-            {
-            }
-
-            inline void Allocate(size_t size)
-            {
-            }
-
-            inline void Deallocate()
-            {
-                
-            }
-
-            inline void ClearFilter(size_t channel, size_t size)
-            {
-                ClearImplementation(m_Filter, channel, size);
-            }
-
-            inline void ClearOverlap(size_t channel, size_t size)
-            {
-                ClearImplementation(m_Overlap, channel, size);
-            }
-
-        protected:
-            inline void ClearImplementation(
-                std::vector<std::vector<float>> & storage,
-                size_t channel,
-                size_t size
-                )
-            {
-                //std::memset(m_Filter[channel], 0, size);
-                storage[channel].assign(size, 0);
-            }
+        typedef struct _ovlAddFilterState {
+            float **m_Filter;
+            float **m_Overlap;
+            float **m_internalFilter;
+            float **m_internalOverlap;
         } ovlAddFilterState;
 
 		int m_currentDataPartition = 0;
@@ -795,7 +756,7 @@ namespace amf
 		float **m_FilterTD = nullptr;
 
 		//const int m_PartitionPad = 8;
-		typedef struct  aQW_ovlUniformPartitionFilterState {
+		typedef struct _ovlUniformPartitionFilterState {
 			float **m_Filter;
 			float **m_DataPartitions;
 			float **m_Overlap;
@@ -826,14 +787,13 @@ namespace amf
 		} ovlNonUniformPartitionFilterState;
 
 #  define N_FILTER_STATES 3
-        std::vector<ovlAddFilterState>      m_FilterState;
-		_ovlUniformPartitionFilterState     *m_upFilterState[N_FILTER_STATES] = {nullptr};
-		_ovlUniformPartitionFilterState     *m_upTailState = nullptr;
-		_ovlNonUniformPartitionFilterState  *m_nupFilterState[N_FILTER_STATES] = {nullptr};
-		_ovlNonUniformPartitionFilterState  *m_nupTailState = nullptr;
-		tdFilterState                       *m_tdFilterState[N_FILTER_STATES] = {nullptr};
-        tdFilterState                       *m_tdInternalFilterState[N_FILTER_STATES] = {nullptr};
-
+        ovlAddFilterState *m_FilterState[N_FILTER_STATES] = {nullptr};
+		_ovlUniformPartitionFilterState *m_upFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlUniformPartitionFilterState *m_upTailState = nullptr;
+		_ovlNonUniformPartitionFilterState *m_nupFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlNonUniformPartitionFilterState *m_nupTailState = nullptr;
+		tdFilterState *m_tdFilterState[N_FILTER_STATES] = {nullptr};
+        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES] = {nullptr};
         int m_idxFilter = 1;                        // Currently USED current index.
         int m_idxPrevFilter = 0;                    // Currently USED previous index (for crossfading).
         int m_idxUpdateFilter = 2;                  // Next FREE  index.
@@ -1006,8 +966,7 @@ namespace amf
                 const GraalArgs &from,
                 amf_uint32 channelCnt,
                 amf_uint32 fromVersion,
-                amf_uint32 toVersion
-                )
+                amf_uint32 toVersion)
             {
                 Clear(channelCnt);
 
