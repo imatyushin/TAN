@@ -104,10 +104,7 @@ namespace amf
 				{
                     for(size_t channel(0); channel < mSize; ++channel)
                     {
-                        if(buffer.clmem[channel])
-                        {
-                            assert(false);
-                        }
+                        assert(!buffer.clmem[channel]);
                     }
 
 					delete[] buffer.clmem;
@@ -138,21 +135,32 @@ namespace amf
 
         void FreeObjects()
         {
+            assert(mAllocated);
+            assert(mType != AMF_MEMORY_UNKNOWN);
+
 #ifndef TAN_NO_OPENCL
-            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
+            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType /*&& buffer.clmem*/)
             {
+                assert(buffer.clmem);
+
 				for(size_t channel(0); channel < mSize; ++channel)
                 {
+                    assert(buffer.clmem[channel]);
+
                     clReleaseMemObject(buffer.clmem[channel]);
                     buffer.clmem[channel] = nullptr;
                 }
             }
 #else
-            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.amfBuffers)
+            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType /*&& buffer.amfBuffers*/)
             {
+                assert(buffer.amfBuffers);
+
 				for(size_t channel(0); channel < mSize; ++channel)
                 {
-                    if(buffer.amfBuffers[channel])
+                    assert(buffer.amfBuffers[channel]);
+
+                    //if(buffer.amfBuffers[channel])
                     {
                         buffer.amfBuffers[channel]->Release();
                         buffer.amfBuffers[channel] = nullptr;
@@ -160,14 +168,30 @@ namespace amf
                 }
             }
 #endif
+            else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST == mType /*&& buffer.amfBuffers*/)
+            {
+                assert(buffer.host);
 
-			mAllocated = false;
+				for(size_t channel(0); channel < mSize; ++channel)
+                {
+                    assert(buffer.host[channel]);
+
+                    //if(buffer.amfBuffers[channel])
+                    {
+                        delete [] buffer.host[channel];
+                        buffer.host[channel] = nullptr;
+                    }
+                }
+            }
+
+
+			//mAllocated = false; !not here
             mType = AMF_MEMORY_UNKNOWN;
         }
 
 		TANSampleBuffer & operator =(const TANSampleBuffer & other)
 		{
-			if(IsSet())
+            if(IsSet())
 			{
 				Release();
 			}
@@ -189,7 +213,6 @@ namespace amf
         }
 
 #ifndef TAN_NO_OPENCL
-
         void PrepareCL(size_t channelsCount)
         {
             assert(!mAllocated);
@@ -212,9 +235,7 @@ namespace amf
 
             buffer.clmem = buffers;
         }
-
 #else
-
         void PrepareAMF(size_t channelsCount)
         {
             assert(!mAllocated);
@@ -237,7 +258,6 @@ namespace amf
 
             buffer.amfBuffers = amfBuffers;
         }
-
 #endif
 
         void PrepareHost(size_t channelsCount)
@@ -723,11 +743,50 @@ namespace amf
         AMF_RESULT AMF_FAST_CALL Crossfade(
             TANSampleBuffer pBufferOutput, amf_size numOfSamplesToProcess);
 
-        typedef struct _ovlAddFilterState {
-            float **m_Filter;
-            float **m_Overlap;
-            float **m_internalFilter;
-            float **m_internalOverlap;
+        typedef struct _ovlAddFilterState
+        {
+            std::vector<std::vector<float>> m_Filter;
+            std::vector<std::vector<float>> m_Overlap;
+            std::vector<std::vector<float>> m_internalFilter;
+            std::vector<std::vector<float>> m_internalOverlap;
+
+            _ovlAddFilterState(size_t channelsCount):
+                m_Filter(channelsCount),
+                m_Overlap(channelsCount),
+                m_internalFilter(channelsCount),
+                m_internalOverlap(channelsCount)
+            {
+            }
+
+            inline void Allocate(size_t size)
+            {
+            }
+
+            inline void Deallocate()
+            {
+                
+            }
+
+            inline void ClearFilter(size_t channel, size_t size)
+            {
+                ClearImplementation(m_Filter, channel, size);
+            }
+
+            inline void ClearOverlap(size_t channel, size_t size)
+            {
+                ClearImplementation(m_Overlap, channel, size);
+            }
+
+        protected:
+            inline void ClearImplementation(
+                std::vector<std::vector<float>> & storage,
+                size_t channel,
+                size_t size
+                )
+            {
+                //std::memset(m_Filter[channel], 0, size);
+                storage[channel].assign(size, 0);
+            }
         } ovlAddFilterState;
 
 		int m_currentDataPartition = 0;
@@ -736,7 +795,7 @@ namespace amf
 		float **m_FilterTD = nullptr;
 
 		//const int m_PartitionPad = 8;
-		typedef struct _ovlUniformPartitionFilterState {
+		typedef struct  aQW_ovlUniformPartitionFilterState {
 			float **m_Filter;
 			float **m_DataPartitions;
 			float **m_Overlap;
@@ -767,13 +826,14 @@ namespace amf
 		} ovlNonUniformPartitionFilterState;
 
 #  define N_FILTER_STATES 3
-        ovlAddFilterState *m_FilterState[N_FILTER_STATES] = {nullptr};
-		_ovlUniformPartitionFilterState *m_upFilterState[N_FILTER_STATES] = {nullptr};
-		_ovlUniformPartitionFilterState *m_upTailState = nullptr;
-		_ovlNonUniformPartitionFilterState *m_nupFilterState[N_FILTER_STATES] = {nullptr};
-		_ovlNonUniformPartitionFilterState *m_nupTailState = nullptr;
-		tdFilterState *m_tdFilterState[N_FILTER_STATES] = {nullptr};
-        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES] = {nullptr};
+        std::vector<ovlAddFilterState>      m_FilterState;
+		_ovlUniformPartitionFilterState     *m_upFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlUniformPartitionFilterState     *m_upTailState = nullptr;
+		_ovlNonUniformPartitionFilterState  *m_nupFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlNonUniformPartitionFilterState  *m_nupTailState = nullptr;
+		tdFilterState                       *m_tdFilterState[N_FILTER_STATES] = {nullptr};
+        tdFilterState                       *m_tdInternalFilterState[N_FILTER_STATES] = {nullptr};
+
         int m_idxFilter = 1;                        // Currently USED current index.
         int m_idxPrevFilter = 0;                    // Currently USED previous index (for crossfading).
         int m_idxUpdateFilter = 2;                  // Next FREE  index.
@@ -946,7 +1006,8 @@ namespace amf
                 const GraalArgs &from,
                 amf_uint32 channelCnt,
                 amf_uint32 fromVersion,
-                amf_uint32 toVersion)
+                amf_uint32 toVersion
+                )
             {
                 Clear(channelCnt);
 

@@ -624,8 +624,6 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 
 		for (amf_uint32 i = 0; i < channels; i++)
         {
-            PrintFloatArray("CopyBufferFromHost ppBufferInput[i]", ppBufferInput[i], requiredChannelLengthInBytes);
-
             AMF_RETURN_IF_FAILED(
                 cmdQueue->CopyBufferFromHost(
                     ppBufferInput[i],
@@ -635,11 +633,7 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
                     true
                     )
                 );
-
-            //фурацилин окомистин аквалор називин 00.25 мирамистин стодаль от кашля
-
-            //PrintAMFArrayWithOffset("CopyBufferFromHost result", mInputsAMF, cmdQueue, requiredChannelLengthInBytes, i * requiredChannelLengthInBytes);
-        }
+		}
 
         AMF_RETURN_IF_FAILED(
             TransformImplGPUBatched(direction, log2len, channels, mInputsAMF, mOutputsAMF, 0)
@@ -658,10 +652,10 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
                     true
                     )
                 );
-
-            PrintFloatArray("copy to ppBufferOutput[i]", ppBufferOutput[i], requiredChannelLengthInBytes);
         }
 #endif
+
+		return AMF_OK;
     }
     // process
 #ifdef USE_IPP
@@ -678,7 +672,13 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
     }
     else
 	{
+    	PrintFloatArray("Transform-TransformImplCpu0", ppBufferInput[0], log2len);
+    	PrintFloatArray("Transform-TransformImplCpu1", ppBufferInput[1], log2len);
+
         res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
+
+    	PrintFloatArray("Transform-TransformImplCpu2", ppBufferOutput[0], log2len);
+    	PrintFloatArray("Transform-TransformImplCpu3", ppBufferOutput[1], log2len);
     }
 
     AMF_RETURN_IF_FAILED(res, L"Transform() failed");

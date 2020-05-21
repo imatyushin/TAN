@@ -105,7 +105,9 @@ void RoomAcousticQTConfig::Init()
 	updateAllSoundSourceGraphics();
 	updateListnerGraphics();
 
-	show();
+	showMaximized();
+
+	//show();
 }
 
 void RoomAcousticQTConfig::storeSelectedSoundSource()

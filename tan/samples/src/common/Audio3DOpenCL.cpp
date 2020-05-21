@@ -796,6 +796,9 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
             outputCLBufRight[src] = mOutputCLBufs[src*2+1];// Odd indexed channels for right ear input
         }
 
+        PrintCLArray("::outputCLBufLeft", outputCLBufLeft[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArray("::outputCLBufRight", outputCLBufRight[0], mCmdQueue1, sampleCount * sizeof(float));
+
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]));
 
@@ -810,8 +813,8 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
             mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
 
-        PrintCLArray("::Convolution->Process[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
-        PrintCLArray("::Convolution->Process[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArray("::Converter->Convert[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArray("::mConverter->Convert[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_CL_FAILED(clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLConvQueue(), mOutputShortBuf, CL_TRUE,
              0, sampleCountBytes, pOut, NULL, NULL, NULL));

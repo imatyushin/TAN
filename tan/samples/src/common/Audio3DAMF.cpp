@@ -737,6 +737,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
+    PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
+
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
     {
@@ -793,6 +795,9 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             outputAMFBufferRight[src] = mOutputAMFBuffers[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
+        PrintAMFArray("::outputCLBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::outputCLBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
+
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
@@ -812,6 +817,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
+        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
 
         amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[1],
@@ -826,9 +832,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-
-        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer[0], mCompute1, sampleCount * sizeof(short));
-        PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer[1], mCompute1, sampleCount * sizeof(short));
+        PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(
             //mCompute1->CopyBufferToHost(
@@ -841,6 +845,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
     }
+
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
         // Mixing and short conversion are still performed on CPU.
@@ -886,6 +891,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
     PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
     static int counter(0);
+
+    std::cout << "Process " << counter << "===============================================" << std::endl;
 
     if(++counter == 2)
     {

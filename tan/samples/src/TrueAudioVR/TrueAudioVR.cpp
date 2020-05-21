@@ -614,8 +614,6 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
         impulse[(j << 1) + 1] *= d;
     }
 
-    PrintFloatArray("after filter, ", impulse, fftLen * 2);
-
     if (mFFT->Transform(TAN_FFT_TRANSFORM_DIRECTION_BACKWARD, log2len, 1, &impulse, &impulse) != AMF_OK)
     {
         return;
@@ -1287,44 +1285,37 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     mResponseLength = responseLength;
 
-    // Compile kernel
-    {
-        AMF_RETURN_IF_FALSE(
-            GetOclKernel(
-                mKernel,
-                mCompute,
+    AMF_RETURN_IF_FALSE(
+        GetOclKernel(
+            mKernel,
+            mCompute,
 
-                "GenerateRoomResponse",
-                (const char *)GenerateRoomResponse,
-                GenerateRoomResponseCount,
-                "GenerateRoomResponse",
+            "GenerateRoomResponse",
+            (const char *)GenerateRoomResponse,
+            GenerateRoomResponseCount,
+            "GenerateRoomResponse",
 
-                "",
-				mFactory
-                ),
-            AMF_FAIL
-            );
-    }
+            "",
+            mFactory
+            ),
+        AMF_FAIL
+        );
 
-    {
-        // TODO: include the proper path
+    AMF_RETURN_IF_FALSE(
+        GetOclKernel(
+            mKernelFill,
+            mCompute,
 
-        AMF_RETURN_IF_FALSE(
-            GetOclKernel(
-                mKernelFill,
-                mCompute,
+            "Fill",
+            (const char *)Fill,
+            FillCount,
+            "Fill",
 
-                "Fill",
-                (const char *)Fill,
-                FillCount,
-                "Fill",
-
-                "",
-				mFactory
-                ),
-            AMF_FAIL
-            );
-    }
+            "",
+            mFactory
+            ),
+        AMF_FAIL
+        );
 
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
