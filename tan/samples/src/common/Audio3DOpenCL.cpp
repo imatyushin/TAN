@@ -900,7 +900,7 @@ int Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t 
 
     if(++counter == 2)
     {
-        //assert(false);
+        assert(false);
     }
 
     return 0;

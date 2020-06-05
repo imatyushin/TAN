@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iostream>
+#include <vector>
+
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) { \
 		cl_uint refcount = 0; \
@@ -17,12 +20,18 @@
 }
 #endif
 
-#include <iostream>
-#include <vector>
-
 static void PrintFloatArray(const char * hint, float * array, size_t count, size_t max = 64)
 {
+    //return;
+
     std::cout << std::endl << hint << ": " << count << std::endl;
+
+    if(!array)
+    {
+        std::cout << "NULL" << std::endl;
+
+        return;
+    }
 
     uint8_t *data(reinterpret_cast<uint8_t *>(array));
 
@@ -36,7 +45,16 @@ static void PrintFloatArray(const char * hint, float * array, size_t count, size
 
 static void PrintShortArray(const char * hint, int16_t * array, size_t count, size_t max = 64)
 {
+    //return;
+
     std::cout << std::endl << hint << ": " << count << std::endl;
+
+    if(!array)
+    {
+        std::cout << "NULL" << std::endl;
+
+        return;
+    }
 
     uint8_t *data(reinterpret_cast<uint8_t *>(array));
 
@@ -51,7 +69,16 @@ static void PrintShortArray(const char * hint, int16_t * array, size_t count, si
 #ifndef TAN_NO_OPENCL
 static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
 {
+    //return;
+
     std::cout << std::endl << hint << ": " << count << std::endl;
+
+    if(!array)
+    {
+        std::cout << "NULL" << std::endl;
+
+        return;
+    }
 
     std::vector<uint8_t> out(count);
 
@@ -81,7 +108,16 @@ static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue
 
 static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t offset = 0, size_t max = 64)
 {
+    //return;
+
     std::cout << std::endl << hint << ": " << count << std::endl;
+
+    if(!array)
+    {
+        std::cout << "NULL" << std::endl;
+
+        return;
+    }
 
     std::vector<uint8_t> out(count);
 
@@ -112,7 +148,16 @@ static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_q
 
 static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
 {
+    //return;
+
     std::cout << std::endl << hint << ": " << count << std::endl;
+
+    if(!buffer)
+    {
+        std::cout << "NULL" << std::endl;
+
+        return;
+    }
 
     std::vector<uint8_t> out(count);
 
@@ -141,7 +186,16 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
 
 static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 64)
 {
+    //return;
+
     std::cout << std::endl << hint << ": " << count << std::endl;
+
+    if(!buffer)
+    {
+        std::cout << "NULL" << std::endl;
+
+        return;
+    }
 
     std::vector<uint8_t> out(count);
 
@@ -167,3 +221,12 @@ static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, 
 
     std::cout << std::endl;
 }
+
+#include <string>
+
+static std::string Empty()
+{
+    return "";
+}
+
+#define ES std::string()

@@ -673,6 +673,11 @@ AMF_RESULT Audio3DAMF::Init
         }
     }
 
+    PrintAMFArray("aft m_pTAVR->generateRoomResponse[0]", mAMFResponses[0], mCompute1, mBufferSizeInSamples * sizeof(float));
+    PrintAMFArray("aft m_pTAVR->generateRoomResponse[1]", mAMFResponses[1], mCompute1, mBufferSizeInSamples * sizeof(float));
+    PrintAMFArray("aft m_pTAVR->generateRoomResponse[2]", mAMFResponses[2], mCompute1, mBufferSizeInSamples * sizeof(float));
+    PrintAMFArray("aft m_pTAVR->generateRoomResponse[3]", mAMFResponses[3], mCompute1, mBufferSizeInSamples * sizeof(float));
+
     if(mUseAMFBuffers)
     {
         AMF_RETURN_IF_FAILED(
@@ -737,7 +742,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
+    //PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
 
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
@@ -797,6 +802,9 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 
         PrintAMFArray("::outputCLBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
         PrintAMFArray("::outputCLBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
+
+        PrintAMFArray("::Mixer->MixB[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Mixer->MixB[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
@@ -894,7 +902,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 
     std::cout << "Process " << counter << "===============================================" << std::endl;
 
-    if(++counter == 2)
+    if(++counter == 1)
     {
         assert(false);
     }

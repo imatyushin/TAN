@@ -672,13 +672,13 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
     }
     else
 	{
-    	PrintFloatArray("Transform-TransformImplCpu0", ppBufferInput[0], log2len);
-    	PrintFloatArray("Transform-TransformImplCpu1", ppBufferInput[1], log2len);
+    	//PrintFloatArray("Transform-TransformImplCpu0", ppBufferInput[0], log2len);
+    	//PrintFloatArray("Transform-TransformImplCpu1", ppBufferInput[1], log2len);
 
         res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
 
-    	PrintFloatArray("Transform-TransformImplCpu2", ppBufferOutput[0], log2len);
-    	PrintFloatArray("Transform-TransformImplCpu3", ppBufferOutput[1], log2len);
+    	//PrintFloatArray("Transform-TransformImplCpu2", ppBufferOutput[0], log2len);
+    	//PrintFloatArray("Transform-TransformImplCpu3", ppBufferOutput[1], log2len);
     }
 
     AMF_RETURN_IF_FAILED(res, L"Transform() failed");

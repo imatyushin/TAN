@@ -593,22 +593,18 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     memset(head.lowPass, 0, sizeof(float) * fftLen);
     memset(head.highPass, 0, sizeof(float) * fftLen);
 
-    PrintFloatArray("before transform: ", impulse, fftLen * 2);
-
     if (mFFT->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, log2len, 1, &impulse, &impulse) != AMF_OK)
     {
         return;
     }
     //m_ata->Fft(1, &impulse, &impulse, log2len, AmdTrueAudio::TA_FFT_DIR::FORWARD);
 
-    PrintFloatArray("before filter: ", impulse, fftLen * 2);
-
     // filter it...
     for (int j = 0; j < fftLen; j++)
     {
         float f = freq(j, FILTER_SAMPLE_RATE, fftLen);
         float d = float(cornerFreq / (cornerFreq + f));
-        std::cout << "freq: " << f << " d: " << d << std::endl;
+        //std::cout << "freq: " << f << " d: " << d << std::endl;
 
         impulse[j << 1] *= d;
         impulse[(j << 1) + 1] *= d;

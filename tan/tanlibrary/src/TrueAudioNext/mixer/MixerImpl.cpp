@@ -330,21 +330,21 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
 		AMF_RETURN_IF_CL_FAILED(status, L"Failed to enqueue OCL copy");
     }
 
-    PrintCLArray(
+    /*PrintCLArray(
         "TANMixerImpl::Mix",
         m_internalBuff,
         m_pContextTAN->GetOpenCLConvQueue(),
         m_numChannels * m_bufferSize * sizeof(float)
-        );
+        );*/
 
 	AMF_RESULT ret = Mix(m_internalBuff, pBufferOutput, m_bufferSize);
 
-    PrintCLArray(
+    /*PrintCLArray(
         "TANMixerImpl::Mix out",
         pBufferOutput,
         m_pContextTAN->GetOpenCLConvQueue(),
         m_bufferSize * sizeof(float)
-        );
+        );*/
 
 	return ret;
 }
@@ -357,12 +357,13 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     amf_size inputStride
     )
 {
-    PrintAMFArray(
-        "TANMixerImpl::Mix",
+    /*PrintAMFArray(
+        "TANMixerImpl::Mix-pBufferInput",
         pBufferInput,
         m_pContextTAN->GetAMFConvQueue(),
+        m_numChannels * m_bufferSize * sizeof(float),
         m_numChannels * m_bufferSize * sizeof(float)
-        );
+        );*/
 
 	if (!mInitialized) return AMF_FAIL;
 
@@ -390,10 +391,11 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
         );
 
     PrintAMFArray(
-        "TANMixerImpl::Mix out",
+        "TANMixerImpl::Mix-pBufferOutput",
         pBufferOutput,
         m_pContextTAN->GetAMFConvQueue(),
-        m_bufferSize * sizeof(float)
+        m_bufferSize * sizeof(float)//,
+        //m_bufferSize * sizeof(float)
         );
 
     return AMF_OK;
