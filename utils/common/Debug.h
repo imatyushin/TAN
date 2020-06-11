@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <thread>
 
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) { \
@@ -21,11 +22,23 @@
 }
 #endif
 
+static std::ostream & PrintThreadInfo()
+{
+    return std::cout << std::endl << "thread " << std::this_thread::get_id() << " ";
+}
+
+static void PrintDebug(const std::string & hint)
+{
+    //return;
+
+    PrintThreadInfo() << hint << std::endl;
+}
+
 static void PrintFloatArray(const char * hint, float * array, size_t count, size_t max = 64)
 {
     //return;
 
-    std::cout << std::endl << hint << ": " << count << std::endl;
+    PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
     {
@@ -48,7 +61,7 @@ static void PrintShortArray(const char * hint, int16_t * array, size_t count, si
 {
     //return;
 
-    std::cout << std::endl << hint << ": " << count << std::endl;
+    PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
     {
@@ -72,7 +85,7 @@ static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue
 {
     //return;
 
-    std::cout << std::endl << hint << ": " << count << std::endl;
+    PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
     {
@@ -111,7 +124,7 @@ static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_q
 {
     //return;
 
-    std::cout << std::endl << hint << ": " << count << std::endl;
+    PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
     {
@@ -152,7 +165,7 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
     //return;
     compute->FlushQueue();
 
-    std::cout << std::endl << hint << ": " << count << std::endl;
+    PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!buffer)
     {
@@ -193,7 +206,7 @@ static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, 
     //return;
     compute->FlushQueue();
 
-    std::cout << std::endl << hint << ": " << count << std::endl;
+    PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!buffer)
     {

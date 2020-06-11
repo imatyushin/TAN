@@ -230,21 +230,6 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 			),
 		AMF_FAIL
 		);
-	AMF_RETURN_IF_FALSE(
-		GetOclKernel(
-			mKernelComplexSum,
-			m_pDeviceCompute,
-
-			"VectorComplexSum",
-			VectorComplexSum_Str,
-			VectorComplexSumCount,
-			"VectorComplexSum",
-			"",
-
-			TANContextImplPtr(m_pContextTAN)->GetFactory()
-			),
-		AMF_FAIL
-		);
 
 	AMF_RETURN_IF_FALSE(
 		GetOclKernel(
@@ -317,17 +302,18 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Terminate()
     m_pContextTAN = nullptr;
 
 #ifndef TAN_NO_OPENCL
-    m_pKernelComplexDiv = nullptr;
-    m_pKernelComplexMul = nullptr;
+	clReleaseKernel(m_pKernelComplexDiv);
+    clReleaseKernel(m_pKernelComplexMul);
+	clReleaseKernel(m_pKernelComplexSum);
+    clReleaseKernel(m_pKernelComplexMulAccum);
+#else
+	mKernelComplexDiv = nullptr;
+	mKernelComplexMul = nullptr;
+	mKernelComplexSum = nullptr;
+    mKernelComplexMulAccum = nullptr;
+#endif
 
 	return AMF_OK;
-#else
-
-	THROW_NOT_IMPLEMENTED;
-
-	return AMF_NOT_IMPLEMENTED;
-
-#endif
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT TANMathImpl::ComplexMultiplication(

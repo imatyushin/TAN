@@ -79,7 +79,7 @@ public:
     {
         mMemory.resize(count * sizeof(Type) + Alignment);
 
-        //c-style, not wastful, but need smartpointer
+        //c-style, not wastful, but need smartpointer to deallocate
         //posix_memalign(outPointer, Alignment, sizeof(Type) * count);
 
         //c++11:

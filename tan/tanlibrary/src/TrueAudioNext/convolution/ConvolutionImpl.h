@@ -97,6 +97,7 @@ namespace amf
 
                 buffer.host = nullptr;
             }
+            
 #ifndef TAN_NO_OPENCL
             else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
             {
