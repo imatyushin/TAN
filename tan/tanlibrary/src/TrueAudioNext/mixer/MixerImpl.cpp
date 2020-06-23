@@ -390,13 +390,12 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
         mMixKernel->Enqueue(1, nullptr, global, local)
         );
 
-    PrintAMFArray(
+    /*PrintAMFArray(
         "TANMixerImpl::Mix-pBufferOutput",
         pBufferOutput,
         m_pContextTAN->GetAMFConvQueue(),
-        m_bufferSize * sizeof(float)//,
-        //m_bufferSize * sizeof(float)
-        );
+        m_bufferSize * sizeof(float)
+        );*/
 
     return AMF_OK;
 }

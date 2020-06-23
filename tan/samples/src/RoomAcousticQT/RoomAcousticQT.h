@@ -3,6 +3,8 @@
 #include "IAudio3D.h"
 
 #include <string>
+#include <map>
+#include <vector>
 
 #define MAX_DEVICES 10
 
@@ -22,7 +24,7 @@ public:
 	}
 
 	void loadConfiguration(const std::string& xmlfilename);						// Load the configuration from the xml file
-	void saveConfiguraiton(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
+	void saveConfiguration(const std::string& xmlfilename);						// Save all the configruation in xml file named by the parameter
 
 	int addSoundSource(const std::string& sourcename);							// Add a sound source in the audio engine
 	bool removeSoundSource(int id);
@@ -36,9 +38,11 @@ public:
 
 	float getConvolutionTime();													// Based on the convolution length, calculate the convoltion time
 	float getBufferTime();														// Based on the buffer length, calculate the buffer tiem
-	std::vector<std::string> getCPUConvMethod() const;							// Get the name of the supported CPU convolution method
-	std::vector<std::string> getGPUConvMethod() const;							// Get the name of the supported GPU convolution method
-	amf::TAN_CONVOLUTION_METHOD getConvMethodFlag(const std::string& _name);	// Convert a convolution method's name in to internal flag that can be used in runtime
+
+	static std::map<TAN_CONVOLUTION_METHOD, std::string>	MethodNames;
+	static std::vector<TAN_CONVOLUTION_METHOD> 				MethodNamesCPU;
+	static std::vector<TAN_CONVOLUTION_METHOD> 				MethodNamesGPU;
+
 	/*Run time - these function should be used only when engine is running*/
 	void updateAllSoundSourcesPosition();										// update all the sound source position
 	void updateSoundSourcePosition(int index);									// update the sound source position

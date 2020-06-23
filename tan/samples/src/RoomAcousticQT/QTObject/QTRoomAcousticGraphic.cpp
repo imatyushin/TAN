@@ -51,9 +51,7 @@ void RoomAcousticListenerGraphics::mouseMoveEvent(QGraphicsSceneMouseEvent* even
 	but if the listener is located outside of the room box, then he will not here anything*/
 	float x = event->scenePos().x();
 	float y = event->scenePos().y();
-#ifdef _DEBUG
-	qInfo("\nListener postion: %f, %f", x, y);
-#endif
+
 	emit top_view_position_changed(-(this->x()) / ROOMSCALE, (this->y()) / ROOMSCALE);
 	QGraphicsItemGroup::mouseMoveEvent(event);
 }
@@ -164,12 +162,10 @@ void RoomAcousticSoundSourceGraphics::mouseMoveEvent(QGraphicsSceneMouseEvent* e
 	but the sound out side of the room box will never be played.*/
 	float x = event->scenePos().x();
 	float y = event->scenePos().y();
-#ifdef _DEBUG
-	qInfo("\nSource %d postion: %f, %f", this->m_iIndex, x, y);
-#endif
+
 	if (!m_pTrackHead)
 		emit top_view_position_changed(m_iIndex, -(this->x()) / ROOMSCALE, (this->y()) / ROOMSCALE);
-	
+
 	QGraphicsItemGroup::mouseMoveEvent(event);
 }
 

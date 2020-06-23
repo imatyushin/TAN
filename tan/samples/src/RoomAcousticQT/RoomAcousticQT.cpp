@@ -361,7 +361,7 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 }
 
 /* Save Room acoustic configuration in xml file*/
-void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
+void RoomAcousticQT::saveConfiguration(const std::string& xmlfilename)
 {
 	QSettings settings(xmlfilename.c_str(), QSettings::IniFormat);
 
@@ -546,36 +546,20 @@ float RoomAcousticQT::getBufferTime()
 	return m_iBufferSize / 48000.0f;
 }
 
-std::vector<std::string> RoomAcousticQT::getCPUConvMethod() const
-{
-	return {
-		"FFT OVERLAP ADD"
-		};
-}
+std::map<TAN_CONVOLUTION_METHOD, std::string> RoomAcousticQT::MethodNames = {
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, "FFT OVERLAP ADD"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL, "UNIFORM PARTITIONED_GPU"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED, "NONUNIFORM PARTITIONED_GPU"}
+	};
+std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesCPU = {
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD
+	};
 
-std::vector<std::string> RoomAcousticQT::getGPUConvMethod() const
-{
-	return {
-		"FFT OVERLAP ADD",
-		"FFT UNIFORM PARTITIONED",
-		"FHT UNIFORM PARTITIONED",
-		"FHT UINFORM HEAD TAIL"
-		};
-}
-
-amf::TAN_CONVOLUTION_METHOD RoomAcousticQT::getConvMethodFlag(const std::string& _name)
-{
-	if (_name == "FFT OVERLAP ADD")
-		return TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-	if (_name == "FFT UNIFORM PARTITIONED")
-		return TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED;
-	if (_name == "FHT UNIFORM PARTITIONED")
-		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED;
-	if (_name == "FHT UINFORM HEAD TAIL")
-		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL;
-
-	return TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-}
+std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesGPU = {
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED
+	};
 
 void RoomAcousticQT::updateAllSoundSourcesPosition()
 {

@@ -1,5 +1,5 @@
 #/bin/sh
 
-cd mac-gnumake
+cd mac-gnumake-amf
 make VERBOSE=1
 cd ..

@@ -3,6 +3,7 @@
 
 #include "RegisterBrowser.h"
 #include "FileUtility.h"
+#include "Debug.h"
 
 #include <QFileDialog>
 #include <QString>
@@ -88,13 +89,15 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 
 RoomAcousticQTConfig::~RoomAcousticQTConfig()
 {
-
+	storeAllFieldsToInstance();
+	m_RoomAcousticInstance.saveConfiguration(m_RoomAcousticInstance.mConfigFileName);
 }
 
 void RoomAcousticQTConfig::Init()
 {
 	m_RoomAcousticGraphic->clear();
-	//m_RoomAcousticInstance.loadConfiguration(m_RoomAcousticInstance.mConfigFileName);
+
+	m_RoomAcousticInstance.loadConfiguration(m_RoomAcousticInstance.mConfigFileName);
 
 	updateAllFields();
 	updateRoomGraphic();
@@ -106,8 +109,6 @@ void RoomAcousticQTConfig::Init()
 	updateListnerGraphics();
 
 	showMaximized();
-
-	//show();
 }
 
 void RoomAcousticQTConfig::storeSelectedSoundSource()
@@ -339,8 +340,21 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 		)
 		{
 			update_convMethod(true);
-			//todo: set index manually, enum could be changed in future!
-			ConfigUi.CB_ConvMethod->setCurrentIndex(m_RoomAcousticInstance.m_eConvolutionMethod);
+
+			bool set(false);
+
+			for(int index = 0; index < ConfigUi.CB_ConvMethod->count(); ++index)
+			{
+				if(TAN_CONVOLUTION_METHOD(ConfigUi.CB_ConvMethod->itemData(index).toInt()) == m_RoomAcousticInstance.m_eConvolutionMethod)
+				{
+					ConfigUi.CB_ConvMethod->setCurrentIndex(index);
+					set = true;
+
+					break;
+				}
+			}
+
+			assert(set);
 		}
 		else
 		{
@@ -567,7 +581,9 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 	}
 	else
 	{
-		m_RoomAcousticInstance.m_eConvolutionMethod = m_RoomAcousticInstance.getConvMethodFlag(ConfigUi.CB_ConvMethod->currentText().toStdString());
+		m_RoomAcousticInstance.m_eConvolutionMethod = TAN_CONVOLUTION_METHOD(
+			ConfigUi.CB_ConvMethod->currentData().toInt()
+			);
 	}
 
 #ifdef RTQ_ENABLED
@@ -750,8 +766,14 @@ void RoomAcousticQTConfig::updateListnerGraphics()
 			m_RoomAcousticInstance.m_Listener.pitch,
 			m_RoomAcousticInstance.m_Listener.yaw,
 			m_RoomAcousticInstance.m_Listener.roll);
-		QObject::connect(m_RoomAcousticGraphic->m_pListener, &RoomAcousticListenerGraphics::top_view_position_changed,
-			this, &RoomAcousticQTConfig::update_listener_position_top_view);
+
+		QObject::connect(
+			m_RoomAcousticGraphic->m_pListener,
+			&RoomAcousticListenerGraphics::top_view_position_changed,
+			this,
+			&RoomAcousticQTConfig::update_listener_position_top_view
+			);
+
 		// Setting up animation
 		m_pHeadAnimationTimeline = new QTimeLine();
 		m_pHeadAnimationTimeline->setLoopCount(0);
@@ -802,8 +824,13 @@ void RoomAcousticQTConfig::addListenerGraphics()
 		m_RoomAcousticInstance.m_Listener.pitch,
 		m_RoomAcousticInstance.m_Listener.yaw,
 		m_RoomAcousticInstance.m_Listener.roll);
-	QObject::connect(m_RoomAcousticGraphic->m_pListener, &RoomAcousticListenerGraphics::top_view_position_changed,
-		this, &RoomAcousticQTConfig::update_listener_position_top_view);
+
+	QObject::connect(
+		m_RoomAcousticGraphic->m_pListener,
+		&RoomAcousticListenerGraphics::top_view_position_changed,
+		this,
+		&RoomAcousticQTConfig::update_listener_position_top_view
+		);
 }
 
 void RoomAcousticQTConfig::removeSoundsourceGraphics(int index)
@@ -881,7 +908,7 @@ void RoomAcousticQTConfig::on_actionSave_Config_File_triggered()
 	if(fileName.length())
 	{
 		storeAllFieldsToInstance();
-	    m_RoomAcousticInstance.saveConfiguraiton(fileName.toStdString());
+	    m_RoomAcousticInstance.saveConfiguration(fileName.toStdString());
 	}
 }
 
@@ -1391,9 +1418,46 @@ void RoomAcousticQTConfig::table_selection_changed(int index)
 
 void RoomAcousticQTConfig::update_sound_position(int index, float x, float y, float z)
 {
-	m_RoomAcousticInstance.m_SoundSources[index].speakerY = y;
+#ifdef _DEBUG
+	auto change = ES + "sound[" + std::to_string(index) + "] position: ("
+		+ std::to_string(m_RoomAcousticInstance.m_SoundSources[index].speakerX) + ","
+		+ std::to_string(m_RoomAcousticInstance.m_SoundSources[index].speakerY) + ","
+		+ std::to_string(m_RoomAcousticInstance.m_SoundSources[index].speakerZ) + ") -> ";
+#endif
+
+	if
+	(
+		m_RoomAcousticInstance.m_SoundSources[index].speakerX == x
+		&&
+		m_RoomAcousticInstance.m_SoundSources[index].speakerY == y
+		&&
+		m_RoomAcousticInstance.m_SoundSources[index].speakerZ == z
+	)
+	{
+		//return;
+	}
+
 	m_RoomAcousticInstance.m_SoundSources[index].speakerX = x;
+	m_RoomAcousticInstance.m_SoundSources[index].speakerY = y;
 	m_RoomAcousticInstance.m_SoundSources[index].speakerZ = z;
+
+#ifdef _DEBUG
+	change +=
+		"("
+	 	+ std::to_string(x) + ","
+		+ std::to_string(y) + ","
+		+ std::to_string(z) + ")";
+
+	PrintDebug(change);
+#endif
+
+	static bool once = false;
+
+	if(once)
+	{
+		//return;
+	}
+	once = true;
 
 	updateSoundSourceGraphics(index);
 
@@ -1412,8 +1476,14 @@ void RoomAcousticQTConfig::update_sound_position(int index, float x, float y, fl
 
 void RoomAcousticQTConfig::update_sound_position_top_view(int index, float x, float y)
 {
-	if (index >= MAX_SOURCES) return;
-	update_sound_position(index, x,m_RoomAcousticInstance.m_SoundSources[index].speakerY, y);
+	assert(index < MAX_SOURCES);
+
+	update_sound_position(
+		index,
+		x,
+		m_RoomAcousticInstance.m_SoundSources[index].speakerY,
+		y
+		);
 }
 
 void RoomAcousticQTConfig::update_instance_sound_sources()
@@ -1435,6 +1505,15 @@ void RoomAcousticQTConfig::update_listener_position_top_view(float x, float y)
 
 void RoomAcousticQTConfig::update_listener_postion(float x, float y, float z)
 {
+#ifdef _DEBUG
+	auto info = ES + "listener position: ("
+	 	+ std::to_string(x) + ","
+		+ std::to_string(y) + ","
+		+ std::to_string(z) + ")";
+
+	PrintDebug(info);
+#endif
+
 	mLockUpdate = true;
 		ConfigUi.SB_HeadPositionX->setValue(x);
 		ConfigUi.SB_HeadPositionY->setValue(y);
@@ -1464,11 +1543,15 @@ void RoomAcousticQTConfig::update_listener_orientation(float pitch, float yaw, f
 
 void RoomAcousticQTConfig::update_convMethod(bool gpu)
 {
-	auto methods = gpu ? m_RoomAcousticInstance.getGPUConvMethod() : m_RoomAcousticInstance.getCPUConvMethod();
 	ConfigUi.CB_ConvMethod->clear();
+
+	auto methods = gpu ? RoomAcousticQT::MethodNamesGPU : RoomAcousticQT::MethodNamesCPU;
+
 	for (int i = 0; i < methods.size(); i++)
 	{
-		ConfigUi.CB_ConvMethod->addItem(QString::fromStdString(methods[i]));
+		ConfigUi.CB_ConvMethod->addItem(
+			QString::fromStdString(RoomAcousticQT::MethodNames[methods[i]]), int(methods[i])
+			);
 	}
 }
 

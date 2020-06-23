@@ -423,8 +423,6 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     /*PrintAMFArray(
         "::UpdateResponseTD-input[0]",
         ppBuffer[0],
@@ -458,22 +456,23 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     const amf_uint32 operationFlags
 )
 {
-    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    PrintAMFArray(
+#ifndef TAN_NO_OPENCL
+#else
+    /*PrintAMFArray(
         "::UpdateResponseTD-input[0]",
         pBuffer.buffer.amfBuffers[0],
         m_pContextTAN->GetAMFConvQueue(),
         numOfSamplesToProcess * sizeof(float)
         );
-    /*PrintAMFArray(
+    PrintAMFArray(
         "::UpdateResponseTD-input[1]",
         pBuffer.buffer.amfBuffers[1],
         m_pContextTAN->GetAMFConvQueue(),
         numOfSamplesToProcess * sizeof(float)
         );*/
+#endif
 
-    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
     {
         for(int channel = 0; channel < m_iChannels; ++channel)
         {
@@ -491,7 +490,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                 m_iBufferSizeInSamples
                 );
         }
-    }
+    }*/
 
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(numOfSamplesToProcess <= m_iLengthInSamples, AMF_INVALID_ARG,
@@ -839,7 +838,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             AMF_RETURN_IF_FAILED(AMF_NOT_IMPLEMENTED, L"Unsupported convolution method");
     }
 
-        for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+        /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
         {
             for(int channel = 0; channel < m_iChannels; ++channel)
             {
@@ -857,7 +856,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     m_iBufferSizeInSamples
                     );
             }
-        }
+        }*/
     }
 
     if (blockUntilReady)
@@ -1043,7 +1042,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferInput != nullptr, AMF_INVALID_ARG, L"pBufferInput == NULL");
     AMF_RETURN_IF_FALSE(ppBufferOutput != nullptr, AMF_INVALID_ARG, L"pBufferOutput == NULL");
 
-    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
     {
         for(int channel = 0; channel < m_iChannels; ++channel)
         {
@@ -1061,7 +1060,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 m_iBufferSizeInSamples
                 );
         }
-    }
+    }*/
 
     {
         TANSampleBuffer inBuf, outBuf;
@@ -2279,7 +2278,7 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
         m_internalOutBufs.FreeObjects();
     }
 	m_internalOutBufs.Release();
-    
+
     if(m_internalInBufs.IsSet())
     {
         m_internalInBufs.FreeObjects();
@@ -2317,7 +2316,7 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
                 {
                     mFadeSubbufers[bufIdx].FreeObjects();
                 }
-                
+
                 mFadeSubbufers[bufIdx].Release();
             }
         }
@@ -3670,7 +3669,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
     case TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD:
     {
-        for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+        /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
         {
             for(int channel = 0; channel < m_iChannels; ++channel)
             {
@@ -3688,7 +3687,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     nSamples
                     );
             }
-        }
+        }*/
 
         ovlAddFilterState * state = m_FilterState[idx];
         float **filter = ((ovlAddFilterState *)state)->m_Filter;
@@ -3733,7 +3732,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         //PrintAMFArray("::ovlAddProcess-output[1]", m_internalOutBufs.buffer.amfBuffers[1], m_pContextTAN->GetAMFConvQueue(), nSamples * sizeof(float));
 #endif
 
-        for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+        /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
         {
             for(int channel = 0; channel < m_iChannels; ++channel)
             {
@@ -3751,7 +3750,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     nSamples
                     );
             }
-        }
+        }*/
 
         if(pNumOfSamplesProcessed)
         {

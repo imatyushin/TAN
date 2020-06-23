@@ -163,6 +163,7 @@ static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_q
 static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
 {
     //return;
+
     compute->FlushQueue();
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
@@ -204,6 +205,7 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
 static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 64)
 {
     //return;
+
     compute->FlushQueue();
 
     PrintThreadInfo() << hint << ": " << count << std::endl;

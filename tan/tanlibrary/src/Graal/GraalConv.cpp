@@ -138,7 +138,6 @@ CGraalConv:: CGraalConv(
     kernel_trasformed_union_ = 0;
     directTransformKernel_ = 0;
     inverseTransformKernel_ = 0;
-    CMADKernels_.clear();
     convHead1_ = 0;
 
     verify = 0;
@@ -3220,7 +3219,12 @@ int CGraalConv::setupCL
 //	CMADKernels_
     std::vector<std::string> kernel_names;
     selectFHT_CMADOptions(kernel_file, kernel_src, kernel_src_size, kernel_names, comp_options);
+
+#ifndef TAN_NO_OPENCL
     CMADKernels_.resize(kernel_names.size());
+else
+    mCMADKernels.resize(kernel_names.size());
+#endif
 
     for(int i = 0; i < CMADKernels_.size(); i++)
     {

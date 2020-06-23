@@ -930,7 +930,12 @@ void TrueAudioVRimpl::generateRoomResponse(
         nL = (nL > maxBounces) ? maxBounces : nL;
     }
 
-    printf("Computing %d x %d x %d = %d reflections ...\r\n", nW, nH, nL, nW*nH*nL);
+    auto info = ES + "Computing "
+        + std::to_string(nW) + " x "
+        + std::to_string(nH) + " x "
+        + std::to_string(nL) + " x = "
+        + std::to_string(nW * nH * nL) + " reflections";
+    PrintDebug(info);
 
     if (m_executionMode == VRExecutionMode::GPU)
     {

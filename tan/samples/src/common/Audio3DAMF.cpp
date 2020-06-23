@@ -762,7 +762,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                     )
                 );
 
-            PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
+            //PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
 
@@ -780,8 +780,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
 
-        PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
@@ -792,17 +792,17 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             outputAMFBufferRight[src] = mOutputAMFBuffers[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        PrintAMFArray("::outputCLBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::outputCLBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::outputCLBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::outputCLBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
 
-        PrintAMFArray("::Mixer->MixB[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::Mixer->MixB[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Mixer->MixB[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Mixer->MixB[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
-        PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         auto amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[0],
@@ -817,7 +817,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
+        //PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
 
         amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[1],
@@ -832,7 +832,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
+        //PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(
             //mCompute1->CopyBufferToHost(
@@ -860,8 +860,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
 
-        PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
-        PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
+        //PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
+        //PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(ret);
 
@@ -888,11 +888,13 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
     }
 
     PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
-    PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
+    //PrintShortArray("::Process, out[1]", pOd                                                                          zut + 1, sampleCount * sizeof(float));
 
     static int counter(0);
 
-    std::cout << "Process " << counter << "===============================================" << std::endl;
+    auto info = ES + "Process " + std::to_string(counter) + " ===============================================";
+
+    PrintDebug(info);
 
     if(++counter == 1)
     {
