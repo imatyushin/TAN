@@ -29,10 +29,10 @@
             ]
         },
         {
-            "name": "(lldb) Mac OSX Launch",
+            "name": "(lldb) Mac OSX Launch - AMF",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/tan/build/cmake/mac-gnumake/cmake-RoomAcousticQT-bin/RoomAcousticsQT",
+            "program": "${workspaceFolder}/tan/build/cmake/mac-gnumake-amf/cmake-RoomAcousticQT-bin/RoomAcousticsQT",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
