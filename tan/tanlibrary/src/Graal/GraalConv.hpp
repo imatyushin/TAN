@@ -717,18 +717,16 @@ protected:
 #endif
     // kernel channel map
     void* kernel_channels_map_;
-// kernel set map
+    // kernel set map
     void* kernel_sets_map_;
-// kernel length map
+    // kernel length map
     void* kernel_lens_map_;
-// kernel input
+    // kernel input
     void * kernel_input_union_;  // base union store
-// kernel storage
+    // kernel storage
     void * kernel_trasformed_union_;  // base union store
 
-private:
 protected:
-
     int64_t round_counter_;
 
     std::vector<void*> host_input_staging_;

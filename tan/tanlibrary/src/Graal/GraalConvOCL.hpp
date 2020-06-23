@@ -41,77 +41,28 @@
 #  include "public/include/core/Context.h"      //AMF
 #  include "public/common/AMFFactory.h"         //AMF
 
-/**
- */
 namespace graal
 {
-/*---------------------------------------------------------
-CABuf
-----------------------------------------------------------*/
+
 template<typename T>
 class CABuf
 {
 public:
-    CABuf(cl_context _context)
+    CABuf(cl_context context):
+        mContext(context)
     {
-        context_ = _context;
-        mappingQ_ = 0;
-        sys_ptr_ = 0;
-        map_ptr_ = 0;
-        buf_ = 0;
-        len_ = 0;
-        flags_ = 0;
-        sys_own_ = false;
-        cl_own_  = false;
-        offset_ = 0;
-        sys_ptr_ = nullptr;
     }
 
-    CABuf(void)
+    // TO DO : correct copy costructor, operator =, clone()
+    CABuf(const CABuf & src):
+        CABuf(src.context)
     {
-        context_ = 0;
-        mappingQ_ = 0;
-        sys_ptr_ = 0;
-        map_ptr_ = 0;
-        buf_ = 0;
-        len_ = 0;
-        flags_ = 0;
-        sys_own_ = false;
-        cl_own_  = false;
-        offset_ = 0;
-        sys_ptr_ = nullptr;
     }
 
-    virtual ~CABuf(void)
+    virtual ~CABuf()
     {
         release();
     }
-
-
-// TO DO : correct copy costractor, operator =, clone()
-    CABuf(const CABuf & _src)
-    {
-        context_ = _src.context_;
-        mappingQ_ = 0;
-        sys_ptr_ = 0;
-        map_ptr_ = 0;
-        buf_ = 0;
-        len_ = 0;
-        flags_ = 0;
-        sys_own_ = false;
-        cl_own_ = false;
-        offset_ = 0;
-        sys_ptr_ = nullptr;
-    }
-
-
-/*
-    CABuf clone(void)
-    {
-        CABuf new_buf(context_);
-        return(new_buf);
-    }
-*/
 
     int create(const T *_buf, size_t _sz, uint _flags)
     {
@@ -123,18 +74,15 @@ public:
            return ret;
         }
 
-        buf_ = clCreateBuffer(context_, _flags, _sz * sizeof(T), _buf, &ret);
+        mBuffer = clCreateBuffer(mContext, _flags, _sz * sizeof(T), _buf, &ret);
         if(ret != CL_SUCCESS)
         {
-#ifdef _DEBUG_PRINTF
-            printf("error creating buffer: %d\n", ret);
-#endif
             AMF_ASSERT(ret == CL_SUCCESS, L"error creating buffer: %d", ret);
             return ret == CL_INVALID_BUFFER_SIZE ? GRAAL_NOT_ENOUGH_GPU_MEM : GRAAL_FAILURE;
         }
 
-        len_ = _sz;
-        cl_own_ = true;
+        mSize = _sz;
+        mBufferOwner = true;
         flags_ = _flags;
         sys_ptr_ = _buf;
 
@@ -150,24 +98,24 @@ public:
 
            return ret;
         }
-        buf_ = clCreateBuffer(context_, _flags, _sz*sizeof(T), NULL, &ret);
+
+        mBuffer = clCreateBuffer(mContext, _flags, _sz*sizeof(T), NULL, &ret);
+
         if(ret != CL_SUCCESS)
         {
-#ifdef _DEBUG_PRINTF
-            printf("error creating buffer: %d\n", ret);
-#endif
             AMF_ASSERT(ret == CL_SUCCESS, L"error creating OpenCL buffer: %d", ret);
             return ret == CL_INVALID_BUFFER_SIZE ? GRAAL_NOT_ENOUGH_GPU_MEM : GRAAL_FAILURE;
         }
 
-        len_ = _sz;
+        mSize = _sz;
 
-        cl_own_ = true;
+        mBufferOwner = true;
         flags_ = _flags;
 
         return(ret);
     }
-// TO DO :: CORECT
+
+    // TO DO :: CORECT
     int attach(const T *_buf, size_t _sz)
     {
         int ret = GRAAL_SUCCESS;
@@ -175,7 +123,7 @@ public:
         bool old_sys_own = sys_own_;
         T * old_ptr = sys_ptr_;
 
-        if ( _sz > len_ ) {
+        if ( _sz > mSize ) {
             release();
             create(_sz, flags);
         }
@@ -187,46 +135,61 @@ public:
         }
 
         sys_ptr_ = (T*)_buf;
-        len_ = _sz;
+        mSize = _sz;
         sys_own_ = (old_ptr != _buf) ? false : old_sys_own;
 
         return(ret);
     }
 
-// TO DO : CORRECT
-
-
+    // TO DO : CORRECT
+#ifndef TAN_NO_OPENCL
     int attach(cl_mem _buf, size_t _sz)
     {
         int ret = GRAAL_SUCCESS;
 
-        if ( _buf != buf_ || _sz > len_ )
+        if ( _buf != mBuffer || _sz > mSize )
         {
             release();
-            buf_ = _buf;
-            len_ = _sz;
-            cl_own_ = false;
 
+            mBuffer = _buf;
+            mSize = _sz;
+            mBufferOwner = false;
         }
-
 
         return(ret);
     }
+#else
+    int attach(const amf::AMFBuffer & _buf, size_t _sz)
+    {
+        int ret = GRAAL_SUCCESS;
+
+        if ( _buf != mBuffer || _sz > mSize )
+        {
+            release();
+
+            mBuffer = _buf;
+            mSize = _sz;
+            mBufferOwner = false;
+        }
+
+        return(ret);
+    }
+#endif
 
     T*  map(cl_command_queue _mappingQ, uint _flags)
     {
         T* ret = 0;
         int status = 0;
 
-        if ( buf_ && !map_ptr_ ) {
-            mappingQ_ = _mappingQ;
+        if ( mBuffer && !map_ptr_ ) {
+            mMappingQueue = _mappingQ;
 
-                ret = map_ptr_ = (T *)clEnqueueMapBuffer(mappingQ_,
-                    buf_,
+                ret = map_ptr_ = (T *)clEnqueueMapBuffer(mMappingQueue,
+                    mBuffer,
                     CL_TRUE,
                     _flags, //CL_MAP_WRITE_INVALIDATE_REGION,
                     0,
-                    len_*sizeof(T),
+                    mSize*sizeof(T),
                     0,
                     NULL,
                     NULL,
@@ -240,7 +203,7 @@ public:
     {
         T* ret = 0;
         int status = 0;
-        if ( buf_ && !map_ptr_ ) {
+        if ( mBuffer && !map_ptr_ ) {
 
             int n_wait_events = 0;
             cl_event * p_set_event = _set_event;
@@ -251,14 +214,14 @@ public:
             }
 
 
-            mappingQ_ = _mappingQ;
+            mMappingQueue = _mappingQ;
 
-            ret = map_ptr_ = (T *)clEnqueueMapBuffer (mappingQ_,
-                                                buf_,
+            ret = map_ptr_ = (T *)clEnqueueMapBuffer (mMappingQueue,
+                                                mBuffer,
                                                 CL_FALSE,
                                                 _flags, //CL_MAP_WRITE_INVALIDATE_REGION,
                                                 0,
-                                                len_*sizeof(T),
+                                                mSize*sizeof(T),
                                                 n_wait_events,
                                                 p_wait_event,
                                                 p_set_event,
@@ -277,7 +240,7 @@ public:
     int unmap(cl_event *_wait_event = NULL, cl_event *_set_event = NULL)
     {
         int ret = GRAAL_SUCCESS;
-        if ( buf_ && map_ptr_ && mappingQ_) {
+        if ( mBuffer && map_ptr_ && mMappingQueue) {
 
             int n_wait_events = 0;
             cl_event * p_set_event = _set_event;
@@ -287,8 +250,8 @@ public:
                 n_wait_events = 1;
             }
 
-            ret = clEnqueueUnmapMemObject(mappingQ_,
-                buf_,
+            ret = clEnqueueUnmapMemObject(mMappingQueue,
+                mBuffer,
                 map_ptr_,
                 n_wait_events,
                 p_wait_event,
@@ -302,7 +265,7 @@ public:
             }
 
             map_ptr_ = 0;
-            mappingQ_ = 0;
+            mMappingQueue = 0;
         }
         return(ret);
     }
@@ -311,41 +274,31 @@ public:
     {
         int err = GRAAL_SUCCESS;
 
-        if (_len != -1 && (_len > len_ || !_data)) {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
+        if (_len != -1 && (_len > mSize || !_data)) {
             AMF_ASSERT(false, L"copyToDevice: wrong data");
             return(-1);
         }
 
-
-        if ( !buf_ )
+        if ( !mBuffer )
         {
             flags_ = _flags;
-            buf_ = clCreateBuffer(context_, _flags, len_*sizeof(T), NULL, &err);
+            mBuffer = clCreateBuffer(mContext, _flags, mSize*sizeof(T), NULL, &err);
             if(err != CL_SUCCESS)
             {
-#ifdef _DEBUG_PRINTF
-                printf("error creating buffer: %d\n", err);
-#endif
                 AMF_ASSERT(false, L"error creating buffer: %d", err);
                 return err;
             }
-            cl_own_ = true;
+            mBufferOwner = true;
 
         }
 
-        size_t len = (_len != -1 )? _len : len_;
+        size_t len = (_len != -1 )? _len : mSize;
         const T * sys_ptr = (_len != -1) ? _data : sys_ptr_;
         AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
                             L"Internal error: buffer hasn't been preallocated");
-        err = clEnqueueWriteBuffer(_commandQueue, buf_, CL_TRUE, _offset * sizeof(T), len * sizeof(T), sys_ptr, 0, NULL, NULL);
+        err = clEnqueueWriteBuffer(_commandQueue, mBuffer, CL_TRUE, _offset * sizeof(T), len * sizeof(T), sys_ptr, 0, NULL, NULL);
 
         if(err != CL_SUCCESS) {
-#ifdef _DEBUG_PRINTF
-            printf("error writing data to device: %d\n", err);
-#endif
             AMF_ASSERT(false, L"error writing data to device: %d\n", err);
             return err;
         }
@@ -357,19 +310,17 @@ public:
     {
         int err = GRAAL_SUCCESS;
 
-        if (_len!=-1 && (_len > len_ || !_data)) {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
+        if (_len!=-1 && (_len > mSize || !_data))
+        {
             AMF_ASSERT(false, L"copyToDeviceA: wrong data");
             return(-1);
         }
 
 
-        if ( !buf_ )
+        if ( !mBuffer )
         {
             flags_ = _flags;
-            buf_ = clCreateBuffer(context_, _flags, len_*sizeof(T), NULL, &err);
+            mBuffer = clCreateBuffer(mContext, _flags, mSize*sizeof(T), NULL, &err);
             if(err != CL_SUCCESS)
             {
 #ifdef _DEBUG_PRINTF
@@ -378,20 +329,17 @@ public:
                 AMF_ASSERT(false, L"error creating buffer: %d\n", err);
                 return err;
             }
-            cl_own_ = true;
+            mBufferOwner = true;
 
         }
 
-        size_t len = (_len!=-1 )? _len : len_;
+        size_t len = (_len!=-1 )? _len : mSize;
         const T * sys_ptr = (_len!=-1) ? _data : sys_ptr_;
         AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
                             L"Internal error: buffer hasn't been preallocated");
-        err = clEnqueueWriteBuffer(_commandQueue, buf_, CL_FALSE, _offset * sizeof(T), len * sizeof(T), sys_ptr, 0, NULL, NULL);
+        err = clEnqueueWriteBuffer(_commandQueue, mBuffer, CL_FALSE, _offset * sizeof(T), len * sizeof(T), sys_ptr, 0, NULL, NULL);
 
         if(err != CL_SUCCESS) {
-#ifdef _DEBUG_PRINTF
-            printf("error writing data to device: %d\n", err);
-#endif
             AMF_ASSERT(false, L"error writing data to device: %d\n", err);
             return err;
         }
@@ -403,34 +351,27 @@ public:
     {
         int err = GRAAL_SUCCESS;
 
-        if(len_ == 0 || !buf_) {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
+        if(mSize == 0 || !mBuffer) {
             AMF_ASSERT(false, L"copyToHost: wrong data");
             return(-1);
         }
 
         if ( !sys_ptr_ )
         {
-            sys_ptr_ = new T[len_];
+            sys_ptr_ = new T[mSize];
             if(!sys_ptr_ )
             {
                 err = GRAAL_FAILURE;
-#ifdef _DEBUG_PRINTF
-                printf("error creating buffer: %d\n", err);
-#endif
+
                 AMF_ASSERT(false, L"error creating buffer: %d\n", err);
                 return err;
             }
             sys_own_ = true;
         }
 
-        err = clEnqueueReadBuffer(_commandQueue, buf_, CL_TRUE,0, len_ * sizeof(T), sys_ptr_, 0, NULL, NULL);
+        err = clEnqueueReadBuffer(_commandQueue, mBuffer, CL_TRUE,0, mSize * sizeof(T), sys_ptr_, 0, NULL, NULL);
         if(err != CL_SUCCESS) {
-#ifdef _DEBUG_PRINTF
-            printf("error writing data to device: %d\n", err);
-#endif
+
             AMF_ASSERT(false, L"error writing data to device: %d\n", err);
             return err;
         }
@@ -440,26 +381,25 @@ public:
 
     int copy(CABuf<T> & _src, cl_command_queue _commandQueue, size_t _src_offset = 0, size_t _dst_offset = 0)
     {
-        int status;
+        int status(CL_SUCCESS);
         status = clEnqueueCopyBuffer (	_commandQueue,
-                                        _src.getCLMem(),
-                                        getCLMem(),
+                                        _src.getCLBuffer(),
+                                        getCLBuffer(),
                                         _src_offset,
                                         _dst_offset,
-                                        len_ * sizeof(T),
+                                        mSize * sizeof(T),
                                         0,
                                         NULL,
                                         NULL);
         return (status);
     }
 
-
     int copyCLmem(cl_mem _src, cl_command_queue _commandQueue, size_t len)
     {
         int status;
         status = clEnqueueCopyBuffer(_commandQueue,
             _src,
-            getCLMem(),
+            getCLBuffer(),
             0,
             0,
             len,
@@ -474,7 +414,7 @@ public:
         int err = GRAAL_SUCCESS;
 
         T * map_ptr = map(_commandQueue, CL_MAP_WRITE_INVALIDATE_REGION);
-        for( int i = 0; i < len_; i++)
+        for( int i = 0; i < mSize; i++)
         {
             map_ptr[i] = _val;
             if ( sys_ptr_ )
@@ -489,10 +429,10 @@ public:
     int setValue2(cl_command_queue _commandQueue, T _val, size_t _len = 0, size_t _offset = 0)
     {
         int err = GRAAL_SUCCESS;
-        int len = (_len != 0) ? _len: len_;
+        int len = (_len != 0) ? _len: mSize;
         if (NULL != _commandQueue)
         {
-           err = clEnqueueFillBuffer(_commandQueue, buf_, (const void *)&_val, sizeof(_val), _offset* sizeof(T), len * sizeof(T) , 0, nullptr, nullptr);
+           err = clEnqueueFillBuffer(_commandQueue, mBuffer, (const void *)&_val, sizeof(_val), _offset* sizeof(T), len * sizeof(T) , 0, nullptr, nullptr);
         }
         for (int i = _offset; sys_ptr_ && i < len; i++)
         {
@@ -500,7 +440,6 @@ public:
         }
         return(err);
     }
-
 
     int release(void)
     {
@@ -513,121 +452,139 @@ public:
         }
         sys_own_  = false;
 
-        if ( cl_own_ )
+        if ( mBufferOwner )
         {
             unmap();
-            if ( buf_ )
+
+            if ( mBuffer )
             {
-                if (clReleaseMemObject(buf_) != CL_SUCCESS) {
+                if (clReleaseMemObject(mBuffer) != CL_SUCCESS) {
                     ret = GRAAL_OPENCL_FAILURE;
                     AMF_ASSERT(false, L"clReleaseMemObject() failed");
                 }
             }
-            buf_ = 0;
+            mBuffer = 0;
 
         }
 
-        cl_own_ = false;
-        len_ = 0;
+        mBufferOwner = false;
+        mSize = 0;
 
         return(ret);
     }
 
-    int set_value(T val)
+    int set_value(const T & val)
     {
+        assert(false);
+
         int ret = GRAAL_SUCCESS;
+
         return(ret);
     }
 
-    inline cl_context getContext(void)
+#ifndef TAN_NO_OPENCL
+    inline cl_context getContext() const
     {
-        return(context_);
+        return mContext;
     }
 
-    inline const cl_mem & getCLMem(void)
+    inline const cl_mem & getCLBuffer() const
     {
-        return(buf_);
+        return mBuffer;
+    }
+#else
+    inline const amf::AMFContextPtr & getContext() const
+    {
+        return mContext;
     }
 
-    inline virtual T * & getSysMem(void)
+    inline const amf::AMFBufferPtr & getAMFBuffer() const
+    {
+        return mBuffer;
+    }
+#endif
+
+    inline virtual T * & getSysMem()
     {
         if (!sys_ptr_)
         {
-            sys_ptr_ = new T[len_];
+            sys_ptr_ = new T[mSize];
 
             if (!sys_ptr_)
             {
 #ifdef _DEBUG_PRINTF
-                AMF_ASSERT(false, L"Cannot allocate memory: %lu", len_ * sizeof(T));
+                AMF_ASSERT(false, L"Cannot allocate memory: %lu", mSize * sizeof(T));
 #endif
                 return sys_ptr_;
             }
 
-            cl_own_ = true;
+            mBufferOwner = true;
         }
 
-        return(sys_ptr_);
+        return sys_ptr_;
     }
 
-    inline T * & getMappedMem(void)
+    inline T * & getMappedMem() const
     {
-        return(map_ptr_);
+        return map_ptr_;
     }
-
 
     inline void setSysOwnership(bool own )
     {
         sys_own_ = own;
     }
 
-
-    inline bool getSysOwnership(void)
+    inline bool getSysOwnership() const
     {
-        return(sys_own_);
+        return sys_own_;
     }
 
-    // DENGEROUS
+    // DANGEROUS
     inline void setLen(size_t _len)
     {
-        len_ = _len;
+        mSize = _len;
     }
 
-    inline size_t getLen(void)
+    inline size_t getLen() const
     {
-        return(len_);
+        return mSize;
     }
 
 protected:
-    cl_context context_;
-    cl_command_queue mappingQ_;
+#ifndef TAN_NO_OPENCL
+    cl_context                  mContext = nullptr;
+    cl_command_queue            mMappingQueue = nullptr;
+    cl_mem                      mBuffer = nullptr;
+    bool                        mBufferOwner = false;
+#else
+    amf::AMFContextPtr          mContext;
+    amf::AMFComputeDevicePtr    mMappingQueue;
+    amf::AMFBufferPtr           mBuffer;
+#endif
 
-    cl_kernel setUintValue2Kernel_;
-    cl_kernel setFloatValue2Kernel_;
+    size_t                      mSize = 0;
 
-    T * sys_ptr_;
-    T * map_ptr_;
-    cl_mem buf_;
-    size_t len_;
-    uint flags_;
-    bool sys_own_;
-    bool cl_own_;
-    size_t offset_;
-
-
+    T * sys_ptr_ = nullptr;
+    T * map_ptr_ = nullptr;
+    uint flags_ = 0;
+    bool sys_own_ = false;
+    size_t offset_ = 0;
 };
 
 template<typename T>
 class CASubBuf : public CABuf<T>
 {
 public:
-    CASubBuf(CABuf<T> & _base) : CABuf< T >(_base), m_base(_base)
+    CASubBuf        (const CABuf<T> & _base):
+        CABuf< T >  (_base),
+        mBaseBuffer (_base.getCLBuffer()),
+        m_base      (_base)
     {
-        base_buf_ = _base.getCLMem();
-        CABuf< T >::sys_ptr_ = nullptr;
+        //ivm: not needed: CABuf< T >::sys_ptr_ = nullptr;
 
-        assert(base_buf_);
-
+        assert(mBaseBuffer);
     }
+
     int create(size_t _offset, size_t _sz, uint _flags)
     {
         int ret = GRAAL_SUCCESS;
@@ -645,24 +602,22 @@ public:
         sub_buf.origin = _offset* sizeof(T);
         sub_buf.size = _sz * sizeof(T);
 
-        CABuf< T >::buf_ = clCreateSubBuffer (	base_buf_,
-                                    _flags,
-                                    CL_BUFFER_CREATE_TYPE_REGION,
-                                    &sub_buf,
-                                    &ret);
-
+        mBuffer = clCreateSubBuffer(
+            mBaseBuffer,
+            _flags,
+            CL_BUFFER_CREATE_TYPE_REGION,
+            &sub_buf,
+            &ret
+            );
 
         if(ret != CL_SUCCESS)
         {
-#ifdef _DEBUG_PRINTF
-            printf("error creating buffer: %d\n", ret);
-#endif
             AMF_ASSERT(false, L"error creating buffer: %d\n", ret);
             return ret;
         }
 
-        CABuf< T >::len_ = _sz;
-        CABuf< T >::cl_own_ = true;
+        CABuf< T >::mSize = _sz;
+        CABuf< T >::mBufferOwner = true;
         CABuf< T >::flags_ = _flags;
 
         return(ret);
@@ -685,13 +640,14 @@ public:
 
         return CABuf< T >::sys_ptr_;
     }
+
 protected:
-    cl_mem base_buf_;
-    size_t m_offset;
-    CABuf<T> &m_base;
+    cl_mem mBaseBuffer = nullptr;
+    size_t m_offset = 0;
+
+    CABuf<T> & m_base;
 };
 
 };
-
 
 #endif
