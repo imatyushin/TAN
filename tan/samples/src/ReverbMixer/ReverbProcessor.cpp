@@ -1,5 +1,4 @@
 #define MAX_RESPONSE_LENGTH 131072
-#define FILTER_SAMPLE_RATE 48000
 
 #include "ReverbProcessor.h"
 #include "GpuUtilities.h"
@@ -282,7 +281,7 @@ AMF_RESULT ReverbProcessor::recorderStart(char* outputWAVName)
 
 		if (!m_WASAPIRecorder)
 		{
-			STD_RETURN_IF_NOT_ZERO(recorderInit(48000), "Failed to intialize record device", AMF_FAIL);
+			STD_RETURN_IF_NOT_ZERO(recorderInit(FILTER_SAMPLE_RATE), "Failed to intialize record device", AMF_FAIL);
 		}
 
 		m_threadRecord = new std::thread(&ReverbProcessor::recorderStartInternel, this);
@@ -307,7 +306,7 @@ AMF_RESULT ReverbProcessor::recorderStop()
 		fseek(m_pDiskBuffer, 0, SEEK_SET);
 		STD_RETURN_IF_FALSE(fread(outputBuffer, 1, outputBufferSizeInBytes, m_pDiskBuffer) == outputBufferSizeInBytes,
 			"Failed to retrived buffer from disk", AMF_FAIL);
-		STD_RETURN_IF_FALSE(WriteWaveFileS(m_cpRecordWAVFileName, 48000, 2, sampleSizeInBits,outputBufferSizeInSample, outputBuffer),
+		STD_RETURN_IF_FALSE(WriteWaveFileS(m_cpRecordWAVFileName, FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT, sampleSizeInBits,outputBufferSizeInSample, outputBuffer),
 			"Failed to write to wav", AMF_FAIL);
 		IF_NOT_NULL_DELETE(m_threadRecord);
 
@@ -620,7 +619,7 @@ int ReverbProcessor::playerPlayInternal()
 
 AMF_RESULT ReverbProcessor::recorderStartInternel()
 {
-	size_t tempBufferSize = 48000;
+	size_t tempBufferSize = FILTER_SAMPLE_RATE;
 	size_t recordedBytes = 0;
 	unsigned char* tempBuffer = new unsigned char[tempBufferSize];
 

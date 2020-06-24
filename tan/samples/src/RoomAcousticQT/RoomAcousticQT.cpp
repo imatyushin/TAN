@@ -538,12 +538,12 @@ float RoomAcousticQT::getReverbTime(float final_db, int* nreflections)
 
 float RoomAcousticQT::getConvolutionTime()
 {
-	return m_iConvolutionLength / 48000.0f;
+	return m_iConvolutionLength / float(FILTER_SAMPLE_RATE);
 }
 
 float RoomAcousticQT::getBufferTime()
 {
-	return m_iBufferSize / 48000.0f;
+	return m_iBufferSize / float(FILTER_SAMPLE_RATE);
 }
 
 std::map<TAN_CONVOLUTION_METHOD, std::string> RoomAcousticQT::MethodNames = {

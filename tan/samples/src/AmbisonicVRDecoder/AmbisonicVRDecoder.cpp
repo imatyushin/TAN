@@ -154,7 +154,7 @@ void Ambi2Stereo::buildCompositeHRTFs(TANContext *pTANContext)
     RoomDefinition room;
     MonoSource source;
     StereoListener ear;
-    int inSampRate = 48000;
+    int inSampRate = FILTER_SAMPLE_RATE;
     void *responseL;
     void *responseR;
     int firstNZ, lastNZ;

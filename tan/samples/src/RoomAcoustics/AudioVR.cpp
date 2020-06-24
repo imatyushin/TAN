@@ -319,9 +319,7 @@ int Audio3D::init(  RoomDefinition roomDef, int nFiles, char **inFiles, int fftL
     RETURN_IF_FAILED(TANCreateFFT(m_spContext2, &mFft));
     RETURN_IF_FAILED(mFft->Init());
 
-
-    //RETURN_IF_FAILED(TANCreateTrueAudioVR(m_spContext2, mFft, 48000, fftLen, &m_pTAVR));
-	m_pTAVR = new AmdTrueAudioVR(m_spContext2, mFft, cmdQueue2, 48000, fftLen);
+    m_pTAVR = new AmdTrueAudioVR(m_spContext2, mFft, cmdQueue2, FILTER_SAMPLE_RATE, fftLen);
 	//AmdTrueAudioVR(TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue,
 	//	float samplesPerSecond, int convolutionLength);
 

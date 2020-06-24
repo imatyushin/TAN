@@ -443,9 +443,9 @@ int main(int argc, char* argv[])
 
     waveFileNames[0] = new char[MAX_PATH + 4];
 
-	uint32_t SamplesPerSec = 48000;
+	uint32_t SamplesPerSec = FILTER_SAMPLE_RATE;
 	uint16_t BitsPerSample = 16;
-	uint16_t NChannels = 2;
+	uint16_t NChannels = STEREO_CHANNELS_COUNT;
     uint32_t NSamples = 0;
     unsigned char *pSamples = NULL;
     float **pfSamples = NULL;

@@ -1348,12 +1348,13 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 	if(!m_bDemoStarted)
 	{
 		storeAllFieldsToInstance();
+        m_RoomAcousticInstance.saveConfiguration(m_RoomAcousticInstance.mConfigFileName);
 
 #ifdef _DEBUG
 		printConfiguration();
 #endif
-
-		m_bDemoStarted = m_RoomAcousticInstance.start();
+        
+        m_bDemoStarted = m_RoomAcousticInstance.start();
 
 		if(m_bDemoStarted)
 		{

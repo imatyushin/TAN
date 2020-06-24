@@ -296,7 +296,7 @@ public:
         (void)mConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
         (void)mConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
 
-        WriteWaveFileS(fileName, 48000, 2, 16, convolutionLength, sSamples);
+        WriteWaveFileS(fileName, FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT, 16, convolutionLength, sSamples);
         delete[] sSamples;
         return 0;
     }

@@ -1579,7 +1579,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
 	m_tailThread.Start();
 #endif
 
-    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
     {
         for(int channel = 0; channel < m_iChannels; ++channel)
         {
@@ -1597,7 +1597,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
                 m_iBufferSizeInSamples
                 );
         }
-    }
+    }*/
 
     return AMF_OK;
 }
@@ -2229,7 +2229,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         m_pXFadeSamples.AllocateHostData(i, 4 * m_iBufferSizeInSamples + 2);
     }
 
-    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
         {
             for(int channel = 0; channel < m_iChannels; ++channel)
             {
@@ -2247,7 +2247,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                     m_iBufferSizeInSamples
                     );
             }
-        }
+        }*/
 
     return AMF_OK;
 }
@@ -3890,7 +3890,6 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
                 for(size_t channel(0); channel < channels; ++channel)
                 {
-                    printf("fill %d\r\n", channel);
                     buffers[channel] = cl_mem(m_internalOutBufs.buffer.amfBuffers[channel]->GetNative());
                 }
 

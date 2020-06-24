@@ -801,7 +801,7 @@ void CRoomAcousticsDlg::OnEnChangeEditConvLength()
     char buffer[MAX_PATH];
     GetDlgItemText(IDC_EDIT_CONV_LENGTH, buffer, MAX_PATH);
     sscanf_s(buffer, "%d", &convolutionLength);
-    sprintf_s(buffer,"%7.3f s @48kHz", convolutionLength/48000.0);
+    sprintf_s(buffer,"%7.3f s @48kHz", convolutionLength/float(FILTER_SAMPLE_RATE));
     SetDlgItemText(IDC_CONV_TIME, buffer);
 }
 
@@ -817,7 +817,7 @@ void CRoomAcousticsDlg::OnEnChangeEditBufferSize()
     char buffer[MAX_PATH];
     GetDlgItemText(IDC_EDIT_BUFFER_SIZE, buffer, MAX_PATH);
     sscanf_s(buffer, "%d", &bufferSize);
-    sprintf_s(buffer, "%7.3f s @48kHz", bufferSize / 48000.0);
+    sprintf_s(buffer, "%7.3f s @48kHz", bufferSize / float(FILTER_SAMPLE_RATE));
     SetDlgItemText(IDC_BUF_TIME, buffer);
 }
 
@@ -1841,7 +1841,7 @@ void CRoomAcousticsDlg::OnBnClickedExport()
     memset(rightResponse, 0, convolutionLength*sizeof(float));
     memset(sSamples, 0, 2 * convolutionLength*sizeof(short));
 
-    m_pTAVR->generateRoomResponse(room, src, ears, 48000, convolutionLength, leftResponse, rightResponse);
+    m_pTAVR->generateRoomResponse(room, src, ears, FILTER_SAMPLE_RATE, convolutionLength, leftResponse, rightResponse);
 
     (void)mConverter->Convert(leftResponse, 1, convolutionLength, sSamples, 2, 1.f);
     //m_pTA->NormFloatsToShorts(leftResponse, sSamples, convolutionLength, 2, 1.0);
@@ -1849,7 +1849,7 @@ void CRoomAcousticsDlg::OnBnClickedExport()
     (void)mConverter->Convert(rightResponse, 1, convolutionLength, sSamples + 1, 2, 1.f);
     //m_pTA->NormFloatsToShorts(rightResponse, sSamples + 1, convolutionLength, 2, 1.0);
 
-    WriteWaveFileS(pfName, 48000, 2, 16, convolutionLength, sSamples);
+    WriteWaveFileS(pfName, FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT, 16, convolutionLength, sSamples);
     delete[] leftResponse;
     delete[] rightResponse;
     delete[] sSamples;

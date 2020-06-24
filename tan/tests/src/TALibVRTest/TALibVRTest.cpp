@@ -494,9 +494,9 @@ int main(int argc, char* argv[])
 
 	char *xmlFileName, *outFileName;
 
-	int SamplesPerSec = 48000;
+	int SamplesPerSec = FILTER_SAMPLE_RATE;
 	int BitsPerSample = 16;
-	int NChannels = 2;
+	int NChannels = STEREO_CHANNELS_COUNT;
 
 	bool gpu = 0;
 	bool test = 0;
