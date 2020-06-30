@@ -30,8 +30,6 @@ else()
   message("AMF will be built with default shared library name, use environment variable AMF_DLL_NAME to override it")
 endif()
 
-#ADD_DEFINITIONS(-DAMF_CORE_STATIC)
-
 # sources
 set(
   SOURCE_LIB
@@ -149,7 +147,7 @@ if(NOT WIN32)
   if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(amf PUBLIC -g)
   endif()
-  
+
   if(NOT APPLE)
     target_compile_options(${AMF_NAME} PUBLIC -Wpsabi)
   endif()

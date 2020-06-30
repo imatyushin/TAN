@@ -378,13 +378,13 @@ AMF_RESULT CreateCommandQueuesVIAamf
 {
     bool AllIsOK = true;
 
-    if(*compute1)
+    if(compute1 && *compute1)
     {
         (*compute1)->Release();
         *compute1 = nullptr;
     }
 
-    if(*compute2)
+    if(compute2 && *compute2)
     {
         (*compute2)->Release();
         *compute2 = nullptr;
