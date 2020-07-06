@@ -45,91 +45,9 @@
  */
 namespace graal
 {
-
-#ifndef TAN_SDK_EXPORTS
-
-class CGraalConvOCL;
-
-CGraalConvOCL & getGraalOCL(void);
-
-class CGraalConvOCL
-{
-//    streamsdk::SDKDeviceInfo deviceInfo;            /**< Structure to store device information*/
-//    streamsdk::KernelWorkGroupInfo kernelInfo;      /**< Structure to store kernel related info */
-
-
-    public:
-    /**
-     * Constructor
-     * Initialize member variables
-     */
-     CGraalConvOCL(void);
-
-    /**
-     * Destructor
-     * @param name name of sample (string)
-     */
-
-     ~CGraalConvOCL(void);
-
-
-    /**
-     * OpenCL related initialisations.
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
-     */
-    int setupCL(
-        cl_context context = 0,
-        cl_device_id device = 0,
-        cl_command_queue queue = 0
-        );
-
-
-    /**
-     * Cleanup memory allocations
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
-     */
-    int cleanup();
-
-    /**
-     * Cleanup memory allocations
-     *  @param prop array of CL queue properties
-     *  @param deviceId id device of the queue
-     */
-
-    cl_command_queue getClQueue(cl_command_queue_properties *prop, int deviceId) const;
-    inline cl_context getClContext(void) const
-    {
-        return(context_);
-    }
-
-    cl_kernel getKernel(std::string kernel_id,
-                        std::string kernel_src,
-                        size_t kernel_src_size,
-                        std::string kernel_name,
-                        std::string comp_options);
-
-protected:
-    bool own_context_;
-    int init_counter_;
-    cl_device_type dType_;
-    cl_platform_id platform_;
-    cl_context context_;
-#ifndef _DEBUG_PRINTF
-    cl_command_queue queue_;
-#endif
-    std:: vector<cl_device_id> devices_;
-    std:: vector<GraalDeviceInfo*> device_infors_;
-    std::map<std::string,buildProgramData*> build_prog_map_;
-
-};
-
-#endif // !TAN_SDK_EXPORTS
-
 /*---------------------------------------------------------
 CABuf
 ----------------------------------------------------------*/
-
-
 template<typename T>
 class CABuf
 {
@@ -602,9 +520,7 @@ public:
             {
                 if (clReleaseMemObject(buf_) != CL_SUCCESS) {
                     ret = GRAAL_OPENCL_FAILURE;
-#ifdef TAN_SDK_EXPORTS
                     AMF_ASSERT(false, L"clReleaseMemObject() failed");
-#endif
                 }
             }
             buf_ = 0;
@@ -622,13 +538,6 @@ public:
         int ret = GRAAL_SUCCESS;
         return(ret);
     }
-
-#ifndef TAN_SDK_EXPORTS
-    inline void setContext(cl_context _context)
-    {
-        context_ = _context;
-    }
-#endif
 
     inline cl_context getContext(void)
     {
@@ -649,11 +558,7 @@ public:
             if (!sys_ptr_)
             {
 #ifdef _DEBUG_PRINTF
-#ifdef TAN_SDK_EXPORTS
                 AMF_ASSERT(false, L"Cannot allocate memory: %lu", len_ * sizeof(T));
-#else
-                printf("error creating bufffer: %d\n", ret);
-#endif
 #endif
                 return sys_ptr_;
             }
@@ -710,7 +615,6 @@ protected:
 
 
 };
-
 
 template<typename T>
 class CASubBuf : public CABuf<T>

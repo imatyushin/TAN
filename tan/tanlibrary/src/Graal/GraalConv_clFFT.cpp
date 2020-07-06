@@ -147,53 +147,22 @@ void CGraalConv_clFFT::cleanup()
 }
 
 int CGraalConv_clFFT::initializeConv(
-#ifdef TAN_SDK_EXPORTS
-    amf::TANContextPtr &pContextTAN,
-    amf::AMFComputePtr &pConvolution,
-    amf::AMFComputePtr &pUpdate,
-#endif
-    int _n_max_channels,
-    int _max_conv_sz,
-    int _max_proc_buffer_sz,
-    int _n_sets,
-    int _algorithm
-#ifndef TAN_SDK_EXPORTS
-    ,
-    cl_context _clientContext,
-    cl_device_id _clientDevice,
-    cl_command_queue _clientQ
-#endif
+    const amf::TANContextPtr &  pContextTAN,
+    const amf::AMFComputePtr &  pConvolution,
+    const amf::AMFComputePtr &  pUpdate,
+    int                         _n_max_channels,
+    int                         _max_conv_sz,
+    int                         _max_proc_buffer_sz,
+    int                         _n_sets,
+    int                         _algorithm
 )
 {
-    /*
-    CGraalConv::initializeConv(
-#ifdef TAN_SDK_EXPORTS
-        pContextTAN,
-        pConvolution,
-        pUpdate,
-#endif
-        _n_max_channels,
-        _max_conv_sz,
-        _max_proc_buffer_sz,
-        _n_sets,
-        _algorithm
-#ifndef TAN_SDK_EXPORTS
-        ,
-        _clientContext,
-        _clientDevice,
-        _clientQ
-#endif
-        );
-    */
-
-#ifdef TAN_SDK_EXPORTS
     m_pContextTAN = pContextTAN;
     AMF_RETURN_IF_INVALID_POINTER(m_pContextTAN);
 
     //ivm: this pointer could be null in case of run without AMF
     //AMF_RETURN_IF_INVALID_POINTER(pConvolution);
     //AMF_RETURN_IF_INVALID_POINTER(pUpdate);
-#endif
 
     ///////////
     n_max_channels_ = _n_max_channels;
@@ -248,22 +217,12 @@ int CGraalConv_clFFT::initializeConv(
     return 0;
 }
 
-
-int
-CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate)
+int CGraalConv_clFFT::setupCL(
+    const amf::AMFComputePtr & pComputeConvolution,
+    const amf::AMFComputePtr & pComputeUpdate
+    )
 {
     int ret = GRAAL_SUCCESS;
-
-#ifndef TAN_SDK_EXPORTS
-    // need to be the first call to set the device, context in CGraalConvOCL
-    graal::getGraalOCL().setupCL(_clientContext, _clientDevice, _clientQ);
-
-    clientContext_ = graal::getGraalOCL().getClContext();
-    cl_queue_properties prop[] = { 0 };
-    clientQ_ = graal::getGraalOCL().getClQueue(prop, 0);
-#else
-    //CGraalConv::setupCL(pComputeConvolution, pComputeUpdate);
-#endif
 
 #ifndef TAN_NO_OPENCL
     cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
@@ -296,7 +255,7 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
 #endif
     }
 
-
+//todo, ivm: what is this?
 #  define CABufArgs clientContext_
 #  define CAUpdBufArgs clientContext_
 
@@ -622,7 +581,6 @@ CGraalConv_clFFT::setupCLFFT()
     cl_context          context_Update = NULL;
     clGetCommandQueueInfo(m_commandqueue_Update, CL_QUEUE_CONTEXT, sizeof(context_Update), &context_Update, NULL);
 
-#ifdef TAN_SDK_EXPORTS
     status = clfftCreateDefaultPlan(
         &clfftPlanFwdIR, context_Update,
                 CLFFT_1D, &double_block_sz_64);
@@ -639,14 +597,6 @@ CGraalConv_clFFT::setupCLFFT()
                 context_Convolution,
                 CLFFT_1D, &double_block_sz_64);
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
-#else
-    status = clfftCreateDefaultPlan(&clfftPlanFwdIR, clientContext_, CLFFT_1D, &double_block_sz_64);
-    assert(status == CLFFT_SUCCESS);
-    status = clfftCreateDefaultPlan(&clfftPlanFwdAllChannels, clientContext_, CLFFT_1D, &double_block_sz_64);
-    assert(status == CLFFT_SUCCESS);
-    status = clfftCreateDefaultPlan(&clfftPlanBackAllChannels, clientContext_, CLFFT_1D, &double_block_sz_64);
-    assert(status == CLFFT_SUCCESS);
-#endif
 
     if (use_hermitian)
     {
@@ -678,7 +628,6 @@ CGraalConv_clFFT::setupCLFFT()
     clfftSetPlanBatchSize(clfftPlanFwdAllChannels, n_max_channels_);
     clfftSetPlanBatchSize(clfftPlanBackAllChannels, n_max_channels_);
 
-#ifdef TAN_SDK_EXPORTS
     cl_command_queue updContextArr[1] = {
         m_commandqueue_Update
     };
@@ -692,14 +641,6 @@ CGraalConv_clFFT::setupCLFFT()
 
     status = clfftBakePlan(clfftPlanBackAllChannels, countOf(prcContextArr), prcContextArr, NULL, NULL);
     AMF_RETURN_IF_FALSE(status == CLFFT_SUCCESS, AMF_OPENCL_FAILED, L"CLFFT failure");
-#else
-    status = clfftBakePlan(clfftPlanFwdIR, 1, &clientQ_, NULL, NULL);
-    assert(status == CLFFT_SUCCESS);
-    status = clfftBakePlan(clfftPlanFwdAllChannels, 1, &clientQ_, NULL, NULL);
-    assert(status == CLFFT_SUCCESS);
-    status = clfftBakePlan(clfftPlanBackAllChannels, 1, &clientQ_, NULL, NULL);
-    assert(status == CLFFT_SUCCESS);
-#endif
 
     return 0;
 }
@@ -1038,13 +979,8 @@ int CGraalConv_clFFT::updateConv(
             g_wk[0] = num_blocks_ * double_block_sz_;
         }
 
-#ifdef TAN_SDK_EXPORTS
         ret = clEnqueueNDRangeKernel(generalQueue, padKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"updateConv clEnqueueNDRangeKernel failed: " )
-#else
-        ret = clEnqueueNDRangeKernel(clientQ_, padKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
-        CHECK_OPENCL_ERROR(ret, "Running padKernel failed.");
-#endif
 
         //We need to interleave the real data into complex format when we aren't using the Hermitian
         if (!use_hermitian)
@@ -1058,13 +994,8 @@ int CGraalConv_clFFT::updateConv(
 
             g_wk[0] = num_blocks_ * double_block_sz_;
 
-#ifdef TAN_SDK_EXPORTS
             ret = clEnqueueNDRangeKernel(generalQueue, interleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"updateConv clEnqueueNDRangeKernel failed: " )
-#else
-            ret = clEnqueueNDRangeKernel(clientQ_, interleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
-            CHECK_OPENCL_ERROR(ret, "Running padKernel failed.");
-#endif
         }
         printAllBlocks(clIRBlocksBuf[ch][set], "IR padded", freq_block_sz_);
 
@@ -1102,8 +1033,6 @@ int CGraalConv_clFFT::updateConv(
 int CGraalConv_clFFT::finishUpdate(void)
 { return 0;}
 
-
-#ifdef TAN_SDK_EXPORTS
 /**
 * Responce copying utility function.
 *
@@ -1174,8 +1103,6 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
 
     return AMF_OK;
 }
-#endif // TAN_SDK_EXPORTS
-
 
 int CGraalConv_clFFT::process(
     int n_channels,
@@ -1206,9 +1133,7 @@ int CGraalConv_clFFT::process(
 #endif
 
     //setup maps used to control kernels
-#ifdef TAN_SDK_EXPORTS
     cl_command_queue clientQ_ = convolutionQueue;
-#endif
 
     int* ChannelMap = clChannelMap->map(clientQ_, CL_MAP_WRITE);
     int* SetMap = clSetMap->map(clientQ_, CL_MAP_WRITE);
@@ -1280,15 +1205,9 @@ int CGraalConv_clFFT::process(
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: n_input_blocks_" )
 
     g_wk[0] = freq_block_sz_ * n_channels / 2;
-#ifdef TAN_SDK_EXPORTS
+
     ret = clEnqueueNDRangeKernel(convolutionQueue, interleaveMultiChanKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
-#else
-    ret = clEnqueueNDRangeKernel(clientQ_, interleaveMultiChanKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
-    CHECK_OPENCL_ERROR(ret, "Running padKernel failed.");
-
-    printAllBlocks(clInputBlockBaseBuf, "input interleaved ready for FFT", freq_block_sz_, n_channels);
-#endif
 
     //3 FFT the whole InputBlockBase
     cl_mem inBuf = clInputBlockBaseBuf->getCLMem();
@@ -1329,13 +1248,9 @@ int CGraalConv_clFFT::process(
 
     g_wk[0] = freq_block_sz_;
     g_wk[1] = n_channels;
-#ifdef TAN_SDK_EXPORTS
+
     ret = clEnqueueNDRangeKernel(convolutionQueue, sigHistInsertMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
-#else
-    ret = clEnqueueNDRangeKernel(clientQ_, sigHistInsertMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
-    CHECK_OPENCL_ERROR(ret, "Running sigHistInsertMultiChanKernel_ failed.");
-#endif
 
     //5 Convolve by multiplying and accumulating the the Signal History with the IR
     n_arg = 0;
@@ -1367,25 +1282,9 @@ int CGraalConv_clFFT::process(
 
     g_wk[0] = freq_block_num_elements_;
     g_wk[1] = n_channels;
-#ifdef TAN_SDK_EXPORTS
+
     ret = clEnqueueNDRangeKernel(convolutionQueue, madaccMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
-#else
-    ret = clEnqueueNDRangeKernel(clientQ_, madaccMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
-    CHECK_OPENCL_ERROR(ret, "Running padKernel failed.");
-#endif
-
-#ifndef TAN_SDK_EXPORTS
-        clFinish(clientQ_);
-
-#  ifdef _DEBUG_PRINTF
-        printAllBlocks(clSignalHistBaseBuf, "Signal history for ch 0", freq_block_sz_, 3);
-        printAllBlocks(clIRBlocksBaseBuf, "IR for ch 0", freq_block_sz_, 3);
-        printf("\nFor channel %d\n", inspectCh);
-        printBlock(clOutputBaseBuf, "Filtered in freq", freq_block_sz_, inspectCh * freq_block_sz_);
-#  endif
-    }
-#endif
 
     //6 inverse FFT the results of the convolution back to the time domain
     inBuf = clOutputBaseBuf->getCLMem();
@@ -1414,15 +1313,9 @@ int CGraalConv_clFFT::process(
 
     g_wk[0] = double_block_sz_ * n_channels;
     g_wk[1] = 1;
-#ifdef TAN_SDK_EXPORTS
+
     ret = clEnqueueNDRangeKernel(convolutionQueue, deinterleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
-#else
-    ret = clEnqueueNDRangeKernel(clientQ_, deinterleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
-    CHECK_OPENCL_ERROR(ret, "Running padKernel failed.");
-
-    printBlock(clOutputBaseBuf, "Filtered in time deinterleaved", double_block_sz_, inspectCh * double_block_sz_);
-#endif
 
     //8 copy from the GPU back to the sytem ouputs
     float * clOutMem = clOutputBaseBuf->map(clientQ_, CL_MAP_READ);

@@ -34,7 +34,6 @@
 #include "GraalFile.hpp"
 
 #ifdef _DEBUG_PRINT
-#ifdef TAN_SDK_EXPORTS
 #  define ASSERT_CL_RETURN( actual , msg) \
     AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, GRAAL_FAILURE, L#msg);
 
@@ -56,7 +55,6 @@
 
 #  define OPENVIDEO_EXPECTED_ERROR(msg) \
     AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, GRAAL_EXPECTED_FAILURE, L#msg);
-##else
 #  define ASSERT_CL_RETURN( actual , msg)\
    if( checkVal(actual, CL_SUCCESS, msg) )\
    {\
@@ -76,7 +74,6 @@
     { \
         std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
     }
-
 
 #  define OPENCL_EXPECTED_ERROR(msg) \
     { \
@@ -102,21 +99,20 @@
         expectedError(msg); \
         return GRAAL_EXPECTED_FAILURE; \
     }
-#endif
 #else
-#  define ASSERT_CL_RETURN( actual , msg) 
+#  define ASSERT_CL_RETURN( actual , msg)
 
-#  define CHECK_OPENCL_ERROR(actual, msg) 
+#  define CHECK_OPENCL_ERROR(actual, msg)
 
-#  define CHECK_OPENCL_ERROR_MSG(actual, msg) 
+#  define CHECK_OPENCL_ERROR_MSG(actual, msg)
 
-#  define OPENCL_EXPECTED_ERROR(msg) 
+#  define OPENCL_EXPECTED_ERROR(msg)
 
-#  define OPENCL_EXPECTED_ERROR_RETURN(msg) 
+#  define OPENCL_EXPECTED_ERROR_RETURN(msg)
 
-#  define CHECK_OPENVIDEO_ERROR(actual, msg) 
+#  define CHECK_OPENVIDEO_ERROR(actual, msg)
 
-#  define OPENVIDEO_EXPECTED_ERROR(msg) 
+#  define OPENVIDEO_EXPECTED_ERROR(msg)
 
 #endif
 
@@ -189,7 +185,7 @@ struct buildProgramData
     }
     ~buildProgramData()
     {
-        if ( program ) 
+        if ( program )
         {
             clReleaseProgram(program);
             program = 0;
@@ -321,7 +317,7 @@ static const char* getOpenCLErrorCodeStr(T input)
         return "CL_DEVICE_PARTITION_FAILED_EXT";
     case CL_INVALID_PARTITION_COUNT_EXT:
         return "CL_INVALID_PARTITION_COUNT_EXT";
-    
+
     #ifdef CL_VERSION_2_0
     case CL_INVALID_DEVICE_QUEUE:
         return "CL_INVALID_DEVICE_QUEUE";
@@ -343,7 +339,7 @@ template<typename T>
 static int checkVal(
     T input,
     T reference,
-    std::string message, bool isAPIerror = true)
+    const std::string & message, bool isAPIerror = true)
 {
     if(input==reference)
     {
@@ -728,7 +724,7 @@ static int generateBinaryImage(const bifData &binaryData)
  * @param dType cl_device_type
  * @return 0 if success else nonzero
  */
-static bool getDefaultPlatform(cl_uint numPlatforms, 
+static bool getDefaultPlatform(cl_uint numPlatforms,
                         cl_platform_id* platforms,
                         cl_platform_id &platform,
                         cl_device_type dType)
@@ -747,7 +743,7 @@ static bool getDefaultPlatform(cl_uint numPlatforms,
                                     NULL);
         CHECK_OPENCL_ERROR(status, "clGetPlatformInfo failed.");
         platform = platforms[i];
-                
+
         if (!strcmp(platformName, "Advanced Micro Devices, Inc."))
         {
             cl_context_properties cps[3] =
@@ -769,11 +765,11 @@ static bool getDefaultPlatform(cl_uint numPlatforms,
             {
                 defaultPlatform = true;
                 break;
-            }	
+            }
         }
     }
 
-    //if there is no device of AMD platform, find 
+    //if there is no device of AMD platform, find
     //any first platform having this device
     if(!defaultPlatform)
     {
@@ -786,7 +782,7 @@ static bool getDefaultPlatform(cl_uint numPlatforms,
                                     NULL);
             CHECK_OPENCL_ERROR(status, "clGetPlatformInfo failed.");
             platform = platforms[i];
-                        
+
             cl_context_properties cps[3] =
             {
                     CL_CONTEXT_PLATFORM,
@@ -858,7 +854,7 @@ static int getPlatformL(cl_platform_id &platform, int platformId,
 
                 case CL_DEVICE_TYPE_CPU :
                 {
-                    //if there is no GPU found, 
+                    //if there is no GPU found,
                     //then find platform having CPU
                     if(!platformFound)
                     {
@@ -1121,7 +1117,7 @@ static cl_int spinForEventsComplete(cl_uint num_events, cl_event *event_list)
 
     for (cl_uint e = 0; e < num_events; e++)
     {
-        while (1)
+        for(;;)
         {
             ret |= clGetEventInfo(event_list[e],
                 CL_EVENT_COMMAND_EXECUTION_STATUS,
@@ -1151,10 +1147,10 @@ static int waitForEventAndRelease(cl_event *event)
 
     status = clWaitForEvents(1, event);
     CHECK_OPENCL_ERROR(status, "clWaitForEvents Failed with Error Code:");
-    
+
     status = clReleaseEvent(*event);
     CHECK_OPENCL_ERROR(status, "clReleaseEvent Failed with Error Code:");
-    
+
     return GRAAL_SUCCESS;
 }
 
@@ -1260,496 +1256,6 @@ static int ReadEventTime(cl_event& event, double *time)
     *time = (double)(1e-9 * (endTime - startTime));
     return GRAAL_SUCCESS;
 }
-
-
-
-#if 0
-/**
-* CLCommandArgs class contains all the
-* command arguments related info passed by the user inlcuding
-* the decvice and platform infos.
-*/
-class CLCommandArgs : public SDKCmdArgsParser
-{
-
-    protected:
-        
-        //
-        bool enableDeviceId;           /**< If deviceId used */
-        bool enablePlatform;           /**< If platformId Used */
-        bool gpu;                      /**< If GPU used */
-        bool amdPlatform;              /**< If AMD Platform Used */
-    public:
-        bool multiDevice;              /**< Cmd Line Option- if MultiGPU */
-        unsigned int deviceId;         /**< Cmd Line Option- device number */
-        unsigned int platformId;       /**< Cmd Line Option- platform number */
-        std::string deviceType;        /**< Cmd Line Option- set device type(cpu|gpu) */
-        std::string dumpBinary;        /**< Cmd Line Option- Dump Binary with name */
-        std::string loadBinary;        /**< Cmd Line Option- Load Binary with name */
-        std::string flags;             /**< Cmd Line Option- compiler flags */
-        bool enableSpir;			   /** SPIR binary is being Used */
-        /**
-        */
-        CLCommandArgs(bool enableMultiDevice = false)
-            :SDKCmdArgsParser ()
-        {
-            deviceType = "gpu";
-            multiDevice = enableMultiDevice;
-            deviceId = 0;
-            platformId = 0;
-            enablePlatform = false;
-            enableDeviceId = false;
-            gpu = true;
-            amdPlatform = false;
-            enableSpir = false;
-        }
-
-        /**
-        * isDumpBinaryEnabled
-        * Checks if dump Binary Option is enabled
-        * @return true if DumpBinary Enabled else false
-        */
-        bool isDumpBinaryEnabled()
-        {
-            if(dumpBinary.size() == 0)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        /**
-         * isLoadBinaryEnabled
-         * Checks if the sample wants to load a prebuilt binary
-         * @return true if LoadBinary Enabled else false
-         */
-        bool isLoadBinaryEnabled()
-        {
-            if(loadBinary.size() == 0)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        /**
-         * isCompilerFlagsSpecified
-         * Checks if any compiler flag is specified for the kernel
-         * @return true if CompierFlag Enabled else false
-         */
-        bool isComplierFlagsSpecified()
-        {
-            if(flags.size() == 0)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-        /**
-         * isPlatformEnabled
-         * Checks if platform option is used
-         * @return true if PlatformId Enabled else false
-         */
-        bool isPlatformEnabled()
-        {
-            return enablePlatform;
-        }
-
-        /**
-         * isDeviceEnabled
-         * Checks if device option is used
-         * @return true if DeviceId Enabled else false
-         */
-        bool isDeviceIdEnabled()
-        {
-            return enableDeviceId;
-        }
-
-        /**
-         * isThereGPU
-         * Checks if a GPU is Present
-         * @return true if GPU Present else false
-         */
-        bool isThereGPU()
-        {
-            return gpu;
-        }
-
-        /**
-         * isAmdPlatform
-         * Checks if AMD Platform is used
-         * @return true if AMD Platform Enabled else false
-         */
-        bool isAmdPlatform()
-        {
-            return amdPlatform;
-        }
-
-
-        /**
-        * parseCommandLine
-        * parses the command line options given by user
-        * @param argc Number of elements in cmd line input
-        * @param argv array of char* storing the CmdLine Options
-        * @return 0 on success Positive if expected and Non-zero on failure
-        */
-        int parseCommandLine(int argc, char **argv)
-        {
-            if(!parse(argv,argc))
-            {
-                usage();
-                if((isArgSet("h",true) == true) || (isArgSet("help",false) == true))
-                {
-                    exit(GRAAL_SUCCESS);
-                }
-                return GRAAL_FAILURE;
-            }
-            if((isArgSet("h",true) == true) || (isArgSet("help",false) == true))
-            {
-                usage();
-                exit(GRAAL_SUCCESS);
-            }
-            // Print the sdk version and exit the application
-            if(isArgSet("v", true) || isArgSet("version", false))
-            {
-                std::cout << "SDK version : " << sampleVerStr.c_str() << std::endl;
-                exit(0);
-            }
-            if(isArgSet("p",true) || isArgSet("platformId",false))
-            {
-                enablePlatform = true;
-            }
-            if(isArgSet("d",true) || isArgSet("deviceId",false))
-            {
-                enableDeviceId = true;
-            }
-            /* check about the validity of the device type */
-            if(multiDevice)
-            {
-                if(!((deviceType.compare("cpu") == 0 )
-                        || (deviceType.compare("gpu") ==0)
-                        || (deviceType.compare("all") ==0)))
-                {
-                    std::cout << "Error. Invalid device options. "
-                              << "only \"cpu\" or \"gpu\" or \"all\" supported\n";
-                    usage();
-                    return GRAAL_FAILURE;
-                }
-            }
-            else
-            {
-                if(!((deviceType.compare("cpu") == 0 ) || (deviceType.compare("gpu") ==0)))
-                {
-                    std::cout << "Error. Invalid device options. "
-                              << "only \"cpu\" or \"gpu\" supported\n";
-                    usage();
-                    return GRAAL_FAILURE;
-                }
-            }
-            if(dumpBinary.size() != 0 && loadBinary.size() != 0)
-            {
-                std::cout << "Error. --dump and --load options are mutually exclusive\n";
-                usage();
-                return GRAAL_FAILURE;
-            }
-            if (loadBinary.size() != 0 && flags.size() != 0 && enableSpir == false)
-            {
-                std::cout << "Error. --flags and --load options are mutually exclusive\n";
-                usage();
-                return GRAAL_FAILURE;
-            }
-            if(validatePlatformAndDeviceOptions() != GRAAL_SUCCESS)
-            {
-                std::cout << "validatePlatfromAndDeviceOptions failed.\n ";
-                return GRAAL_FAILURE;
-            }
-            return GRAAL_SUCCESS;
-        }
-
-        /**
-         * validatePlatformAndDeviceOptions
-         * Validates if the intended platform and device is used
-         * @return 0 on success Positive if expected and Non-zero on failure
-         */
-        int validatePlatformAndDeviceOptions()
-        {
-            cl_int status = CL_SUCCESS;
-            cl_uint numPlatforms;
-            cl_platform_id platform = NULL;
-            status = clGetPlatformIDs(0, NULL, &numPlatforms);
-            if(status != CL_SUCCESS)
-            {
-                std::cout<<"Error: clGetPlatformIDs failed. Error code : ";
-                std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                return GRAAL_FAILURE;
-            }
-            if (0 < numPlatforms)
-            {
-                // Validate platformId
-                if(platformId >= numPlatforms)
-                {
-                    if(numPlatforms - 1 == 0)
-                    {
-                        std::cout << "platformId should be 0" << std::endl;
-                    }
-                    else
-                    {
-                        std::cout << "platformId should be 0 to " << numPlatforms - 1 << std::endl;
-                    }
-                    usage();
-                    exit(GRAAL_EXPECTED_FAILURE);
-                }
-
-                // Get selected platform
-                cl_platform_id* platforms = new cl_platform_id[numPlatforms];
-                status = clGetPlatformIDs(numPlatforms, platforms, NULL);
-                if(status != CL_SUCCESS)
-                {
-                    std::cout<<"Error: clGetPlatformIDs failed. Error code : ";
-                    std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                    return GRAAL_FAILURE;
-                }
-
-                // Print all platforms
-                for (unsigned i = 0; i < numPlatforms; ++i)
-                {
-                    char pbuf[100];
-                    status = clGetPlatformInfo(platforms[i],
-                                               CL_PLATFORM_VENDOR,
-                                               sizeof(pbuf),
-                                               pbuf,
-                                               NULL);
-                    if(status != CL_SUCCESS)
-                    {
-                        std::cout<<"Error: clGetPlatformInfo failed. Error code : ";
-                        std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                        return GRAAL_FAILURE;
-                    }
-                    std::cout << "Platform " << i << " : " << pbuf << std::endl;
-                }
-
-                // Validating platform having GPU
-                for (unsigned i = 0; i < numPlatforms; ++i)
-                {
-                    char pbuf[100];
-                    status = clGetPlatformInfo(platforms[i],
-                                               CL_PLATFORM_VENDOR,
-                                               sizeof(pbuf),
-                                               pbuf,
-                                               NULL);
-                    if(status != CL_SUCCESS)
-                    {
-                        std::cout<<"Error: clGetPlatformInfo failed. Error code : ";
-                        std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                        return GRAAL_FAILURE;
-                    }
-                    platform = platforms[i];
-                    
-                    // Check for GPU
-                    cl_context_properties cps[3] =
-                    {
-                        CL_CONTEXT_PLATFORM,
-                        (cl_context_properties)platform,
-                        0
-                    };
-                    cl_context context = clCreateContextFromType(cps,
-                                                                 CL_DEVICE_TYPE_GPU,
-                                                                 NULL,
-                                                                 NULL,
-                                                                 &status);
-                    if(status == CL_DEVICE_NOT_FOUND)
-                    {
-                        gpu = false;
-                    }
-                    else
-                        break;
-
-                    clReleaseContext(context);
-                }
-
-                if(isPlatformEnabled())
-                {
-                    platform = platforms[platformId];
-                }
-                
-                // Check for AMD platform
-                char pbuf[100];
-                status = clGetPlatformInfo(platform,
-                                           CL_PLATFORM_VENDOR,
-                                           sizeof(pbuf),
-                                           pbuf,
-                                           NULL);
-                if(status != CL_SUCCESS)
-                {
-                    std::cout<<"Error: clGetPlatformInfo failed. Error code : ";
-                    std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                    return GRAAL_FAILURE;
-                }
-                if (!strcmp(pbuf, "Advanced Micro Devices, Inc."))
-                {
-                    amdPlatform = true;
-                }
-                cl_device_type dType = CL_DEVICE_TYPE_GPU;
-                if(deviceType.compare("cpu") == 0)
-                {
-                    dType = CL_DEVICE_TYPE_CPU;
-                }
-                if(deviceType.compare("gpu") == 0)
-                {
-                    dType = CL_DEVICE_TYPE_GPU;
-                }
-                else
-                {
-                    dType = CL_DEVICE_TYPE_ALL;
-                }
-                // Check for GPU
-                if(dType == CL_DEVICE_TYPE_GPU)
-                {
-                    cl_context_properties cps[3] =
-                    {
-                        CL_CONTEXT_PLATFORM,
-                        (cl_context_properties)platform,
-                        0
-                    };
-                    cl_context context = clCreateContextFromType(cps,
-                                         dType,
-                                         NULL,
-                                         NULL,
-                                         &status);
-                    if(status == CL_DEVICE_NOT_FOUND)
-                    {
-                        dType = CL_DEVICE_TYPE_CPU;
-                        gpu = false;
-                    }
-                    clReleaseContext(context);
-                }
-                // Get device count
-                cl_uint deviceCount = 0;
-                status = clGetDeviceIDs(platform, dType, 0, NULL, &deviceCount);
-                if(status != CL_SUCCESS)
-                {
-                    std::cout<<"Error: clGetDeviceIDs failed. Error code : ";
-                    std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                    return GRAAL_FAILURE;
-                }
-                // Validate deviceId
-                if(deviceId >= deviceCount)
-                {
-                    if(deviceCount - 1 == 0)
-                    {
-                        std::cout << "deviceId should be 0" << std::endl;
-                    }
-                    else
-                    {
-                        std::cout << "deviceId should be 0 to " << deviceCount - 1 << std::endl;
-                    }
-                    usage();
-                    exit(GRAAL_EXPECTED_FAILURE);
-                }
-                delete[] platforms;
-            }
-            return GRAAL_SUCCESS;
-        }
-        int initialize()
-        {
-            int defaultOptions = 10;
-            if(multiDevice)
-            {
-                defaultOptions = 9;
-            }
-            Option *optionList = new Option[defaultOptions];
-            CHECK_ALLOCATION(optionList, "Error. Failed to allocate memory (optionList)\n");
-            optionList[0]._sVersion = "";
-            optionList[0]._lVersion = "device";
-            if(multiDevice)
-            {
-                optionList[0]._description = "Execute the openCL kernel on a device";
-                optionList[0]._usage = "[cpu|gpu|all]";
-            }
-            else
-            {
-                optionList[0]._description = "Execute the openCL kernel on a device";
-                optionList[0]._usage = "[cpu|gpu]";
-            }
-            optionList[0]._type = CA_ARG_STRING;
-            optionList[0]._value = &deviceType;
-            optionList[1]._sVersion = "q";
-            optionList[1]._lVersion = "quiet";
-            optionList[1]._description = "Quiet mode. Suppress all text output.";
-            optionList[1]._usage = "";
-            optionList[1]._type = CA_NO_ARGUMENT;
-            optionList[1]._value = &quiet;
-            optionList[2]._sVersion = "e";
-            optionList[2]._lVersion = "verify";
-            optionList[2]._description = "Verify results against reference implementation.";
-            optionList[2]._usage = "";
-            optionList[2]._type = CA_NO_ARGUMENT;
-            optionList[2]._value = &verify;
-            optionList[3]._sVersion = "t";
-            optionList[3]._lVersion = "timing";
-            optionList[3]._description = "Print timing.";
-            optionList[3]._type = CA_NO_ARGUMENT;
-            optionList[3]._value = &timing;
-            optionList[4]._sVersion = "";
-            optionList[4]._lVersion = "dump";
-            optionList[4]._description = "Dump binary image for all devices";
-            optionList[4]._usage = "[filename]";
-            optionList[4]._type = CA_ARG_STRING;
-            optionList[4]._value = &dumpBinary;
-            optionList[5]._sVersion = "";
-            optionList[5]._lVersion = "load";
-            optionList[5]._description = "Load binary image and execute on device";
-            optionList[5]._usage = "[filename]";
-            optionList[5]._type = CA_ARG_STRING;
-            optionList[5]._value = &loadBinary;
-            optionList[6]._sVersion = "";
-            optionList[6]._lVersion = "flags";
-            optionList[6]._description =
-                "Specify filename containing the compiler flags to build kernel";
-            optionList[6]._usage = "[filename]";
-            optionList[6]._type = CA_ARG_STRING;
-            optionList[6]._value = &flags;
-            optionList[7]._sVersion = "p";
-            optionList[7]._lVersion = "platformId";
-            optionList[7]._description =
-                "Select platformId to be used[0 to N-1 where N is number platforms available].";
-            optionList[7]._usage = "[value]";
-            optionList[7]._type = CA_ARG_INT;
-            optionList[7]._value = &platformId;
-            optionList[8]._sVersion = "v";
-            optionList[8]._lVersion = "version";
-            optionList[8]._description = "AMD APP SDK version string.";
-            optionList[8]._usage = "";
-            optionList[8]._type = CA_NO_ARGUMENT;
-            optionList[8]._value = &version;
-            if(multiDevice == false)
-            {
-                optionList[9]._sVersion = "d";
-                optionList[9]._lVersion = "deviceId";
-                optionList[9]._description =
-                    "Select deviceId to be used[0 to N-1 where N is number devices available].";
-                optionList[9]._usage = "[value]";
-                optionList[9]._type = CA_ARG_INT;
-                optionList[9]._value = &deviceId;
-            }
-            _numArgs = defaultOptions;
-            _options = optionList;
-            return GRAAL_SUCCESS;
-        }
-
-};
-
-#endif
 
 /**
  * KernelWorkGroupInfo
@@ -1940,7 +1446,7 @@ class GraalDeviceInfo
 
 #ifdef CL_VERSION_2_0
         cl_device_svm_capabilities svmcaps;	/**< SVM Capabilities of device*/
-        cl_uint maxQueueSize;				/**< MAXIMUM QUEUE SIZE*/	
+        cl_uint maxQueueSize;				/**< MAXIMUM QUEUE SIZE*/
 #endif
 
         /**
@@ -2663,7 +2169,7 @@ class GraalDeviceInfo
 /**
  * detectSVM
  * Check if the device supports Shared virtual memory(SVM)
- * @return bool 
+ * @return bool
  */
 bool detectSVM()
 {
@@ -2681,7 +2187,7 @@ bool detectSVM()
 
 /**
  * detectOpenCL2_xCompatibility
- * Check if the device supports OpenCL 2.x 
+ * Check if the device supports OpenCL 2.x
  * @return @bool
  */
 bool checkOpenCL2_XCompatibility()
@@ -2689,7 +2195,7 @@ bool checkOpenCL2_XCompatibility()
     bool isOpenCL2_XSupported = false;
 
     int majorRev, minorRev;
-    if (sscanf_s(this->deviceVersion, "OpenCL %d.%d", &majorRev, &minorRev) == 2) 
+    if (sscanf_s(this->deviceVersion, "OpenCL %d.%d", &majorRev, &minorRev) == 2)
     {
       if (majorRev >= 2) {
         isOpenCL2_XSupported = true;

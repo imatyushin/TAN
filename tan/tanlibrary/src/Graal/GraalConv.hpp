@@ -111,7 +111,6 @@ static double subtractTimes(double endTime, double startTime)
     return conversion * (double)difference;
 }
 
-
 /**
  */
 namespace graal
@@ -134,8 +133,7 @@ namespace graal
 
 class CGraalConv
 {
-
-    public:
+public:
     /**
      * Constructor
      * Initialize member variables
@@ -151,7 +149,7 @@ class CGraalConv
      * @param name name of sample (string)
      */
 
-     virtual ~CGraalConv(void);
+    virtual ~CGraalConv(void);
     /**
      * Allocate and initialize convolution class
      *
@@ -166,24 +164,16 @@ class CGraalConv
      *
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
-     virtual int initializeConv(
-#ifdef TAN_SDK_EXPORTS
-         amf::TANContextPtr &pContextTAN,
-         amf::AMFComputePtr &pConvolution,
-         amf::AMFComputePtr &pUpdate,
-#endif
-         int n_max_channels,
-         int max_conv_sz,
-         int max_proc_buffer_sz,
-         int n_upload_sets = 2,         // number of shadow buffers for double buffering
-         int algorithm = ALG_ANY
-#ifndef TAN_SDK_EXPORTS
-         ,
-         cl_context clientContext = 0,
-         cl_device_id clientDevice = 0,
-         cl_command_queue clientQ = 0
-#endif
-         );
+    virtual int initializeConv(
+        const amf::TANContextPtr & pContextTAN,
+        const amf::AMFComputePtr & pConvolution,
+        const amf::AMFComputePtr & pUpdate,
+        int n_max_channels,
+        int max_conv_sz,
+        int max_proc_buffer_sz,
+        int n_upload_sets = 2,         // number of shadow buffers for double buffering
+        int algorithm = ALG_ANY
+        );
 
     /**
      * Returns a set of gpu_friendly system pointers.
@@ -196,7 +186,7 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int getConvBuffers(
+    virtual int getConvBuffers(
         int n_channels,				// number of channels
         int *uploadIDs,             // upload set IDs per kernel
         int *convIDs,               // kernel IDs
@@ -214,7 +204,7 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int getConvBuffers(
+    virtual int getConvBuffers(
         int n_channels,				// number of channels
         int *uploadIDs,             // upload set IDs per kernel
         int *convIDs,               // kernel IDs
@@ -237,7 +227,7 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int updateConv(
+    virtual int updateConv(
         int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
@@ -261,7 +251,7 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int updateConvHostPtrs(
+    virtual int updateConvHostPtrs(
         int n_channels,
         const int *uploadIDs,
         const int *convIDs,
@@ -285,7 +275,7 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int updateConv(
+    virtual int updateConv(
         int n_channels,
         const int *uploadIDs,
         const int *convIDs,
@@ -311,7 +301,7 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int updateConv(
+    virtual int updateConv(
         int _n_channels,
         const int *_uploadIDs,
         const int *_convIDs,
@@ -326,14 +316,13 @@ class CGraalConv
      */
      virtual int finishUpdate(void);
 
-#ifdef TAN_SDK_EXPORTS
      /**
       * Blocks until all the currently submitted processing tasks are done.
       *
       * @return AMF_OK on success.
       */
-     virtual AMF_RESULT finishProcess(void)
-     {
+    virtual AMF_RESULT finishProcess(void)
+    {
 #ifndef TAN_NO_OPENCL
         cl_int status = CL_SUCCESS;
         status = clFlush(m_pContextTAN->GetOpenCLConvQueue());
@@ -351,31 +340,30 @@ class CGraalConv
 #endif
 
         return AMF_OK;
-     }
+    }
 
-     /**
+    /**
       * Response copying utility function.
       *
       * @return AMF_OK on success.
       */
-     virtual AMF_RESULT copyResponses(
-         uint n_channels,
-         const uint pFromUploadIds[],
-         const uint pToUploadIds[],
-         const uint pConvIds[],
-         const bool synchronous = true
-         );
-#endif
+    virtual AMF_RESULT copyResponses(
+        uint n_channels,
+        const uint pFromUploadIds[],
+        const uint pToUploadIds[],
+        const uint pConvIds[],
+        const bool synchronous = true
+        );
 
 // more efficient dma copy
 #define COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK 1
 
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
-     virtual bool checkForContiguousBuffers(
-         int count,
-         const float** _conv_ptrs,
-         const int * _conv_lens
-         );
+    virtual bool checkForContiguousBuffers(
+        int count,
+        const float** _conv_ptrs,
+        const int * _conv_lens
+        );
 #endif
 
     /**
@@ -393,10 +381,10 @@ class CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
 
-     virtual int process(
+    virtual int process(
         int n_channels,
-        const int *uploadID,     // upload set IDs
-        const int *convIDs,       // kernel IDs
+        const int *uploadID,        // upload set IDs
+        const int *convIDs,         // kernel IDs
         float** inputs,
         float** outputs,
         int prev_input = 0,
@@ -435,17 +423,12 @@ class CGraalConv
      /**
       * Flushes history.
       */
-     virtual int flush(amf_uint channelId, const bool synchronous = true);
-
+    virtual int flush(amf_uint channelId, const bool synchronous = true);
 
     /*************************************************************************************************
     * emulation/verification helper interfaces
     *************************************************************************************************/
-
-
     virtual int getRoundCounter(int _uploadId = -1, int _chnl_id = -1);
-
-
 
     virtual int uploadConvHostPtrs(
         int n_channels,
@@ -465,13 +448,10 @@ class CGraalConv
         bool synchronous = false   // synchronous call
         );
 
-
-
     inline int getInputBlockSz(void)
     {
         return(aligned_proc_bufffer_sz_);
     }
-
 
     /*************************************************************************************************
     * not implemented
@@ -483,7 +463,6 @@ class CGraalConv
     *
     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
     */
-
     int getDevInputPtrs(
         int n_channels,				// # of channels
         int uploadID,				// upload set ID
@@ -496,7 +475,6 @@ class CGraalConv
     *
     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
     */
-
     int processDevPtrs(
         int n_channels,
         int uploadID,     // upload set ID
@@ -505,17 +483,14 @@ class CGraalConv
         float** outputs
         );
 
-
 protected:
 #ifdef TAN_NO_OPENCL
     amf::AMFFactory             *mFactory = nullptr;
 #endif
 
-#ifdef TAN_SDK_EXPORTS
     amf::TANContextPtr          m_pContextTAN;
 
     virtual AMF_RESULT zeroMemory(CABuf<float> *pBuf, amf_uint offset, amf_uint amount);
-#endif
 
     void incRoundCounter(int _uploadId = -1, int _chnl_id = -1);
 
@@ -523,10 +498,7 @@ protected:
      * OpenCL related initialisations.
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
-    int setupCL( amf::AMFComputePtr pComputeConvolution,  amf::AMFComputePtr pComputeUpdate );
-
-
-
+    int setupCL(const amf::AMFComputePtr & pComputeConvolution, const amf::AMFComputePtr & pComputeUpdate);
 
     /**
      * Cleanup
@@ -603,7 +575,8 @@ protected:
         GRAAL_MEMORY_OPENCL = 2
     };
 
-    struct GraalSampleBuffer {
+    struct GraalSampleBuffer
+    {
         union {
             float ** host;
             cl_mem* clmem;
@@ -642,26 +615,30 @@ protected:
         bool _use_xf_buff = false
         );
 
-	struct ProcessParams {
-		int prev_input;
-		int advance_time;
-		int skip_stage;
-		int n_channels;
-		ProcessParams() {
-			n_channels = 0;
-		}
-		void set(
+	struct ProcessParams
+    {
+		int prev_input = 0;
+		int advance_time = 0;
+		int skip_stage = 0;
+		int n_channels = 0;
+
+        void set
+        (
 			int _prev_input,
 			int _advance_time,
 			int _skip_stage,
 			int _n_channels
-		) {
+		)
+        {
 			prev_input = _prev_input;
 			advance_time = _advance_time;
 			skip_stage = _skip_stage;
 			n_channels = _n_channels;
 		}
-	} m_processParams, m_processParams_xf;
+
+	};
+
+    ProcessParams m_processParams, m_processParams_xf;
 
     /*
         classic
@@ -676,7 +653,6 @@ protected:
         int prev_input
         );
 
-
     /*
         MAD. classic and the second stage of the head
         in head-tail case, the round counter is shifted 1 step since it's alread advance in the head stage
@@ -686,10 +662,6 @@ protected:
         int IR_bin_shift = 0,
         int _STR_bin_shift = 0,
         bool _use_xf_buff = false
-#ifndef TAN_SDK_EXPORTS
-        ,
-        cl_command_queue graalQ = NULL
-#endif
         );
 
     int processPull(
@@ -737,17 +709,6 @@ protected:
     void* sincos_;  // precomputeted sincos table
     void* bit_reverse_;  // reverse bit table
 
-    // single Graal OCL Q ???
-#ifndef TAN_SDK_EXPORTS
-    bool own_queue_;
-    //cl_command_queue graalQ_;
-    //cl_command_queue graalTailQ_;
-    // end of pipeline event
-    cl_event eop_event_;
-    // end of head event
-    cl_event eoh_event_;
-#endif
-
     std::vector<std::vector<void*>> kernel_staging_;
     std::vector<std::vector<void*>> kernel_transformed_; // per channel
     std::vector<void*> kernel_transformed_store_; // per set
@@ -766,24 +727,7 @@ protected:
     void * kernel_trasformed_union_;  // base union store
 
 private:
-//#ifndef TAN_NO_OPENCL
-// upload in a single run
-    cl_kernel uploadKernel_;
-// upload per stream
-    cl_kernel uploadKernel2_;
-
-    cl_kernel resetKernel_;
-//#endif
-
 protected:
-    cl_kernel m_copyWithPaddingKernel;
-
-#ifdef TAN_NO_OPENCL
-    amf::AMFComputeKernelPtr mUploadKernel;
-    amf::AMFComputeKernelPtr mUploadKernel2;
-    amf::AMFComputeKernelPtr mResetKernel;
-    amf::AMFComputeKernelPtr mCopyWithPaddingKernel;
-#endif
 
     int64_t round_counter_;
 
@@ -813,20 +757,38 @@ protected:
     int* host_copy_resp_in_offset;
     int* host_copy_resp_out_offset;
 
+#ifndef TAN_NO_OPENCL
+    // upload in a single run
+    cl_kernel uploadKernel_;
+    // upload per stream
+    cl_kernel uploadKernel2_;
+
+    cl_kernel resetKernel_;
+
+    cl_kernel m_copyWithPaddingKernel;
+
     cl_kernel inputKernel_;
     cl_kernel inputStageKernel_;
     cl_kernel directTransformKernel_;
     cl_kernel inverseTransformKernel_;
     std::vector<cl_kernel> CMADKernels_;
-    cl_kernel convHead1_;
+    cl_kernel mConvHead1 = nullptr;
+#else
+    // upload in a single run
+    amf::AMFComputeKernelPtr    mUploadKernel;
+    // upload per stream
+    amf::AMFComputeKernelPtr    mUploadKernel2;
 
-#ifdef TAN_NO_OPENCL
-    amf::AMFComputeKernelPtr mInputKernel;
-    amf::AMFComputeKernelPtr mInputStageKernel;
-    amf::AMFComputeKernelPtr mDirectTransformKernel;
-    amf::AMFComputeKernelPtr mInverseTransformKernel;
-    std::vector<amf::AMFComputeKernelPtr> mCMADKernels;
-    amf::AMFComputeKernelPtr mConvHead1;
+    amf::AMFComputeKernelPtr    mResetKernel;
+    amf::AMFComputeKernelPtr    mCopyWithPaddingKernel;
+
+    amf::AMFComputeKernelPtr    mInputKernel;
+    amf::AMFComputeKernelPtr    mInputStageKernel;
+    amf::AMFComputeKernelPtr    mDirectTransformKernel;
+    amf::AMFComputeKernelPtr    mInverseTransformKernel;
+    std::vector<amf::AMFComputeKernelPtr>
+                                mCMADKernels;
+    amf::AMFComputeKernelPtr    mConvHead1;
 #endif
 
     cl_event m_headTailKernelEvent;
