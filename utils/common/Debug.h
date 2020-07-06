@@ -6,19 +6,31 @@
 #include <thread>
 
 #ifndef CLQUEUE_REFCOUNT
-#define CLQUEUE_REFCOUNT( clqueue ) { \
+#define CLQUEUE_REFCOUNT( clqueue ) \
+{ \
 		cl_uint refcount = 0; \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
 		printf("\nFILE:%s line:%d Queue %llX ref count: %d\r\n", __FILE__ , __LINE__, clqueue, refcount); \
 }
 #endif
 
-#ifndef DBG_CLRELEASE
-#define DBG_CLRELEASE( clqueue, qname ) { \
+#ifndef DBG_CLRELEASE_QUEUE
+#define DBG_CLRELEASE_QUEUE( clqueue, qname ) \
+{ \
 		cl_uint refcount = 0; \
 		clReleaseCommandQueue(clqueue); \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
 		printf("\nFILE:%s line:%d %s %llX ref count: %d\r\n", __FILE__ , __LINE__,qname, clqueue, refcount); \
+        clqueue = nullptr; \
+}
+#endif
+
+#ifndef DBG_CLRELEASE_MEMORYOBJECT
+#define DBG_CLRELEASE_MEMORYOBJECT( clobject) \
+{ \
+	clReleaseMemObject(clobject); \
+	printf("\nFILE:%s line:%d release memory object %llX\r\n", __FILE__ , __LINE__, clobject); \
+    clobject = nullptr; \
 }
 #endif
 

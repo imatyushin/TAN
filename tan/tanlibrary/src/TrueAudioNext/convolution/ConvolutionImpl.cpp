@@ -2298,7 +2298,7 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
                 continue;
             }
 
-            clReleaseMemObject(m_pCLXFadeMasterBuf[bufIdx]);
+            DBG_CLRELEASE_MEMORYOBJECT(m_pCLXFadeMasterBuf[bufIdx]);
 
 #else
             if(!mAMFCLXFadeMasterBuffers[bufIdx])

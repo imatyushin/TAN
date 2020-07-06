@@ -36,6 +36,8 @@
 #include "GraalConv_clFFT.hpp"
 //#include "tanlibrary/src/Graal2/GraalWrapper.h"
 
+#include "Debug.h"
+
 #ifdef AMF_FACILITY
 #  undef AMF_FACILITY
 #endif
@@ -97,7 +99,7 @@ namespace amf
 
                 buffer.host = nullptr;
             }
-            
+
 #ifndef TAN_NO_OPENCL
             else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
             {
@@ -148,8 +150,7 @@ namespace amf
                 {
                     assert(buffer.clmem[channel]);
 
-                    clReleaseMemObject(buffer.clmem[channel]);
-                    buffer.clmem[channel] = nullptr;
+                    DBG_CLRELEASE_MEMORYOBJECT(buffer.clmem[channel]);
                 }
             }
 #else
@@ -396,9 +397,9 @@ namespace amf
         {
             assert(m_clFilter[index] && m_clTemp[index] && m_clSampleHistory[index]);
 
-            clReleaseMemObject(m_clFilter[index]), m_clFilter[index] = nullptr;
-            clReleaseMemObject(m_clTemp[index]), m_clTemp[index] = nullptr;
-            clReleaseMemObject(m_clSampleHistory[index]), m_clSampleHistory[index] = nullptr;
+            DBG_CLRELEASE_MEMORYOBJECT(m_clFilter[index]);
+            DBG_CLRELEASE_MEMORYOBJECT(m_clTemp[index]);
+            DBG_CLRELEASE_MEMORYOBJECT(m_clSampleHistory[index]);
         }
 
         void DeallocateCL()

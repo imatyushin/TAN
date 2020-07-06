@@ -47,23 +47,6 @@
 #include <sstream>
 #include <cmath>
 
-#ifndef CLQUEUE_REFCOUNT
-#define CLQUEUE_REFCOUNT( clqueue ) { \
-		cl_uint refcount = 0; \
-		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d Queue %llX ref count: %d\r\n", __FILE__ , __LINE__, clqueue, refcount); \
-}
-#endif
-
-#ifndef DBG_CLRELEASE
-#define DBG_CLRELEASE( clqueue, qname ) { \
-		cl_uint refcount = 0; \
-		clReleaseCommandQueue(clqueue); \
-		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d %s %llX ref count: %d\r\n", __FILE__ , __LINE__,qname, clqueue, refcount); \
-}
-#endif
-
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool AmdTrueAudioVR::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
 
@@ -467,7 +450,7 @@ TrueAudioVRimpl::~TrueAudioVRimpl()
 #ifndef TAN_NO_OPENCL
     if (m_cmdQueue != 0)
 	{
-		DBG_CLRELEASE(m_cmdQueue,"m_cmdQueue");
+		DBG_CLRELEASE_QUEUE(m_cmdQueue,"m_cmdQueue");
 	}
 #endif
 }
@@ -484,7 +467,7 @@ AMF_RESULT TrueAudioVRimpl::Release()
     if (m_cmdQueue)
     {
         //printf("Queue release %llX\r\n", m_cmdQueue);
-        DBG_CLRELEASE(m_cmdQueue,"m_cmdQueue");
+        DBG_CLRELEASE_QUEUE(m_cmdQueue,"m_cmdQueue");
         m_cmdQueue = NULL;
     }
 

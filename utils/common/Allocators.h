@@ -88,4 +88,9 @@ public:
 
         return mPointer = static_cast<Type *>(std::align(Alignment, sizeof(Type), pointer, capacity));
     }
+
+    inline void Clear()
+    {
+        std::fill(mMemory.begin(), mMemory.end(), 0);
+    }
 };

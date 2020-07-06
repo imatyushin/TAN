@@ -221,7 +221,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
     m_pDeviceCl = NULL;
     if (m_pCommandQueueCl)
     {
-        DBG_CLRELEASE(m_pCommandQueueCl,"m_pCommandQueueCl");
+        DBG_CLRELEASE_QUEUE(m_pCommandQueueCl,"m_pCommandQueueCl");
     }
     m_pCommandQueueCl = NULL;
     m_pContextAMF = NULL;

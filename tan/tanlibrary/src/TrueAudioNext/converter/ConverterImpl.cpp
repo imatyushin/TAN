@@ -273,7 +273,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
     if (m_pQueueCl)
     {
         printf("Queue release %llX\r\n", m_pQueueCl);
-        DBG_CLRELEASE(m_pQueueCl,"m_pQueueCl");
+        DBG_CLRELEASE_QUEUE(m_pQueueCl,"m_pQueueCl");
 	}
     m_pQueueCl = NULL;
     m_pKernelCopy = NULL;

@@ -284,8 +284,9 @@ AMF_RESULT Audio3DAMF::Init
     for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
     {
         memset(mResponses[i], 0, sizeof(float) * mFFTLength);
-        memset(mInputFloatBufs[i], 0, sizeof(float) * mFFTLength);
-        memset(mOutputFloatBufs[i], 0, sizeof(float) * mFFTLength);
+        
+        mInputFloatBufsStorage[i].Clear();
+        mOutputFloatBufsStorage[i].Clear();
     }
 
     for (int i = 0; i < STEREO_CHANNELS_COUNT; i++)//Right and left channel after mixing
