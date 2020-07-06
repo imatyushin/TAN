@@ -74,14 +74,13 @@ namespace graal
 
 CGraalConv:: CGraalConv(
 #ifdef TAN_NO_OPENCL
-    amf::AMFFactory * factory
+    amf::AMFFactory *   factory
 #endif
-)
-{
+    )
 #ifdef TAN_NO_OPENCL
-    mFactory = factory;
+    : mFactory          (factory)
 #endif
-
+{
     algorithm_ = ALG_UNI_HEAD_TAIL; // ALG_UNIFORMED;
     n_max_channels_ = 0;
     max_conv_sz_ = 0;
@@ -94,9 +93,8 @@ CGraalConv:: CGraalConv(
     processing_log2_ = 1;
     aligned_conv_sz_ = 0;
     aligned_processing_sz_ = 0;
-    uploadKernel_ = 0;
-    uploadKernel2_ = 0;
-    resetKernel_ = 0;
+
+
     sincos_ = 0;  // precomputeted sincos table
     bit_reverse_ = 0;  // reverse bit table
 
@@ -128,8 +126,6 @@ CGraalConv:: CGraalConv(
     kernel_staging_.clear();
     kernel_transformed_.clear();
     kernel_trasformed_union_ = 0;
-    directTransformKernel_ = 0;
-    inverseTransformKernel_ = 0;
 
     verify = 0;
 
@@ -145,8 +141,6 @@ CGraalConv:: CGraalConv(
     conv_log2_ = 0;
     accum_stride_ = 0;
     state_union_ = 0;
-    inputKernel_ = nullptr;
-    inputStageKernel_ = nullptr;
 
     cmad_accum_ = 0;
     cmad_accum_xf_ = 0;

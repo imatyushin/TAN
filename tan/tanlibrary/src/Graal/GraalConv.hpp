@@ -759,18 +759,18 @@ protected:
 
 #ifndef TAN_NO_OPENCL
     // upload in a single run
-    cl_kernel uploadKernel_;
+    cl_kernel uploadKernel_ = nullptr;
     // upload per stream
-    cl_kernel uploadKernel2_;
+    cl_kernel uploadKernel2_ = nullptr;
 
-    cl_kernel resetKernel_;
+    cl_kernel resetKernel_ = nullptr;
 
-    cl_kernel m_copyWithPaddingKernel;
+    cl_kernel m_copyWithPaddingKernel = nullptr;
 
-    cl_kernel inputKernel_;
-    cl_kernel inputStageKernel_;
-    cl_kernel directTransformKernel_;
-    cl_kernel inverseTransformKernel_;
+    cl_kernel inputKernel_ = nullptr;
+    cl_kernel inputStageKernel_ = nullptr;
+    cl_kernel directTransformKernel_ = nullptr;
+    cl_kernel inverseTransformKernel_ = nullptr;
     std::vector<cl_kernel> CMADKernels_;
     cl_kernel mConvHead1 = nullptr;
 #else
