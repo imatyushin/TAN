@@ -64,6 +64,23 @@ else()
   message("shared AMF build will be used")
 endif()
 
+if((APPLE OR XCODE) AND USE_METAL)
+  SET(METAL_SUPPORT 1)
+  ADD_DEFINITIONS(-DMETAL_SUPPORT)
+  message("Metal support will be enabled")
+
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
+    -framework AppKit \
+    -framework Metal \
+    -framework MetalKit"
+    )
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} \
+    -framework AppKit \
+    -framework Metal \
+    -framework MetalKit"
+    )
+endif()
+
 #choose amf library to use
 include(setup_amf.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
