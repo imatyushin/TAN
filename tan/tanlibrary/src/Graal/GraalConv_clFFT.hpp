@@ -36,6 +36,60 @@
 namespace graal
 {
 
+/*//todo: implement with std::mutex
+class RecursiveBenaphore
+{
+private:
+    long m_counter;
+    unsigned long m_owner;
+    unsigned long m_recursion;
+    //HANDLE m_semaphore;
+    std::mutex m_mutex;
+
+
+public:
+    RecursiveBenaphore::RecursiveBenaphore()
+    {
+        m_counter = 0;
+        m_owner = 0;            // an invalid thread ID
+        m_recursion = 0;
+        m_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+    }
+
+    RecursiveBenaphore::~RecursiveBenaphore()
+    {
+        CloseHandle(m_semaphore);
+    }
+
+    void Lock()
+    {
+        DWORD tid = GetCurrentThreadId();
+        if (_InterlockedIncrement(&m_counter) > 1) // x86/64 guarantees acquire semantics
+        {
+            if (tid != m_owner)
+                WaitForSingleObject(m_semaphore, INFINITE);
+        }
+        //--- We are now inside the Lock ---
+        m_owner = tid;
+        m_recursion++;
+    }
+
+    void Unlock()
+    {
+        DWORD tid = GetCurrentThreadId();
+        DWORD recur = --m_recursion;
+        if (recur == 0)
+            m_owner = 0;
+        DWORD result = _InterlockedDecrement(&m_counter); // x86/64 guarantees release semantics
+        if (result > 0)
+        {
+            if (recur == 0)
+                ReleaseSemaphore(m_semaphore, 1, NULL);
+        }
+        //--- We are now outside the Lock ---
+    }
+};*/
+
 class CGraalConv_clFFT: public CGraalConv
 {
     public:
@@ -62,18 +116,25 @@ class CGraalConv_clFFT: public CGraalConv
      * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
      */
     int initializeConv(
-        const amf::TANContextPtr &  pContextTAN,
-        const amf::AMFComputePtr &  pConvolution,
-        const amf::AMFComputePtr &  pUpdate,
-        int                         n_max_channels,
-        int                         max_conv_sz,
-        int                         max_proc_buffer_sz,
-        int                         n_upload_sets = 2, // number of shadow buffers for double buffering
-        int                         algorithm = ALG_ANY
+#ifdef TAN_SDK_EXPORTS
+        amf::TANContextPtr &pContextTAN,
+        amf::AMFComputePtr &pConvolution,
+        amf::AMFComputePtr &pUpdate,
+#endif
+        int n_max_channels,
+        int max_conv_sz,
+        int max_proc_buffer_sz,
+        int n_upload_sets = 2,         // number of shadow buffers for double buffering
+        int algorithm = ALG_ANY
+#ifndef TAN_SDK_EXPORTS
+        ,
+        cl_context clientContext = 0,
+        cl_device_id clientDevice = 0,
+        cl_command_queue clientQ = 0
+#endif
         ) override;
 
     void cleanup();
-
     /**
      * Returns a set of gpu_friendly system pointers - any upload set and kernel ID
      *
@@ -196,6 +257,8 @@ class CGraalConv_clFFT: public CGraalConv
      */
     int finishUpdate(void) override;
 
+
+#ifdef TAN_SDK_EXPORTS
     /**
     * Responce copying utility function.
     *
@@ -208,6 +271,7 @@ class CGraalConv_clFFT: public CGraalConv
         const uint pConvIds[],
         const bool synchronous = true
         ) override;
+#endif
 
     /**
      * Upload kernels from a previously acquired gpu-friendly system pointers.
@@ -247,10 +311,7 @@ class CGraalConv_clFFT: public CGraalConv
     int flush(amf_uint channelId, const bool synchronous = true) override;
 
 private:
-    int	setupCL(
-        const amf::AMFComputePtr & pComputeConvolution,
-        const amf::AMFComputePtr & pComputeUpdate
-        );
+    int	setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate );
 
     int	setupCLFFT();
 
@@ -333,10 +394,18 @@ private:
     amf::AMFComputeKernelPtr mSigHistInsertMultiChanKernel;
 #endif
 
+#ifndef TAN_SDK_EXPORTS
+    cl_context clientContext_;
+    cl_command_queue clientQ_;
+#endif
+
+
     clfftPlanHandle clfftPlanFwdIR;
     clfftPlanHandle clfftPlanFwdAllChannels;
     clfftPlanHandle clfftPlanBackAllChannels;
 
+    //std::recursive_mutex processLock; // Not available in VS2010.
+    //RecursiveBenaphore processLock;
     std::recursive_mutex processLock;
 };
 

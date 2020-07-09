@@ -97,10 +97,29 @@
 #endif
 
 #ifdef _DEBUG_PRINT
+#ifdef TAN_SDK_EXPORTS
+#  define CHECK_ALLOCATION(actual, msg) \
     AMF_RETURN_IF_FALSE(actual != NULL, GRAAL_FAILURE, L#msg);
 
 #  define CHECK_ERROR(actual, reference, msg) \
     AMF_RETURN_IF_FALSE(actual == reference, GRAAL_FAILURE, L#msg);
+#else
+#  define CHECK_ALLOCATION(actual, msg) \
+    if(actual == NULL) \
+    { \
+        error(msg); \
+        std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
+        return GRAAL_FAILURE; \
+    }
+
+#  define CHECK_ERROR(actual, reference, msg) \
+    if(actual != reference) \
+    { \
+        error(msg); \
+        std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
+        return GRAAL_FAILURE; \
+    }
+#endif
 #else
 #  define CHECK_ALLOCATION(actual, msg)
 
@@ -197,7 +216,9 @@ static void error(std::string errorMsg)
 #ifdef _DEBUG_PRINTF
     std::cout<<"Error: "<<errorMsg<<std::endl;
 #endif
+#ifdef TAN_SDK_EXPORTS
     AMFTraceError(AMF_FACILITY, L"Error: %s", errorMsg.c_str());
+#endif
 }
 
 /**
@@ -210,7 +231,9 @@ static void expectedError(const char* errorMsg)
 #ifdef _DEBUG_PRINTF
     std::cout<<"Expected Error: "<<errorMsg<<std::endl;
 #endif
+#ifdef TAN_SDK_EXPORTS
     AMFTraceError(AMF_FACILITY, L"Expected Error: %s", errorMsg);
+#endif
 }
 
 /**
@@ -223,7 +246,9 @@ static void expectedError(std::string errorMsg)
 #ifdef _DEBUG_PRINTF
     std::cout<<"Expected Error: "<<errorMsg<<std::endl;
 #endif
+#ifdef TAN_SDK_EXPORTS
     AMFTraceError(AMF_FACILITY, L"Expected Error: %s", errorMsg.c_str());
+#endif
 }
 
 
