@@ -225,7 +225,9 @@ generateCLKernel(
 
 # linking
 target_link_libraries(TrueAudioNext ${OpenCL_LIBRARY})
-target_link_libraries(TrueAudioNext ${AMF_NAME})
+if(AMF_CORE_STATIC)
+  target_link_libraries(TrueAudioNext ${AMF_NAME})
+endif()
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
 

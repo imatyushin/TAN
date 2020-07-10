@@ -69,7 +69,9 @@ add_library(
   )
 
 # linking
-target_link_libraries(GPUUtilities ${AMF_NAME})
+if(AMF_CORE_STATIC)
+  target_link_libraries(GPUUtilities ${AMF_NAME})
+endif()
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
