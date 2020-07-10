@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <assert.h>
 
 RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
     QMainWindow(parent)

@@ -36,6 +36,7 @@
 
 #ifdef _WIN32
   #include <direct.h>
+  #include <math.h>
 #endif
 
 #ifdef __APPLE__

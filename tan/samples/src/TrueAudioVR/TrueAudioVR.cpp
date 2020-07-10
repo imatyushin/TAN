@@ -628,7 +628,7 @@ void TrueAudioVRimpl::applyHRTF(
 {
 #ifdef _WIN32
     if (AmdTrueAudioVR::useIntrinsics){
-        return applyHRTFoptCPU(pHead, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
+        return applyHRTFoptCPU(head, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
     }
 #endif
 

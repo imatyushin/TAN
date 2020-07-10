@@ -193,15 +193,13 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     {
         clReleaseContext(m_oclConvContext);
     }
-    return AMF_OK;
 
 #else
     mGeneralDeviceAMF.Release();
     mConvolutionDeviceAMF.Release();
 #endif
 
-    mContextGeneralAMF.Release();
-    mContextConvolutionAMF.Release();
+	return AMF_OK;
 }
 
 AMF_RESULT amf::TANContextImpl::InitClfft()

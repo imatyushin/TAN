@@ -458,7 +458,7 @@ namespace amf
                 );
         }
 
-        AMF_RESULT FreeAMFData(size_t index)
+        void FreeAMFData(size_t index)
         {
             assert(amfFilter[index] && amfTemp[index] && amfSampleHistory[index]);
 

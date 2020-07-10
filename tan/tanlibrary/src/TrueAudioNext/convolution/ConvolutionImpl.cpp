@@ -3886,7 +3886,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     );
 #else
                 size_t channels(m_internalOutBufs.GetSize());
-                cl_mem buffers[channels];
+                std::vector<cl_mem> buffers(channels);
 
                 for(size_t channel(0); channel < channels; ++channel)
                 {
@@ -3897,7 +3897,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     m_s_versions[m_param_buf_idx],
                     m_s_channels,
                     m_internalInBufs.buffer.host,
-                    buffers,
+                    &buffers.front(),
                     ocl_prev_input,
                     ocl_advance_time,
                     ocl_skip_stage,
