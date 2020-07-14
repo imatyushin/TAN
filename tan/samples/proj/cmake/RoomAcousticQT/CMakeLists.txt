@@ -188,7 +188,12 @@ add_executable(
   ${RCC_SOURCES}
   )
 
-target_link_libraries(RoomAcousticsQT ${AMF_NAME})
+if(AMF_CORE_STATIC)
+  target_link_libraries(RoomAcousticsQT ${AMF_NAME})
+else()
+  target_link_libraries(RoomAcousticsQT ${AMF_LOADER_NAME})
+endif()
+
 target_link_libraries(RoomAcousticsQT TrueAudioNext)
 target_link_libraries(RoomAcousticsQT TrueAudioVR)
 target_link_libraries(RoomAcousticsQT GPUUtilities)

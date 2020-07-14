@@ -119,8 +119,6 @@ generateCLKernel(
 
 add_dependencies(Graal CLKernelPreprocessor)
 
-target_link_libraries(Graal ${AMF_NAME})
-
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)

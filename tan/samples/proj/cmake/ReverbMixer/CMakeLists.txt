@@ -148,7 +148,12 @@ if(PortAudio_DIR)
   #target_link_libraries(ReverbMixer portaudio-static)
 endif()
 
-target_link_libraries(ReverbMixer ${AMF_NAME})
+if(AMF_CORE_STATIC)
+  target_link_libraries(ReverbMixer ${AMF_NAME})
+else()
+  target_link_libraries(ReverbMixer ${AMF_LOADER_NAME})
+endif()
+
 target_link_libraries(ReverbMixer TrueAudioNext)
 target_link_libraries(ReverbMixer GPUUtilities)
 target_link_libraries(ReverbMixer Qt5::Widgets)
