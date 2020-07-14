@@ -67,7 +67,7 @@ endif()
 if((APPLE OR XCODE) AND USE_METAL)
   SET(METAL_SUPPORT 1)
   ADD_DEFINITIONS(-DMETAL_SUPPORT)
-  message("Metal support will be enabled")
+  message("Metal support will be enabled for OpenAMF")
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
     -framework AppKit \

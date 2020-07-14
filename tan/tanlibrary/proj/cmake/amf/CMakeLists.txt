@@ -7,28 +7,23 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-# detects demanded name (previosly set in setup_amf.cmake)
-get_property(AMF_NAME GLOBAL PROPERTY AMF_NAME)
-
-if(NOT AMF_NAME)
-  #set_property(GLOBAL PROPERTY AMF_NAME ${AMF_NAME})
-  message(FATAL_ERROR "Error: proprietary AMF project name not set!")
+if(AMF_CORE_STATIC)
+  message(FATAL_ERROR "Error: this loader is not a full proprietary AMF library! To use staticaly linked proprietary AMF library add an appropriate CMakeFile.txt!")
 endif()
 
-message("Proprietary AMF project name: " ${AMF_NAME})
+# detects demanded name (previosly set in setup_amf.cmake)
+get_property(AMF_LOADER_NAME GLOBAL PROPERTY AMF_LOADER_NAME)
+
+if(NOT AMF_LOADER_NAME)
+  message(FATAL_ERROR "Error: name for the loader library (public headers) for proprietary AMF is not set!")
+endif()
+
+message("Loader for proprietary AMF: " ${AMF_LOADER_NAME})
 
 # library name
-project(${AMF_NAME})
+project(${AMF_LOADER_NAME})
+
 include_directories(${TAN_ROOT}/amf)
-
-if(AMF_LIBRARY_NAME)
-  message("AMF library name set to: " ${AMF_LIBRARY_NAME})
-  message("this way does not work with some lexems, use environment variable AMF_DLL_NAME instead")
-
-  ADD_DEFINITIONS(-DAMF_LIBRARY_NAME=${AMF_LIBRARY_NAME})
-else()
-  message("AMF will be built with default shared library name, use environment variable AMF_DLL_NAME to override it")
-endif()
 
 # sources
 set(
@@ -131,13 +126,14 @@ set(
 
 # declare static library creation
 add_library(
-  ${AMF_NAME}
+  ${AMF_LOADER_NAME}
   STATIC
+
   ${SOURCE_LIB}
   ${HEADER_LIB}
   )
 
-set_property(TARGET ${AMF_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET ${AMF_LOADER_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(NOT WIN32)
   target_compile_options(amf PUBLIC -mavx2)
@@ -149,6 +145,6 @@ if(NOT WIN32)
   endif()
 
   if(NOT APPLE)
-    target_compile_options(${AMF_NAME} PUBLIC -Wpsabi)
+    target_compile_options(${AMF_LOADER_NAME} PUBLIC -Wpsabi)
   endif()
 endif()

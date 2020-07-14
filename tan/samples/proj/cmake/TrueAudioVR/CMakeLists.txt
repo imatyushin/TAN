@@ -113,8 +113,11 @@ generateCLKernelHeader(
 
 # linking
 target_link_libraries(TrueAudioVR ${OpenCL_LIBRARY})
+
 if(AMF_CORE_STATIC)
   target_link_libraries(TrueAudioVR ${AMF_NAME})
+else()
+  target_link_libraries(TrueAudioVR ${AMF_LOADER_NAME})
 endif()
 
 if(NOT WIN32)

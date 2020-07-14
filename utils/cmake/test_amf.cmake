@@ -20,4 +20,13 @@ if(NOT AMF_NAME)
   return()
 endif()
 
+if(NOT AMF_CORE_STATIC)
+  get_property(AMF_LOADER_NAME GLOBAL PROPERTY AMF_LOADER_NAME)
+  if(NOT AMF_LOADER_NAME)
+    message("")
+    message(SEND_ERROR "Error: AMF_LOADER_NAME not configured in ${CMAKE_CURRENT_SOURCE_DIR}!")
+    return()
+  endif()
+endif()
+
 message("AMF configured successfully")
