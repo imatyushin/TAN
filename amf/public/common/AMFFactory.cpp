@@ -34,9 +34,11 @@
 #include "Thread.h"
 #include "AMFSTL.h"
 
+#if defined(AMF_CORE_STATIC)
 AMFFactoryHelper g_AMFFactory;
+#endif
 
-#ifdef AMF_CORE_STATIC
+#if defined(AMF_CORE_STATIC) || defined(AMF_CORE_SHARED)
 extern "C"
 {
     extern AMF_CORE_LINK AMF_RESULT AMF_CDECL_CALL AMFInit(amf_uint64 version, amf::AMFFactory **ppFactory);
