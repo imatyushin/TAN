@@ -49,6 +49,8 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 
 	//Initialize devices
 	mLockUpdate = true;
+    
+    {
 		ConfigUi.CB_RoomDevice->addItem("CPU");
 		ConfigUi.CB_ConvolutionDevice->addItem("CPU");
 
@@ -63,6 +65,8 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 			ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
 			ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
 		}
+    }
+    
 	mLockUpdate = false;
 
 	// Update Graphics

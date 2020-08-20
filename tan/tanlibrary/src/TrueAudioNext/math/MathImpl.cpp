@@ -25,14 +25,17 @@
 #include "OCLHelper.h"
 #include "Exceptions.h"
 
-#include "CLKernel_VectorComplexDivision.h"
-#include "CLKernel_VectorComplexMultiply.h"
-#include "CLKernel_VectorComplexSum.h"
-#include "CLKernel_VectorComplexMultiplyAccumulate.h"
-
-//#include "VectorComplexDivision.cl.h"
-//#include "VectorComplexMultiply.cl.h"
-//#include "VectorComplexSum.cl.h"
+#ifdef USE_METAL
+  #include "MetalKernel_VectorComplexDivision.h"
+  #include "MetalKernel_VectorComplexMultiply.h"
+  #include "MetalKernel_VectorComplexSum.h"
+  #include "MetalKernel_VectorComplexMultiplyAccumulate.h"
+#else
+  #include "CLKernel_VectorComplexDivision.h"
+  #include "CLKernel_VectorComplexMultiply.h"
+  #include "CLKernel_VectorComplexSum.h"
+  #include "CLKernel_VectorComplexMultiplyAccumulate.h"
+#endif
 
 #include "cpucaps.h"
 

@@ -31,7 +31,12 @@
 
 #include <math.h>
 
-#include "CLKernel_Mixer.h"
+#ifdef USE_METAL
+  #include "MetalKernel_Mixer.h"
+#else
+  #include "CLKernel_Mixer.h"
+#endif
+
 #define AMF_FACILITY L"TANMixerImpl"
 
 #ifndef _WIN32

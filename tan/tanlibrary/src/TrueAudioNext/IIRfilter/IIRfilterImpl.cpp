@@ -34,8 +34,11 @@
 
 #include <math.h>
 
-#include "CLKernel_IIRfilter.h"
-#define AMF_FACILITY L"IIRfilterImpl"
+#ifdef USE_METAL
+  #include "MetalKernel_IIRfilter.h"
+#else
+  #include "CLKernel_IIRfilter.h"
+#endif
 
 using namespace amf;
 

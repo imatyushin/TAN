@@ -116,7 +116,7 @@ namespace amf
 													amf_size inputOffset2,
 													amf_size inputStride1,
 													amf_size inputStride2) override;
-#else int i = 0;
+#else
         virtual AMF_RESULT ComplexMultiplyAccumulate(
                                                     const AMFBuffer * inputBuffers1,
 													const AMFBuffer * inputBuffers2,

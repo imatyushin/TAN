@@ -1,6 +1,7 @@
 #include "StringUtility.h"
 
 #include <cctype>
+#include <algorithm>
 
 bool compareIgnoreCase(const std::string & first, const std::string & second)
 {
@@ -44,4 +45,13 @@ std::wstring toWideString(const std::string & inputString)
     std::mbsrtowcs(buffer.data(), &input, buffer.size(), &state);
 
 	return buffer.data();
+}
+
+std::string toUpper(const std::string & inputString)
+{
+	auto copy(inputString);
+
+	std::transform(copy.begin(), copy.end(), copy.begin(), std::toupper);
+
+	return copy;
 }

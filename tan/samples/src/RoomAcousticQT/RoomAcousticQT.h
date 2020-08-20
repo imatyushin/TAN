@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-#define MAX_DEVICES 10
+#define MAX_DEVICES 10u
 
 class RoomAcousticQT
 {

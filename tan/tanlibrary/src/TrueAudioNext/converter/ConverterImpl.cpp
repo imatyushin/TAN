@@ -30,8 +30,12 @@
 
 #include <math.h>
 
-//#include "Converter.cl.h"
-#include "CLKernel_Converter.h"
+#ifdef USE_METAL
+  #include "MetalKernel_Converter.h"
+#else
+  #include "CLKernel_Converter.h"
+#endif
+
 #define AMF_FACILITY L"TANConverterImpl"
 
 

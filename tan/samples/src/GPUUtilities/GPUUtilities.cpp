@@ -99,8 +99,8 @@ clCreateSubDevices(device, props, 2, devices, NULL);
 *
 *******************************************************************************
 */
-int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDeviceType) {
-
+void listOClDeviceNames(std::vector<std::string> & devicesNames, cl_device_type clDeviceType)
+{
     int status;
 
     /*
@@ -108,49 +108,63 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
     * the AMD one.
     */
 
-    cl_uint numPlatforms = 0;
     cl_platform_id platform = NULL;
-    cl_platform_id* platforms = NULL;
+    std::vector<cl_platform_id> platforms;
+
+    cl_uint numPlatforms = 0;
     status = clGetPlatformIDs(0, NULL, &numPlatforms);
-    if (status != CL_SUCCESS) {
-        fprintf(stdout, "clGetPlatformIDs returned error: %d\n", status);
-        return 0;
+
+    if (status != CL_SUCCESS)
+    {
+        std::cerr << "clGetPlatformIDs returned error: " << status << std::endl;
+
+        return;
     }
+
     if (numPlatforms > 0)
     {
-        platforms = new cl_platform_id[numPlatforms];
-        status = clGetPlatformIDs(numPlatforms, platforms, NULL);
-        if (status != CL_SUCCESS) {
-            fprintf(stdout, "clGetPlatformIDs returned error: %d\n", status);
-            delete[] platforms;
-            return 0;
+        platforms.resize(numPlatforms);
+        status = clGetPlatformIDs(numPlatforms, &platforms.front(), NULL);
+
+        if (status != CL_SUCCESS)
+        {
+            std::cerr << "clGetPlatformIDs returned error: " << status << std::endl;
+
+            return;
         }
 
         for (unsigned i = 0; i < numPlatforms; ++i)
         {
-            char vendor[100];
-            // char name[100];
+            char vendor[128];
             status = clGetPlatformInfo(platforms[i],
                 CL_PLATFORM_VENDOR,
                 sizeof(vendor),
                 vendor,
-                NULL);
+                NULL
+                );
+
+            if(status != CL_SUCCESS)
+            {
+                std::cerr << "clGetPlatformInfo returned error: " << status << std::endl;
+                continue;
+            }
 
             char version[128] = {0};
-
-            clGetPlatformInfo(
+            status = clGetPlatformInfo(
                 platforms[i],
                 CL_PLATFORM_VERSION,
                 sizeof(version),
                 version,
                 NULL
                 );
-            printf("OpenCL version for device %s: %s", vendor, version);
 
-            if (status != CL_SUCCESS) {
-                fprintf(stdout, "clGetPlatformInfo returned error: %d\n", status);
+            if(status != CL_SUCCESS)
+            {
+                std::cerr << "clGetPlatformInfo returned error: " << status << std::endl;
                 continue;
             }
+
+            std::cout << "OpenCL version for device " << vendor << ": " << version << std::endl;
         }
     }
 
@@ -160,11 +174,11 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
     }*/
 
     // enumerate devices
-    char driverVersion[100] = "\0";
+    char driverVersion[128] = {0};
 
     // Retrieve device
-    int totalDevices = 0;
-    for (unsigned int nPlatform = 0; nPlatform < numPlatforms; nPlatform++) {
+    for (unsigned int nPlatform = 0; nPlatform < numPlatforms; nPlatform++)
+    {
         platform = platforms[nPlatform];
 
         cl_uint numDevices = 0;
@@ -173,19 +187,18 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
         {
             continue;
         }
-        cl_device_id* devices = new cl_device_id[numDevices];
-        for (cl_uint i = 0; i < numDevices; i++){
-            devices[i] = NULL;
-        }
-        status = clGetDeviceIDs(platform, clDeviceType, numDevices, devices, &numDevices);
+
+        std::vector<cl_device_id> devices(numDevices);
+
+        status = clGetDeviceIDs(platform, clDeviceType, numDevices, &devices.front(), &numDevices);
         if (status != CL_SUCCESS) {
-            fprintf(stdout, "clGetDeviceIDs returned error: %d\n", status);
+            std::cerr << "clGetDeviceIDs returned error: " << status << std::endl;
         }
         status = clGetDeviceInfo(devices[0], CL_DRIVER_VERSION, sizeof(driverVersion), driverVersion, NULL);
 
         if (status != CL_SUCCESS)
         {
-            fprintf(stdout, "clGetDeviceInfo returned error: %d\n", status);
+            std::cerr << "clGetDeviceInfo returned error: " << status << std::endl;
         }
         else
         {
@@ -197,37 +210,31 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
 
             //numDevices = 0;
 
-            for (unsigned int n = 0; n < numDevices && n < count; n++) {
-                int k = totalDevices + n;
-                devNames[k] = new char[100];
-                devNames[k][0] = '\0';
+            for (unsigned int n = 0; n < numDevices; n++)
+            {
+                char buffer[1024] = {0};
 
-                clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 100, devNames[k], NULL);
-                std::cout << "GPU device: " << devNames[k] << std::endl;
+                clGetDeviceInfo(devices[n], CL_DEVICE_NAME, 1024, buffer, NULL);
+                std::cout << "OpenCL device: " << buffer << std::endl;
 
-                cl_device_topology_amd pciBusInfo;
+                devicesNames.push_back(buffer);
+
+                cl_device_topology_amd pciBusInfo = {0};
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
                 if (status == CL_SUCCESS){
-                    fprintf(stdout, "   PCI bus: %d device: %d function: %d\n", pciBusInfo.pcie.bus, pciBusInfo.pcie.device, pciBusInfo.pcie.function);
+                    std::cout << "   PCI bus: " << pciBusInfo.pcie.bus << " device: " << pciBusInfo.pcie.device << " function: " << pciBusInfo.pcie.function << std::endl;
                 }
+
                 cl_uint max_CUs = 0;
                 clGetDeviceInfo(devices[n], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &max_CUs, NULL);
-                fprintf(stdout, "   max compute units: %d\n", max_CUs);
+                std::cout << "   max compute units: " << max_CUs << std::endl;
             }
         }
 
         for (cl_uint i = 0; i < numDevices; i++){
             clReleaseDevice(devices[i]);
         }
-        totalDevices += numDevices;
-        delete[] devices;
-        devices = NULL;
     }
-
-    if (platforms)
-        delete[] platforms;
-
-    return totalDevices;
 }
 
 
@@ -243,18 +250,15 @@ int listOClDeviceNames(char *devNames[], unsigned int count, cl_device_type clDe
 *
 *******************************************************************************
 */
-int listGpuDeviceNames(char *devNames[], unsigned int count) {
-    int devIdx;
-    devIdx = listOClDeviceNames(devNames, count, CL_DEVICE_TYPE_GPU);
-    return devIdx;
+void listGpuDeviceNames(std::vector<std::string> & devicesNames)
+{
+    listOClDeviceNames(devicesNames, CL_DEVICE_TYPE_GPU);
 }
 
-int listCpuDeviceNames(char *devNames[], unsigned int count) {
-    int devIdx;
-    devIdx = listOClDeviceNames(devNames, count, CL_DEVICE_TYPE_CPU);
-    return devIdx;
+void listCpuDeviceNames(std::vector<std::string> & devicesNames)
+{
+    listOClDeviceNames(devicesNames, CL_DEVICE_TYPE_CPU);
 }
-
 
 int getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType)
 {
@@ -494,7 +498,9 @@ bool getAMFdeviceProperties(cl_command_queue queue, int *maxReservedComputeUnits
             res = amfContext->InitOpenCL(queue);
             if (res == AMF_OK) {
                 amf::AMFComputeFactoryPtr pOCLFactory;
+
                 res = amfContext->GetOpenCLComputeFactory(&pOCLFactory);
+
                 if (res == AMF_OK){
                     amf_int32 deviceCount = pOCLFactory->GetDeviceCount();
                     for (amf_int32 i = 0; i < deviceCount; i++)

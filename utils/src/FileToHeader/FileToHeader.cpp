@@ -33,12 +33,12 @@ int main(int argc, char* argv[])
 	std::string kernelFileFullName = argv[1];
 	auto kernelFileExtension = getFileExtension(kernelFileFullName);
 
-	if(!compareIgnoreCase(kernelFileExtension, "cl"))
-	{
-		std::cerr << "File is not a .cl file" << std::endl;
+	//if(!compareIgnoreCase(kernelFileExtension, "cl"))
+	//{
+		//std::cerr << "File is not a .cl file [" << kernelFileExtension << "]" << std::endl;
 
-		return 1;
-	}
+		//return 1;
+	//}
 
     std::basic_ifstream<char, std::char_traits<char> > clKernelStream(
         kernelFileFullName,
@@ -47,29 +47,28 @@ int main(int argc, char* argv[])
 
 	if(clKernelStream.fail())
 	{
-		std::cerr << "Could not open .cl file" << std::endl;
+		std::cerr << "Could not open file " << kernelFileFullName << std::endl;
 
 		return 1;
 	}
 
 	auto fileName = getFileNameWithExtension(kernelFileFullName);
-	fileName.resize(fileName.length() - 3); //skip extension
+	fileName.resize(fileName.length() - kernelFileExtension.length() - 1); //skip extension
 
 	std::string outputName = argv[2];
 	auto wideOutputName = toWideString(outputName);
 
 	std::string outputFileName(
-		outputName + ".cl.h"
+		outputName + "." + kernelFileExtension + ".h"
 		);
 
-	//std::cout << "CURRENT: " << getCurrentDirectory() << " " << outputFileName << std::endl;
 	auto path2File(getPath2File(outputFileName));
 
 	if(path2File.length() && !checkDirectoryExist(path2File))
 	{
 		if(!createPath(path2File))
 		{
-			std::cout << "Could not create path " << path2File << std::endl;
+			std::cerr << "Could not create path " << path2File << std::endl;
 
 			return 1;
 		}

@@ -33,8 +33,11 @@
 
 #include "public/common/AMFFactory.h"
 
-#include "CLKernel_Crossfading.h"
-#include "CLKernel_TimeDomainConvolution.h"
+#ifdef USE_METAL
+  #include "MetalKernel_Crossfading.h"
+#else
+  #include "CLKernel_Crossfading.h"
+#endif
 
 #ifndef TAN_NO_OPENCL
   #include <CL/cl.h>
@@ -1484,9 +1487,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
                 "crossfade",
                 ""
                 );
-
 #else
-
 		    GetOclKernel(
                 mKernelCrossfade,
                 m_pContextTAN->GetAMFGeneralQueue(),

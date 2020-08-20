@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <io.h>
@@ -248,39 +249,27 @@ void RoomAcousticQT::initializeAudioPosition(int index)
 void RoomAcousticQT::enumDevices()
 {
 	{
-		char buffer[MAX_DEVICES * MAX_PATH] = {0};
-		char *devicesNames[MAX_DEVICES] = {0};
+		std::vector<std::string> devicesNames;
+		listCpuDeviceNamesWrapper(devicesNames, g_AMFFactory);
 
 		for(int i = 0; i < MAX_DEVICES; i++)
 		{
-			devicesNames[i] = &buffer[i * MAX_PATH];
-			devicesNames[i][0] = 0;
+			mCPUDevicesNames[i] = i < devicesNames.size() ? devicesNames[i] : "";
 		}
 
-		mCPUDevicesCount = listCpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
-
-		for(int i = 0; i < MAX_DEVICES; i++)
-		{
-			mCPUDevicesNames[i] = devicesNames[i];
-		}
+        mCPUDevicesCount = std::min(devicesNames.size(), size_t(MAX_DEVICES));
 	}
 
 	{
-		char buffer[MAX_DEVICES * MAX_PATH] = {0};
-		char *devicesNames[MAX_DEVICES] = {0};
+		std::vector<std::string> devicesNames;
+		listGpuDeviceNamesWrapper(devicesNames, g_AMFFactory);
 
 		for(int i = 0; i < MAX_DEVICES; i++)
 		{
-			devicesNames[i] = &buffer[i * MAX_PATH];
-			devicesNames[i][0] = 0;
+			mGPUDevicesNames[i] = i < devicesNames.size() ? devicesNames[i] : "";
 		}
 
-		mGPUDevicesCount = listGpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
-
-		for(int i = 0; i < MAX_DEVICES; i++)
-		{
-			mGPUDevicesNames[i] = devicesNames[i];
-		}
+        mGPUDevicesCount = std::min(devicesNames.size(), size_t(MAX_DEVICES));
 	}
 }
 

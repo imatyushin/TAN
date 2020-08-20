@@ -163,32 +163,66 @@ set(
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/converter"
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/IIRfilter"
   )
-set(
-  Tan_CL_Files
-  "Crossfading.cl"
-  "TimeDomainConvolution.cl"
-  "SimpleCopy.cl"
-  "Mixer.cl"
-  "VectorComplexSum.cl"
-  "VectorComplexMultiply.cl"
-  "VectorComplexDivision.cl"
-  "VectorComplexMultiplyAccumulate.cl"
-  "Converter.cl"
-  "IIRfilter.cl"
+
+if(USE_METAL)
+  set(
+    Tan_CL_Files
+    "Crossfading.metal"
+    "TimeDomainConvolution.metal"
+    "SimpleCopy.metal"
+    "Mixer.metal"
+    "VectorComplexSum.metal"
+    "VectorComplexMultiply.metal"
+    "VectorComplexDivision.metal"
+    "VectorComplexMultiplyAccumulate.metal"
+    "Converter.metal"
+    "IIRfilter.metal"
+    )
+else()
+  set(
+    Tan_CL_Files
+    "Crossfading.cl"
+    "TimeDomainConvolution.cl"
+    "SimpleCopy.cl"
+    "Mixer.cl"
+    "VectorComplexSum.cl"
+    "VectorComplexMultiply.cl"
+    "VectorComplexDivision.cl"
+    "VectorComplexMultiplyAccumulate.cl"
+    "Converter.cl"
+    "IIRfilter.cl"
   )
-set(
-  Tan_CL_Output
-  "CLKernel_Crossfading.h"
-  "CLKernel_TimeDomainConvolution.h"
-  "CLKernel_SimpleCopy.h"
-  "CLKernel_Mixer.h"
-  "CLKernel_VectorComplexSum.h"
-  "CLKernel_VectorComplexMultiply.h"
-  "CLKernel_VectorComplexDivision.h"
-  "CLKernel_VectorComplexMultiplyAccumulate.h"
-  "CLKernel_Converter.h"
-  "CLKernel_IIRfilter.h"
+endif()
+
+if(USE_METAL)
+  set(
+    Tan_CL_Output
+    "MetalKernel_Crossfading.h"
+    "MetalKernel_TimeDomainConvolution.h"
+    "MetalKernel_SimpleCopy.h"
+    "MetalKernel_Mixer.h"
+    "MetalKernel_VectorComplexSum.h"
+    "MetalKernel_VectorComplexMultiply.h"
+    "MetalKernel_VectorComplexDivision.h"
+    "MetalKernel_VectorComplexMultiplyAccumulate.h"
+    "MetalKernel_Converter.h"
+    "MetalKernel_IIRfilter.h"
   )
+else()
+  set(
+    Tan_CL_Output
+    "CLKernel_Crossfading.h"
+    "CLKernel_TimeDomainConvolution.h"
+    "CLKernel_SimpleCopy.h"
+    "CLKernel_Mixer.h"
+    "CLKernel_VectorComplexSum.h"
+    "CLKernel_VectorComplexMultiply.h"
+    "CLKernel_VectorComplexDivision.h"
+    "CLKernel_VectorComplexMultiplyAccumulate.h"
+    "CLKernel_Converter.h"
+    "CLKernel_IIRfilter.h"
+    )
+endif()
 
 markGenerated(
   Tan_CL_Directories

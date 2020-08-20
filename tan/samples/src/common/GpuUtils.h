@@ -26,8 +26,8 @@
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/core/Compute.h"        //AMF
 
-int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count);
-int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count);
+void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory);
+void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory);
 
 #ifndef TAN_NO_OPENCL
 bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
