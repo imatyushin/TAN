@@ -1,4 +1,5 @@
 *CLKernel_*.h
+*MetalKernel_*.h
 /.vscode/c_cpp_properties.json
 /.vscode/settings.json
 /.vscode/tasks.json
