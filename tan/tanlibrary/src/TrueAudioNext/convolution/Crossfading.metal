@@ -22,15 +22,22 @@
 // THE SOFTWARE.
 //
 
-__kernel void crossfade(
-	__global	float*	fadeBuffer,		///< [in]
-	__global	float*	outputBuffer,   ///< [in/out]
-	int channelStride
+kernel void crossfade(
+	device const float*	fadeBuffer,			///< [in]
+	device float*		outputBuffer,   	///< [in/out]
+	constant int32_t &	channelStride,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
-	int sampleId = get_global_id(0);
-	int numSamples = get_global_size(0);
-	int chId = get_global_id(1);
-	int sampleOffset = sampleId + chId*channelStride;
+	int sampleId = global_id.x;
+	int numSamples = grid_size.x;
+	int chId = global_id.y;
+
+	int sampleOffset = sampleId + chId * channelStride;
 	outputBuffer[sampleOffset] = (outputBuffer[sampleOffset] * sampleId + fadeBuffer[sampleOffset] * (numSamples - sampleId)) / (float)numSamples;
 }

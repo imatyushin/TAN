@@ -25,22 +25,22 @@
 // Max LDS size: 64KB = 65536 Byte = 16384 float element
 // Max convolution length for LDS float to work: 16384 - Lx (local size)
 
-__kernel
+kernel
 void TimeDomainConvolution(
-__global    float*  histBuf,	   ///< [in]
+device    float*  histBuf,	   ///< [in]
 int         convLength,            ///< [in] convolution length
 int         bufPos,                ///< [in]
 int         dataLength,            ///< [in] Size of the buffer processed per kernel run
 int         firstNonZero,          ///< [in]
 int         lastNonZero,           ///< [in]
-__global    float*  filter,        ///< [in]
-__global    float*  pOutput        ///< [out]
+device    float*  filter,        ///< [in]
+device    float*  pOutput        ///< [out]
 )
 {
     int grpid = get_group_id(0);
     int thrdid = get_local_id(0);
     int grptot = get_num_groups(0);
-    int grpsz = get_local_size(0);
+    int grpsz = group_size.x;
 
     int srcOffset = grpid*grpsz;
     int endOffset = srcOffset + grpsz;
@@ -48,7 +48,7 @@ __global    float*  pOutput        ///< [out]
     if (endOffset > dataLength)
         endOffset = dataLength;
 
-    //if (get_global_id(0) > inputSize)
+    //if (global_id.x > inputSize)
      //   return;
 
     //int ldsSize = FilterLength + LocalSize;

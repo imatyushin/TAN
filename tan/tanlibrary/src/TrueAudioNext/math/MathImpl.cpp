@@ -55,14 +55,6 @@ bool TANMathImpl::useAVX512 = true; // InstructionSet::AVX512F() && InstructionS
 //-------------------------------------------------------------------------------------------------
 //public-------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    { AMF_MEMORY_OPENCL, L"OpenCL" },
-#endif
-    { AMF_MEMORY_HOST, L"CPU" },
-    { AMF_MEMORY_UNKNOWN, 0 }  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  TANCreateMath(
 	amf::TANContext* pContext,
@@ -202,7 +194,7 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 		AMF_FAIL
 		);
 
-	AMF_RETURN_IF_FALSE(
+	/*AMF_RETURN_IF_FALSE(
 		GetOclKernel(
 			mKernelComplexMul,
 			m_pDeviceCompute,
@@ -216,9 +208,9 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 			TANContextImplPtr(m_pContextTAN)->GetFactory()
 			),
 		AMF_FAIL
-		);
+		);*/
 
-	AMF_RETURN_IF_FALSE(
+	/*AMF_RETURN_IF_FALSE(
 		GetOclKernel(
 			mKernelComplexSum,
 			m_pDeviceCompute,
@@ -232,9 +224,9 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 			TANContextImplPtr(m_pContextTAN)->GetFactory()
 			),
 		AMF_FAIL
-		);
+		);*/
 
-	AMF_RETURN_IF_FALSE(
+    /*AMF_RETURN_IF_FALSE(
 		GetOclKernel(
 			mKernelComplexMulAccum,
 			m_pDeviceCompute,
@@ -248,7 +240,7 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 			TANContextImplPtr(m_pContextTAN)->GetFactory()
 			),
 		AMF_FAIL
-		);
+		);*/
 
 #endif
 

@@ -23,14 +23,21 @@
 //
 
 // For contiguous input buffers
-__kernel void Mixer(
-    __global	float*	inputBuffer,	///< [in]
-    __global	float*	outputBuffer,	///< [out]
+kernel void Mixer(
+    device	float*	inputBuffer,	///< [in]
+    device	float*	outputBuffer,	///< [out]
     int inputStride,
-    int numOfChannels
+    int numOfChannels,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
+
     )
 {
-    int sampId = get_global_id(0);
+    int sampId = global_id.x;
 
     float sum = 0;
     for (int i = 0; i < numOfChannels; i++)

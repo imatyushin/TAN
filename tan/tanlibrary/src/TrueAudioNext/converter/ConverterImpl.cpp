@@ -43,14 +43,6 @@ using namespace amf;
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool TANConverterImpl::useSSE2 = true; // InstructionSet::SSE2();
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateConverter(
     amf::TANContext* pContext,
@@ -182,7 +174,13 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
             nullptr
             )
         );
-    AMF_RETURN_IF_FAILED(mOverflowBuffer->Convert(amf::AMF_MEMORY_OPENCL));
+    AMF_RETURN_IF_FAILED(mOverflowBuffer->Convert(
+#ifndef USE_METAL
+        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+        ));
 
     //... Preparing OCL Kernel
     AMF_RETURN_IF_FALSE(

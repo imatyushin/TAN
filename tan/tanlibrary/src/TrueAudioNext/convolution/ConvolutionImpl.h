@@ -101,7 +101,17 @@ namespace amf
             }
 
 #ifndef TAN_NO_OPENCL
-            else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.clmem)
+            else if
+            (
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ==
+                mType
+                && buffer.clmem
+            )
             {
 				if(mAllocated)
 				{
@@ -116,7 +126,17 @@ namespace amf
                 buffer.clmem = nullptr;
             }
 #else
-            else if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType && buffer.amfBuffers)
+            else if
+            (
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ==
+                mType
+                && buffer.amfBuffers
+            )
             {
 				if(mAllocated)
 				{
@@ -142,7 +162,16 @@ namespace amf
             assert(mType != AMF_MEMORY_UNKNOWN);
 
 #ifndef TAN_NO_OPENCL
-            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType /*&& buffer.clmem*/)
+            if
+            (
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ==
+                mType /*&& buffer.clmem*/
+            )
             {
                 assert(buffer.clmem);
 
@@ -154,7 +183,15 @@ namespace amf
                 }
             }
 #else
-            if(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mType /*&& buffer.amfBuffers*/)
+            if
+            (
+#ifndef USE_METAL
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                == mType /*&& buffer.amfBuffers*/
+            )
             {
                 assert(buffer.amfBuffers);
 
@@ -219,7 +256,14 @@ namespace amf
         {
             assert(!mAllocated);
 
-            mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
+            mType =
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ;
+
             mAllocated = true;
             mSize = channelsCount;
 
@@ -231,7 +275,14 @@ namespace amf
         {
             assert(!mAllocated);
 
-            mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
+            mType =
+#ifndef USE_METAL
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ;
+
             mAllocated = false;
             //mSize = channelsCount;
 
@@ -242,7 +293,14 @@ namespace amf
         {
             assert(!mAllocated);
 
-            mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
+            mType =
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ;
+
             mAllocated = true;
             mSize = channelsCount;
 
@@ -254,7 +312,14 @@ namespace amf
         {
             assert(!mAllocated);
 
-            mType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
+            mType =
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ;
+
             mAllocated = false;
             //mSize = channelsCount;
 
@@ -435,7 +500,12 @@ namespace amf
         {
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                    ,
                     length * sizeof(float),
                     &amfFilter[index]
                     )
@@ -443,7 +513,12 @@ namespace amf
 
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                    ,
                     length * sizeof(float),
                     &amfTemp[index]
                     )
@@ -451,7 +526,12 @@ namespace amf
 
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                    ,
                     length * sizeof(float),
                     &amfSampleHistory[index]
                     )

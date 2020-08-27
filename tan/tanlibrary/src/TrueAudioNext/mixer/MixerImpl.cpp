@@ -47,14 +47,6 @@ using namespace amf;
 
 bool TANMixerImpl::useSSE2 = true; // InstructionSet::SSE2();
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMixer(
     amf::TANContext* pContext,
@@ -183,7 +175,12 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     AMF_RETURN_IF_FAILED(
         m_pContextAMF->AllocBuffer(
-            AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            ,
             m_bufferSize * m_numChannels * sizeof(float),
             &mInternalBufferAMF
             )

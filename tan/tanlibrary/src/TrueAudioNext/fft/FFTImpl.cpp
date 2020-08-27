@@ -72,14 +72,6 @@ bool amf::TANFFTImpl::useIntrinsics = false;
 
 using namespace amf;
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateFFT(
     amf::TANContext* pContext,
@@ -1961,20 +1953,47 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 			cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
 		}
 
+#ifndef USE_METAL
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+				,
                 requiredBufferLengthInBytes,
                 &mInputsAMF
                 )
             );
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ,
                 requiredBufferLengthInBytes,
                 &mOutputsAMF
                 )
             );
+#else
+        AMF_RETURN_IF_FAILED(
+            context->AllocBuffer(
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
+                requiredBufferLengthInBytes,
+                &mInputsAMF
+                )
+            );
+        AMF_RETURN_IF_FAILED(
+            context->AllocBuffer(
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
+                requiredBufferLengthInBytes,
+                &mOutputsAMF
+                )
+            );
+#endif
 
         float fill = 0.0;
         AMF_RETURN_IF_FAILED(

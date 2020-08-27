@@ -24,22 +24,29 @@
 
 __constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-__kernel
+kernel
 void IIRfilter(
-	__global    float*  bufferInput,	///< [in]
-	__global    float*  inputHistory,	///< [in]
-	__global    float*  outputHistory,	///< [in]
-	__global    float*  inputTaps,		///< [in]
-	__global    float*  outputTaps,		///< [in]
-	__global    float*  bufferOutput,	///< [in]
-	__global    int*  	inOutPos,		///< [in]
+	device    float*  bufferInput,	///< [in]
+	device    float*  inputHistory,	///< [in]
+	device    float*  outputHistory,	///< [in]
+	device    float*  inputTaps,		///< [in]
+	device    float*  outputTaps,		///< [in]
+	device    float*  bufferOutput,	///< [in]
+	device    int*  	inOutPos,		///< [in]
 	int     numInputTaps,
 	int     numOutputTaps,
-	int		numSamples
+	int		numSamples,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
+
 )
 {
-	uint idx = get_global_id(0);
-	uint chan = get_global_id(1);
+	uint idx = global_id.x;
+	uint chan = global_id.y;
 
 	global float* pBufferInput = &bufferInput[chan * numSamples];
 	global float* pInputHistory = &inputHistory[chan * numInputTaps];

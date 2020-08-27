@@ -22,12 +22,19 @@
 // THE SOFTWARE.
 //
 
-__kernel void SimpleCopy(
-    __global float *src, 
-    __global float *dst
+kernel void SimpleCopy(
+    device float *src,
+    device float *dst,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
+
     )
 {
-	int id = get_global_id(0);
+	int id = global_id.x;
 	dst[id] = src[id];
 }
 

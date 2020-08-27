@@ -70,8 +70,19 @@
     #define TAN_CDECL_CALL
 #endif // #ifdef _WIN32
 
+#define TAN_OUTPUT_MEMORY_TYPE         L"OutputMemoryType" // Values : AMF_MEMORY_OPENCL or AMF_MEMORY_METAL or AMF_MEMORY_HOST
 
-#define TAN_OUTPUT_MEMORY_TYPE         L"OutputMemoryType" // Values : AMF_MEMORY_OPENCL or AMF_MEMORY_HOST
+static const amf::AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
+{
+#if AMF_BUILD_OPENCL
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,     L"OpenCL"},
+#endif
+#if METAL_SUPPORT
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,      L"Metal"},
+#endif
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST,       L"CPU"},
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
+};
 
 namespace amf
 {

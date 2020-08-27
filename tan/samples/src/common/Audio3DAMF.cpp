@@ -284,7 +284,7 @@ AMF_RESULT Audio3DAMF::Init
     for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
     {
         memset(mResponses[i], 0, sizeof(float) * mFFTLength);
-        
+
         mInputFloatBufsStorage[i].Clear();
         mOutputFloatBufsStorage[i].Clear();
     }
@@ -497,7 +497,12 @@ AMF_RESULT Audio3DAMF::Init
             {
                 AMF_RETURN_IF_FAILED(
                     mContext12->AllocBuffer(
-                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                        ,
                         mFFTLength * sizeof(float),
                         &mAMFResponses[i]
                         )
@@ -515,7 +520,12 @@ AMF_RESULT Audio3DAMF::Init
         // First create a big cl_mem buffer then create small sub-buffers from it
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ,
                 mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
                 &mOutputMainAMFBuffer
                 ),
@@ -551,7 +561,12 @@ AMF_RESULT Audio3DAMF::Init
         {
             AMF_RETURN_IF_FAILED(
                 mContext12->AllocBuffer(
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                    ,
                     mBufferSizeInBytes,
                     &mOutputMixAMFBuffers[idx]
                     ),
@@ -565,7 +580,12 @@ AMF_RESULT Audio3DAMF::Init
         // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                ,
                 mBufferSizeInBytes,
                 &mOutputShortAMFBuffer
                 ),

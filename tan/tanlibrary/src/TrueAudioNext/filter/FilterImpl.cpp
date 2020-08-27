@@ -33,14 +33,6 @@
 
 using namespace amf;
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateFilter(
     amf::TANContext* pContext,

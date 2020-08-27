@@ -49,14 +49,6 @@
 
 using namespace amf;
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 #define RETURN_IF_FAILED(ret) \
     if ((ret) != AMF_OK) goto ErrorHandling;
@@ -571,7 +563,15 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
                 m_accumulatedArgs.updatesCnt = 0;
 
-                if (pBuffer.GetType() == AMF_MEMORY_OPENCL)
+                if
+                (
+                    pBuffer.GetType() ==
+#ifndef USE_METAL
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                )
                 {
                     if (!m_doProcessOnGpu)
                     {
@@ -695,7 +695,15 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             graal::CGraalConv*graalConv = (graal::CGraalConv*)m_graal_conv;
             amf_uint32 n_channels = 0;
 
-            if (pBuffer.GetType() == AMF_MEMORY_OPENCL)
+            if
+            (
+                pBuffer.GetType() ==
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            )
             {
                 cl_mem *clResponses = new cl_mem[m_iChannels];
                 printf("todo: remove allocation from runtime\n");
@@ -777,7 +785,16 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 		{
 			amf_uint32 n_channels = 0;
 			m_accumulatedArgs.updatesCnt = 0;
-			if (pBuffer.GetType() == AMF_MEMORY_OPENCL)
+
+            if
+            (
+                pBuffer.GetType() ==
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            )
 			{
                 THROW_NOT_IMPLEMENTED;
 
@@ -1707,7 +1724,15 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
     amf_size numOfSamplesToProcess
 )
 {
-    if (pBufferOutput.GetType() == AMF_MEMORY_OPENCL)
+    if
+    (
+        pBufferOutput.GetType() ==
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+    )
     {
 #ifndef TAN_NO_OPENCL
         int status;
@@ -1975,7 +2000,13 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             return AMF_NOT_IMPLEMENTED;
 
-            /*if(AMF_OK == context->GetDevice(AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL)->GetProperty(
+            /*if(AMF_OK == context->GetDevice(
+#ifndef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                )->GetProperty(
                 CL_DEVICE_MEM_BASE_ADDR_ALIGN,
                 &align
                 ))
@@ -2201,7 +2232,12 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #else
             AMF_RETURN_IF_FAILED(
                 m_pContextTAN->GetAMFContext()->AllocBuffer(
-                    AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                    ,
                     singleBufSize * m_iChannels,
                     &mAMFCLXFadeMasterBuffers[bufIdx]
                     )
@@ -2762,7 +2798,15 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
 
     float** output = outputData.buffer.host;
 
-    if(outputData.GetType() == AMF_MEMORY_OPENCL)
+    if
+    (
+        outputData.GetType() ==
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+    )
     {
         if (!m_doProcessOnGpu)
         {
@@ -2855,7 +2899,15 @@ AMF_RESULT TANConvolutionImpl::ovlAddProcess(
         }
     }
 
-    if (outputData.GetType() == AMF_MEMORY_OPENCL)
+    if
+    (
+        outputData.GetType() ==
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+    )
     {
 #ifndef TAN_NO_OPENCL
         // move samples to the OCL output buffers
@@ -2966,7 +3018,16 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
 )
 {
 	float** output = outputData.buffer.host;
-	if (outputData.GetType() == AMF_MEMORY_OPENCL)
+
+    if
+    (
+        outputData.GetType() ==
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+    )
 	{
 		if (!m_doProcessOnGpu)
 		{
@@ -3559,7 +3620,15 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
             if(!m_internalOutBufs.IsSet())
             {
-                if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL)
+                if
+                (
+                    pOutputData.GetType() ==
+#ifndef USE_METAL
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                )
                 {
 #ifndef TAN_NO_OPENCL
                     m_internalOutBufs.PrepareCL(m_iChannels);
@@ -3573,9 +3642,24 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                 }
             }
 
-            if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL)
+            if
+            (
+                pOutputData.GetType() ==
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            )
             {
-                assert(m_internalOutBufs.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL);
+                assert(
+                    m_internalOutBufs.GetType() ==
+#ifndef USE_METAL
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+                    );
 
 #ifndef TAN_NO_OPENCL
                 m_internalOutBufs.buffer.clmem[idxInt] = pOutputData.buffer.clmem[channelId];
@@ -3943,7 +4027,16 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 			m_startNonUniformConvXFade = false;
 		}
 		else
-			if (pOutputData.GetType() == AMF_MEMORY_OPENCL)
+        {
+			if
+            (
+                pOutputData.GetType() ==
+#ifndef USE_METAL
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            )
 			{
                 THROW_NOT_IMPLEMENTED;
 
@@ -3955,6 +4048,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
                 m_startNonUniformConvXFade = false;
 			}
+        }
 	}
 	break;
 

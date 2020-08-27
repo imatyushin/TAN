@@ -1303,7 +1303,12 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-            AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            ,
             responseLength * sizeof(float),
             &mResponse
             )
@@ -1311,7 +1316,12 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-            AMF_MEMORY_OPENCL,
+#ifndef USE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            ,
             responseLength * sizeof(float),
             &mFloatResponse
             )
@@ -1350,7 +1360,13 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
-    AMF_RETURN_IF_FAILED(mHPF->Convert(amf::AMF_MEMORY_OPENCL));
+    AMF_RETURN_IF_FAILED(mHPF->Convert(
+#ifndef USE_METAL
+        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+        ));
 
     //m_pLPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
     //    HeadFilterSize * sizeof(float), ears.hrtf.lowPass, &status);
@@ -1362,7 +1378,13 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
-    AMF_RETURN_IF_FAILED(mLPF->Convert(amf::AMF_MEMORY_OPENCL));
+    AMF_RETURN_IF_FAILED(mLPF->Convert(
+#ifndef USE_METAL
+        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+        ));
 
     m_globalWorkSize[0] = RoundUp(localX, nW);
     m_globalWorkSize[1] = RoundUp(localY, nH);

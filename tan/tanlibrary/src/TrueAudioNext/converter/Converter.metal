@@ -24,37 +24,45 @@
 
 #define OVERFLOW_WARNING 1
 
-__kernel void shortToShort(
-	__global	short*	inputBuffer,	///< [in]
+kernel void shortToShort(
+	device	short*	inputBuffer,	///< [in]
 				long	inputStep,		///< [in]
 				long	inputOffset,	///< [in]
-	__global	short*	outputBuffer,	///< [out]
+	device	short*	outputBuffer,	///< [out]
+				long	outputStep,		///< [in]
+				long	outputOffset	///< [in]
+				,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
+
+	)
+{
+	int gid = global_id.x;
+	outputBuffer[(gid * outputStep) + outputOffset] = inputBuffer[(gid * inputStep) + inputOffset];
+}
+
+kernel void floatToFloat(
+	device	float*	inputBuffer,	///< [in]
+				long	inputStep,		///< [in]
+				long	inputOffset,	///< [in]
+	device	float*	outputBuffer,	///< [out]
 				long	outputStep,		///< [in]
 				long	outputOffset	///< [in]
 	)
 {
-	int gid = get_global_id(0);
+	int gid = global_id.x;
 	outputBuffer[(gid * outputStep) + outputOffset] = inputBuffer[(gid * inputStep) + inputOffset];
 }
 
-__kernel void floatToFloat(
-	__global	float*	inputBuffer,	///< [in]
+kernel void shortToFloat(
+	device	short*	inputBuffer,	///< [in]
 				long	inputStep,		///< [in]
 				long	inputOffset,	///< [in]
-	__global	float*	outputBuffer,	///< [out]
-				long	outputStep,		///< [in]
-				long	outputOffset	///< [in]
-	)
-{
-	int gid = get_global_id(0);
-	outputBuffer[(gid * outputStep) + outputOffset] = inputBuffer[(gid * inputStep) + inputOffset];
-}
-
-__kernel void shortToFloat(
-	__global	short*	inputBuffer,	///< [in]
-				long	inputStep,		///< [in]
-				long	inputOffset,	///< [in]
-	__global	float*	outputBuffer,	///< [out]
+	device	float*	outputBuffer,	///< [out]
 				long	outputStep,		///< [in]
 				long	outputOffset,	///< [in]
 				float	conversionGain	///< [in]
@@ -62,22 +70,22 @@ __kernel void shortToFloat(
 {
 	float scale = conversionGain / SHRT_MAX;
 
-	int gid = get_global_id(0);
+	int gid = global_id.x;
 	outputBuffer[(gid * outputStep) + outputOffset] = convert_float( inputBuffer[(gid * inputStep) + inputOffset] ) * scale;
 }
 
-__kernel void floatToShort(
-	__global	float*	inputBuffer,	///< [in]
+kernel void floatToShort(
+	device	float*	inputBuffer,	///< [in]
 				long	inputStep,		///< [in]
 				long	inputOffset,	///< [in]
-	__global	short*	outputBuffer,	///< [out]
+	device	short*	outputBuffer,	///< [out]
 				long	outputStep,		///< [in]
 				long	outputOffset,	///< [in]
 				float	conversionGain,	///< [in]
-	__global	int*	overflowError	///< [out]
+	device	int*	overflowError	///< [out]
 	)
 {
-	int gid = get_global_id(0);
+	int gid = global_id.x;
 
 	float scale = SHRT_MAX * conversionGain;
 	float f = inputBuffer[(gid * inputStep) + inputOffset] * scale;
