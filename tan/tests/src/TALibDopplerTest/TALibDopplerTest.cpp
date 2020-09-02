@@ -15,9 +15,12 @@
 #include <memory.h>
 #include <math.h>
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
-    #include <omp.h>
+#ifdef OMP_ENABLED
+  #include <omp.h>
 #endif
+//#if !defined(__APPLE__) && !defined(__MACOSX)
+//  #include <omp.h>
+//#endif
 
 #if defined(_WIN32)
     #include <process.h>

@@ -40,7 +40,13 @@
 #include "cpucaps.h"
 
 #include <immintrin.h>
-#include <omp.h>
+
+#ifdef OMP_ENABLED
+  #include <omp.h>
+#endif
+//#if !defined(__APPLE__) && !defined(__MACOSX)
+//  #include <omp.h>
+//#endif
 
 #include <memory>
 
@@ -104,8 +110,11 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMathImpl::InitCpu()
 {
+	//todo: move to utils
+
 	// ToDo use common function with FFTimpl, maybe?
 	// setup OpenMP, if enabled
+#ifdef OMP_ENABLED
 	int numThreads = 0;
 	int numProcs = 1;
 	numProcs = omp_get_num_procs();
@@ -113,7 +122,8 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitCpu()
 	if (numThreads == 0)
 		numThreads = 1;
 	omp_set_num_threads(numThreads);
-	//numThreads = omp_get_max_threads();
+	numThreads = omp_get_max_threads();
+#endif
 
 	return AMF_OK;
 }

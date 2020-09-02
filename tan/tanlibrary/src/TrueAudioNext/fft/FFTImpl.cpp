@@ -238,6 +238,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
     AMFLock lock(&m_sect);
 
+	//todo: move to utils
+
 #ifdef OMP_ENABLED
 	int numThreads = 0;
 	int numProcs = 1;

@@ -24,10 +24,10 @@
 
 // For contiguous input buffers
 kernel void Mixer(
-    device	float*	inputBuffer,	///< [in]
-    device	float*	outputBuffer,	///< [out]
-    int inputStride,
-    int numOfChannels,
+    device	float*	    inputBuffer,	///< [in]
+    device	float*	    outputBuffer,	///< [out]
+    constant int &      inputStride,
+    constant int &      numOfChannels,
 
 	uint2 				global_id 			[[thread_position_in_grid]],
 	uint2 				local_id 			[[thread_position_in_threadgroup]],

@@ -21,24 +21,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#include <metal_stdlib>
 
 #define OVERFLOW_WARNING 1
 
 kernel void shortToShort(
-	device	short*	inputBuffer,	///< [in]
-				long	inputStep,		///< [in]
-				long	inputOffset,	///< [in]
-	device	short*	outputBuffer,	///< [out]
-				long	outputStep,		///< [in]
-				long	outputOffset	///< [in]
-				,
+	device	short*		inputBuffer,		///< [in]
+	constant int32_t &	inputStep,		///< [in]
+	constant int32_t & 	inputOffset,		///< [in]
+	device	short*		outputBuffer,		///< [out]
+	constant int32_t & 	outputStep,		///< [in]
+	constant int32_t & 	outputOffset		///< [in]
+	,
 
 	uint2 				global_id 			[[thread_position_in_grid]],
 	uint2 				local_id 			[[thread_position_in_threadgroup]],
 	uint2 				group_id 			[[threadgroup_position_in_grid]],
 	uint2 				group_size 			[[threads_per_threadgroup]],
 	uint2 				grid_size 			[[threads_per_grid]]
-
 	)
 {
 	int gid = global_id.x;
@@ -46,12 +46,19 @@ kernel void shortToShort(
 }
 
 kernel void floatToFloat(
-	device	float*	inputBuffer,	///< [in]
-				long	inputStep,		///< [in]
-				long	inputOffset,	///< [in]
-	device	float*	outputBuffer,	///< [out]
-				long	outputStep,		///< [in]
-				long	outputOffset	///< [in]
+	device	float*		inputBuffer,		///< [in]
+	constant int32_t & 	inputStep,			///< [in]
+	constant int32_t & 	inputOffset,		///< [in]
+	device	float*		outputBuffer,		///< [out]
+	constant int32_t & 	outputStep,			///< [in]
+	constant int32_t & 	outputOffset		///< [in]
+	,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
 	int gid = global_id.x;
@@ -59,30 +66,48 @@ kernel void floatToFloat(
 }
 
 kernel void shortToFloat(
-	device	short*	inputBuffer,	///< [in]
-				long	inputStep,		///< [in]
-				long	inputOffset,	///< [in]
-	device	float*	outputBuffer,	///< [out]
-				long	outputStep,		///< [in]
-				long	outputOffset,	///< [in]
-				float	conversionGain	///< [in]
+	device	short*		inputBuffer,		///< [in]
+	constant int32_t &	inputStep,			///< [in]
+	constant int32_t &	inputOffset,		///< [in]
+	device	float*		outputBuffer,		///< [out]
+	constant int32_t &	outputStep,			///< [in]
+	constant int32_t &	outputOffset,		///< [in]
+	constant float &	conversionGain		///< [in]
+	,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
 	float scale = conversionGain / SHRT_MAX;
 
 	int gid = global_id.x;
-	outputBuffer[(gid * outputStep) + outputOffset] = convert_float( inputBuffer[(gid * inputStep) + inputOffset] ) * scale;
+
+	short inputValue = inputBuffer[(gid * inputStep) + inputOffset];
+	float outputValue = scale * inputValue;
+
+	outputBuffer[(gid * outputStep) + outputOffset] = outputValue;
 }
 
 kernel void floatToShort(
-	device	float*	inputBuffer,	///< [in]
-				long	inputStep,		///< [in]
-				long	inputOffset,	///< [in]
-	device	short*	outputBuffer,	///< [out]
-				long	outputStep,		///< [in]
-				long	outputOffset,	///< [in]
-				float	conversionGain,	///< [in]
-	device	int*	overflowError	///< [out]
+	device	float*		inputBuffer,		///< [in]
+	constant int32_t &	inputStep,			///< [in]
+	constant int32_t &	inputOffset,		///< [in]
+	device	short*		outputBuffer,		///< [out]
+	constant int32_t &	outputStep,			///< [in]
+	constant int32_t &	outputOffset,		///< [in]
+	constant float & 	conversionGain,	///< [in]
+	device	int*		overflowError		///< [out]
+	,
+
+	uint2 				global_id 			[[thread_position_in_grid]],
+	uint2 				local_id 			[[thread_position_in_threadgroup]],
+	uint2 				group_id 			[[threadgroup_position_in_grid]],
+	uint2 				group_size 			[[threads_per_threadgroup]],
+	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
 	int gid = global_id.x;
@@ -102,5 +127,7 @@ kernel void floatToShort(
 		*overflowError = OVERFLOW_WARNING;
 	}
 
-	outputBuffer[(gid * outputStep) + outputOffset] = convert_short( f );
+	short outputValue = f;
+
+	outputBuffer[(gid * outputStep) + outputOffset] = outputValue;
 }

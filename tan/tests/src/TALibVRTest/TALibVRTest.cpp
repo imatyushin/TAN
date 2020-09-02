@@ -17,9 +17,12 @@
 #include <math.h>
 #include <assert.h>
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
+#ifdef OMP_ENABLED
   #include <omp.h>
 #endif
+//#if !defined(__APPLE__) && !defined(__MACOSX)
+//  #include <omp.h>
+//#endif
 
 #ifdef _WIN32
   #include <AclAPI.h>

@@ -542,6 +542,9 @@ AMF_RESULT Audio3DAMF::Init
                     mBufferSizeInBytes
                     )
                 );
+            
+            assert(mOutputAMFBuffers[i]->GetNative());
+            
             mOutputAMFBuffersInterfaces[i] = mOutputAMFBuffers[i];
 
             float zero = 0.0;
