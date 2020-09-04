@@ -4,8 +4,8 @@
 /.vscode/settings.json
 /.vscode/tasks.json
 /tan/tanlibrary/src/Graal/OclKernels/amdFIR_kernels.h
-/tan/samples/src/TrueAudioVR/Kernels/Fill.cl.h
-/tan/samples/src/TrueAudioVR/Kernels/GenerateRoomResponse.cl.h
+/tan/samples/src/TrueAudioVR/Kernels/*.cl.h
+/tan/samples/src/TrueAudioVR/Kernels/*.metal.h
 /tan/build/cmake/linux
 /tan/build/cmake/linux-amf
 /tan/build/cmake/linux-cl

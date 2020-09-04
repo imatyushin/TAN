@@ -29,8 +29,13 @@
 
 #include "public/common/TraceAdapter.h"
 
-#include "Kernels/Fill.cl.h"
-#include "Kernels/GenerateRoomResponse.cl.h"
+#ifdef USE_METAL
+  #include "Kernels/Fill.metal.h"
+  #include "Kernels/GenerateRoomResponse.metal.h"
+#else
+  #include "Kernels/Fill.cl.h"
+  #include "Kernels/GenerateRoomResponse.cl.h"
+#endif
 
 #include "OCLHelper.h"
 #include "cpucaps.h"
@@ -88,7 +93,7 @@ private:
 
     amf::AMFComputePtr mCompute;
 
-    amf::AMFComputeKernelPtr mKernel;
+    amf::AMFComputeKernelPtr mKernelResponse;
     amf::AMFComputeKernelPtr mKernelFill;
 
     amf::AMFBufferPtr mReflection = nullptr;
@@ -1274,7 +1279,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     AMF_RETURN_IF_FALSE(
         GetOclKernel(
-            mKernel,
+            mKernelResponse,
             mCompute,
 
             "GenerateRoomResponse",
@@ -1495,54 +1500,72 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
+    size_t localWorkSize[3] = { localX, localY * localZ, 1 };
+
+    std::cout << "m_globalWorkSize: {"
+        << m_globalWorkSize[0] << ", "
+        << m_globalWorkSize[1] << ", "
+        << m_globalWorkSize[2] << "};"
+        << std::endl;
+    std::cout << "localWorkSize: {"
+        << localWorkSize[0] << ", "
+        << localWorkSize[1] << ", "
+        << localWorkSize[2] << "};"
+        << std::endl;
+
+    auto before1(m_globalWorkSize[1]);
+    auto before2(m_globalWorkSize[2]);
+    m_globalWorkSize[1] *= m_globalWorkSize[2];
+    m_globalWorkSize[2] = 1;
+
     //Set kernel arguments
     //TODO: pass parameters as structures
     int argIdx = 0;
     int status = 0;
-    AMF_RETURN_IF_FAILED(mKernel->SetArgBuffer(argIdx++, mResponse, AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgBuffer(argIdx++, mHPF, AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgBuffer(argIdx++, mLPF, AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgBuffer(argIdx++, mResponse, AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgBuffer(argIdx++, mHPF, AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgBuffer(argIdx++, mLPF, AMF_ARGUMENT_ACCESS_READWRITE));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, sound.speakerX));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, sound.speakerY));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, sound.speakerZ));
+    //AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, before2));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, headX));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, headY));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, headZ));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, sound.speakerX));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, sound.speakerY));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, sound.speakerZ));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earVX));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earVY));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earVZ));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, headX));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, headY));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, headZ));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, earV));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, earVX));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, earVY));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, earVZ));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.width));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.length));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.height));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, earV));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mRight.damp));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mLeft.damp));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mFront.damp));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mBack.damp));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mTop.damp));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, room.mBottom.damp));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.width));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.length));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.height));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, maxGain));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgFloat(argIdx++, dMin));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.mRight.damp));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.mLeft.damp));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.mFront.damp));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.mBack.damp));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.mTop.damp));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, room.mBottom.damp));
 
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, inSampRate));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, responseLength));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, hrtfResponseLength));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, filterLength));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, nW));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, nH));
-    AMF_RETURN_IF_FAILED(mKernel->SetArgInt32(argIdx++, nL));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, maxGain));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, dMin));
 
-    size_t localWorkSize[3] = { localX, localY, localZ };
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, inSampRate));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, responseLength));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, hrtfResponseLength));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, filterLength));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, nW));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, nH));
+    AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, nL));
 
     AMF_RETURN_IF_FAILED(
-        mKernel->Enqueue(3, nullptr, m_globalWorkSize, localWorkSize)
+        mKernelResponse->Enqueue(2, nullptr, m_globalWorkSize, localWorkSize)
         );
 
     //convert the response buffer

@@ -20,12 +20,12 @@ enable_language(CXX)
 if(NOT WIN32)
   if(APPLE)
     #SET (CMAKE_CXX_COMPILER "/usr/bin/c++")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Xpreprocessor -fopenmp -lomp")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -lomp")
+    #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Xpreprocessor -fopenmp -lomp")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -lomp")
     #set(CMAKE_SHARED_LINKER_FLAGS " -lomp" )
   else()
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
   endif()
 endif()
 
@@ -93,11 +93,21 @@ set(
   "${TAN_ROOT}/tan/samples/src/TrueAudioVR/Kernels"
   "${TAN_ROOT}/tan/samples/src/TrueAudioVR/Kernels"
   )
-set(
-  CL_Files
-  "Fill.cl"
-  "GenerateRoomResponse.cl"
-  )
+
+if(USE_METAL)
+  set(
+    CL_Files
+    "Fill.metal"
+    "GenerateRoomResponse.metal"
+    )
+else()
+  set(
+    CL_Files
+    "Fill.cl"
+    "GenerateRoomResponse.cl"
+    )
+endif()
+
 set(
   CL_Output
   "Fill"

@@ -38,6 +38,7 @@ __kernel
     volatile __global int*  response,		   ///< [out]
 	__global float*  hpF,//__constant
 	__global float*  lpF, // can combine the two filters into one buffers
+
 	float srcX,
 	float srcY,
 	float srcZ,

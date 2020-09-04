@@ -49,7 +49,6 @@ function(generateCLKernelHeader OutputTarget InputDirectories InputFiles OutputN
         DEPENDS
         ${CL_FILE}
         COMMAND
-        #CLKernelPreprocessor ${CL_FILE} ${CL_OUTPUT}
         FileToHeader ${CL_FILE} ${CL_OUTPUT}
         #"${TAN_ROOT}/thirdparty/file_to_header/file_to_header" ${CL_FILE} ${CL_OUTPUT}
         COMMENT

@@ -22,16 +22,24 @@
 // THE SOFTWARE.
 //
 
-#include <metal_stdlib>
-using namespace metal;
+#define Lx		256
+#define Float2Int   67108864.0f
 
-#define Lx      64
-#define EPS     0.0000000001f
+kernel
+    //__attribute__((reqd_work_group_size(Lx, 1, 1)))
+    void Fill(
+        device uint4*  intResponse,		   ///< [in]
+	    device float4* floatResponse,       ///< [out ]
 
-kernel void VectorComplexDiv(
-    device const float* inA,
-    device float* result,
-    uint index [[thread_position_in_grid]])
+        uint2 							global_id 			[[thread_position_in_grid]],
+		uint2 							local_id 			[[thread_position_in_threadgroup]],
+		uint2 							group_id 			[[threadgroup_position_in_grid]],
+		uint2 							group_size 			[[threads_per_threadgroup]],
+		uint2 							grid_size 			[[threads_per_grid]]
+    )
 {
-    result[index] = -inA[index] * inA[index] * inA[index];
+	int x = global_id.x;
+
+	floatResponse[x] = as_type<float4>(intResponse[x])/Float2Int;
+	intResponse[x] = 0;
 }

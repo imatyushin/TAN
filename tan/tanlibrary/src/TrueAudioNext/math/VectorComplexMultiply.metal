@@ -25,6 +25,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#define Lx      64
+
 kernel void VectorComplexMul(
     device const float* inA,
     device float* result,

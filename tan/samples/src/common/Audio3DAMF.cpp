@@ -532,7 +532,7 @@ AMF_RESULT Audio3DAMF::Init
                 L"Could not create OpenCL buffer"
                 );
 
-        /**/
+        /** /
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
         {
             AMF_RETURN_IF_FAILED(
@@ -659,10 +659,10 @@ AMF_RESULT Audio3DAMF::Init
         << std::endl;
 
     // head model:
-    mTrueAudioVR->generateSimpleHeadRelatedTransform(
+    /*mTrueAudioVR->generateSimpleHeadRelatedTransform(
         ears.hrtf,
         ears.earSpacing
-        );
+        );*/
 
     //To Do use gpu mem responses
     for (int idx = 0; idx < mWavFiles.size(); idx++)
