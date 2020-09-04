@@ -1578,6 +1578,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         mKernelFill->Enqueue(1, nullptr, &m_globaSizeFill, &localSize)
         );
 
+    AMF_RETURN_IF_FAILED(mCompute->FlushQueue());
     AMF_RETURN_IF_FAILED(mCompute->FinishQueue());
 
     return AMF_OK;
