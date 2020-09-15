@@ -338,7 +338,7 @@ AMF_RESULT Audio3DAMF::Init
     AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext, factory), L"TANCreateContext mTANConvolutionContext failed");
     AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext, factory), L"TANCreateContext mTANRoomContext failed");
 
-    // Allocate RT-Queues
+    // Allocate computes
     {
         int32_t flagsQ1 = 0;
         int32_t flagsQ2 = 0;
@@ -421,6 +421,26 @@ AMF_RESULT Audio3DAMF::Init
             else
             {
                 CreateCpuCommandQueues(deviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
+            }
+        }
+
+        //compute for TAVR
+        if(!mComputeTAVR && (mCompute2 || mCompute3))
+        {
+            if(!mContextTAVR)
+            {
+                mContextTAVR = mContext3 ? mContext3 : mContext12;
+            }
+
+            //CL over GPU
+            if(useGPURoom)
+            {
+                CreateGpuCommandQueues(deviceIndexRoom, 0, &mComputeTAVR, 0, nullptr, &mContextTAVR);
+            }
+            //CL over CPU
+            else
+            {
+                CreateCpuCommandQueues(deviceIndexRoom, 0, &mComputeTAVR, 0, nullptr, &mContextTAVR);
             }
         }
     }
@@ -532,7 +552,7 @@ AMF_RESULT Audio3DAMF::Init
                 L"Could not create OpenCL buffer"
                 );
 
-        /** /
+        /**/
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
         {
             AMF_RETURN_IF_FAILED(
@@ -542,9 +562,9 @@ AMF_RESULT Audio3DAMF::Init
                     mBufferSizeInBytes
                     )
                 );
-            
+
             assert(mOutputAMFBuffers[i]->GetNative());
-            
+
             mOutputAMFBuffersInterfaces[i] = mOutputAMFBuffers[i];
 
             float zero = 0.0;
@@ -632,7 +652,7 @@ AMF_RESULT Audio3DAMF::Init
         &trueAudioVR,
         mTANRoomContext,
         mFft,
-        mCompute3,
+        mComputeTAVR,
         FILTER_SAMPLE_RATE, //todo: other frequencies?
         mFFTLength,
 		factory
