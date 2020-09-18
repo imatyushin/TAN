@@ -622,8 +622,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             );
                     }
 #endif
-                    PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[0]", m_ovlAddLocalInBuffs[0], numOfSamplesToProcess * sizeof(float));
-                    PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[1]", m_ovlAddLocalInBuffs[1], numOfSamplesToProcess * sizeof(float));
+                    //PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[0]", m_ovlAddLocalInBuffs[0], numOfSamplesToProcess * sizeof(float));
+                    //PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[1]", m_ovlAddLocalInBuffs[1], numOfSamplesToProcess * sizeof(float));
 
                     //pBuffer.Release();
 
@@ -631,8 +631,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     //inputBuffers = m_ovlAddLocalInBuffs;
                 }
 
-                PrintFloatArray("UpdateResponseTD::before filter[0]", m_ovlAddLocalInBuffs[0], numOfSamplesToProcess * sizeof(float));
-                PrintFloatArray("UpdateResponseTD::before filter[1]", m_ovlAddLocalInBuffs[1], numOfSamplesToProcess * sizeof(float));
+                //PrintFloatArray("UpdateResponseTD::before filter[0]", m_ovlAddLocalInBuffs[0], numOfSamplesToProcess * sizeof(float));
+                //PrintFloatArray("UpdateResponseTD::before filter[1]", m_ovlAddLocalInBuffs[1], numOfSamplesToProcess * sizeof(float));
 
                 float **filter = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Filter;
                 float **overlap = ((ovlAddFilterState *)m_FilterState[m_idxUpdateFilter])->m_Overlap;

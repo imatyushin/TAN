@@ -717,10 +717,10 @@ AMF_RESULT Audio3DAMF::Init
         }
     }
 
-    PrintAMFArray("aft m_pTAVR->generateRoomResponse[0]", mAMFResponses[0], mCompute1, mBufferSizeInSamples * sizeof(float));
-    PrintAMFArray("aft m_pTAVR->generateRoomResponse[1]", mAMFResponses[1], mCompute1, mBufferSizeInSamples * sizeof(float));
-    PrintAMFArray("aft m_pTAVR->generateRoomResponse[2]", mAMFResponses[2], mCompute1, mBufferSizeInSamples * sizeof(float));
-    PrintAMFArray("aft m_pTAVR->generateRoomResponse[3]", mAMFResponses[3], mCompute1, mBufferSizeInSamples * sizeof(float));
+    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[0]", mAMFResponses[0], mCompute1, mBufferSizeInSamples * sizeof(float));
+    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[1]", mAMFResponses[1], mCompute1, mBufferSizeInSamples * sizeof(float));
+    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[2]", mAMFResponses[2], mCompute1, mBufferSizeInSamples * sizeof(float));
+    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[3]", mAMFResponses[3], mCompute1, mBufferSizeInSamples * sizeof(float));
 
     if(mUseAMFBuffers)
     {
@@ -959,9 +959,10 @@ int Audio3DAMF::ProcessProc()
 {
     //uint32_t bytesRecorded(0);
 
-    std::array<uint8_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t)> recordBuffer;
-    std::array<uint8_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t)> extractBuffer;
-    std::array<int16_t, STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE> outputBuffer;
+    //use vector nor array because array are not memory-aligned
+    std::vector<uint8_t> recordBuffer(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t));
+    std::vector<uint8_t> extractBuffer(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t));
+    std::vector<int16_t> outputBuffer(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE);
 
     //FifoBuffer recFifo(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t));
     Fifo recordFifo;
@@ -1159,6 +1160,8 @@ int Audio3DAMF::ProcessProc()
         {
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
         }*/
+
+        std::cout << "cycle" << std::endl;
 
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
         std::this_thread::sleep_for(std::chrono::milliseconds(0));

@@ -176,7 +176,7 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
 {
     //return;
 
-    compute->FlushQueue();
+    //compute->FlushQueue();
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -204,7 +204,7 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
         return;
     }
 
-    compute->FlushQueue();
+    //compute->FlushQueue();
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
@@ -218,7 +218,7 @@ static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, 
 {
     //return;
 
-    compute->FlushQueue();
+    //compute->FlushQueue();
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -246,7 +246,7 @@ static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, 
         return;
     }
 
-    compute->FlushQueue();
+    //compute->FlushQueue();
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
