@@ -1502,7 +1502,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
 {
     size_t localWorkSize[3] = { localX, localY * localZ, 1 };
 
-    std::cout << "m_globalWorkSize: {"
+    /*std::cout << "m_globalWorkSize: {"
         << m_globalWorkSize[0] << ", "
         << m_globalWorkSize[1] << ", "
         << m_globalWorkSize[2] << "};"
@@ -1511,7 +1511,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         << localWorkSize[0] << ", "
         << localWorkSize[1] << ", "
         << localWorkSize[2] << "};"
-        << std::endl;
+        << std::endl;*/
 
     auto before1(m_globalWorkSize[1]);
     auto before2(m_globalWorkSize[2]);
