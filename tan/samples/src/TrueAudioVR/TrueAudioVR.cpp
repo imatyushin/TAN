@@ -1500,24 +1500,6 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
-    size_t localWorkSize[3] = { localX, localY * localZ, 1 };
-
-    /*std::cout << "m_globalWorkSize: {"
-        << m_globalWorkSize[0] << ", "
-        << m_globalWorkSize[1] << ", "
-        << m_globalWorkSize[2] << "};"
-        << std::endl;
-    std::cout << "localWorkSize: {"
-        << localWorkSize[0] << ", "
-        << localWorkSize[1] << ", "
-        << localWorkSize[2] << "};"
-        << std::endl;*/
-
-    auto before1(m_globalWorkSize[1]);
-    auto before2(m_globalWorkSize[2]);
-    m_globalWorkSize[1] *= m_globalWorkSize[2];
-    m_globalWorkSize[2] = 1;
-
     //Set kernel arguments
     //TODO: pass parameters as structures
     int argIdx = 0;
@@ -1525,8 +1507,6 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgBuffer(argIdx++, mResponse, AMF_ARGUMENT_ACCESS_READWRITE));
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgBuffer(argIdx++, mHPF, AMF_ARGUMENT_ACCESS_READWRITE));
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgBuffer(argIdx++, mLPF, AMF_ARGUMENT_ACCESS_READWRITE));
-
-    //AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, before2));
 
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, sound.speakerX));
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgFloat(argIdx++, sound.speakerY));
@@ -1564,8 +1544,10 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, nH));
     AMF_RETURN_IF_FAILED(mKernelResponse->SetArgInt32(argIdx++, nL));
 
+    size_t localWorkSize[3] = { localX, localY, localZ };
+
     AMF_RETURN_IF_FAILED(
-        mKernelResponse->Enqueue(2, nullptr, m_globalWorkSize, localWorkSize)
+        mKernelResponse->Enqueue(3, nullptr, m_globalWorkSize, localWorkSize)
         );
 
     //convert the response buffer
@@ -1578,8 +1560,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         mKernelFill->Enqueue(1, nullptr, &m_globaSizeFill, &localSize)
         );
 
-    AMF_RETURN_IF_FAILED(mCompute->FlushQueue());
-    AMF_RETURN_IF_FAILED(mCompute->FinishQueue());
+    //AMF_RETURN_IF_FAILED(mCompute->FlushQueue());
+    //AMF_RETURN_IF_FAILED(mCompute->FinishQueue());
 
     return AMF_OK;
 }
