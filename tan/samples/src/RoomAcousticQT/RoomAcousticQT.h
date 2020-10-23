@@ -6,8 +6,6 @@
 #include <map>
 #include <vector>
 
-#define MAX_DEVICES 10u
-
 class RoomAcousticQT
 {
 public:
@@ -55,41 +53,41 @@ public:
 	void UpdateSoundSourcesPositions();
 
 private:
-	void initializeEnvironment();												// Initialize TAN DLL
-	void initializeAudioEngine();												// Initialize TAN Audio3D Engine
+	void initializeEnvironment();										// Initialize TAN DLL
+	void initializeAudioEngine();										// Initialize TAN Audio3D Engine
 
-	void initializeRoom();														// Initialize TAN Room definition
+	void initializeRoom();												// Initialize TAN Room definition
 	void initializeConvolution();
-	void initializeListener();													// Initialize TAN listener profile
+	void initializeListener();											// Initialize TAN listener profile
 	void initializeAudioPosition(int index);
 
-	void enumDevices();															// Initialize TAN device (Convolution, FFT, etc.)
+	void enumDevices();													// Initialize TAN device (Convolution, FFT, etc.)
 
 //todo: make accessors
 public:
-	std::string mTANDLLPath;
-	std::string mLogPath;
-	std::string mConfigFileName;
+	std::string 							mTANDLLPath;
+	std::string 							mLogPath;
+	std::string 							mConfigFileName;
 
-	std::string mWavFileNames[MAX_SOURCES];
-	int m_iNumOfWavFile = 0;
+	std::string 							mWavFileNames[MAX_SOURCES];
+	int 									m_iNumOfWavFile = 0;
 
-	std::unique_ptr<IAudio3D> mAudioEngine;								// Pointer to the main audio3d engine
-	RoomDefinition m_RoomDefinition;									// Roombox definition, contains damping and dimension
-	StereoListener m_Listener;											// Listener configuration
+    std::unique_ptr<IWavPlayer> 			mPlayer; 					//todo: dynamic creation of choosen player
+	std::unique_ptr<IAudio3D> 				mAudioEngine;				// Pointer to the main audio3d engine
+
+	RoomDefinition 							m_RoomDefinition;			// Roombox definition, contains damping and dimension
+	StereoListener 							m_Listener;					// Listener configuration
 	int m_iHeadAutoSpin = 0;
 
 	/*Sound Source*/
-	MonoSource m_SoundSources[MAX_SOURCES];								// All of the sound sources
-	bool mSoundSourceEnable[MAX_SOURCES];								// sound sources' enable
-	bool mSrcTrackHead[MAX_SOURCES];
-	bool mSrc1EnableMic = false;
+	MonoSource 								m_SoundSources[MAX_SOURCES];		// All of the sound sources
+	bool 									mSoundSourceEnable[MAX_SOURCES]; 	// sound sources' enable
+	bool 									mSrcTrackHead[MAX_SOURCES];
+	bool 									mSrc1EnableMic = false;
 
 	/*Device*/
-	int mCPUDevicesCount = 0;												// Device count
-	std::string mCPUDevicesNames[MAX_DEVICES];								// Device names
-	int mGPUDevicesCount = 0;												// Device count
-	std::string mGPUDevicesNames[MAX_DEVICES];
+	std::vector<std::string> mCPUDevicesNames;							// Device names
+	std::vector<std::string> mGPUDevicesNames;
 
 	/*Convolution*/
 	amf::TAN_CONVOLUTION_METHOD m_eConvolutionMethod =					// TAN Convolution method

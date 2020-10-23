@@ -3,6 +3,17 @@
 #include "TrueAudioVR.h"
 #include "FileUtility.h"
 
+#if defined(_WIN32)
+    #include "../common/WASAPIPlayer.h"
+#else
+	#if !defined(__MACOSX) && !defined(__APPLE__)
+		#include "../common/AlsaPlayer.h"
+	#endif
+#endif
+
+#ifdef ENABLE_PORTAUDIO
+	#include "../common/PortPlayer.h"
+#endif
 
 #ifndef TAN_NO_OPENCL
   #include "Audio3DOpenCL.h"
@@ -79,6 +90,35 @@ bool RoomAcousticQT::start()
 		}
 	}
 
+	//initialize hardware
+    mPlayer.reset(
+#if defined(__MACOSX) || defined(__APPLE__)
+        static_cast<IWavPlayer *>(new PortPlayer())
+#else
+
+#ifdef ENABLE_PORTAUDIO
+        playerType == "PortAudio"
+            ? static_cast<IWavPlayer *>(new PortPlayer())
+            :
+#ifdef _WIN32
+                static_cast<IWavPlayer *>(new WASAPIPlayer())
+#elif !defined(__MACOSX) && !defined(__APPLE__)
+                static_cast<IWavPlayer *>(new AlsaPlayer())
+#endif
+
+#else
+
+#ifdef _WIN32
+        new WASAPIPlayer()
+#elif !defined(__MACOSX) && !defined(__APPLE__)
+        new AlsaPlayer()
+#endif
+
+#endif
+
+#endif
+        );
+
 	bool started = AMF_OK == mAudioEngine->Init(
 		mTANDLLPath,
 		m_RoomDefinition,
@@ -113,7 +153,7 @@ bool RoomAcousticQT::start()
 
 		m_eConvolutionMethod,
 
-		mPlayerName
+		mPlayer.get()
 		);
 
 	if(started)
@@ -252,24 +292,14 @@ void RoomAcousticQT::enumDevices()
 		std::vector<std::string> devicesNames;
 		listCpuDeviceNamesWrapper(devicesNames, g_AMFFactory);
 
-		for(int i = 0; i < MAX_DEVICES; i++)
-		{
-			mCPUDevicesNames[i] = i < devicesNames.size() ? devicesNames[i] : "";
-		}
-
-        mCPUDevicesCount = std::min(devicesNames.size(), size_t(MAX_DEVICES));
+		mCPUDevicesNames = devicesNames;
 	}
 
 	{
 		std::vector<std::string> devicesNames;
 		listGpuDeviceNamesWrapper(devicesNames, g_AMFFactory);
 
-		for(int i = 0; i < MAX_DEVICES; i++)
-		{
-			mGPUDevicesNames[i] = i < devicesNames.size() ? devicesNames[i] : "";
-		}
-
-        mGPUDevicesCount = std::min(devicesNames.size(), size_t(MAX_DEVICES));
+		mGPUDevicesNames = devicesNames;
 	}
 }
 

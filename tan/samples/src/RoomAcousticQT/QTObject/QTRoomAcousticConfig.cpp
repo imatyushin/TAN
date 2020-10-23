@@ -49,24 +49,24 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 
 	//Initialize devices
 	mLockUpdate = true;
-    
+
     {
 		ConfigUi.CB_RoomDevice->addItem("CPU");
 		ConfigUi.CB_ConvolutionDevice->addItem("CPU");
 
-		for (int i = 0; i < m_RoomAcousticInstance.mCPUDevicesCount; i++)
+		for (int i = 0; i < m_RoomAcousticInstance.mCPUDevicesNames.size(); i++)
 		{
 			ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mCPUDevicesNames[i].c_str()));
 			ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mCPUDevicesNames[i].c_str()));
 		}
 
-		for (int i = 0; i < m_RoomAcousticInstance.mGPUDevicesCount; i++)
+		for (int i = 0; i < m_RoomAcousticInstance.mGPUDevicesNames.size(); i++)
 		{
 			ConfigUi.CB_RoomDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
 			ConfigUi.CB_ConvolutionDevice->addItem(QString::fromUtf8(m_RoomAcousticInstance.mGPUDevicesNames[i].c_str()));
 		}
     }
-    
+
 	mLockUpdate = false;
 
 	// Update Graphics
@@ -297,7 +297,7 @@ void RoomAcousticQTConfig::updateRoomFields()
 			(
 				!m_RoomAcousticInstance.mRoomOverGPU
 				    ? m_RoomAcousticInstance.mRoomDeviceIndex + 1
-					: m_RoomAcousticInstance.mRoomDeviceIndex + 1 + m_RoomAcousticInstance.mCPUDevicesCount
+					: m_RoomAcousticInstance.mRoomDeviceIndex + 1 + m_RoomAcousticInstance.mCPUDevicesNames.size()
 			)
 		);
 
@@ -375,7 +375,7 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 			(
 				!m_RoomAcousticInstance.mConvolutionOverGPU
 				    ? m_RoomAcousticInstance.mConvolutionDeviceIndex + 1
-					: m_RoomAcousticInstance.mConvolutionDeviceIndex + 1 + m_RoomAcousticInstance.mCPUDevicesCount
+					: m_RoomAcousticInstance.mConvolutionDeviceIndex + 1 + m_RoomAcousticInstance.mCPUDevicesNames.size()
 			)
 		);
 
@@ -505,14 +505,14 @@ void RoomAcousticQTConfig::storeRoomFields()
 	{
 		--currentIndex; //exclude first software item
 
-		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesCount)
+		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesNames.size())
 		{
 			m_RoomAcousticInstance.mRoomOverGPU = false;
 			m_RoomAcousticInstance.mRoomDeviceIndex = currentIndex;
 		}
 		else
 		{
-			currentIndex -= m_RoomAcousticInstance.mCPUDevicesCount;
+			currentIndex -= m_RoomAcousticInstance.mCPUDevicesNames.size();
 
 			m_RoomAcousticInstance.mRoomOverGPU = true;
 			m_RoomAcousticInstance.mRoomDeviceIndex = currentIndex;
@@ -556,7 +556,7 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 	{
 		--currentIndex; //exclude first software item
 
-		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesCount)
+		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesNames.size())
 		{
 			if(m_RoomAcousticInstance.mConvolutionOverGPU)
 			{
@@ -568,7 +568,7 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 		}
 		else
 		{
-			currentIndex -= m_RoomAcousticInstance.mCPUDevicesCount;
+			currentIndex -= m_RoomAcousticInstance.mCPUDevicesNames.size();
 
 			m_RoomAcousticInstance.mConvolutionOverGPU = true;
 			m_RoomAcousticInstance.mConvolutionDeviceIndex = currentIndex;
@@ -1358,7 +1358,7 @@ void RoomAcousticQTConfig::on_PB_RunDemo_clicked()
 #ifdef _DEBUG
 		printConfiguration();
 #endif
-        
+
         m_bDemoStarted = m_RoomAcousticInstance.start();
 
 		if(m_bDemoStarted)

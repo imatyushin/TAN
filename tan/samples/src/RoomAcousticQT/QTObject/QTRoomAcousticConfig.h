@@ -1,6 +1,6 @@
 #ifndef ROOMACCOUSTICNEW_H
 #define ROOMACCOUSTICNEW_H
-#define MAX_DEVICES 10
+
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QtWidgets>
 

@@ -34,48 +34,7 @@ public:
     Audio3DOpenCL(Audio3DOpenCL const &) = delete;
     virtual ~Audio3DOpenCL();
 
-    AMF_RESULT Init
-    (
-        const std::string &     dllPath,
-        const RoomDefinition &  roomDef,
-        const std::vector<std::string> &
-                                fileNames2Open,
-
-        // Source 1 can optionally be captured audio from default microphone:
-        bool                    useMicSource,
-        const std::vector<bool> &
-                                trackHeadPos,
-
-        int                     fftLen,
-        int                     bufSize,
-
-        bool                    useCLConvolution,
-        bool                    useGPUConvolution,
-        int                     deviceIndexConvolution,
-
-#ifdef RTQ_ENABLED
-		bool                    useHPr_Conv,
-        bool                    useRTQ_Conv,
-        int                     cuRes_Conv,
-#endif // RTQ_ENABLED
-
-        bool                    useCLRoom,
-        bool                    useGPURoom,
-        int                     deviceIndexRoom,
-
-#ifdef RTQ_ENABLED
-		bool                    useHPr_IRGen,
-        bool                    useRTQ_IRGen,
-        int                     cuRes_IRGen,
-#endif
-
-        amf::TAN_CONVOLUTION_METHOD
-                                convMethod,
-
-        const std::string &     playerType,
-
-        RoomUpdateMode          roomUpdateMode = RoomUpdateMode::Blocking
-        ) override;
+    AMF_RESULT InitObjects() override;
 
 	// finalize, deallocate resources, close files, etc.
 	void Close();
@@ -99,10 +58,9 @@ protected:
 
     int ProcessProc();
     int UpdateProc();
-    int Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
+    AMF_RESULT Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
 
     bool mUseClMemBufs = false;
-    bool m_useOCLOutputPipeline = false;
 
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};

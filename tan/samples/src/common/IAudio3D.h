@@ -112,7 +112,7 @@ public:
         Close();
     }
 
-    virtual AMF_RESULT Init
+    virtual AMF_RESULT          Init
     (
         const std::string &     dllPath,
         const RoomDefinition &  roomDef,
@@ -124,12 +124,12 @@ public:
         const std::vector<bool> &
                                 trackHeadPos,
 
-        int                     fftLen,
-        int                     bufSize,
+        int                     fftLength,
+        int                     bufferSizeInSamples,
 
-        bool                    useCLConvolution,
-        bool                    useGPUConvolution,
-        int                     deviceIndexConvolution,
+        bool                    computeConvolution,
+        bool                    computeOverGpuConvolution,
+        int                     computeDeviceIndexConvolution,
 
 #ifdef RTQ_ENABLED
 		bool                    useHPr_Conv,
@@ -137,9 +137,9 @@ public:
         int                     cuRes_Conv,
 #endif // RTQ_ENABLED
 
-        bool                    useCLRoom,
-        bool                    useGPURoom,
-        int                     deviceIndexRoom,
+        bool                    computeRoom,
+        bool                    computeOverGpuRoom,
+        int                     computeDeviceIndexRoom,
 
 #ifdef RTQ_ENABLED
 		bool                    useHPr_IRGen,
@@ -150,12 +150,217 @@ public:
         amf::TAN_CONVOLUTION_METHOD
                                 convMethod,
 
-        const std::string &     playerType,
+        IWavPlayer *            player,
 
         RoomUpdateMode          roomUpdateMode = RoomUpdateMode::Blocking
-        ) = 0;
+        )
+    {
+        if((computeOverGpuConvolution && !computeConvolution) || (computeOverGpuRoom && !computeRoom))
+        {
+            std::cerr
+                << "Error: GPU queues must be used only if OpenCL flag is set"
+                << std::endl;
 
-	// finalize, deallocate resources, close files, etc.
+            return AMF_INVALID_ARG;
+        }
+
+        //mComputedOutputPipeline = useGPU_Conv && useGPU_IRGen;
+        mComputedOutputPipeline = computeConvolution || computeRoom;
+
+        mSrc1EnableMic = useMicSource;
+        mTrackHeadPos = trackHeadPos;
+        mBufferSizeInSamples = bufferSizeInSamples;
+        mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
+        mConvolutionMethod = convMethod;
+
+        mComputeConvolution = computeConvolution;
+        mComputeOverGpuConvolution = computeOverGpuConvolution;
+        mComputeDeviceIndexConvolution = computeDeviceIndexConvolution;
+
+        mComputeRoom = computeRoom;
+        mComputeOverGpuRoom = computeOverGpuRoom;
+        mComputeDeviceIndexRoom = computeDeviceIndexRoom;
+
+        mWavFiles.reserve(fileNames2Open.size());
+
+        for(const auto& fileName: fileNames2Open)
+        {
+            WavContent content;
+
+            if(content.ReadWaveFile(fileName))
+            {
+                if(content.SamplesPerSecond != FILTER_SAMPLE_RATE)
+                {
+                    mLastError = std::string()
+                        + "Error: file " + fileName + " has an unsupported frequency! Currently only "
+                        + std::to_string(FILTER_SAMPLE_RATE) + " frequency is supported!";
+
+                    return AMF_FAIL;
+                }
+
+                bool converted = content.Convert2Stereo16Bit();
+
+                if(!converted && content.BitsPerSample != 16)
+                {
+                    mLastError = std::string()
+                        + "Error: file " + fileName + " has an unsupported bits per sample count. Currently only "
+                        + std::to_string(16) + " bits is supported!";
+
+                    return AMF_FAIL;
+                }
+                else if(!converted && content.ChannelsCount != STEREO_CHANNELS_COUNT)
+                {
+                    mLastError = std::string()
+                        + "Error: file " + fileName + " is not a stereo file. Currently only stereo files are supported!";
+
+                    return AMF_FAIL;
+                }
+
+                if(content.SamplesCount < mBufferSizeInSamples)
+                {
+                    mLastError = std::string()
+                        + "Error: file " + fileName + " are too short (SamplesCount < single buffer size).";
+
+                    return AMF_FAIL;
+                }
+
+                //make mono
+                content.JoinChannels();
+
+                //check that samples have compatible formats
+                //becouse convertions are not yet implemented
+                if(mWavFiles.size())
+                {
+                    if(!mWavFiles[0].IsSameFormat(content))
+                    {
+                        mLastError = std::string()
+                            + "Error: file " + fileName + " has a diffrent format with other opened files.";
+
+                        return AMF_FAIL;
+                    }
+                }
+
+                mWavFiles.push_back(content);
+            }
+            else
+            {
+                mLastError = std::string() + "Error: could not load WAV data from file " + fileName;
+
+                return AMF_FAIL;
+            }
+        }
+
+        if(!mWavFiles.size())
+        {
+            std::cerr << "Error: no files opened to play" << std::endl;
+
+            return AMF_FAIL;
+        }
+
+        //initialize hardware
+        mPlayer = player;
+
+        //assume that all opened files has the same format
+        //and we have at least one opened file
+        auto openStatus = mPlayer->Init(
+            mWavFiles[0].ChannelsCount,
+            mWavFiles[0].BitsPerSample,
+            mWavFiles[0].SamplesPerSecond,
+
+            mWavFiles.size() > 0,
+            useMicSource
+            );
+
+        if(PlayerError::OK != openStatus)
+        {
+            std::cerr << "Error: could not initialize player " << std::endl;
+
+            return AMF_FAIL;
+        }
+
+        /* # fft buffer length must be power of 2: */
+        mFFTLength = 1;
+        while(mFFTLength < fftLength && (mFFTLength << 1) <= MAXRESPONSELENGTH)
+        {
+            mFFTLength <<= 1;
+        }
+
+        /*for(int i = 0; i < MAX_SOURCES; i++)
+        {
+            m_samplePos[i] = 0;
+        }*/
+
+        // allocate responses in one block
+        // to optimize transfer to GPU
+        //mResponseBuffer = new float[mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT];
+        mResponseBuffer = mResponseBufferStorage.Allocate(mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT);
+
+        //todo: use std::align(32, sizeof(__m256), out2, space)...
+        for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
+        {
+            mResponses[idx] = mResponseBuffer + idx * mFFTLength;
+
+            mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].Allocate(mFFTLength);
+            mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].Allocate(mFFTLength);
+        }
+
+        for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
+        {
+            memset(mResponses[i], 0, sizeof(float) * mFFTLength);
+
+            mInputFloatBufsStorage[i].Clear();
+            mOutputFloatBufsStorage[i].Clear();
+        }
+
+        for (int i = 0; i < STEREO_CHANNELS_COUNT; i++)//Right and left channel after mixing
+        {
+            mOutputMixFloatBufs[i] = mOutputMixFloatBufsStorage[i].Allocate(mFFTLength);
+            memset(mOutputMixFloatBufs[i], 0, sizeof(float)*mFFTLength);
+        }
+
+        memset(&room, 0, sizeof(room));
+
+        room = roomDef;
+
+        for (int idx = 0; idx < mWavFiles.size(); idx++)
+        {
+            sources[idx].speakerX = 0.0;
+            sources[idx].speakerY = 0.0;
+            sources[idx].speakerZ = 0.0;
+        }
+
+        ears.earSpacing = float(0.16);
+        ears.headX = 0.0;
+        ears.headZ = 0.0;
+        ears.headY = 1.75;
+        ears.pitch = 0.0;
+        ears.roll = 0.0;
+        ears.yaw = 0.0;
+
+        {
+            mMaxSamplesCount = mWavFiles[0].SamplesCount;
+
+            for(int file = 1; file < mWavFiles.size(); ++file)
+            {
+                mMaxSamplesCount = std::max(
+                    mWavFiles[file].SamplesCount,
+                    mMaxSamplesCount
+                    );
+            }
+
+            mStereoProcessedBuffer.resize(
+                STEREO_CHANNELS_COUNT
+                *
+                mMaxSamplesCount
+                );
+        }
+
+        return InitObjects();
+    }
+
+    virtual AMF_RESULT InitObjects() = 0;
+
+    // finalize, deallocate resources, close files, etc.
 	virtual void Close()
     {
         mRunning = false;
@@ -163,7 +368,6 @@ public:
         if(mPlayer)
         {
             mPlayer->Close();
-            mPlayer.reset();
         }
 
         mTrueAudioVR.reset();
@@ -185,7 +389,7 @@ public:
 	// Stop audio engine:
     virtual void Stop() = 0;
 
-    std::string GetLastError() const
+    const std::string & GetLastError() const
     {
         return mLastError;
     }
@@ -306,25 +510,39 @@ public:
         return mTrueAudioVR.get();
     }
 
-    virtual TANConverterPtr getTANConverter()
+    virtual const TANConverterPtr & getTANConverter()
     {
         return mConverter;
     }
 
 protected:
-    PrioritizedThread mProcessThread;
-    PrioritizedThread mUpdateThread;
+    bool                        mComputeConvolution = false;
+    bool                        mComputeOverGpuConvolution = false;
+    int                         mComputeDeviceIndexConvolution = -1;
 
-    int ProcessProc();
-    int UpdateProc();
-    int Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
+    bool                        mComputeRoom = false;
+    bool                        mComputeOverGpuRoom = false;
+    int                         mComputeDeviceIndexRoom = -1;
 
-    bool mRunning = false;
-    bool mUpdated = false;
-    bool mStop = false;
-    bool mUpdateParams = true;
 
-    std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
+    bool                        mComputedOutputPipeline = false;
+
+    amf::TAN_CONVOLUTION_METHOD mConvolutionMethod = amf::TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
+
+    PrioritizedThread           mProcessThread;
+    PrioritizedThread           mUpdateThread;
+
+    virtual int                 ProcessProc() = 0;
+    virtual int                 UpdateProc() = 0;
+    virtual AMF_RESULT          Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount) = 0;
+
+    bool                        mRunning = false;
+    bool                        mUpdated = false;
+    bool                        mStop = false;
+    bool                        mUpdateParams = true;
+
+    //std::unique_ptr<IWavPlayer> mPlayer; //todo: dynamic creation of choosen player
+    IWavPlayer *                mPlayer = nullptr;
 
     std::vector<WavContent>     mWavFiles;
     std::vector<bool>           mTrackHeadPos;

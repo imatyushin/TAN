@@ -123,10 +123,10 @@ bool WriteWaveFileS
 
 struct WavContent
 {
-	uint16_t	ChannelsCount;
-	uint32_t 	SamplesCount;
-	uint16_t 	BitsPerSample;
-	uint32_t 	SamplesPerSecond;
+	uint16_t	ChannelsCount 		= 0;
+	uint32_t 	SamplesCount 		= 0;
+	uint16_t 	BitsPerSample 		= 0;
+	uint32_t 	SamplesPerSecond 	= 0;
 	std::vector<uint8_t>
 				Data;
 

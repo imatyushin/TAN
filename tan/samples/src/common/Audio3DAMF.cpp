@@ -72,267 +72,8 @@ void Audio3DAMF::Close()
     IAudio3D::Close();
 }
 
-AMF_RESULT Audio3DAMF::Init
-(
-	const std::string &     dllPath,
-	const RoomDefinition &  roomDef,
-
-    const std::vector<std::string> &
-                            inFiles,
-
-    bool                    useMicSource,
-    const std::vector<bool> &
-                            trackHeadPos,
-
-	int                     fftLen,
-	int                     bufferSizeInSamples,
-
-    bool                    useAMFConvolution,
-    bool                    useGPUConvolution,
-    int                     deviceIndexConvolution,
-
-#ifdef RTQ_ENABLED
-	bool                    useHPr_Conv,
-    bool                    useRTQ_Conv,
-    int                     cuRes_Conv,
-#endif
-
-    bool                    useAMFRoom,
-    bool                    useGPURoom,
-    int                     deviceIndexRoom,
-
-#ifdef RTQ_ENABLED
-	bool                    useHPr_IRGen,
-    bool                    useRTQ_IRGen,
-    int                     cuRes_IRGen,
-#endif
-
-    amf::TAN_CONVOLUTION_METHOD
-                            convMethod,
-
-    const std::string &     playerType,
-
-    RoomUpdateMode          roomUpdateMode
-)
+AMF_RESULT Audio3DAMF::InitObjects()
 {
-    if((useGPUConvolution && !useAMFConvolution) || (useGPURoom && !useAMFRoom))
-    {
-        std::cerr
-            << "Error: GPU queues must be used only if OpenCL flag is set"
-            << std::endl;
-
-        return AMF_INVALID_ARG;
-    }
-
-    //m_useOCLOutputPipeline = useGPU_Conv && useGPU_IRGen;
-    //m_useOCLOutputPipeline = useAMFConvolution || useAMFRoom;
-
-    mSrc1EnableMic = useMicSource;
-    mTrackHeadPos = trackHeadPos;
-    mBufferSizeInSamples = bufferSizeInSamples;
-    mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
-
-    mWavFiles.reserve(inFiles.size());
-
-    for(const auto& fileName: inFiles)
-    {
-        WavContent content = {0};
-
-        if(content.ReadWaveFile(fileName))
-        {
-            if(content.SamplesPerSecond != FILTER_SAMPLE_RATE)
-            {
-                mLastError = std::string()
-                    + "Error: file " + fileName + " has an unsupported frequency! Currently only "
-                    + std::to_string(FILTER_SAMPLE_RATE) + " frequency is supported!";
-
-                return AMF_FAIL;
-            }
-
-            bool converted = content.Convert2Stereo16Bit();
-
-            if(!converted && content.BitsPerSample != 16)
-            {
-                mLastError = std::string()
-                    + "Error: file " + fileName + " has an unsupported bits per sample count. Currently only "
-                    + std::to_string(16) + " bits is supported!";
-
-                return AMF_FAIL;
-            }
-            else if(!converted && content.ChannelsCount != STEREO_CHANNELS_COUNT)
-            {
-                mLastError = std::string()
-                    + "Error: file " + fileName + " is not a stereo file. Currently only stereo files are supported!";
-
-                return AMF_FAIL;
-            }
-
-            if(content.SamplesCount < mBufferSizeInSamples)
-            {
-                mLastError = std::string()
-                    + "Error: file " + fileName + " are too short (SamplesCount < single buffer size).";
-
-                return AMF_FAIL;
-            }
-
-            //make mono
-            content.JoinChannels();
-
-            //check that samples have compatible formats
-            //becouse convertions are not yet implemented
-            if(mWavFiles.size())
-            {
-                if(!mWavFiles[0].IsSameFormat(content))
-                {
-                    mLastError = std::string()
-                        + "Error: file " + fileName + " has a diffrent format with other opened files.";
-
-                    return AMF_FAIL;
-                }
-            }
-
-            mWavFiles.push_back(content);
-        }
-        else
-        {
-            mLastError = std::string() + "Error: could not load WAV data from file " + fileName;
-
-            return AMF_FAIL;
-        }
-    }
-
-    if(!mWavFiles.size())
-    {
-        std::cerr << "Error: no files opened to play" << std::endl;
-
-        return AMF_FAIL;
-    }
-
-    //initialize hardware
-    mPlayer.reset(
-#if defined(__MACOSX) || defined(__APPLE__)
-        static_cast<IWavPlayer *>(new PortPlayer())
-#else
-
-#ifdef ENABLE_PORTAUDIO
-        playerType == "PortAudio"
-            ? static_cast<IWavPlayer *>(new PortPlayer())
-            :
-#ifdef _WIN32
-                static_cast<IWavPlayer *>(new WASAPIPlayer())
-#elif !defined(__MACOSX) && !defined(__APPLE__)
-                static_cast<IWavPlayer *>(new AlsaPlayer())
-#endif
-
-#else
-
-#ifdef _WIN32
-        new WASAPIPlayer()
-#elif !defined(__MACOSX) && !defined(__APPLE__)
-        new AlsaPlayer()
-#endif
-
-#endif
-
-#endif
-        );
-
-    //assume that all opened files has the same format
-    //and we have at least one opened file
-    auto openStatus = mPlayer->Init(
-        mWavFiles[0].ChannelsCount,
-        mWavFiles[0].BitsPerSample,
-        mWavFiles[0].SamplesPerSecond,
-
-        mWavFiles.size() > 0,
-        useMicSource
-        );
-
-    if(PlayerError::OK != openStatus)
-    {
-        std::cerr << "Error: could not initialize player " << std::endl;
-
-        return AMF_FAIL;
-    }
-
-    /* # fft buffer length must be power of 2: */
-    mFFTLength = 1;
-    while(mFFTLength < fftLen && (mFFTLength << 1) <= MAXRESPONSELENGTH)
-    {
-        mFFTLength <<= 1;
-    }
-
-    /*for(int i = 0; i < MAX_SOURCES; i++)
-    {
-        m_samplePos[i] = 0;
-    }*/
-
-    // allocate responses in one block
-    // to optimize transfer to GPU
-    //mResponseBuffer = new float[mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT];
-    mResponseBuffer = mResponseBufferStorage.Allocate(mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT);
-
-    //todo: use std::align(32, sizeof(__m256), out2, space)...
-    for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
-    {
-        mResponses[idx] = mResponseBuffer + idx * mFFTLength;
-
-        mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].Allocate(mFFTLength);
-        mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].Allocate(mFFTLength);
-    }
-
-    for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
-    {
-        memset(mResponses[i], 0, sizeof(float) * mFFTLength);
-
-        mInputFloatBufsStorage[i].Clear();
-        mOutputFloatBufsStorage[i].Clear();
-    }
-
-    for (int i = 0; i < STEREO_CHANNELS_COUNT; i++)//Right and left channel after mixing
-    {
-        mOutputMixFloatBufs[i] = mOutputMixFloatBufsStorage[i].Allocate(mFFTLength);
-        memset(mOutputMixFloatBufs[i], 0, sizeof(float)*mFFTLength);
-    }
-
-    memset(&room, 0, sizeof(room));
-
-    room = roomDef;
-
-    for (int idx = 0; idx < mWavFiles.size(); idx++)
-    {
-        sources[idx].speakerX = 0.0;
-        sources[idx].speakerY = 0.0;
-        sources[idx].speakerZ = 0.0;
-    }
-
-    ears.earSpacing = float(0.16);
-    ears.headX = 0.0;
-    ears.headZ = 0.0;
-    ears.headY = 1.75;
-    ears.pitch = 0.0;
-    ears.roll = 0.0;
-    ears.yaw = 0.0;
-
-    {
-        mMaxSamplesCount = mWavFiles[0].SamplesCount;
-
-        for(int file = 1; file < mWavFiles.size(); ++file)
-        {
-            mMaxSamplesCount = std::max(
-                mWavFiles[file].SamplesCount,
-                mMaxSamplesCount
-                );
-        }
-
-        mStereoProcessedBuffer.resize(
-            STEREO_CHANNELS_COUNT
-            *
-            mMaxSamplesCount
-            );
-    }
-
-    //
     auto factory = g_AMFFactory.GetFactory();
 
     AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext, factory), L"TANCreateContext mTANConvolutionContext failed");
@@ -344,7 +85,7 @@ AMF_RESULT Audio3DAMF::Init
         int32_t flagsQ2 = 0;
 
         //CL convolution on GPU
-        if(useAMFConvolution && useGPUConvolution)
+        if(mComputeConvolution && mComputeOverGpuConvolution)
         {
     #ifdef RTQ_ENABLED
 
@@ -367,14 +108,14 @@ AMF_RESULT Audio3DAMF::Init
                 flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_IRGen;
             }
     #endif // RTQ_ENABLED
-            //CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
+            //CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
             amf::AMFCompute *compute1(nullptr), *compute2(nullptr);
-            CreateGpuCommandQueues(deviceIndexConvolution, flagsQ1, &compute1, flagsQ2, &compute2, &mContext12);
+            CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &compute1, flagsQ2, &compute2, &mContext12);
             mCompute1 = compute1;
             mCompute2 = compute2;
 
             //CL room on GPU
-            if(useAMFRoom && useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
+            if(mComputeRoom && mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
             {
                 mContext3 = mContext12;
                 mCompute3 = mCompute2;
@@ -382,7 +123,7 @@ AMF_RESULT Audio3DAMF::Init
         }
 
         //CL convolution on CPU
-        else if(useAMFConvolution && !useGPUConvolution)
+        else if(mComputeConvolution && !mComputeOverGpuConvolution)
         {
 #ifdef RTQ_ENABLED
             THROW_NOT_IMPLEMENTED;
@@ -390,19 +131,19 @@ AMF_RESULT Audio3DAMF::Init
             // For " core "reservation" on CPU" -ToDo test and enable
             if (cuRes_Conv > 0 && cuRes_IRGen > 0)
             {
-                cl_int err = CreateCommandQueuesWithCUcount(deviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
+                cl_int err = CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
             }
             else
             {
 #endif
-                CreateCpuCommandQueues(deviceIndexConvolution, 0, &mCompute1, 0, &mCompute2, &mContext12);
+                CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCompute1, 0, &mCompute2, &mContext12);
 
 #ifdef RTQ_ENABLED
             }
 #endif
 
             //CL room on CPU
-            if(useAMFRoom && !useGPURoom && (deviceIndexConvolution == deviceIndexRoom))
+            if(mComputeRoom && !mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
             {
                 mContext3 = mContext12;
                 mCompute3 = mCompute2;
@@ -410,43 +151,23 @@ AMF_RESULT Audio3DAMF::Init
         }
 
         //room queue not yet created
-        if(!mCompute3 && useAMFRoom)
+        if(!mCompute3 && mComputeRoom)
         {
             //CL over GPU
-            if(useGPURoom)
+            if(mComputeOverGpuRoom)
             {
-                CreateGpuCommandQueues(deviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
+                CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
             }
             //CL over CPU
             else
             {
-                CreateCpuCommandQueues(deviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
-            }
-        }
-
-        //compute for TAVR
-        if(!mComputeTAVR && (mCompute2 || mCompute3))
-        {
-            if(!mContextTAVR)
-            {
-                mContextTAVR = mContext3 ? mContext3 : mContext12;
-            }
-
-            //CL over GPU
-            if(useGPURoom)
-            {
-                CreateGpuCommandQueues(deviceIndexRoom, 0, &mComputeTAVR, 0, nullptr, &mContextTAVR);
-            }
-            //CL over CPU
-            else
-            {
-                CreateCpuCommandQueues(deviceIndexRoom, 0, &mComputeTAVR, 0, nullptr, &mContextTAVR);
+                CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
             }
         }
     }
 
     //convolution over OpenCL
-    if(useAMFConvolution)
+    if(mComputeConvolution)
     {
         AMF_RETURN_IF_FAILED(
             mTANConvolutionContext->InitAMF(
@@ -460,7 +181,7 @@ AMF_RESULT Audio3DAMF::Init
     }
 
     //room processing over OpenCL
-    if(useAMFRoom)
+    if(mComputeRoom)
     {
         AMF_RETURN_IF_FAILED(
             mTANRoomContext->InitAMF(
@@ -475,11 +196,11 @@ AMF_RESULT Audio3DAMF::Init
 
     AMF_RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution), L"TANCreateConvolution failed");
 
-    if(useAMFConvolution)
+    if(mComputeConvolution)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitGpu(
-                convMethod,
+                mConvolutionMethod,
                 mFFTLength,
                 mBufferSizeInSamples,
                 mWavFiles.size() * STEREO_CHANNELS_COUNT
@@ -487,11 +208,11 @@ AMF_RESULT Audio3DAMF::Init
             );
     }
     //todo, ivm:, investigate
-    else //if(useGPUConvolution)
+    else //if(mComputeOverGpuConvolution)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitCpu(
-                convMethod,
+                mConvolutionMethod,
                 mFFTLength,
                 mBufferSizeInSamples,
                 mWavFiles.size() * STEREO_CHANNELS_COUNT
@@ -509,7 +230,7 @@ AMF_RESULT Audio3DAMF::Init
     AMF_RETURN_IF_FAILED(mFft->Init());
 
     //CL over GPU for both Convolution and Room processing
-    if(useAMFConvolution && useAMFRoom)
+    if(mComputeConvolution && mComputeRoom)
     {
         if(mContext12 == mContext3)
         {
@@ -652,7 +373,7 @@ AMF_RESULT Audio3DAMF::Init
         &trueAudioVR,
         mTANRoomContext,
         mFft,
-        mComputeTAVR,
+        mCompute3,
         FILTER_SAMPLE_RATE, //todo: other frequencies?
         mFFTLength,
 		factory
@@ -662,7 +383,9 @@ AMF_RESULT Audio3DAMF::Init
     AMF_RETURN_IF_FAILED(result);
     AMF_RETURN_IF_FALSE(nullptr != mTrueAudioVR.get(), AMF_FAIL, L"CreateAmdTrueAudioVR failed");
 
-    if(useGPURoom)
+    //todo: must check mComputeRoom nor mComputeOverGpuRoom?
+    std::cout << std::endl << "Check this!" << std::endl;
+    if(mComputeOverGpuRoom)
     {
         mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
@@ -679,10 +402,10 @@ AMF_RESULT Audio3DAMF::Init
         << std::endl;
 
     // head model:
-    /*mTrueAudioVR->generateSimpleHeadRelatedTransform(
+    mTrueAudioVR->generateSimpleHeadRelatedTransform(
         ears.hrtf,
         ears.earSpacing
-        );*/
+        );
 
     //To Do use gpu mem responses
     for (int idx = 0; idx < mWavFiles.size(); idx++)
@@ -782,11 +505,11 @@ void Audio3DAMF::Stop()
     Close();
 }
 
-int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
+AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes)
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    //PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
+    PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
 
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
@@ -806,14 +529,16 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                     )
                 );
 
-            //PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
+            PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
 
-    if(mUseAMFBuffers)
+
+    if(mComputedOutputPipeline)
     {
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
+
         AMF_RETURN_IF_FAILED(
             mConvolution->Process(
                 mInputFloatBufs,
@@ -824,8 +549,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
 
-        //PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        //PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
@@ -836,8 +561,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             outputAMFBufferRight[src] = mOutputAMFBuffers[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        //PrintAMFArray("::outputCLBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
-        //PrintAMFArray("::outputCLBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::outputBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::outputBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
 
         //PrintAMFArray("::Mixer->MixB[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
         //PrintAMFArray("::Mixer->MixB[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
@@ -845,8 +570,8 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
-        //PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        //PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         auto amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[0],
@@ -861,7 +586,6 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        //PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
 
         amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[1],
@@ -876,7 +600,9 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        //PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
+
+        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
+        PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(
             //mCompute1->CopyBufferToHost(
@@ -904,13 +630,13 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
                 )
             );
 
-        //PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
-        //PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
+        PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
+        PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(ret);
 
-        float * outputFloatBufLeft[MAX_SOURCES];
-        float * outputFloatBufRight[MAX_SOURCES];
+        float * outputFloatBufLeft[MAX_SOURCES] = {nullptr};
+        float * outputFloatBufRight[MAX_SOURCES] = {nullptr};
 
         for (int src = 0; src < MAX_SOURCES; src++)
         {
@@ -932,7 +658,7 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
     }
 
     PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
-    //PrintShortArray("::Process, out[1]", pOd                                                                          zut + 1, sampleCount * sizeof(float));
+    PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
     static int counter(0);
 
@@ -940,12 +666,12 @@ int Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sam
 
     PrintDebug(info);
 
-    if(++counter == 1)
+    if(++counter == 2)
     {
-        //assert(false);
+        assert(false);
     }
 
-    return 0;
+    return AMF_OK;
 }
 
 unsigned Audio3DAMF::processThreadProc(void * ptr)
@@ -1160,8 +886,6 @@ int Audio3DAMF::ProcessProc()
         {
             m_samplePos[i] = (pWaves[i] - pWaveStarts[i]) / sizeof(short);
         }*/
-
-        std::cout << "cycle" << std::endl;
 
         //std::this_thread::sleep_for(std::chrono::milliseconds(1));
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
