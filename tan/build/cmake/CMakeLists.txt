@@ -35,7 +35,15 @@ if(RTQ_ENABLED)
 endif()
 
 # name
-project(TAN DESCRIPTION "TAN")
+if(TAN_NO_OPENCL)
+  if(USE_METAL)
+    project(TAN-AMF-METAL DESCRIPTION "TAN-AMF-METAL")
+  else()
+    project(TAN-AMF-CL DESCRIPTION "TAN-AMF-CL")
+  endif()
+else()
+  project(TAN-CL DESCRIPTION "TAN-CL")
+endif()
 
 get_filename_component(ABSOLUTE_PATH "${PROJECT_SOURCE_DIR}/../../../" ABSOLUTE)
 
