@@ -189,6 +189,41 @@ test
 			return *this;
 		}
 
+        inline void                         Debug(
+            const char *                    hint,
+            size_t                          count
+#ifndef TAN_NO_OPENCL
+            , cl_command_queue              clCommandQueue = nullptr
+#else
+            , amf::AMFCompute *             amfCompute = nullptr
+#endif
+            ) const
+        {
+            assert(hint);
+
+            if(IsHost() && mBuffersAllocated)
+            {
+                PrintFloatArray(hint, mChannels.host[0], count);
+            }
+#ifndef TAN_NO_OPENCL
+            else if(IsCL() && mBuffersAllocated)
+            {
+                assert(clCommandQueue);
+                PrintCLArray(hint, mChannels.clmem[0], clCommandQueue, count);
+            }
+#else
+            else if(IsAMF() && mBuffersAllocated)
+            {
+                assert(amfCompute);
+                PrintAMFArray(hint, mChannels.amfBuffers[0], amfCompute, count);
+            }
+#endif
+            else
+            {
+                PrintDebug(hint);
+            }
+        }
+
         inline bool                         IsSet() const   {return /*amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN != mChannelsType &&*/ mChannelsAllocated;}
         inline bool                         IsHost() const  {return amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST == mChannelsType;}
 #ifndef TAN_NO_OPENCL
@@ -205,6 +240,17 @@ test
                 == mChannelsType;
         }
 #endif
+
+        inline bool                         IsComputeBuffer() const
+        {
+            return
+#ifdef USE_METAL
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#else
+                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#endif
+                == mChannelsType;
+        }
 
         inline float * const * const        GetHostBuffers() const
         {

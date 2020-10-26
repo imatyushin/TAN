@@ -221,17 +221,24 @@ void listOClDeviceNames(std::vector<std::string> & devicesNames, cl_device_type 
 
                 cl_device_topology_amd pciBusInfo = {0};
                 status = clGetDeviceInfo(devices[n], CL_DEVICE_TOPOLOGY_AMD, sizeof(cl_device_topology_amd), &pciBusInfo, NULL);
-                if (status == CL_SUCCESS){
-                    std::cout << "   PCI bus: " << pciBusInfo.pcie.bus << " device: " << pciBusInfo.pcie.device << " function: " << pciBusInfo.pcie.function << std::endl;
+
+                if(status == CL_SUCCESS)
+                {
+                    std::cout << "PCI bus: " << pciBusInfo.pcie.bus << " device: " << pciBusInfo.pcie.device << " function: " << pciBusInfo.pcie.function << std::endl;
+                }
+                else
+                {
+                    std::cout << "Error: could not retrieve CL_DEVICE_TOPOLOGY_AMD device topology!" << std::endl;
                 }
 
                 cl_uint max_CUs = 0;
                 clGetDeviceInfo(devices[n], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &max_CUs, NULL);
-                std::cout << "   max compute units: " << max_CUs << std::endl;
+                std::cout << "max compute units: " << max_CUs << std::endl;
             }
         }
 
-        for (cl_uint i = 0; i < numDevices; i++){
+        for (cl_uint i = 0; i < numDevices; i++)
+        {
             clReleaseDevice(devices[i]);
         }
     }

@@ -787,10 +787,18 @@ namespace amf
                             AMF_STD_CALL    GetOpenCLGeneralQueue() = 0;
         virtual	cl_command_queue
                             AMF_STD_CALL    GetOpenCLConvQueue() = 0;
+
+        inline	cl_command_queue
+                            AMF_STD_CALL    GetGeneralQueue()   {return GetOpenCLGeneralQueue();}
+        inline	cl_command_queue
+                            AMF_STD_CALL    GetConvQueue()      {return GetOpenCLConvQueue();}
 #else
         virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFGeneralQueue() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFConvQueue() = 0;
+
+        inline  AMFCompute*	AMF_STD_CALL	GetGeneralQueue()   {return GetAMFGeneralQueue();}
+        inline 	AMFCompute*	AMF_STD_CALL	GetConvQueue()      {return GetAMFConvQueue();}
 #endif
 
         virtual amf::AMFFactory *           GetFactory() = 0;

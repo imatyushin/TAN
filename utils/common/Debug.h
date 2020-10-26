@@ -34,9 +34,19 @@
 }
 #endif
 
+static size_t GetMessageNumber()
+{
+    static std::atomic<size_t> messageNumber;
+
+    return messageNumber.fetch_add(1);
+}
+
 static std::ostream & PrintThreadInfo()
 {
-    return std::cout << std::endl << "thread " << std::this_thread::get_id() << " ";
+    return std::cout
+        << std::endl
+        << "[" << GetMessageNumber() << "] "
+        << "thread " << std::this_thread::get_id() << " ";
 }
 
 static void PrintDebug(const std::string & hint)
