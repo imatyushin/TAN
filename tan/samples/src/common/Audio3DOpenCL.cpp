@@ -650,7 +650,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     if(++counter == 2)
     {
-        assert(false);
+        //assert(false);
     }
 
     return AMF_OK;

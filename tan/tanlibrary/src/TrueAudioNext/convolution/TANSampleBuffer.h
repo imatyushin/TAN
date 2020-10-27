@@ -112,17 +112,17 @@ test
 
             if(IsHost())
             {
-                mChannels.host            = nullptr;
+                mChannels.host                  = nullptr;
             }
 #ifndef TAN_NO_OPENCL
             else if(IsCL())
             {
-                mChannels.clmem           = nullptr;
+                mChannels.clmem                 = nullptr;
             }
 #else
             else if(IsAMF())
             {
-                mChannels.amfBuffers      = nullptr;
+                mChannels.amfBuffers            = nullptr;
             }
 #endif
             //else
@@ -130,8 +130,8 @@ test
             //    assert(false);
             //}
 
-            mChannelsType               = AMF_MEMORY_UNKNOWN;
-            mChannelsCount              = 0;
+            mChannelsType                       = AMF_MEMORY_UNKNOWN;
+            mChannelsCount                      = 0;
         }
 
         //will deallocate buffer for each channel, don't remove channels itself

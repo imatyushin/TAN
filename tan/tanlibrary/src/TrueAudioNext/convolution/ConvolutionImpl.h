@@ -216,19 +216,21 @@ namespace amf
         virtual AMF_RESULT Flush(amf_uint32 filterStateId, amf_uint32 channelId);
 
         AMF_RESULT  AMF_STD_CALL UpdateResponseTD(
-            const TANSampleBuffer & pBuffer,
+            TANSampleBuffer & pBuffer,
             amf_size numOfSamplesToProcess,
             const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
             const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
             );
 
-        AMF_RESULT  AMF_STD_CALL    Process(const TANSampleBuffer & pBufferInput,
-                                            const TANSampleBuffer & pBufferOutput,
-                                            amf_size numOfSamplesToProcess,
-                                            // Masks of flags from enum
-                                            // TAN_CONVOLUTION_CHANNEL_FLAG.
-                                            const amf_uint32 flagMasks[],
-                                            amf_size *pNumOfSamplesProcessed = nullptr); // TAN Audio buffers
+        AMF_RESULT  AMF_STD_CALL    Process(
+            const TANSampleBuffer & bufferInput,
+            TANSampleBuffer & bufferOutput,
+            amf_size numOfSamplesToProcess,
+            // Masks of flags from enum
+            // TAN_CONVOLUTION_CHANNEL_FLAG.
+            const amf_uint32 flagMasks[],
+            amf_size *pNumOfSamplesProcessed = nullptr
+            ); // TAN Audio buffers
 
         bool                        ReadyForIRUpdate();
 
@@ -315,12 +317,138 @@ namespace amf
         AMF_RESULT AMF_FAST_CALL Crossfade(
             TANSampleBuffer pBufferOutput, amf_size numOfSamplesToProcess);
 
-        typedef struct _ovlAddFilterState {
-            float **m_Filter;
-            float **m_Overlap;
-            float **m_internalFilter;
-            float **m_internalOverlap;
-        } ovlAddFilterState;
+        typedef struct ovlAddFilterState
+        {
+            float **m_Filter = nullptr;
+            std::map<size_t, size_t> FilterLength;
+
+            float **m_Overlap = nullptr;
+            std::map<size_t, size_t> OverlapLength;
+
+            float **m_internalFilter = nullptr;
+            float **m_internalOverlap = nullptr;
+            size_t mChannelsCount = 0;
+            bool mOverlapSet = false;
+
+            ~ovlAddFilterState()
+            {
+                Release();
+            }
+
+            inline void DebugPrint(const std::string & caption, size_t channel)
+            {
+                PrintDebug(caption);
+
+                PrintFloatArray(
+                    "m_Filter",
+                    m_Filter[channel],
+                    FilterLength[channel]
+                    );
+                PrintFloatArray(
+                    "m_Overlap",
+                    m_Overlap[channel],
+                    OverlapLength[channel]
+                    );
+
+                /*m_FilterState[filter]->m_internalFilter && m_FilterState[filter]->m_internalFilter[channel] && (channel ? m_FilterState[filter]->m_internalFilter[channel - 1] : true)?
+                    PrintFloatArray(
+                        "m_internalFilter",
+                        m_FilterState[filter]->m_internalFilter[channel],
+                        nSamples
+                        ) :
+                    PrintDebug("m_internalFilter - null");
+                m_FilterState[filter]->m_internalOverlap ?
+                    PrintFloatArray(
+                        "m_internalOverlap",
+                        m_FilterState[filter]->m_internalOverlap[channel],
+                        nSamples
+                        ) :
+                PrintDebug("m_internalOverlap - null");*/
+            }
+
+            inline void Setup(size_t channelsCount)
+            {
+                mChannelsCount = channelsCount;
+
+                m_Filter = new float *[channelsCount];
+                std::memset(m_Filter, 0, sizeof(float *) * channelsCount);
+
+                m_Overlap = new float *[channelsCount];
+                std::memset(m_Overlap, 0, sizeof(float *) * channelsCount);
+
+                m_internalFilter = new float *[channelsCount];
+                std::memset(m_internalFilter, 0, sizeof(float *) * channelsCount);
+
+                m_internalOverlap = new float *[channelsCount];
+                std::memset(m_internalOverlap, 0, sizeof(float *) * channelsCount);
+            }
+
+            void Release()
+            {
+                if(!mChannelsCount)
+                {
+                    return;
+                }
+
+                for(size_t channel(0); channel < mChannelsCount; ++channel)
+                {
+                    delete [] m_Filter[channel], m_Filter[channel] = nullptr;
+
+                    if(mOverlapSet)
+                    {
+                        delete [] m_Overlap[channel], m_Overlap[channel] = nullptr;
+                    }
+                }
+
+                delete [] m_Filter, m_Filter = nullptr;
+                delete [] m_Overlap, m_Overlap = nullptr;
+                delete [] m_internalFilter, m_internalFilter = nullptr;
+                delete [] m_internalOverlap, m_internalOverlap = nullptr;
+
+                FilterLength.clear();
+                OverlapLength.clear();
+
+                mChannelsCount = 0;
+            }
+
+            inline void SetupFilter(size_t channelIndex, size_t length)
+            {
+                m_Filter[channelIndex] = new float[length];
+                memset(m_Filter[channelIndex], 0, sizeof(float) * length);
+                FilterLength[channelIndex] = length;
+            }
+
+            inline void SetupOverlap(size_t channelIndex, size_t length)
+            {
+                m_Overlap[channelIndex] = new float[length];
+                memset(m_Overlap[channelIndex], 0, sizeof(float) * length);
+                mOverlapSet = true;
+                OverlapLength[channelIndex] = length;
+            }
+
+            inline void ReferOverlap(size_t channelIndex, const ovlAddFilterState & source)
+            {
+                m_Overlap[channelIndex] = source.m_Overlap[channelIndex];
+
+                auto lengthIterator(source.OverlapLength.find(channelIndex));
+
+                if(lengthIterator != source.OverlapLength.end())
+                {
+                    OverlapLength[channelIndex] = (*lengthIterator).second;
+                }
+                else
+                {
+                    assert(false);
+                }
+            }
+
+            inline void FlushOverlapp(size_t channelIndex)
+            {
+                size_t length = OverlapLength[channelIndex];
+                assert(length);
+                memset(m_Overlap[channelIndex], 0, length * sizeof(float));
+            }
+        };
 
 		int m_currentDataPartition = 0;
 		int m_dataRowLength = 0;
@@ -359,7 +487,8 @@ namespace amf
 		} ovlNonUniformPartitionFilterState;
 
 #  define N_FILTER_STATES 3
-        ovlAddFilterState *m_FilterState[N_FILTER_STATES] = {nullptr};
+        ovlAddFilterState m_FilterState[N_FILTER_STATES];
+
 		_ovlUniformPartitionFilterState *m_upFilterState[N_FILTER_STATES] = {nullptr};
 		_ovlUniformPartitionFilterState *m_upTailState = nullptr;
 		_ovlNonUniformPartitionFilterState *m_nupFilterState[N_FILTER_STATES] = {nullptr};
@@ -400,7 +529,7 @@ namespace amf
             amf_size &              numberOfSamplesProcessed,
             ovlAddFilterState *     state,
             const TANSampleBuffer & inputData,
-            const TANSampleBuffer & outputData,
+            TANSampleBuffer &       outputData,
             amf_size                length,
             amf_uint32              n_channels,
             bool                    advanceOverlap = true
@@ -410,7 +539,7 @@ namespace amf
             ovlNonUniformPartitionFilterState *
                                             state,
             const TANSampleBuffer &         inputData,
-            const TANSampleBuffer &         outputData,
+            TANSampleBuffer &               outputData,
             amf_size                        length,
 			amf_uint32                      n_channels,
             bool                            advanceOverlap = true,
@@ -421,7 +550,7 @@ namespace amf
             ovlNonUniformPartitionFilterState *
                                             state,
             const TANSampleBuffer &         inputData,
-            const TANSampleBuffer &         outputData,
+            TANSampleBuffer &               outputData,
             amf_size                        length,
 			amf_uint32                      n_channels,
             bool                            advanceOverlap = true,
@@ -470,8 +599,8 @@ namespace amf
 
         AMF_RESULT ProcessInternal(
             int idx,
-            const TANSampleBuffer & pBuffersInput,
-            const TANSampleBuffer & pBufferOutput,
+            const TANSampleBuffer & buffersInput,
+            TANSampleBuffer & bufferOutput,
             amf_size length,
             const amf_uint32 flagMasks[],
             amf_size *pNumOfSamplesProcessed,
