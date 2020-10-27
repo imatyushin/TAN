@@ -451,6 +451,12 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     const amf_uint32 operationFlags
 )
 {
+    pBuffer.Debug(
+        __FUNCTION__,
+        64,
+        m_pContextTAN->GetConvQueue()
+        );
+
 #ifndef TAN_NO_OPENCL
 #else
     /*PrintAMFArray(
@@ -580,7 +586,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                                 ),
                                 L"Failed reading the IR OCL buffers"
                                 );
-
+                        PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[n]", m_ovlAddLocalInBuffs[n], numOfSamplesToProcess * sizeof(float));
                     }
 #else
                     // Read and pass the IRs to a local buffer
@@ -600,11 +606,10 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                                 ),
                             L"Failed reading the IR OCL buffers"
                             );
+
+                        PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[n]", m_ovlAddLocalInBuffs[n], numOfSamplesToProcess * sizeof(float));
                     }
 #endif
-                    //PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[0]", m_ovlAddLocalInBuffs[0], numOfSamplesToProcess * sizeof(float));
-                    //PrintFloatArray("UpdateResponseTD::m_ovlAddLocalInBuffs[1]", m_ovlAddLocalInBuffs[1], numOfSamplesToProcess * sizeof(float));
-
                     //pBuffer.Release();
 
                     //float** inputBuffers = pBuffer.GetHostBuffers();
@@ -626,7 +631,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             );
                     }
                 }
-                
+
                 float **filter = m_FilterState[m_idxUpdateFilter].m_Filter;
                 float **overlap = m_FilterState[m_idxUpdateFilter].m_Overlap;
 
@@ -647,7 +652,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                         m_accumulatedArgs.updatesCnt++;
                      }
                 }
-                
+
                 for(int filter = 0; filter < N_FILTER_STATES; ++filter)
                 {
                     for(int channel = 0; channel < m_iChannels; ++channel)
@@ -1077,7 +1082,7 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
                 );
         }
     }
-    
+
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
 
     AMF_RETURN_IF_FALSE(ppBufferInput != NULL, AMF_INVALID_ARG, L"ppBufferInput == NULL");
@@ -1149,7 +1154,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 );
         }
     }
-    
+
     pBufferInput.Debug(
         "TANConvolutionImpl::Process - in",
         64,
@@ -1325,7 +1330,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 	else //REGULAR_PROCESS_STATE;
     {
         PrintDebug("REGULAR_PROCESS_STATE...");
-        
+
         // wakeup update thread. New IR updates are allowed after the conv process completely done with crossfade
 
         ret = ProcessInternal(
@@ -2021,7 +2026,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                 }
             }
         }
-            
+
         for(int filter = 0; filter < N_FILTER_STATES; ++filter)
         {
             for(int channel = 0; channel < m_iChannels; ++channel)
@@ -2034,7 +2039,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                     );
             }
         }
-            
+
         break;
 
 	case TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM:

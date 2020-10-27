@@ -127,12 +127,19 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
-#else
-    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
-#endif
     {
         return InitGpu();
     }
+#else
+
+#ifndef USE_METAL
+    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
+    {
+        return InitGpu();
+    }
+#endif
+    
+#endif
 
 	return InitCpu();
 }

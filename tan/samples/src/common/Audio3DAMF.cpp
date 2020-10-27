@@ -412,6 +412,9 @@ AMF_RESULT Audio3DAMF::InitObjects()
     {
         if(mUseAMFBuffers)
         {
+            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), 64);
+            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), 64);
+            
             mTrueAudioVR->generateRoomResponse(
                 room,
                 sources[idx],
@@ -668,7 +671,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     if(++counter == 2)
     {
-        assert(false);
+        //assert(false);
     }
 
     return AMF_OK;

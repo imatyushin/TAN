@@ -440,7 +440,11 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     mTrueAudioVR->generateSimpleHeadRelatedTransform(ears.hrtf, ears.earSpacing);
 
     //To Do use gpu mem responses
-    for (int idx = 0; idx < mWavFiles.size(); idx++){
+    for (int idx = 0; idx < mWavFiles.size(); idx++)
+    {
+        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 64);
+        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 64);
+        
         if (mUseClMemBufs) {
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
         }
@@ -650,7 +654,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     if(++counter == 2)
     {
-        assert(false);
+        //assert(false);
     }
 
     return AMF_OK;

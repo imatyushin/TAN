@@ -1427,6 +1427,9 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
+    PrintCLArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), m_pResponse, m_cmdQueue, 64);
+    PrintCLArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), floatResponse, m_cmdQueue, 64);
+
     //Set kernel arguments
     //TODO: pass parameters as structures
     int argIdx = 0;
@@ -1469,11 +1472,17 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
 
     AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 
+    PrintCLArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), m_pResponse, m_cmdQueue, 64);
+    PrintCLArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), floatResponse, m_cmdQueue, 64);
+
     //convert the response buffer
-     size_t localSize = localSizeFill;
+    size_t localSize = localSizeFill;
     status = clSetKernelArg(m_kernelFill, 0, sizeof(cl_mem), &m_pResponse);
     status |= clSetKernelArg(m_kernelFill, 1, sizeof(cl_mem), &floatResponse);
     status |= clEnqueueNDRangeKernel(m_cmdQueue, m_kernelFill, 1, NULL, &m_globaSizeFill, &localSize, 0, NULL, NULL);
+
+    PrintCLArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), m_pResponse, m_cmdQueue, 64);
+    PrintCLArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), floatResponse, m_cmdQueue, 64);
 
     AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 }
@@ -1500,6 +1509,9 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
+    PrintAMFArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), mResponse, mCompute, 64);
+    PrintAMFArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), floatResponse, mCompute, 64);
+
     //Set kernel arguments
     //TODO: pass parameters as structures
     int argIdx = 0;
@@ -1550,6 +1562,9 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         mKernelResponse->Enqueue(3, nullptr, m_globalWorkSize, localWorkSize)
         );
 
+    PrintAMFArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), mResponse, mCompute, 64);
+    PrintAMFArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), floatResponse, mCompute, 64);
+
     //convert the response buffer
     size_t localSize = localSizeFill;
 
@@ -1562,6 +1577,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
 
     //AMF_RETURN_IF_FAILED(mCompute->FlushQueue());
     //AMF_RETURN_IF_FAILED(mCompute->FinishQueue());
+    PrintAMFArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), mResponse, mCompute, 64);
+    PrintAMFArray((ES + __FUNCTION__ + std::to_string(__LINE__)).c_str(), floatResponse, mCompute, 64);
 
     return AMF_OK;
 }

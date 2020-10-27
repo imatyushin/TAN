@@ -190,7 +190,7 @@ test
 		}
 
         inline void                         Debug(
-            const char *                    hint,
+            const std::string &             hint,
             size_t                          count
 #ifndef TAN_NO_OPENCL
             , cl_command_queue              clCommandQueue = nullptr
@@ -199,28 +199,35 @@ test
 #endif
             ) const
         {
-            assert(hint);
+            assert(hint.length());
+            
+            auto channelsCount(mChannelsCount ? mChannelsCount : 2);
 
-            if(IsHost() && mBuffersAllocated)
+            for(size_t channel(0); channel < channelsCount; ++channel)
             {
-                PrintFloatArray(hint, mChannels.host[0], count);
-            }
-#ifndef TAN_NO_OPENCL
-            else if(IsCL() && mBuffersAllocated)
-            {
-                assert(clCommandQueue);
-                PrintCLArray(hint, mChannels.clmem[0], clCommandQueue, count);
-            }
-#else
-            else if(IsAMF() && mBuffersAllocated)
-            {
-                assert(amfCompute);
-                PrintAMFArray(hint, mChannels.amfBuffers[0], amfCompute, count);
-            }
-#endif
-            else
-            {
-                PrintDebug(hint);
+                auto channelHint = hint + "[" + std::to_string(channel) + "]";
+
+                if(IsHost() && mBuffersAllocated)
+                {
+                    PrintFloatArray(channelHint.c_str(), mChannels.host[0], count);
+                }
+    #ifndef TAN_NO_OPENCL
+                else if(IsCL() && mBuffersAllocated)
+                {
+                    assert(clCommandQueue);
+                    PrintCLArray(channelHint.c_str(), mChannels.clmem[0], clCommandQueue, count);
+                }
+    #else
+                else if(IsAMF() && mBuffersAllocated)
+                {
+                    assert(amfCompute);
+                    PrintAMFArray(channelHint.c_str(), mChannels.amfBuffers[0], amfCompute, count);
+                }
+    #endif
+                else
+                {
+                    PrintDebug(channelHint.c_str());
+                }
             }
         }
 
