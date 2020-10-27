@@ -350,20 +350,31 @@ namespace amf
                     OverlapLength[channel]
                     );
 
-                /*m_FilterState[filter]->m_internalFilter && m_FilterState[filter]->m_internalFilter[channel] && (channel ? m_FilterState[filter]->m_internalFilter[channel - 1] : true)?
+                if(m_internalFilter[channel])
+                {
                     PrintFloatArray(
                         "m_internalFilter",
-                        m_FilterState[filter]->m_internalFilter[channel],
-                        nSamples
-                        ) :
+                        m_internalFilter[channel],
+                        FilterLength[channel]
+                        );
+                }
+                else
+                {
                     PrintDebug("m_internalFilter - null");
-                m_FilterState[filter]->m_internalOverlap ?
+                }
+
+                if(m_internalOverlap[channel])
+                {
                     PrintFloatArray(
                         "m_internalOverlap",
-                        m_FilterState[filter]->m_internalOverlap[channel],
-                        nSamples
-                        ) :
-                PrintDebug("m_internalOverlap - null");*/
+                        m_internalOverlap[channel],
+                        FilterLength[channel]
+                        );
+                }
+                else
+                {
+                    PrintDebug("m_internalOverlap - null");
+                }
             }
 
             inline void Setup(size_t channelsCount)
@@ -442,7 +453,7 @@ namespace amf
                 }
             }
 
-            inline void FlushOverlapp(size_t channelIndex)
+            inline void FlushOverlap(size_t channelIndex)
             {
                 size_t length = OverlapLength[channelIndex];
                 assert(length);

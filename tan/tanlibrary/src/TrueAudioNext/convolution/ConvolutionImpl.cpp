@@ -614,6 +614,19 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                 //PrintFloatArray("UpdateResponseTD::before filter[0]", m_ovlAddLocalInBuffs[0], numOfSamplesToProcess * sizeof(float));
                 //PrintFloatArray("UpdateResponseTD::before filter[1]", m_ovlAddLocalInBuffs[1], numOfSamplesToProcess * sizeof(float));
 
+                for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+                {
+                    for(int channel = 0; channel < m_iChannels; ++channel)
+                    {
+                        m_FilterState[filter].DebugPrint(
+                            ES + __FUNCTION__ + " ["
+                           + std::to_string(filter) + "] ["
+                           + std::to_string(channel) + "]",
+                            channel
+                            );
+                    }
+                }
+                
                 float **filter = m_FilterState[m_idxUpdateFilter].m_Filter;
                 float **overlap = m_FilterState[m_idxUpdateFilter].m_Overlap;
 
@@ -633,6 +646,19 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                         m_accumulatedArgs.lens[n] = static_cast<int>(numOfSamplesToProcess);
                         m_accumulatedArgs.updatesCnt++;
                      }
+                }
+                
+                for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+                {
+                    for(int channel = 0; channel < m_iChannels; ++channel)
+                    {
+                        m_FilterState[filter].DebugPrint(
+                            ES + __FUNCTION__ + " ["
+                           + std::to_string(filter) + "] ["
+                           + std::to_string(channel) + "]",
+                            channel
+                            );
+                    }
                 }
             }
         break;
@@ -680,7 +706,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             if(pBuffer.IsComputeBuffer())
             {
                 assert(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == pBuffer.GetType());
-                
+
                 cl_mem *clResponses = new cl_mem[m_iChannels];
                 printf("todo: remove allocation from runtime\n");
 
@@ -1018,26 +1044,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     AMF_RETURN_IF_FALSE(ppBufferInput != nullptr, AMF_INVALID_ARG, L"pBufferInput == NULL");
     AMF_RETURN_IF_FALSE(ppBufferOutput != nullptr, AMF_INVALID_ARG, L"pBufferOutput == NULL");
 
-    /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
-    {
-        for(int channel = 0; channel < m_iChannels; ++channel)
-        {
-            auto caption = ES + "::Process call m_FilterState[" + std::to_string(filter) + "][" + std::to_string(channel) + "]";
-            PrintDebug(caption);
-
-            PrintFloatArray(
-                "m_Filter",
-                m_FilterState[filter]->m_Filter[channel],
-                m_iBufferSizeInSamples
-                );
-            PrintFloatArray(
-                "m_Overlap",
-                m_FilterState[filter]->m_Overlap[channel],
-                m_iBufferSizeInSamples
-                );
-        }
-    }*/
-
     {
         TANSampleBuffer inBuf, outBuf;
 		inBuf.ReferHostChannels(ppBufferInput);
@@ -1061,6 +1067,17 @@ AMF_RESULT  AMF_STD_CALL    TANConvolutionImpl::Process(
     amf_size *pNumOfSamplesProcessed
 )   // input and output system memory
 {
+    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    {
+        for(int channel = 0; channel < m_iChannels; ++channel)
+        {
+            m_FilterState[filter].DebugPrint(
+                ES + __FUNCTION__,
+                channel
+                );
+        }
+    }
+    
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
 
     AMF_RETURN_IF_FALSE(ppBufferInput != NULL, AMF_INVALID_ARG, L"ppBufferInput == NULL");
@@ -1120,6 +1137,19 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     amf_size *pNumOfSamplesProcessed
 )
 {
+    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    {
+        for(int channel = 0; channel < m_iChannels; ++channel)
+        {
+            m_FilterState[filter].DebugPrint(
+                ES + __FUNCTION__ + " ["
+               + std::to_string(filter) + "] ["
+               + std::to_string(channel) + "]",
+                channel
+                );
+        }
+    }
+    
     pBufferInput.Debug(
         "TANConvolutionImpl::Process - in",
         64,
@@ -1294,6 +1324,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 	}
 	else //REGULAR_PROCESS_STATE;
     {
+        PrintDebug("REGULAR_PROCESS_STATE...");
+        
         // wakeup update thread. New IR updates are allowed after the conv process completely done with crossfade
 
         ret = ProcessInternal(
@@ -1638,7 +1670,7 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
 
 	if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD)
 	{
-        m_FilterState[filterStateId].FlushOverlapp(channelId);
+        m_FilterState[filterStateId].FlushOverlap(channelId);
 	}
 	else if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM)
 	{
@@ -1989,6 +2021,20 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                 }
             }
         }
+            
+        for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+        {
+            for(int channel = 0; channel < m_iChannels; ++channel)
+            {
+                m_FilterState[filter].DebugPrint(
+                    ES + __FUNCTION__ + std::to_string(__LINE__) + " ["
+                   + std::to_string(filter) + "] ["
+                   + std::to_string(channel) + "]",
+                    channel
+                    );
+            }
+        }
+            
         break;
 
 	case TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM:
@@ -3591,6 +3637,19 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     int                     ocl_crossfade_state
 )
 {
+    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    {
+        for(int channel = 0; channel < m_iChannels; ++channel)
+        {
+            m_FilterState[filter].DebugPrint(
+                ES + "ProcessInternal enter ["
+                + std::to_string(filter) + "] ["
+                + std::to_string(channel) + "]",
+                channel
+                );
+        }
+    }
+
     //ToDo handle audio buffers in GPU memory:
     if (pInputData.GetType() != AMF_MEMORY_HOST)
     {
@@ -3605,43 +3664,59 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     }
 
     // update available channel list
-    for (amf_uint32 channelId = 0; channelId < static_cast<amf_uint32>(m_iChannels); channelId++){
-        if (!flagMasks) {
+    for (amf_uint32 channelId = 0; channelId < m_iChannels; channelId++)
+    {
+        if (!flagMasks)
+        {
             m_availableChannels[channelId] = false;
             m_tailLeftOver[channelId] = m_length;
         }
-        else if (flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT) {
-            if (flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_FLUSH_STREAM)
+        else if(flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_STOP_INPUT)
+        {
+            if(flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_FLUSH_STREAM)
             {
                 m_availableChannels[channelId] = true;
                 m_tailLeftOver[channelId] = 0;
             }
-            else if (m_tailLeftOver[channelId] > 0) {
+            else if (m_tailLeftOver[channelId] > 0)
+            {
                 m_availableChannels[channelId] = false;
-                if (ocl_advance_time) {
+
+                if (ocl_advance_time)
+                {
                     m_tailLeftOver[channelId] -= static_cast<int>(nSamples);
                 }
-                if (m_tailLeftOver[channelId] <= 0) {
+
+                if (m_tailLeftOver[channelId] <= 0)
+                {
                     // Stopping a stream here we need to flush the convolutor.
                     AMF_RETURN_IF_FAILED(Flush(idx, channelId), L"Flush failed");
                 }
             }
-            else {
+            else
+            {
                 m_availableChannels[channelId] = true;
                 m_tailLeftOver[channelId] = 0;
             }
         }
-        else {
+        else
+        {
             m_availableChannels[channelId] = false;
             m_tailLeftOver[channelId] = m_length;
         }
 
-        if (flagMasks && flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_FLUSH_STREAM) {
-            if (!m_flushedChannels[channelId]) { // if the channel has not been flushed flush it
+        if (flagMasks && flagMasks[channelId] & TAN_CONVOLUTION_CHANNEL_FLAG_FLUSH_STREAM)
+        {
+            // if the channel has not been flushed flush it
+            if (!m_flushedChannels[channelId])
+            {
                 AMF_RETURN_IF_FAILED(Flush(idx, channelId), L"Flush failed");
             }
+
             m_flushedChannels[channelId] = true;
-        } else {
+        }
+        else
+        {
             m_flushedChannels[channelId] = false;
         }
     }
@@ -3833,10 +3908,24 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         )
         {
             // skip processing of stopped channels
-            if (!m_availableChannels[channelId]) { // !available == running
+            if (!m_availableChannels[channelId]) // !available == running
+            {
                 ifilter[idxInt] = filter[channelId];
                 ioverlap[idxInt] = overlap[channelId];
                 ++idxInt;
+            }
+        }
+
+        for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+        {
+            for(int channel = 0; channel < m_iChannels; ++channel)
+            {
+                m_FilterState[filter].DebugPrint(
+                    ES + "FilterState after copy ["
+                    + std::to_string(filter) + "] ["
+                    + std::to_string(channel) + "]",
+                    channel
+                    );
             }
         }
 
