@@ -114,6 +114,20 @@ void RoomAcousticQTConfig::Init()
 	updateListnerGraphics();
 
 	showMaximized();
+
+	setWindowTitle(
+#ifndef TAN_NO_OPENCL
+		"RoomAcoustic - CL"
+#else
+
+#ifdef USE_METAL
+		"RoomAcoustic - AMF/Metal"
+#else
+		"RoomAcoustic - AMF/CL"
+#endif
+
+#endif
+		);
 }
 
 void RoomAcousticQTConfig::storeSelectedSoundSource()

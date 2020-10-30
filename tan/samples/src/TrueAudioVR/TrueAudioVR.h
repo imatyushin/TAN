@@ -21,10 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
 #pragma once
+#ifndef AMD_TA_VR
+#define AMD_TA_VR
 
 #include "TrueAudioNext.h"       //TAN
+#include "Debug.h"
 
 #include "public/include/core/Result.h"
 #include "public/include/core/Context.h"
@@ -40,8 +42,6 @@ using namespace amf;
 #include <cmath>
 #include <stdio.h>
 
-#ifndef AMD_TA_VR
-#define AMD_TA_VR
 #define SWAP(a,b) tempr=(a);(a)=(b);(b)=tempr
 #define PI 3.141592653589793
 
@@ -66,64 +66,128 @@ using namespace amf;
 #define SIMPLEHRTF_FFTLEN 64
 
 // Head Related Transfer Function
-struct HeadModel {
-    int filterLength;
+struct HeadModel
+{
+    int filterLength = 0;
     // head blocks wavelengths shorter the it's diameter:
-    float lowPass[SIMPLEHRTF_FFTLEN];
-    float highPass[SIMPLEHRTF_FFTLEN];
+    float lowPass[SIMPLEHRTF_FFTLEN] = {0};
+    float highPass[SIMPLEHRTF_FFTLEN] = {0};
+
+    inline void Debug(const std::string & hint) const
+    {
+        PrintDebug(
+            hint
+            + " " + std::to_string(filterLength)
+            );
+        PrintFloatArray(hint + "lowPass", lowPass, 64);
+        PrintFloatArray(hint + "highPass", highPass, 64);
+    }
 };
 
-struct MonoSource {
+struct MonoSource
+{
     //speaker position:
-    float speakerX, speakerY, speakerZ;
+    float speakerX = 0.0f;
+    float speakerY = 0.0f;
+    float speakerZ = 0.0f;
+
+    inline void Debug(const std::string & hint) const
+    {
+        PrintDebug(
+            hint
+            + " " + std::to_string(speakerX)
+            + " " + std::to_string(speakerY)
+            + " " + std::to_string(speakerZ)
+            );
+    }
 };
 
-
-
-struct StereoListener {
-    float headX, headY, headZ;
-    float earSpacing;
-    float yaw, pitch, roll;
+struct StereoListener
+{
+    float headX = 0.0f, headY = 0.0f, headZ = 0.0f;
+    float earSpacing = 0.0f;
+    float yaw = 0.0f, pitch = 0.0f, roll = 0.0f;
     struct HeadModel hrtf;
+
+    inline void Debug(const std::string & hint) const
+    {
+        PrintDebug(
+            hint
+            + " " + std::to_string(headX)
+            + " " + std::to_string(headY)
+            + " " + std::to_string(headZ)
+            + " " + std::to_string(yaw)
+            + " " + std::to_string(pitch)
+            + " " + std::to_string(roll)
+            );
+        hrtf.Debug(hint);
+    }
 };
 
-struct MaterialProperty {
+struct MaterialProperty
+{
     // surface acoustic absorption: [required]
-    float damp;			     // acoustic absorption factor [0 < damp < 1.0]
+    float damp = 0.0f;		    // acoustic absorption factor [0 < damp < 1.0]
 
     // Frequency response: [optional], set irLen = 0 to disable
-    //int irLen;               // length of impulse response
-    //float *iresponse;        // impulse response, 48kHz, normalized (will be scaled by dampdB)
+    //int irLen;                // length of impulse response
+    //float *iresponse;         // impulse response, 48kHz, normalized (will be scaled by dampdB)
 
     // Surface roughness:  [optional], set nHostLevels = 0 to disable
-    //int nHistLevels;		 // roughnessHistogram is array representing
-    //float histHeight;		 //	fractions of surface area having heights
-    //float *roughnessHistogram;	// in each of nHistLevels bands between 0 and histHeight
-
+    //int nHistLevels;	        // roughnessHistogram is array representing
+    //float histHeight;		    //	fractions of surface area having heights
+    //float *roughnessHistogram;// in each of nHistLevels bands between 0 and histHeight
+    inline void Debug(const std::string & hint) const
+    {
+        PrintDebug(
+            hint
+            + " " + std::to_string(damp)
+            );
+    }
 };
 
 // RoomDefinition:
 // data structure to define dimensions and acoustic properties of a
 // rectangular room. All dimensions in meters.
-struct RoomDefinition {
+struct RoomDefinition
+{
     // room dimensions:
-    float width, height, length;
+    float width = 0.0f, height = 0.0f, length = 0.0f;
     // wall material properties:
     //left wall, right wall, cieling, floor, front wall, back wall
     MaterialProperty mLeft, mRight, mTop, mBottom, mFront, mBack;
+
+    inline void Debug(const std::string & hint) const
+    {
+        PrintDebug(
+            hint
+            + " " + std::to_string(width)
+            + " " + std::to_string(height)
+            + " " + std::to_string(length)
+            );
+        mLeft.Debug(hint + " mLeft");
+        mRight.Debug(hint + " mRight");
+
+        mTop.Debug(hint + " mTop");
+        mBottom.Debug(hint + " mBottom");
+
+        mFront.Debug(hint + " mFront");
+        mBack.Debug(hint + " mBack");
+    }
 };
 
 #define DOOR_VS_SPACING 0.01; // 1cm = 1/2 wavelength at 17 kHz
 
-struct Door {
-    float r1cX, r1cY, r1cZ;    //  center
-    float r1blX, r1blY, r1blZ; //  bottom left corner
-    float r1brX, r1brY, r1brZ; //  bottom right corner
+struct Door
+{
+    float r1cX = 0.0f, r1cY = 0.0f, r1cZ = 0.0f;    //  center
+    float r1blX = 0.0f, r1blY = 0.0f, r1blZ = 0.0f; //  bottom left corner
+    float r1brX = 0.0f, r1brY = 0.0f, r1brZ = 0.0f; //  bottom right corner
     // tr = bl + 2*(c - bl)
     // tl = br + 2*(c - br)
-    float r2cX, r2cY, r2cZ;    //  center
-    float r2blX, r2blY, r2blZ; //  bottom left corner
-    float r2brX, r2brY, r2brZ; //  bottom right corner
+    float r2cX = 0.0f, r2cY = 0.0f, r2cZ = 0.0f;    //  center
+    float r2blX = 0.0f, r2blY = 0.0f, r2blZ = 0.0f; //  bottom left corner
+    float r2brX = 0.0f, r2brY = 0.0f, r2brZ = 0.0f; //  bottom right corner
 };
 
 class TAN_SDK_LINK AmdTrueAudioVR
@@ -141,7 +205,7 @@ protected:
     AmdTrueAudioVR() { };
 public:
 
-    static const float S;
+    static constexpr float S = 340.0f;
 
     static const int localX = 4;
     static const int localY = 4;
@@ -151,11 +215,11 @@ public:
 
     static const int HeadFilterSize = 64;
 
-
-    //AmdTrueAudioVR(TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue,
-     //              float samplesPerSecond, int convolutionLength);
-    virtual ~AmdTrueAudioVR() { };
     static bool useIntrinsics;
+
+    virtual ~AmdTrueAudioVR()
+    {
+    };
 
     virtual void generateRoomResponse(
         const RoomDefinition & room,
@@ -241,7 +305,7 @@ extern "C"
         );
 #endif
 
-    TAN_SDK_LINK float estimateReverbTime(RoomDefinition room, float finaldB, int *nReflections);
+    TAN_SDK_LINK float estimateReverbTime(const RoomDefinition & room, float finaldB, int *nReflections);
 }
 
 #endif // #ifndef AMD_TA_VR

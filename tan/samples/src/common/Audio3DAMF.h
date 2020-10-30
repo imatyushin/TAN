@@ -39,7 +39,6 @@ protected:
     AMFContextPtr               mContextTAVR;
     AMFComputePtr               mComputeTAVR;
 
-    bool                        mUseAMFBuffers = false;
     AMFBufferPtr                mAMFResponses[MAX_SOURCES * 2];
     AMFBuffer *                 mAMFResponsesInterfaces[MAX_SOURCES * 2] = {nullptr};
 

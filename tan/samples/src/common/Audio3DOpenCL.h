@@ -60,8 +60,6 @@ protected:
     int UpdateProc();
     AMF_RESULT Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
 
-    bool mUseClMemBufs = false;
-
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};
     cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
 	cl_mem mOutputMainCLbuf = nullptr;

@@ -56,10 +56,8 @@ static void PrintDebug(const std::string & hint)
     PrintThreadInfo() << hint << std::endl;
 }
 
-static void PrintFloatArray(const char * hint, float * array, size_t count, size_t max = 64)
+static void PrintFloatArray(const std::string & hint, const float * array, size_t count, size_t max = 64)
 {
-    //return;
-
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
@@ -69,7 +67,7 @@ static void PrintFloatArray(const char * hint, float * array, size_t count, size
         return;
     }
 
-    uint8_t *data(reinterpret_cast<uint8_t *>(array));
+    const uint8_t *data(reinterpret_cast<const uint8_t *>(array));
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
@@ -79,7 +77,12 @@ static void PrintFloatArray(const char * hint, float * array, size_t count, size
     std::cout << std::endl;
 }
 
-static void PrintShortArray(const char * hint, int16_t * array, size_t count, size_t max = 64)
+static void PrintFloatArray(const char * hint, const float * array, size_t count, size_t max = 64)
+{
+    PrintFloatArray(std::string(hint), array, count, max);
+}
+
+static void PrintShortArray(const std::string & hint, const int16_t * array, size_t count, size_t max = 64)
 {
     //return;
 
@@ -92,7 +95,7 @@ static void PrintShortArray(const char * hint, int16_t * array, size_t count, si
         return;
     }
 
-    uint8_t *data(reinterpret_cast<uint8_t *>(array));
+    const uint8_t *data(reinterpret_cast<const uint8_t *>(array));
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
@@ -100,10 +103,15 @@ static void PrintShortArray(const char * hint, int16_t * array, size_t count, si
     }
 
     std::cout << std::endl;
+}
+
+static void PrintShortArray(const char * hint, const int16_t * array, size_t count, size_t max = 64)
+{
+    PrintShortArray(std::string(hint), array, count, max);
 }
 
 #ifndef TAN_NO_OPENCL
-static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
+static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
 {
     //return;
 
@@ -142,7 +150,12 @@ static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue
     std::cout << std::endl;
 }
 
-static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t offset = 0, size_t max = 64)
+static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
+{
+    PrintCLArray(std::string(hint), array, queue, count, max);
+}
+
+static static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t offset = 0, size_t max = 64)
 {
     //return;
 
@@ -182,7 +195,7 @@ static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_q
 }
 #endif
 
-static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
+static void PrintAMFArray(const std::string & hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
 {
     //return;
 
@@ -222,6 +235,11 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
     }
 
     std::cout << std::endl;
+}
+
+static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
+{
+    PrintAMFArray(std::string(hint), buffer, compute, count, max);
 }
 
 static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 64)

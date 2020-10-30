@@ -632,6 +632,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
 
+                //10101010101010
+
                 float **filter = m_FilterState[m_idxUpdateFilter].m_Filter;
                 float **overlap = m_FilterState[m_idxUpdateFilter].m_Overlap;
 
@@ -1753,19 +1755,11 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
-    TANSampleBuffer pBufferOutput,
+    TANSampleBuffer & pBufferOutput,
     amf_size numOfSamplesToProcess
 )
 {
-    if
-    (
-        pBufferOutput.GetType() ==
-#ifndef USE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-    )
+    if(pBufferOutput.IsComputeBuffer())
     {
 #ifndef TAN_NO_OPENCL
         int status;

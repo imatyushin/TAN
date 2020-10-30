@@ -249,11 +249,24 @@ AMF_RESULT Audio3DAMF::InitObjects()
                         )
                     );
 
+                float zero = 0.0;
+                AMF_RETURN_IF_FAILED(
+                    mCompute1->FillBuffer(
+                        mAMFResponses[i],
+                        0,
+                        mFFTLength * sizeof(float),
+                        &zero,
+                        sizeof(float)
+                        )
+                    );
+
+                PrintAMFArray("mOCLResponses created", mAMFResponses[i], mCompute1, 64);
+
                 mAMFResponsesInterfaces[i] = mAMFResponses[i];
             }
 
             //HACK out for test
-            mUseAMFBuffers = true;
+            mUseComputeBuffers = true;
         }
 
         // Initialize CL output buffers
@@ -410,11 +423,11 @@ AMF_RESULT Audio3DAMF::InitObjects()
     //To Do use gpu mem responses
     for (int idx = 0; idx < mWavFiles.size(); idx++)
     {
-        if(mUseAMFBuffers)
+        if(mUseComputeBuffers)
         {
             PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), 64);
             PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), 64);
-            
+
             mTrueAudioVR->generateRoomResponse(
                 room,
                 sources[idx],
@@ -448,7 +461,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
     //PrintAMFArray("aft m_pTAVR->generateRoomResponse[2]", mAMFResponses[2], mCompute1, mBufferSizeInSamples * sizeof(float));
     //PrintAMFArray("aft m_pTAVR->generateRoomResponse[3]", mAMFResponses[3], mCompute1, mBufferSizeInSamples * sizeof(float));
 
-    if(mUseAMFBuffers)
+    if(mUseComputeBuffers)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->UpdateResponseTD(
@@ -658,7 +671,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
         ret = mConverter->Convert(mOutputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
-    }
+     }
 
     PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
     PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
@@ -671,7 +684,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     if(++counter == 2)
     {
-        //assert(false);
+        assert(false);
     }
 
     return AMF_OK;
@@ -944,7 +957,7 @@ int Audio3DAMF::UpdateProc()
                 sources[idx].speakerZ = ears.headZ;
             }
 
-            if(mUseAMFBuffers)
+            if(mUseComputeBuffers)
             {
                 mTrueAudioVR->generateRoomResponse(
                     room,
@@ -981,7 +994,7 @@ int Audio3DAMF::UpdateProc()
 
         while(mRunning && !mStop)
         {
-            if(mUseAMFBuffers)
+            if(mUseComputeBuffers)
             {
                 ret = mConvolution->UpdateResponseTD(
                     mAMFResponsesInterfaces,

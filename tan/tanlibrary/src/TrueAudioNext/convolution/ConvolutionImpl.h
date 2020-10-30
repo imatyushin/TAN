@@ -315,7 +315,9 @@ namespace amf
         AMF_RESULT allocateBuffers();
         AMF_RESULT deallocateBuffers();
         AMF_RESULT AMF_FAST_CALL Crossfade(
-            TANSampleBuffer pBufferOutput, amf_size numOfSamplesToProcess);
+            TANSampleBuffer & pBufferOutput,
+            amf_size numOfSamplesToProcess
+            );
 
         typedef struct ovlAddFilterState
         {

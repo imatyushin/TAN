@@ -130,7 +130,6 @@ void Audio3DOpenCL::Close()
         clReleaseMemObject(mOutputShortBuf);
         mOutputShortBuf = NULL;
     }
-    mUseClMemBufs = false;
 
     // release smart pointers:
     mFft.Release();
@@ -312,10 +311,12 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             {
                 cl_int status = 0;
                 mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, mFFTLength * sizeof(float), NULL, &status);
+
+                PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue3, 64);
             }
 
             //HACK out for test
-            mUseClMemBufs = true;
+            mUseComputeBuffers = true;
         }
 
         // Initialize CL output buffers,
@@ -444,8 +445,8 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     {
         PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 64);
         PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 64);
-        
-        if (mUseClMemBufs) {
+
+        if (mUseComputeBuffers) {
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
         }
         else {
@@ -453,7 +454,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
         }
     }
 
-    if (mUseClMemBufs)
+    if (mUseComputeBuffers)
     {
         AMF_RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, IR_UPDATE_MODE));
     }
@@ -654,7 +655,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     if(++counter == 2)
     {
-        //assert(false);
+        assert(false);
     }
 
     return AMF_OK;
@@ -894,7 +895,7 @@ int Audio3DOpenCL::UpdateProc()
                 sources[idx].speakerZ = ears.headZ;
             }
 
-            if(mUseClMemBufs)
+            if(mUseComputeBuffers)
             {
                 mTrueAudioVR->generateRoomResponse(
                     room,
@@ -931,7 +932,7 @@ int Audio3DOpenCL::UpdateProc()
 
         while(mRunning && !mStop)
         {
-            if(mUseClMemBufs)
+            if(mUseComputeBuffers)
             {
                 ret = mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, IR_UPDATE_MODE);
             }

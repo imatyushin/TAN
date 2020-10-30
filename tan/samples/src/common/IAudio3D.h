@@ -524,7 +524,7 @@ protected:
     bool                        mComputeOverGpuRoom = false;
     int                         mComputeDeviceIndexRoom = -1;
 
-
+    bool                        mUseComputeBuffers = false;
     bool                        mComputedOutputPipeline = false;
 
     amf::TAN_CONVOLUTION_METHOD mConvolutionMethod = amf::TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
