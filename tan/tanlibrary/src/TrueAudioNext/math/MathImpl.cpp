@@ -279,8 +279,9 @@ AMF_RESULT TANMathImpl::AdjustInternalBufferSize(
 		*_buffer = clCreateBuffer(m_pContextTAN->GetOpenCLContext(), CL_MEM_READ_WRITE, *size,
 			NULL, &clErr);
 		if (clErr != CL_SUCCESS) { printf("Failed to create auxiliary array in OpenCL"); return AMF_FAIL; }
+
 		cl_float filled = 0.0;
-		clErr = clEnqueueFillBuffer(m_clQueue, m_pInternalBufferIn1_Multiply, &filled, sizeof(cl_float), 0, *size, 0, NULL, NULL);
+		clErr = FixedEnqueueFillBuffer(m_pContextTAN->GetOpenCLContext(), m_clQueue, m_pInternalBufferIn1_Multiply, &filled, sizeof(cl_float), 0, *size);
 	}
 	return AMF_OK;
 }
@@ -1159,8 +1160,10 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 			input_mem = m_pInternalSwapBuffer2_MulAccu;
 			output_mem = m_pInternalSwapBuffer1_MulAccu;
 		}
+
 		cl_float filled = 0.0;
-		clErr = clEnqueueFillBuffer(m_clQueue, output_mem, &filled, sizeof(cl_float), 0, requiredInternalBuffersize, 0, NULL, NULL);
+		clErr = FixedEnqueueFillBuffer(m_pContextTAN->GetOpenCLContext(), m_clQueue, output_mem, &filled, sizeof(cl_float), 0, requiredInternalBuffersize);
+
 		if (clErr != CL_SUCCESS) { printf("Failed to zero output buffer"); return AMF_FAIL; }
 		if (clErr != CL_SUCCESS) { printf("Faield to wait for ocl event"); return AMF_FAIL; }
 		clErr = clSetKernelArg(m_pKernelComplexSum, pInputFlt_arg_index, sizeof(amf_int64), &input_mem);

@@ -5,6 +5,8 @@
 #include <string>
 #include <thread>
 
+//#define SILENT
+
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) \
 { \
@@ -51,13 +53,19 @@ static std::ostream & PrintThreadInfo()
 
 static void PrintDebug(const std::string & hint)
 {
-    //return;
+#ifdef SILENT
+    return;
+#endif
 
     PrintThreadInfo() << hint << std::endl;
 }
 
 static void PrintFloatArray(const std::string & hint, const float * array, size_t count, size_t max = 64)
 {
+#ifdef SILENT
+    return;
+#endif
+    
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
@@ -84,7 +92,9 @@ static void PrintFloatArray(const char * hint, const float * array, size_t count
 
 static void PrintShortArray(const std::string & hint, const int16_t * array, size_t count, size_t max = 64)
 {
-    //return;
+#ifdef SILENT
+    return;
+#endif
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -113,7 +123,9 @@ static void PrintShortArray(const char * hint, const int16_t * array, size_t cou
 #ifndef TAN_NO_OPENCL
 static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
 {
-    //return;
+#ifdef SILENT
+    return;
+#endif
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -124,7 +136,10 @@ static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queu
         return;
     }
 
-    std::vector<uint8_t> out(count);
+    clFlush(queue);
+    clFinish(queue);
+
+    std::vector<cl_uchar> out(count);
 
     auto error = clEnqueueReadBuffer(
         queue,
@@ -141,13 +156,19 @@ static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queu
     {
         std::cout << "CL ERROR" << std::endl;
     }
+    
+    clFlush(queue);
+    clFinish(queue);
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
-        std::cout << int(out[i]) << " ";
+        std::cout << unsigned(cl_uchar(out[i])) << " ";
     }
 
     std::cout << std::endl;
+    
+    clFlush(queue);
+    clFinish(queue);
 }
 
 static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
@@ -157,7 +178,9 @@ static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue
 
 static static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t offset = 0, size_t max = 64)
 {
-    //return;
+#ifdef SILENT
+    return;
+#endif
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -197,7 +220,9 @@ static static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_co
 
 static void PrintAMFArray(const std::string & hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)
 {
-    //return;
+#ifdef SILENT
+    return;
+#endif
 
     //compute->FlushQueue();
 
@@ -244,7 +269,9 @@ static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCo
 
 static void PrintAMFArrayWithOffset(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t offset = 0, size_t max = 64)
 {
-    //return;
+#ifdef SILENT
+    return;
+#endif
 
     //compute->FlushQueue();
 

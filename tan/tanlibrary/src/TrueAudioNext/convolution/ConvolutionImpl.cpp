@@ -3501,13 +3501,13 @@ AMF_RESULT TANConvolutionImpl::ovlTimeDomain(
 		clEnqueueWriteBuffer(cmdQueue, state->m_clSampleHistory[iChan], 1, bufPos*sizeof(float), len1*sizeof(float), histBuf + bufPos, 0, nullptr, nullptr);
 		clEnqueueWriteBuffer(cmdQueue, state->m_clSampleHistory[iChan], 1, 0, len2*sizeof(float), histBuf, 0, nullptr, nullptr);
 
-		clEnqueueFillBuffer(cmdQueue, state->m_clTemp[iChan], (const void *)&pat, sizeof(pat), 0, datalength*sizeof(float), 0, nullptr, nullptr);
+		FixedEnqueueFillBuffer(..., cmdQueue, state->m_clTemp[iChan], (const void *)&pat, sizeof(pat), 0, datalength*sizeof(float));
 
 		ovlTimeDomainGPU(state->m_clFilter[iChan], firstNonZero, lastNonZero, state->m_clTemp[iChan], state->m_clSampleHistory[iChan], bufPos, datalength, convlength);
 
 		cl_int status = 0;
 		clEnqueueReadBuffer(cmdQueue, state->m_clTemp[iChan], 1, 0, datalength*sizeof(float), out, 0, nullptr, nullptr);
-		clEnqueueFillBuffer(cmdQueue, state->m_clFilter[iChan], (const void *)&pat, sizeof(pat), firstNonZero*sizeof(float), (lastNonZero - firstNonZero)*sizeof(float), 0, nullptr, nullptr);
+		FixedEnqueueFillBuffer(..., cmdQueue, state->m_clFilter[iChan], (const void *)&pat, sizeof(pat), firstNonZero*sizeof(float), (lastNonZero - firstNonZero)*sizeof(float));
     }
 
     return AMF_OK;

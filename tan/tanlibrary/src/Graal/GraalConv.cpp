@@ -2774,6 +2774,8 @@ CGraalConv::selectConvHead1Options(std::string & _kernel_file, std::string &kern
 
 AMF_RESULT CGraalConv::zeroMemory(CABuf<float> *pBuf, amf_uint offset, amf_uint amount)
 {
+    printf("todo: fix sync issue\n!");
+
     float pattern = 0;
     cl_int ret = clEnqueueFillBuffer(
 

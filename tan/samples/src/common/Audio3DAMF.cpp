@@ -260,9 +260,9 @@ AMF_RESULT Audio3DAMF::InitObjects()
                         )
                     );
 
-                PrintAMFArray("mOCLResponses created", mAMFResponses[i], mCompute1, 64);
-
                 mAMFResponsesInterfaces[i] = mAMFResponses[i];
+
+                PrintAMFArray("mOCLResponses", mAMFResponses[i], mCompute1, 64);
             }
 
             //HACK out for test
@@ -331,6 +331,17 @@ AMF_RESULT Audio3DAMF::InitObjects()
                     );
 
             mOutputMixAMFBuffersInterfaces[idx] = mOutputMixAMFBuffers[idx];
+
+            unsigned char zero = 0.0;
+            AMF_RETURN_IF_FAILED(
+                mCompute1->FillBuffer(
+                    mOutputMixAMFBuffers[idx],
+                    0,
+                    mBufferSizeInBytes,
+                    &zero,
+                    sizeof(zero)
+                    )
+                );
         }
 
         // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
@@ -348,6 +359,17 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 ),
                 L"Could not create OpenCL buffer"
                 );
+
+        unsigned char zero = 0.0;
+        AMF_RETURN_IF_FAILED(
+            mCompute1->FillBuffer(
+                mOutputShortAMFBuffer,
+                0,
+                mBufferSizeInBytes,
+                &zero,
+                sizeof(zero)
+                )
+            );
     }
 
 #ifdef _WIN32
@@ -684,7 +706,9 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     if(++counter == 2)
     {
-        assert(false);
+        int i = 0;
+        ++i;
+        //assert(false);
     }
 
     return AMF_OK;

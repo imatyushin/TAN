@@ -286,19 +286,19 @@ AMF_RESULT	AMF_STD_CALL	TANIIRfilterImpl::InitGpu()
 		m_pContextCl, CL_MEM_READ_WRITE, sizeof(float)*m_channels*m_numInputTaps, nullptr, &ret);
 	AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create buffer");
 
-	clEnqueueFillBuffer(m_pCommandQueueCl, m_clInputHistory, (const void *)&pat, sizeof(pat), 0, m_channels*m_numInputTaps * sizeof(float), 0, nullptr, nullptr);
+	FixedEnqueueFillBuffer(m_pContextCl, m_pCommandQueueCl, m_clInputHistory, (const void *)&pat, sizeof(pat), 0, m_channels*m_numInputTaps * sizeof(float));
 
 	m_clOutputHistory = clCreateBuffer(
 		m_pContextCl, CL_MEM_READ_WRITE, sizeof(float)*m_channels*m_numOutputTaps, nullptr, &ret);
 	AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create buffer");
 
-	clEnqueueFillBuffer(m_pCommandQueueCl, m_clOutputHistory, (const void *)&pat, sizeof(pat), 0, m_channels*m_numOutputTaps * sizeof(float), 0, nullptr, nullptr);
+	FixedEnqueueFillBuffer(m_pContextCl, m_pCommandQueueCl, m_clOutputHistory, (const void *)&pat, sizeof(pat), 0, m_channels*m_numOutputTaps * sizeof(float));
 
 	m_clInOutHistPos = clCreateBuffer(
 		m_pContextCl, CL_MEM_READ_WRITE, sizeof(float) * 2, nullptr, &ret);
 	AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create buffer");
 
-	clEnqueueFillBuffer(m_pCommandQueueCl, m_clInOutHistPos, (const void *)&pat, sizeof(pat), 0, sizeof(float) * 2, 0, nullptr, nullptr);
+	FixedEnqueueFillBuffer(m_pContextCl, m_pCommandQueueCl, m_clInOutHistPos, (const void *)&pat, sizeof(pat), 0, sizeof(float) * 2);
 
 	for (amf_uint32 i = 0; i < m_channels; i++)
 	{

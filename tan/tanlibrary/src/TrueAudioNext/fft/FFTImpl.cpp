@@ -46,6 +46,7 @@
 #endif
 
 #include "cpucaps.h"
+#include "OCLHelper.h"
 #include "Exceptions.h"
 #include "Debug.h"
 
@@ -138,7 +139,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
         return InitGpu();
     }
 #endif
-    
+
 #endif
 
 	return InitCpu();
@@ -1946,9 +1947,10 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 		cl_int status;
 		m_pInputsOCL = clCreateBuffer(context, CL_MEM_READ_WRITE, requiredBufferLengthInBytes, NULL, &status);
 		m_pOutputsOCL = clCreateBuffer(context, CL_MEM_READ_WRITE, requiredBufferLengthInBytes, NULL, &status);
+
 		float fill = 0.0;
-		status = clEnqueueFillBuffer(cmdQueue, m_pInputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes, 0, NULL, NULL);
-		status = clEnqueueFillBuffer(cmdQueue, m_pOutputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes, 0, NULL, NULL);
+		status = FixedEnqueueFillBuffer(context, cmdQueue, m_pInputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes);
+		status = FixedEnqueueFillBuffer(context, cmdQueue, m_pOutputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes);
 #else
         auto context = m_pContextTAN->GetAMFContext();
 		AMFComputePtr cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
@@ -1962,13 +1964,12 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 			cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
 		}
 
-#ifndef USE_METAL
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-#ifndef USE_METAL
-				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
+#ifdef USE_METAL
 				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#else
+				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #endif
 				,
                 requiredBufferLengthInBytes,
@@ -1977,32 +1978,16 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
             );
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-#ifndef USE_METAL
-				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
+#ifdef USE_METAL
 				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#else
+				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #endif
                 ,
                 requiredBufferLengthInBytes,
                 &mOutputsAMF
                 )
             );
-#else
-        AMF_RETURN_IF_FAILED(
-            context->AllocBuffer(
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
-                requiredBufferLengthInBytes,
-                &mInputsAMF
-                )
-            );
-        AMF_RETURN_IF_FAILED(
-            context->AllocBuffer(
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
-                requiredBufferLengthInBytes,
-                &mOutputsAMF
-                )
-            );
-#endif
 
         float fill = 0.0;
         AMF_RETURN_IF_FAILED(

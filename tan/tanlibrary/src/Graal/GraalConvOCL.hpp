@@ -574,6 +574,8 @@ public:
         int len = (_len != 0) ? _len: len_;
         if (NULL != _commandQueue)
         {
+            printf("todo: fix sync issue\n!");
+
            err = clEnqueueFillBuffer(_commandQueue, buf_, (const void *)&_val, sizeof(_val), _offset* sizeof(T), len * sizeof(T) , 0, nullptr, nullptr);
         }
         for (int i = _offset; sys_ptr_ && i < len; i++)

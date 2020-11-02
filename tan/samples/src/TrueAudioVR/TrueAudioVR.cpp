@@ -1273,8 +1273,11 @@ AMF_RESULT TrueAudioVRimpl::InitializeCL(
 
     // zero buffers
     float fill = 0.0;
-    status = clEnqueueFillBuffer(m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
-    status = clEnqueueFillBuffer(m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float), 0, NULL, NULL);
+    status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
+    status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
+
+    PrintCLArray("m_pResponse init", m_pResponse, m_cmdQueue, 64);
+    PrintCLArray("m_pFloatResponse init", m_pFloatResponse, m_cmdQueue, 64);
 
     //void *frMap = clEnqueueMapBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
 
@@ -1398,6 +1401,9 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             sizeof(float)
             )
         );
+
+    PrintAMFArray("mResponse init", mResponse, mCompute, 64);
+    PrintAMFArray("floatResponse init", mFloatResponse, mCompute, 64);
 
     //TODO: combine the LPF and HPF into one chunk of memory
     //m_pHPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -1551,8 +1557,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     int nL
     )
 {
-    PrintAMFArray("mResponse", mResponse, mCompute, 64);
-    PrintAMFArray("floatResponse", floatResponse, mCompute, 64);
+    PrintAMFArray("mResponse bfr", mResponse, mCompute, 64);
+    PrintAMFArray("floatResponse bfr", floatResponse, mCompute, 64);
 
     //Set kernel arguments
     //TODO: pass parameters as structures

@@ -25,6 +25,7 @@
 
 #include "TrueAudioVR.h"
 #include "GpuUtils.h"
+#include "OCLHelper.h"
 #include "Debug.h"
 #include "cpucaps.h"
 
@@ -307,12 +308,20 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
 
         if(context_IR == context_Conv)
         {
+            std::vector<cl_uchar> clear(mFFTLength * sizeof(float), 0);
+
             for(int i = 0; i < mWavFiles.size() * 2; i++)
             {
                 cl_int status = 0;
-                mOCLResponses[i] = clCreateBuffer(context_IR, CL_MEM_READ_WRITE, mFFTLength * sizeof(float), NULL, &status);
+                mOCLResponses[i] = clCreateBuffer(
+                    context_IR,
+                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                    mFFTLength * sizeof(float),
+                    clear.data(),
+                    &status
+                    );
 
-                PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue3, 64);
+                PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue1, 64);
             }
 
             //HACK out for test
@@ -344,7 +353,12 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             region.origin = i * mBufferSizeInBytes;
             region.size = mBufferSizeInBytes;
             mOutputCLBufs[i] = clCreateSubBuffer(
-                mOutputMainCLbuf, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &clErr);
+                mOutputMainCLbuf,
+                CL_MEM_READ_WRITE,
+                CL_BUFFER_CREATE_TYPE_REGION,
+                &region,
+                &clErr
+                );
 
             if (clErr != CL_SUCCESS)
             {
@@ -354,7 +368,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             }
 
             float zero = 0.0;
-            clErr = clEnqueueFillBuffer(mCmdQueue1, mOutputCLBufs[i], &zero, sizeof(zero), 0, region.size, 0, NULL, NULL);
+            clErr = FixedEnqueueFillBuffer(context_Conv, mCmdQueue1, mOutputCLBufs[i], &zero, sizeof(zero), 0, region.size);
             if (clErr != CL_SUCCESS)
             {
                 std::cerr << "Could not fill OpenCL subBuffer" << std::endl;
@@ -363,13 +377,15 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             }
         }
 
+        std::vector<cl_uchar> clear(mBufferSizeInBytes, 0);
+
         for (int idx = 0; idx < 2; idx++)
         {
             mOutputMixCLBufs[idx] = clCreateBuffer(
                 mTANConvolutionContext->GetOpenCLContext(),
-                CL_MEM_READ_WRITE,
+                CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
                 mBufferSizeInBytes,
-                nullptr,
+                clear.data(),
                 &clErr
                 );
 
@@ -392,9 +408,9 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
         // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
         mOutputShortBuf = clCreateBuffer(
             mTANConvolutionContext->GetOpenCLContext(),
-            CL_MEM_READ_WRITE,
+            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
             mBufferSizeInBytes,
-            nullptr,
+            clear.data(),
             &clErr
             );
     }
@@ -655,7 +671,9 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     if(++counter == 2)
     {
-        assert(false);
+        int i = 0;
+        ++i;
+        //assert(false);
     }
 
     return AMF_OK;

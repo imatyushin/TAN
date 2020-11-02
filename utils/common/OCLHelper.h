@@ -41,6 +41,16 @@ bool GetOclKernel
     const std::string &         comp_options
 );
 
+cl_int FixedEnqueueFillBuffer(
+    cl_context                  context,
+    cl_command_queue            command_queue,
+    cl_mem                      buffer,
+    const void *                pattern,
+    size_t                      pattern_size,
+    size_t                      offset,
+    size_t                      size
+    );
+
 #else
 
 bool GetOclKernel
