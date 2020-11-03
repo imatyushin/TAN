@@ -574,19 +574,46 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
         PrintCLArray("::Mixer->Mix[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
         PrintCLArray("::Mixer->Mix[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
-        auto ret = mConverter->Convert(mOutputMixCLBufs[0], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
-            mOutputShortBuf, 2, 0, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
+        auto ret = mConverter->Convert(
+            mOutputMixCLBufs[0],
+            1, 0,
+            TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortBuf,
+            2, 0,
+            TAN_SAMPLE_TYPE_SHORT,
+            sampleCount,
+            1.f
+            );
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
+        PrintCLArray("::Converter->Convert[0]", mOutputShortBuf, mCmdQueue1, 64);
 
-        ret = mConverter->Convert(mOutputMixCLBufs[1], 1, 0, TAN_SAMPLE_TYPE_FLOAT,
-            mOutputShortBuf, 2, 1, TAN_SAMPLE_TYPE_SHORT, sampleCount, 1.f);
+        ret = mConverter->Convert(
+            mOutputMixCLBufs[1],
+            1, 0,
+            TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortBuf,
+            2, 1,
+            TAN_SAMPLE_TYPE_SHORT,
+            sampleCount,
+            1.f
+            );
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
+        PrintCLArrayWithOffset("::Converter->Convert[1]", mOutputShortBuf, mCmdQueue1, 64, sampleCount * sizeof(short));
 
-        PrintCLArray("::Converter->Convert[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
-        PrintCLArray("::mConverter->Convert[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
-        AMF_RETURN_IF_CL_FAILED(clEnqueueReadBuffer(mTANConvolutionContext->GetOpenCLConvQueue(), mOutputShortBuf, CL_TRUE,
-             0, sampleCountBytes, pOut, NULL, NULL, NULL));
+        AMF_RETURN_IF_CL_FAILED(
+            clEnqueueReadBuffer(
+                mTANConvolutionContext->GetConvQueue(),
+                mOutputShortBuf,
+                CL_TRUE,
+                0,
+                sampleCountBytes,
+                pOut,
+                NULL,
+                NULL,
+                NULL
+                )
+            );
     }
     else
     {   // Host memory pointers are passed to the TANConvolution->Process method
@@ -669,7 +696,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     PrintDebug(info);
 
-    if(++counter == 2)
+    if(++counter == 15)
     {
         int i = 0;
         ++i;

@@ -1550,7 +1550,9 @@ AMF_RESULT  TANConvolutionImpl::Init(
     {
 		bool kernelLoaded =
 
+
 #ifndef TAN_NO_OPENCL
+
             GetOclKernel(
                 m_pKernelCrossfade,
                 m_pProcContextAMF,
@@ -1560,7 +1562,9 @@ AMF_RESULT  TANConvolutionImpl::Init(
                 CrossfadingCount,
                 "crossfade",
                 ""
+
                 );
+
 #else
 		    GetOclKernel(
                 mKernelCrossfade,
@@ -1759,27 +1763,41 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
     amf_size numOfSamplesToProcess
 )
 {
+    PrintDebug(__FUNCTION__);
+
+    auto crossfadeQueue = m_pContextTAN->GetGeneralQueue(); //<-General becouse kernel was created with general queue
+    //auto crossfadeQueue = m_pContextTAN->GetConvQueue();
+
+    pBufferOutput.Debug("at start", 64, crossfadeQueue);
+
     if(pBufferOutput.IsComputeBuffer())
     {
 #ifndef TAN_NO_OPENCL
+
+        PrintCLArray("bfr m_pCLXFadeMasterBuf[0]", m_pCLXFadeMasterBuf[0], crossfadeQueue, 64);
+        PrintCLArray("bfr m_pCLXFadeMasterBuf[1]", m_pCLXFadeMasterBuf[1], crossfadeQueue, 64);
+
         int status;
-		cl_command_queue convQ = m_pContextTAN->GetOpenCLConvQueue();
 		int index = 0;
         amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
         amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 1, 0 };
         AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[0]), L"Failed to set OpenCL argument");
         AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[1]), L"Failed to set OpenCL argument");
         AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(int), &numOfSamplesToProcess), L"Failed to set OpenCL argument");
-		status = clEnqueueNDRangeKernel(convQ, m_pKernelCrossfade, 2, NULL, global, local, 0, NULL, NULL);
+		status = clEnqueueNDRangeKernel(crossfadeQueue, m_pKernelCrossfade, 2, NULL, global, local, 0, NULL, NULL);
 		if (status != CL_SUCCESS)
         {
             printf("Failed to enqueue OCL kernel");
             return AMF_FAIL;
         }
+
+        PrintCLArray("aft m_pCLXFadeMasterBuf[0]", m_pCLXFadeMasterBuf[0], crossfadeQueue, 64);
+        PrintCLArray("aft m_pCLXFadeMasterBuf[1]", m_pCLXFadeMasterBuf[1], crossfadeQueue, 64);
+
         for (amf_uint32 c = 0; c < m_iChannels; c++)
         {
             int status = clEnqueueCopyBuffer(
-				convQ,
+				crossfadeQueue,
                 m_pCLXFadeMasterBuf[1], //todo, ivm: why [1]?
                 pBufferOutput.GetCLBuffers()[c],
                 c * m_iBufferSizeInSamples * sizeof(float),
@@ -1787,14 +1805,18 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
                 numOfSamplesToProcess * sizeof(float),
                 0,
                 NULL,
-                NULL);
+                NULL
+                );
 
             CHECK_OPENCL_ERROR(status, "copy failed.");
+
+            pBufferOutput.Debug("copy", 64, crossfadeQueue);
         }
 
 #else
 
-        auto generalQ = m_pContextTAN->GetAMFGeneralQueue();
+        PrintAMFArray("bfr mAMFCLXFadeMasterBuffers[0]", mAMFCLXFadeMasterBuffers[0], crossfadeQueue, 64);
+        PrintAMFArray("bfr mAMFCLXFadeMasterBuffers[1]", mAMFCLXFadeMasterBuffers[1], crossfadeQueue, 64);
 
         int index = 0;
         amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
@@ -1808,10 +1830,13 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
             mKernelCrossfade->Enqueue(2, nullptr, global, local)
             );
 
+        PrintAMFArray("aft mAMFCLXFadeMasterBuffers[0]", mAMFCLXFadeMasterBuffers[0], crossfadeQueue, 64);
+        PrintAMFArray("aft mAMFCLXFadeMasterBuffers[1]", mAMFCLXFadeMasterBuffers[1], crossfadeQueue, 64);
+
         for (amf_uint32 c = 0; c < m_iChannels; c++)
         {
             AMF_RETURN_IF_CL_FAILED(
-                generalQ->CopyBuffer(
+                crossfadeQueue->CopyBuffer(
                     mAMFCLXFadeMasterBuffers[1], //todo, ivm: why [1]?
                     c * m_iBufferSizeInSamples * sizeof(float),
                     numOfSamplesToProcess * sizeof(float),
@@ -1819,6 +1844,8 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
                     0
                     )
                 );
+
+            pBufferOutput.Debug("copy", 64, crossfadeQueue);
         }
 
 #endif

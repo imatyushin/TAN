@@ -137,22 +137,22 @@ namespace amf
         AMFCriticalSection          m_sect;
 
 #ifndef TAN_NO_OPENCL
-        cl_command_queue			m_pQueueCl;
-        cl_context					m_pContextCl;
-        cl_device_id				m_pDeviceCl;
+        cl_command_queue			m_pQueueCl = nullptr;
+        cl_context					m_pContextCl = nullptr;
+        cl_device_id				m_pDeviceCl = nullptr;
 
-        cl_program					m_program;
-        cl_kernel					m_kernel;
+        cl_program					m_program = nullptr;
 
 		cl_kernel					m_clkFloat2Short = nullptr;
 		cl_kernel					m_clkShort2Short = nullptr;
 		cl_kernel					m_clkFloat2Float = nullptr;
 		cl_kernel					m_clkShort2Float = nullptr;
+
         cl_mem                      m_overflowBuffer = NULL;
+
 #else
 
         amf::AMFComputePtr          mQueueAMF;
-        //amf::AMFComputeKernelPtr    mKernel;
 
         amf::AMFComputeKernelPtr    mFloat2Short;
         amf::AMFComputeKernelPtr    mShort2Short;

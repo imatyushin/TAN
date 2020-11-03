@@ -608,43 +608,37 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
-        PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffers[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffers[1], mCompute1, sampleCount * sizeof(float));
 
         auto amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[0],
-            1,
-            0,
+            1, 0,
             TAN_SAMPLE_TYPE_FLOAT,
             mOutputShortAMFBuffer,
-            2,
-            0,
+            2, 0,
             TAN_SAMPLE_TYPE_SHORT,
             sampleCount,
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
+        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute1, 64);
 
         amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[1],
-            1,
-            0,
+            1, 0,
             TAN_SAMPLE_TYPE_FLOAT,
             mOutputShortAMFBuffer,
-            2,
-            1,
+            2, 1,
             TAN_SAMPLE_TYPE_SHORT,
             sampleCount,
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-
-        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
-        PrintAMFArray("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute2, sampleCount * sizeof(float));
+        PrintAMFArrayWithOffset("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute1, 64, sampleCount * sizeof(short));
 
         AMF_RETURN_IF_FAILED(
-            //mCompute1->CopyBufferToHost(
-            mCompute2->CopyBufferToHost(
+            mTANConvolutionContext->GetConvQueue()->CopyBufferToHost(
                 mOutputShortAMFBuffer,
                 0,
                 sampleCountBytes,
@@ -704,7 +698,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     PrintDebug(info);
 
-    if(++counter == 2)
+    if(++counter == 15)
     {
         int i = 0;
         ++i;
