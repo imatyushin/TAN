@@ -3,6 +3,19 @@
 
 int main(int argc, char *argv[])
 {
+	auto sharedMemory = amf_create_shared_memory(
+#ifndef TAN_NO_OPENCL
+        "/TAN-CL"
+#else
+  #ifdef USE_METAL
+		"/TAN-AMF-METAL"
+  #else
+		"/TAN-AMF-CL"
+  #endif
+#endif
+		);
+	amf_delete_shared_memory(sharedMemory);
+
 	QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
 
 	QApplication application(argc, argv);
