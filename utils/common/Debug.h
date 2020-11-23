@@ -1,5 +1,9 @@
 #pragma once
 
+#include "public/common/AMFSTL.h"
+#include "public/common/Thread.h"
+#include "public/include/core/Platform.h"
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -43,6 +47,48 @@ static size_t GetMessageNumber()
     return messageNumber.fetch_add(1);
 }
 
+struct AmfMutex
+{
+    amf_handle Handle = nullptr;
+
+    AmfMutex(amf_handle handle):
+        Handle(handle)
+    {
+        int i = 0;
+        ++i;
+    }
+
+    inline void lock()
+    {
+        amf_wait_for_mutex(Handle, AMF_INFINITE);
+    }
+
+    inline void unlock()
+    {
+        amf_release_mutex(Handle);
+    }
+};
+
+//static std::mutex & GetLockMutex()
+static AmfMutex & GetLockMutex()
+{
+    //static std::mutex lockMutex;
+    static AmfMutex lockMutex = amf_create_mutex(
+        false,
+#ifndef TAN_NO_OPENCL
+        L"/TAN-CL"
+#else
+  #ifdef USE_METAL
+		L"/TAN-AMF-METAL"
+  #else
+		L"/TAN-AMF-CL"
+  #endif
+#endif
+        );
+
+    return lockMutex;
+}
+
 static std::ostream & PrintThreadInfo()
 {
     return std::cout
@@ -57,6 +103,8 @@ static void PrintDebug(const std::string & hint)
     return;
 #endif
 
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+
     PrintThreadInfo() << hint << std::endl;
 }
 
@@ -65,7 +113,9 @@ static void PrintFloatArray(const std::string & hint, const float * array, size_
 #ifdef SILENT
     return;
 #endif
-    
+
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
@@ -95,6 +145,8 @@ static void PrintShortArray(const std::string & hint, const int16_t * array, siz
 #ifdef SILENT
     return;
 #endif
+
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -127,6 +179,8 @@ static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queu
     return;
 #endif
 
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
     if(!array)
@@ -156,9 +210,9 @@ static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queu
     {
         std::cout << "CL ERROR" << std::endl;
     }
-    
-    clFlush(queue);
-    clFinish(queue);
+
+    //clFlush(queue);
+    //clFinish(queue);
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
@@ -166,9 +220,9 @@ static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queu
     }
 
     std::cout << std::endl;
-    
-    clFlush(queue);
-    clFinish(queue);
+
+    //clFlush(queue);
+    //clFinish(queue);
 }
 
 static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
@@ -181,6 +235,8 @@ static static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_co
 #ifdef SILENT
     return;
 #endif
+
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -224,7 +280,7 @@ static void PrintAMFArray(const std::string & hint, amf::AMFBuffer * buffer, amf
     return;
 #endif
 
-    //compute->FlushQueue();
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
