@@ -35,6 +35,8 @@ kernel
     //__attribute__((reqd_work_group_size(Lx, Ly, Lz)))
     void GenerateRoomResponse(
 		volatile device atomic_int *	response,			///< [out]
+		//device int *	response,			///< [out]
+
 
 		constant float *  				hpF,				//__constant
 		constant float *  				lpF, 				// can combine the two filters into one buffers
@@ -73,54 +75,16 @@ kernel
 		device const int & numRefY,
 		device const int & numRefZ,
 
-		uint2 							global_id 			[[thread_position_in_grid]],
-		uint2 							local_id 			[[thread_position_in_threadgroup]],
-		uint2 							group_id 			[[threadgroup_position_in_grid]],
-		uint2 							group_size 			[[threads_per_threadgroup]],
-		uint2 							grid_size 			[[threads_per_grid]]
+		uint3 							global_id 			[[thread_position_in_grid]],
+		uint3 							local_id 			[[thread_position_in_threadgroup]],
+		uint3 							group_id 			[[threadgroup_position_in_grid]],
+		uint3 							group_size 			[[threads_per_threadgroup]],
+		uint3 							grid_size 			[[threads_per_grid]]
     )
 {
-	/*
-	//extract items
-	size_t floatIndex(0);
-
-	const float srcX = inputFloats[floatIndex++];
-	const float srcY = inputFloats[floatIndex++];
-	const float srcZ = inputFloats[floatIndex++];
-	const float headX = inputFloats[floatIndex++];
-	const float headY = inputFloats[floatIndex++];
-	const float headZ = inputFloats[floatIndex++];
-	const float earVX = inputFloats[floatIndex++];
-	const float earVY = inputFloats[floatIndex++];
-	const float earVZ = inputFloats[floatIndex++];
-	const float earV = inputFloats[floatIndex++];
-	const float roomWidth = inputFloats[floatIndex++];
-	const float roomLength = inputFloats[floatIndex++];
-	const float roomHeight = inputFloats[floatIndex++];
-	const float dampRight = inputFloats[floatIndex++];
-	const float dampLeft = inputFloats[floatIndex++];
-	const float dampFront = inputFloats[floatIndex++];
-	const float dampBack = inputFloats[floatIndex++];
-	const float dampTop = inputFloats[floatIndex++];
-	const float dampBottom = inputFloats[floatIndex++];
-	const float maxGain = inputFloats[floatIndex++];
-	const float dMin = inputFloats[floatIndex++];
-
-	size_t intIndex(0);
-
-	const int inSampRate = inputInts[intIndex++];
-	const int responseLength = inputInts[intIndex++];
-	const int hrtfResponseLength = inputInts[intIndex++];
-	const int headFilterLength = inputInts[intIndex++];
-	const int numRefX = inputInts[intIndex++];
-	const int numRefY = inputInts[intIndex++];
-	const int numRefZ = inputInts[intIndex++];
-	*/
-
-    int x = global_id.x; 				// reflections along left/right directions
-	int globalSizeZ = 48;
-	int y = global_id.y / globalSizeZ; 	// reflections along top/bottom directions
-	int z = global_id.y - y;			// get_global_id(2); // reflections along front/back directions
+	int x = global_id.x; 				// reflections along left/right directions
+	int y = global_id.y; 				// reflections along top/bottom directions
+	int z = global_id.z;				// get_global_id(2); // reflections along front/back directions
 
 	if ( x > numRefX )
 		return;
@@ -176,7 +140,6 @@ kernel
 
 	int filterIndex = 1 + (int)((d/SoundSpeed) * inSampRate);
 
-
 	if ( filterIndex < responseLength )
 	{
 		float dr = ( d <= dMin ) ? maxGain : maxGain*dMin / d;
@@ -205,4 +168,23 @@ kernel
 			atomic_fetch_add_explicit(&response[filterIndex], out, memory_order_relaxed);
 		}
 	}
+
+	/*int iii = 0;
+	atomic_fetch_add_explicit(&response[0], 1, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], y, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], z, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], indexX, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], indexY, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], indexZ, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], refZPos, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationXLeft, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationXRight, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationYBottom, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationYTop, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationZBack, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationZFront, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], amplitude, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], dx, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], dy, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], dz, memory_order_relaxed);*/
 }

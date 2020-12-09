@@ -29,9 +29,6 @@
 #define SoundSpeed  340.0f
 #define Float2Int   67108864.0f
 
-
-
-
 __kernel
     __attribute__((reqd_work_group_size(Lx, Ly, Lz)))
     void GenerateRoomResponse(
@@ -69,11 +66,9 @@ __kernel
 	int numRefZ
     )
 {
-
 	int x = get_global_id(0); // reflections along left/right directions
 	int y = get_global_id(1); // reflections along top/bottom directions
 	int z = get_global_id(2); // reflections along front/back directions
-
 
 	if ( x > numRefX )
 		return;
@@ -83,7 +78,6 @@ __kernel
 
 	if ( z > numRefZ )
 		return;
-
 
 	// x axis
 	int indexX = x - (numRefX)/2;
@@ -130,8 +124,7 @@ __kernel
 
 	int filterIndex = 1 + (int)((d/SoundSpeed) * inSampRate);
 
-
-	if ( filterIndex < responseLength )
+    if ( filterIndex < responseLength )
 	{
 		float dr = ( d <= dMin ) ? maxGain : maxGain*dMin / d;
 		int length = responseLength - filterIndex;
@@ -155,4 +148,23 @@ __kernel
 			atomic_add(&response[ filterIndex], out);
 		}
 	}
+
+	/*int iii = 0;
+	atomic_add(&response[0], 1);
+	atomic_fetch_add_explicit(&response[iii++], y, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], z, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], indexX, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], indexY, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], indexZ, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], refZPos, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationXLeft, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationXRight, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationYBottom, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationYTop, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationZBack, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], attenuationZFront, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], amplitude, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], dx, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], dy, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[iii++], dz, memory_order_relaxed);*/
 }
