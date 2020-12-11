@@ -33,8 +33,6 @@ if(NOT AMF_HOME)
     message("AMF_HOME will be set to " ${AMF_HOME})
     set_property(GLOBAL PROPERTY AMF_HOME ${AMF_HOME})
 
-
-
     add_subdirectory(${AMF_HOME}/amf/public/proj/cmake cmake-open-amf-bin)
   else()
     message("Proprietary AMF will be used")

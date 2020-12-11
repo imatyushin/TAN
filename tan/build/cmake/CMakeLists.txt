@@ -123,3 +123,5 @@ endif()
 #add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
 #add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
 #add_subdirectory(../../tests/proj/cmake/TanDeviceResourcesTest cmake-TanDeviceResourcesTest-bin)
+
+add_subdirectory(../../tests/proj/cmake/TanCPUTest cmake-TanCPUTest-bin)

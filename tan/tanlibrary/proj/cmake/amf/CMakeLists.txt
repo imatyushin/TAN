@@ -44,7 +44,7 @@ set(
 if(WIN32)
   list(APPEND SOURCE_LIB ${TAN_ROOT}/amf/public/common/Windows/ThreadWindows.cpp)
 else()
-  list(APPEND SOURCE_LIB ${TAN_ROOT}/amf/public/common/Linux/ThreadLinux.cpp)
+  list(APPEND SOURCE_LIB ${TAN_ROOT}/amf/public/common/Unix/ThreadUnix.cpp)
 endif()
 
 set(

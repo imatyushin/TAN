@@ -77,6 +77,4 @@ extern "C"
     GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
 
     GPUUTILITIES_EXPORT cl_command_queue GPUUTILITIES_CDECL_CALL createQueue(cl_context context, cl_device_id device, int flag = 0, int cu_ = 0);
-
-    GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL  listTanDevicesAndCaps(TanDeviceCapabilities **deviceList, int *count);
 }

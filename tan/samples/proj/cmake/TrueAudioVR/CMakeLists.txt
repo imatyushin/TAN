@@ -17,18 +17,6 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-if(NOT WIN32)
-  if(APPLE)
-    #SET (CMAKE_CXX_COMPILER "/usr/bin/c++")
-    #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Xpreprocessor -fopenmp -lomp")
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -lomp")
-    #set(CMAKE_SHARED_LINKER_FLAGS " -lomp" )
-  else()
-    #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-  endif()
-endif()
-
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 

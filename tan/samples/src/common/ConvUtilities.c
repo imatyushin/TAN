@@ -25,9 +25,6 @@
 #ifdef OMP_ENABLED
   #include <omp.h>
 #endif
-//#if !defined(__APPLE__) && !defined(__MACOSX)
-//  #include <omp.h>
-//#endif
 
 int DirectConv(float * out, float * in, int index, int block_sz, float * kernel, int kernel_sz, int n_blocks)
 {
