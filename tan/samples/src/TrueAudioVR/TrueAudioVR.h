@@ -224,7 +224,7 @@ public:
     virtual void generateRoomResponse(
         const RoomDefinition & room,
         MonoSource source,
-        StereoListener & ear,
+        const StereoListener & ear,
         int inSampRate,
         int responseLength,
         void *responseL,
