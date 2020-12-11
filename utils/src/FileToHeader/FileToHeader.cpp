@@ -33,14 +33,7 @@ int main(int argc, char* argv[])
 	std::string kernelFileFullName = argv[1];
 	auto kernelFileExtension = getFileExtension(kernelFileFullName);
 
-	//if(!compareIgnoreCase(kernelFileExtension, "cl"))
-	//{
-		//std::cerr << "File is not a .cl file [" << kernelFileExtension << "]" << std::endl;
-
-		//return 1;
-	//}
-
-    std::basic_ifstream<char, std::char_traits<char> > clKernelStream(
+	std::basic_ifstream<char, std::char_traits<char> > clKernelStream(
         kernelFileFullName,
         std::ios::in | std::ios::binary
         );

@@ -27,13 +27,6 @@ int main(int argc, char* argv[])
 	std::string kernelFileFullName = argv[1];
 	auto kernelFileExtension = getFileExtension(kernelFileFullName);
 
-	//if(!compareIgnoreCase(kernelFileExtension, "cl"))
-	//{
-		//std::cerr << "File is not a .cl file [" << kernelFileExtension << "]" << std::endl;
-
-		//return 1;
-	//}
-
 	std::wifstream clKernelStream(kernelFileFullName);
 
 	if(clKernelStream.fail())
@@ -91,7 +84,7 @@ int main(int argc, char* argv[])
 	size_t incrementChunk = MAX_BLOCK_CHUNK;
 
 	size_t partitionCount = 0;
-	std::wstring concatenateSource;
+	std::wstring concatenatedSource;
 	std::wstring fileNameWide = toWideString(fileName);
 
 	for
@@ -117,16 +110,16 @@ int main(int argc, char* argv[])
 
 		if(incrementChunk < MAX_BLOCK_CHUNK)
 		{
-			concatenateSource += fileNameWide + std::to_wstring(partitionCount);
+			concatenatedSource += fileNameWide + std::to_wstring(partitionCount);
 		}
 		else
 		{
-			concatenateSource += fileNameWide + std::to_wstring(partitionCount) + L"+";
+			concatenatedSource += fileNameWide + std::to_wstring(partitionCount) + L"+";
 		}
 	}
 
 	outputStream
-	    << "const std::string " << fileNameWide << "_Str = " << concatenateSource << ";" << std::endl
+	    << "const std::string " << fileNameWide << "_Str = " << concatenatedSource << ";" << std::endl
 		<< "static const char* " << fileNameWide << " = &" << fileNameWide << "_Str[0u];" << std::endl
 		<< "const size_t " << fileNameWide << "Count = " << fileNameWide << "_Str.size();" << std::endl
 		;
