@@ -319,7 +319,7 @@ namespace amf
             amf_size numOfSamplesToProcess
             );
 
-        typedef struct ovlAddFilterState
+        struct ovlAddFilterState
         {
             float **m_Filter = nullptr;
             std::map<size_t, size_t> FilterLength;
@@ -341,12 +341,12 @@ namespace amf
             {
                 PrintDebug(caption);
 
-                PrintFloatArray(
+                PrintReducedFloatArray(
                     "m_Filter",
                     m_Filter[channel],
                     FilterLength[channel]
                     );
-                PrintFloatArray(
+                PrintReducedFloatArray(
                     "m_Overlap",
                     m_Overlap[channel],
                     OverlapLength[channel]
@@ -354,7 +354,7 @@ namespace amf
 
                 if(m_internalFilter[channel])
                 {
-                    PrintFloatArray(
+                    PrintReducedFloatArray(
                         "m_internalFilter",
                         m_internalFilter[channel],
                         FilterLength[channel]
@@ -362,12 +362,12 @@ namespace amf
                 }
                 else
                 {
-                    PrintDebug("m_internalFilter - null");
+                    //PrintDebug("m_internalFilter - null");
                 }
 
                 if(m_internalOverlap[channel])
                 {
-                    PrintFloatArray(
+                    PrintReducedFloatArray(
                         "m_internalOverlap",
                         m_internalOverlap[channel],
                         FilterLength[channel]
@@ -375,7 +375,7 @@ namespace amf
                 }
                 else
                 {
-                    PrintDebug("m_internalOverlap - null");
+                    //PrintDebug("m_internalOverlap - null");
                 }
             }
 
