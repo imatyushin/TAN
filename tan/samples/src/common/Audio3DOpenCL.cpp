@@ -457,17 +457,22 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     mTrueAudioVR->generateSimpleHeadRelatedTransform(ears.hrtf, ears.earSpacing);
 
     //To Do use gpu mem responses
-    for (int idx = 0; idx < mWavFiles.size(); idx++)
+    for(int idx = 0; idx < mWavFiles.size(); idx++)
     {
-        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 64);
-        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 64);
+        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 512, 512);
+        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 512, 512);
 
-        if (mUseComputeBuffers) {
+        if(mUseComputeBuffers)
+        {
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
         }
-        else {
+        else
+        {
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
         }
+        
+        PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, mFFTLength * sizeof(float));
+        PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, mFFTLength * sizeof(float));
     }
 
     if (mUseComputeBuffers)
@@ -524,7 +529,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
+    //PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
 
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++) {
@@ -696,7 +701,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     PrintDebug(info);
 
-    if(++counter == 15)
+    if(++counter == 2)
     {
         int i = 0;
         ++i;

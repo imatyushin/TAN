@@ -319,12 +319,7 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 
 	for(int waveFileIndex(0); waveFileIndex < MAX_SOURCES; ++waveFileIndex)
 	{
-		if(waveFileIndex > m_iNumOfWavFile)
-		{
-			mWavFileNames[waveFileIndex].resize(0);
-			mSoundSourceEnable[waveFileIndex] = false;
-		}
-		else
+		if(waveFileIndex < m_iNumOfWavFile)
 		{
 			auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
@@ -340,6 +335,11 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 			m_SoundSources[waveFileIndex].speakerY = settings.value((sourceName + "SpeakerY").c_str()).toFloat();
 			m_SoundSources[waveFileIndex].speakerZ = settings.value((sourceName + "SpeakerZ").c_str()).toFloat();
 		}
+        else
+        {
+            mWavFileNames[waveFileIndex].resize(0);
+            mSoundSourceEnable[waveFileIndex] = false;
+        }
 	}
 
 	mPlayerName = settings.value("MAIN/Player").toString().toStdString();
@@ -603,8 +603,7 @@ void RoomAcousticQT::updateSoundSourcePosition(int index)
 
 void RoomAcousticQT::UpdateSoundSourcesPositions()
 {
-	return;
-	for(int index = 0; index < MAX_SOURCES; index++)
+	/*for(int index = 0; index < MAX_SOURCES; index++)
 	{
 		if(mWavFileNames[index].length() && mSoundSourceEnable[index])
 		{
@@ -623,7 +622,7 @@ void RoomAcousticQT::UpdateSoundSourcesPositions()
 				m_SoundSources[index].speakerZ
 				);
 		}
-	}
+	}*/
 }
 
 void RoomAcousticQT::updateListenerPosition()

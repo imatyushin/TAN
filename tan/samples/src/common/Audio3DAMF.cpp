@@ -447,8 +447,8 @@ AMF_RESULT Audio3DAMF::InitObjects()
     {
         if(mUseComputeBuffers)
         {
-            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), 64);
-            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), 64);
+            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), 512, 512);
+            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), 512, 512);
 
             mTrueAudioVR->generateRoomResponse(
                 room,
@@ -476,12 +476,10 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 50
                 );
         }
+        
+        PrintAMFArrayReduced("aft generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), mFFTLength * sizeof(float));
+        PrintAMFArrayReduced("aft generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), mFFTLength * sizeof(float));
     }
-
-    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[0]", mAMFResponses[0], mCompute1, mBufferSizeInSamples * sizeof(float));
-    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[1]", mAMFResponses[1], mCompute1, mBufferSizeInSamples * sizeof(float));
-    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[2]", mAMFResponses[2], mCompute1, mBufferSizeInSamples * sizeof(float));
-    //PrintAMFArray("aft m_pTAVR->generateRoomResponse[3]", mAMFResponses[3], mCompute1, mBufferSizeInSamples * sizeof(float));
 
     if(mUseComputeBuffers)
     {
@@ -547,7 +545,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
+    //PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
 
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
@@ -570,7 +568,6 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
-
 
     if(mComputedOutputPipeline)
     {
@@ -698,7 +695,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     PrintDebug(info);
 
-    if(++counter == 15)
+    if(++counter == 2)
     {
         int i = 0;
         ++i;

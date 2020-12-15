@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-	auto sharedMemory = amf_create_shared_memory(
+    auto sharedMemory = amf_create_shared_memory(
 #ifndef TAN_NO_OPENCL
         "/TAN-CL"
 #else
