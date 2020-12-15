@@ -125,7 +125,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 {
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
-
+/*
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
     {
@@ -140,7 +140,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
     }
 #endif
 
-#endif
+#endif*/
 
 	return InitCpu();
 }
@@ -566,6 +566,9 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
     float* ppBufferOutput[]
 )
 {
+	//PrintFloatArray("Transform - input[0]", ppBufferInput[0], 64);
+	//PrintFloatArray("Transform - input[1]", ppBufferInput[1], 64);
+
     AMFLock lock(&m_sect);
     AMF_RESULT res = AMF_OK;
 
@@ -658,8 +661,12 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
         }
 #endif
 
+		PrintFloatArray("Transform - output[0] a", ppBufferOutput[0], 64);
+		PrintFloatArray("Transform - output[1] a", ppBufferOutput[1], 64);
+
 		return AMF_OK;
     }
+
     // process
 #ifdef USE_IPP
 //hack for overlap add, uses complex fft
@@ -683,6 +690,9 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
     	//PrintFloatArray("Transform-TransformImplCpu2", ppBufferOutput[0], log2len);
     	//PrintFloatArray("Transform-TransformImplCpu3", ppBufferOutput[1], log2len);
     }
+
+	//PrintFloatArray("Transform - output[0] b", ppBufferOutput[0], 64);
+	//PrintFloatArray("Transform - output[1] b", ppBufferOutput[1], 64);
 
     AMF_RETURN_IF_FAILED(res, L"Transform() failed");
 
@@ -898,6 +908,116 @@ documentation for any purpose is hereby granted without fee, provided that
 the above copyright notice and this license appear in all source copies.
 
 **************************************************************************************************/
+AMF_RESULT TransformImplCpuImpl(
+    TAN_FFT_TRANSFORM_DIRECTION direction,
+    amf_size log2len,
+    amf_size channels,
+    float* ppBufferInput[],
+    float* ppBufferOutput[]
+    )
+{
+    const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
+
+    PrintReducedFloatArray(
+        "TransformImplCpu - input[0]",
+        ppBufferInput[0],
+        fftFrameSize * 2 * sizeof(float)
+        );
+    PrintReducedFloatArray(
+        "TransformImplCpu - input[1]",
+        ppBufferInput[1],
+        fftFrameSize * 2 * sizeof(float)
+        );
+    PrintReducedFloatArray(
+        "TransformImplCpu - output[0] in",
+        ppBufferOutput[0],
+        fftFrameSize * 2 * sizeof(float)
+        );
+    PrintReducedFloatArray(
+        "TransformImplCpu - output[1] in",
+        ppBufferOutput[1],
+        fftFrameSize * 2 * sizeof(float)
+        );
+    
+    int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
+
+    double wr, wi, arg;
+    float  *p1, *p2, temp;
+    double tr, ti, ur, ui;
+    float *p1r, *p1i, *p2r, *p2i;
+    amf_uint32 bitm, j, le, le2, k, idx;
+
+    for (amf_size i = 0; i < channels; i++){
+        if (ppBufferInput[i] != ppBufferOutput[i]) {
+            memcpy(ppBufferOutput[i], ppBufferInput[i], fftFrameSize * 2 * sizeof(float));
+        }
+    }
+
+    for (amf_size i = 2; i < 2 * fftFrameSize - 2; i += 2) {
+        for (bitm = 2, j = 0; bitm < 2 * fftFrameSize; bitm <<= 1) {
+            if (i & bitm) j++;
+            j <<= 1;
+        }
+        if (i < j) {
+            for (idx = 0; idx < channels; idx++){
+                p1 = ppBufferOutput[idx] + i; p2 = ppBufferOutput[idx] + j;
+                temp = *p1; *(p1++) = *p2;
+                *(p2++) = temp; temp = *p1;
+                *p1 = *p2; *p2 = temp;
+            }
+        }
+    }
+    for (k = 0, le = 2; k < (amf_size)(log((float)fftFrameSize) / log(2.) + .5); k++) {
+        le <<= 1;
+        le2 = le >> 1;
+        ur = 1.0;
+        ui = 0.0;
+        arg = (double)(M_PI / (le2 >> 1));
+        wr = cos(arg);
+        wi = sign*sin(arg);
+        for (j = 0; j < le2; j += 2) {
+            for (idx = 0; idx < channels; idx++){
+                p1r = ppBufferOutput[idx] + j; p1i = p1r + 1;
+                p2r = p1r + le2; p2i = p2r + 1;
+                for (amf_size i = j; i < 2 * fftFrameSize; i += le) {
+                    tr = *p2r * ur - *p2i * ui;
+                    ti = *p2r * ui + *p2i * ur;
+                    *p2r = *p1r - tr; *p2i = *p1i - ti;
+                    *p1r += tr; *p1i += ti;
+                    p1r += le; p1i += le;
+                    p2r += le; p2i += le;
+                }
+            }
+            tr = ur*wr - ui*wi;
+            ui = ur*wi + ui*wr;
+            ur = tr;
+        }
+    }
+
+    // Riemann sum.
+    if (direction == TAN_FFT_TRANSFORM_DIRECTION_BACKWARD)
+    {
+        for (idx = 0; idx < channels; idx++){
+            for (int k = 0; k < 2 * fftFrameSize; k++){
+                ppBufferOutput[idx][k] /= fftFrameSize;
+            }
+        }
+    }
+    
+    PrintReducedFloatArray(
+        "TransformImplCpu - output[0]",
+        ppBufferOutput[0],
+        fftFrameSize * 2 * sizeof(float)
+        );
+    PrintReducedFloatArray(
+        "TransformImplCpu - output[1]",
+        ppBufferOutput[1],
+        fftFrameSize * 2 * sizeof(float)
+        );
+
+    return AMF_OK;
+}
+
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu(
     TAN_FFT_TRANSFORM_DIRECTION direction,
     amf_size log2len,
@@ -906,6 +1026,15 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu(
     float* ppBufferOutput[]
     )
 {
+    return TransformImplCpuImpl(
+        direction,
+        log2len,
+        channels,
+        ppBufferInput,
+        ppBufferOutput
+        );
+    
+    /*
     const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
 
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
@@ -973,7 +1102,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu(
         }
     }
 
-    return AMF_OK;
+    return AMF_OK;*/
 }
 
 /**************************************************************************************************
