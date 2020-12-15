@@ -31,19 +31,12 @@ using namespace metal;
 #define SoundSpeed  340.0f
 #define Float2Int   67108864.0f
 
-kernel
-    //__attribute__((reqd_work_group_size(Lx, Ly, Lz)))
-    void GenerateRoomResponse(
+kernel void GenerateRoomResponse(
 		volatile device atomic_int *	response,			///< [out]
-		//device int *	response,			///< [out]
-
 
 		constant float *  				hpF,				//__constant
 		constant float *  				lpF, 				// can combine the two filters into one buffers
 
-		//constant int &				globalSizeZ,
-
-		//constant float *            	inputFloats,
 		device const float & srcX,
 		device const float & srcY,
 		device const float & srcZ,
@@ -66,7 +59,6 @@ kernel
 		device const float & maxGain,
 		device const float & dMin,
 
-		//constant int *					inputInts,
 		device const int & inSampRate,
 		device const int & responseLength,
 		device const int & hrtfResponseLength,
@@ -158,6 +150,15 @@ kernel
 				int out = inValue;
 
 				atomic_fetch_add_explicit(&response[i + filterIndex], out, memory_order_relaxed);
+
+				/*atomic_fetch_add_explicit(&response[0], 1, memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[2], (int)out, memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[3], (int)out, memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[4], (int)amplitude, memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[5], (int)dr, memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[6], (int)lpF[i], memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[7], (int)hf, memory_order_relaxed);
+				atomic_fetch_add_explicit(&response[8], (int)hpF[i], memory_order_relaxed);*/
 			}
 		}
 		else
@@ -166,25 +167,19 @@ kernel
 			int out = inValue;
 
 			atomic_fetch_add_explicit(&response[filterIndex], out, memory_order_relaxed);
+			//atomic_fetch_add_explicit(&response[1], 1, memory_order_relaxed);
 		}
 	}
 
-	/*int iii = 0;
-	atomic_fetch_add_explicit(&response[0], 1, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], y, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], z, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], indexX, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], indexY, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], indexZ, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], refZPos, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationXLeft, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationXRight, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationYBottom, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationYTop, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationZBack, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationZFront, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], amplitude, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], dx, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], dy, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], dz, memory_order_relaxed);*/
+	/*
+	//to test
+	int test = 0;
+	atomic_fetch_add_explicit(&response[test++], inSampRate, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[test++], responseLength, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[test++], hrtfResponseLength, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[test++], headFilterLength, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[test++], numRefX, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[test++], numRefY, memory_order_relaxed);
+	atomic_fetch_add_explicit(&response[test++], numRefZ, memory_order_relaxed);
+	*/
 }

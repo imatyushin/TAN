@@ -140,31 +140,36 @@ __kernel
 			{
 				int out = convert_int(Float2Int*amplitude*dr*(lpF[i] + hf * hpF[i]));
 				atomic_add(&response[ i + filterIndex], out);
+
+				/*atomic_add(&response[0], 1);
+				atomic_add(&response[2], convert_int(out));
+				atomic_add(&response[3], convert_int(out));
+				atomic_add(&response[4], convert_int(amplitude));
+				atomic_add(&response[5], convert_int(dr));
+				atomic_add(&response[6], convert_int(lpF[i]));
+				atomic_add(&response[7], convert_int(hf));
+				atomic_add(&response[8], convert_int(hpF[i]));*/
+
 			}
 		}
 		else
 		{
 			int out = convert_int(Float2Int*amplitude*dr);
 			atomic_add(&response[ filterIndex], out);
+
+			//atomic_add(&response[1], 1);
 		}
 	}
 
-	/*int iii = 0;
-	atomic_add(&response[0], 1);
-	atomic_fetch_add_explicit(&response[iii++], y, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], z, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], indexX, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], indexY, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], indexZ, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], refZPos, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationXLeft, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationXRight, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationYBottom, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationYTop, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationZBack, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], attenuationZFront, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], amplitude, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], dx, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], dy, memory_order_relaxed);
-	atomic_fetch_add_explicit(&response[iii++], dz, memory_order_relaxed);*/
+	/** /
+	//to test
+	int test = 0;
+	atomic_add(&response[test++], inSampRate);
+	atomic_add(&response[test++], responseLength);
+	atomic_add(&response[test++], hrtfResponseLength);
+	atomic_add(&response[test++], headFilterLength);
+	atomic_add(&response[test++], numRefX);
+	atomic_add(&response[test++], numRefY);
+	atomic_add(&response[test++], numRefZ);
+	/**/
 }

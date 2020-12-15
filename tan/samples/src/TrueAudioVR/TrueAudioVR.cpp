@@ -1506,8 +1506,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     PrintFloatArray("floats", floats, 9, 9);
     PrintArray("ints", ints, 7, 7);
 
-    PrintCLArray("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
-    PrintCLArray("m_pLPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    PrintCLArrayReduced("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float));
+    PrintCLArrayReduced("m_pLPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float));
 
     PrintCLArrayReduced("m_pResponse bfr", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
     PrintCLArrayReduced("floatResponse bfr", floatResponse, m_cmdQueue, responseLength * sizeof(float));

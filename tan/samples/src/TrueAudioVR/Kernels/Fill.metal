@@ -28,7 +28,7 @@
 kernel
     //__attribute__((reqd_work_group_size(Lx, 1, 1)))
     void Fill(
-        device uint4*  intResponse,		   ///< [in]
+        device uint4*  intResponse,		   ///< [in,out]
 	    device float4* floatResponse,       ///< [out ]
 
         uint2 							global_id 			[[thread_position_in_grid]],
@@ -40,6 +40,21 @@ kernel
 {
 	int x = global_id.x;
 
-	floatResponse[x] = as_type<float4>(intResponse[x])/Float2Int;
+	int in0 = intResponse[x][0];
+	int in1 = intResponse[x][1];
+	int in2 = intResponse[x][2];
+	int in3 = intResponse[x][3];
+
+	float out0 = float(in0) / Float2Int;
+	float out1 = float(in1) / Float2Int;
+	float out2 = float(in2) / Float2Int;
+	float out3 = float(in3) / Float2Int;
+
+	//floatResponse[x] = as_type<float4>(intResponse[x])/Float2Int;
+	floatResponse[x][0] = out0;
+	floatResponse[x][1] = out1;
+	floatResponse[x][2] = out2;
+	floatResponse[x][3] = out3;
+
 	intResponse[x] = 0;
 }
