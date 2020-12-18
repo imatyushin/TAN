@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
 #ifndef TAN_NO_OPENCL
         "/TAN-CL"
 #else
-  #ifdef USE_METAL
+  #ifdef ENABLE_METAL
 		"/TAN-AMF-METAL"
   #else
 		"/TAN-AMF-CL"

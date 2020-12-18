@@ -176,7 +176,7 @@ namespace amf
         {
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -189,7 +189,7 @@ namespace amf
 
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -202,7 +202,7 @@ namespace amf
 
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL

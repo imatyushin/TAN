@@ -200,7 +200,7 @@ test
             ) const
         {
             assert(hint.length());
-            
+
             auto channelsCount(mChannelsCount ? mChannelsCount : 2);
 
             for(size_t channel(0); channel < channelsCount; ++channel)
@@ -239,7 +239,7 @@ test
         inline bool                         IsAMF() const
         {
             return
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -251,7 +251,7 @@ test
         inline bool                         IsComputeBuffer() const
         {
             return
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
@@ -446,7 +446,7 @@ test
             assert(!mChannelsCount);
 
             mChannelsType =
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL

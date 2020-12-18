@@ -29,7 +29,7 @@
 
 #include "public/common/TraceAdapter.h"
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
   #include "Kernels/Fill.metal.h"
   #include "Kernels/GenerateRoomResponse.metal.h"
 #else
@@ -1364,7 +1364,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -1377,7 +1377,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -1425,7 +1425,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             )
         );
     AMF_RETURN_IF_FAILED(mHPF->Convert(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
         amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
         amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -1443,7 +1443,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             )
         );
     AMF_RETURN_IF_FAILED(mLPF->Convert(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
         amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
         amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL

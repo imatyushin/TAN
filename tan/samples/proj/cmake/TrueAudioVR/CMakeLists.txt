@@ -82,7 +82,7 @@ set(
   "${TAN_ROOT}/tan/samples/src/TrueAudioVR/Kernels"
   )
 
-if(USE_METAL)
+if(ENABLE_METAL)
   set(
     CL_Files
     "Fill.metal"

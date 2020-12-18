@@ -25,7 +25,7 @@
 #include "OCLHelper.h"
 #include "Exceptions.h"
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
   #include "MetalKernel_VectorComplexDivision.h"
   #include "MetalKernel_VectorComplexMultiply.h"
   #include "MetalKernel_VectorComplexSum.h"

@@ -34,7 +34,7 @@
 
 #include "public/common/AMFFactory.h"
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
   #include "MetalKernel_Crossfading.h"
 #else
   #include "CLKernel_Crossfading.h"
@@ -760,7 +760,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             if
             (
                 pBuffer.GetType() ==
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -1882,7 +1882,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #else
         m_internalInBufs.AllocateChannels(
             m_iChannels,
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -1890,7 +1890,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             );
         m_internalOutBufs.AllocateChannels(
             m_iChannels,
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -2087,7 +2087,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             return AMF_NOT_IMPLEMENTED;
 
             /*if(AMF_OK == context->GetDevice(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -2292,7 +2292,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #else
             mFadeSubbufers[bufIdx].AllocateChannels(
                 m_iChannels,
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -2343,7 +2343,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #else
             AMF_RETURN_IF_FAILED(
                 m_pContextTAN->GetAMFContext()->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -2356,7 +2356,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             mFadeSubbufers[bufIdx].AllocateChannels(
                 m_iChannels,
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -3197,7 +3197,7 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
     if
     (
         outputData.GetType() ==
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -4259,7 +4259,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 			if
             (
                 pOutputData.GetType() ==
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL

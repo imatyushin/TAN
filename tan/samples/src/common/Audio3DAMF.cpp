@@ -238,7 +238,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             {
                 AMF_RETURN_IF_FAILED(
                     mContext12->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                         amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                         amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -274,7 +274,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         // First create a big cl_mem buffer then create small sub-buffers from it
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -318,7 +318,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         {
             AMF_RETURN_IF_FAILED(
                 mContext12->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                     amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -348,7 +348,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
                 amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
@@ -476,7 +476,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 50
                 );
         }
-        
+
         PrintAMFArrayReduced("aft generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), mFFTLength * sizeof(float));
         PrintAMFArrayReduced("aft generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), mFFTLength * sizeof(float));
     }

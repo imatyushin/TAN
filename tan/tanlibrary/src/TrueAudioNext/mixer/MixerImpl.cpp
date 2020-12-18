@@ -31,7 +31,7 @@
 
 #include <math.h>
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
   #include "MetalKernel_Mixer.h"
 #else
   #include "CLKernel_Mixer.h"
@@ -175,7 +175,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     AMF_RETURN_IF_FAILED(
         m_pContextAMF->AllocBuffer(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
             amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL

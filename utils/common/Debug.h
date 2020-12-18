@@ -79,7 +79,7 @@ static AmfMutex & GetLockMutex()
 #ifndef TAN_NO_OPENCL
         L"/TAN-CL"
 #else
-  #ifdef USE_METAL
+  #ifdef ENABLE_METAL
 		L"/TAN-AMF-METAL"
   #else
 		L"/TAN-AMF-CL"

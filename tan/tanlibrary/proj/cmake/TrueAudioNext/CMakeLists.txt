@@ -135,7 +135,7 @@ set(
   "${TAN_ROOT}/tan/tanlibrary/src/TrueAudioNext/IIRfilter"
   )
 
-if(USE_METAL)
+if(ENABLE_METAL)
   set(
     Tan_CL_Files
     "Crossfading.metal"
@@ -165,7 +165,7 @@ else()
   )
 endif()
 
-if(USE_METAL)
+if(ENABLE_METAL)
   set(
     Tan_CL_Output
     "MetalKernel_Crossfading.h"

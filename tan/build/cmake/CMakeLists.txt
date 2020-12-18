@@ -36,7 +36,7 @@ endif()
 
 # name
 if(TAN_NO_OPENCL)
-  if(USE_METAL)
+  if(ENABLE_METAL)
     project(TAN-AMF-METAL DESCRIPTION "TAN-AMF-METAL")
   else()
     project(TAN-AMF-CL DESCRIPTION "TAN-AMF-CL")
@@ -72,10 +72,10 @@ else()
   message("shared AMF build will be used")
 endif()
 
-if((APPLE OR XCODE) AND USE_METAL)
-  SET(METAL_SUPPORT 1)
-  ADD_DEFINITIONS(-DUSE_METAL)
-  ADD_DEFINITIONS(-DMETAL_SUPPORT)
+if((APPLE OR XCODE) AND ENABLE_METAL)
+  SET(ENABLE_METAL 1)
+  ADD_DEFINITIONS(-DENABLE_METAL)
+  ADD_DEFINITIONS(-DENABLE_METAL)
   message("Metal support will be enabled for OpenAMF")
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \

@@ -77,7 +77,7 @@ static const amf::AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
 #if AMF_BUILD_OPENCL
     {amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,     L"OpenCL"},
 #endif
-#if METAL_SUPPORT
+#if ENABLE_METAL
     {amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,      L"Metal"},
 #endif
     {amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST,       L"CPU"},

@@ -120,7 +120,7 @@ void RoomAcousticQTConfig::Init()
 		"RoomAcoustic - CL"
 #else
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
 		"RoomAcoustic - AMF/Metal"
 #else
 		"RoomAcoustic - AMF/CL"

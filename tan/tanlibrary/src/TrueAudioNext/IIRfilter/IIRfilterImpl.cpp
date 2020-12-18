@@ -34,7 +34,7 @@
 
 #include <math.h>
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
   #include "MetalKernel_IIRfilter.h"
 #else
   #include "CLKernel_IIRfilter.h"

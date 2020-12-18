@@ -30,7 +30,7 @@
 
 #include <math.h>
 
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
   #include "MetalKernel_Converter.h"
 #else
   #include "CLKernel_Converter.h"
@@ -175,7 +175,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
             )
         );
     AMF_RETURN_IF_FAILED(mOverflowBuffer->Convert(
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
         amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
         amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL

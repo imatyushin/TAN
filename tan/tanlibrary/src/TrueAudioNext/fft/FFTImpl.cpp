@@ -133,7 +133,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
     }
 #else
 
-#ifndef USE_METAL
+#ifndef ENABLE_METAL
     if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
     {
         return InitGpu();
@@ -938,7 +938,7 @@ AMF_RESULT TransformImplCpuImpl(
         ppBufferOutput[1],
         fftFrameSize * 2 * sizeof(float)
         );
-    
+
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
 
     double wr, wi, arg;
@@ -1003,7 +1003,7 @@ AMF_RESULT TransformImplCpuImpl(
             }
         }
     }
-    
+
     PrintReducedFloatArray(
         "TransformImplCpu - output[0]",
         ppBufferOutput[0],
@@ -1033,7 +1033,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu(
         ppBufferInput,
         ppBufferOutput
         );
-    
+
     /*
     const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
 
@@ -2095,7 +2095,7 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
 				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
 #else
 				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
@@ -2107,7 +2107,7 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
             );
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-#ifdef USE_METAL
+#ifdef ENABLE_METAL
 				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
 #else
 				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL

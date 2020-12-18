@@ -69,7 +69,7 @@ int listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMF
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
 
-#if !defined USE_METAL
+#if !defined ENABLE_METAL
             res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
 #else
             res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
@@ -101,8 +101,8 @@ int listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMF
         pContextAMF.Release();
         g_AMFFactory.Terminate();
     }
-    
-#ifndef USE_METAL
+
+#ifndef ENABLE_METAL
     else //USE OpenCL wrapper
     {
 #ifdef _WIN32
@@ -148,7 +148,7 @@ int listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMF
 */
 void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory)
 {
-#if defined USE_METAL
+#if defined ENABLE_METAL
     return;
 #else
     int foundCount = 0;
@@ -256,7 +256,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
 
-#if !defined USE_METAL
+#if !defined ENABLE_METAL
             res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
             AMF_RETURN_IF_FAILED(res, L"GetOpenCLComputeFactory failed\n");
 #else
@@ -429,7 +429,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(
 
     amf::AMFComputeFactoryPtr computeFactory = nullptr;
 
-#if !defined USE_METAL
+#if !defined ENABLE_METAL
     result = contextAMF->GetOpenCLComputeFactory(&computeFactory);
     AMF_RETURN_IF_FAILED(result, L"GetOpenCLComputeFactory failed\n");
 #else
@@ -448,12 +448,12 @@ AMF_RESULT CreateCommandQueuesVIAamf(
     result = computeFactory->GetDeviceAt(deviceIndex, &computeDevice);
     AMF_RETURN_IF_FAILED(result, L"GetDeviceAt failed\n");
 
-#if !defined USE_METAL
+#if !defined ENABLE_METAL
     result = contextAMF->InitOpenCLEx(computeDevice);
 #else
     result = contextAMF->InitMetalEx(computeDevice);
 #endif
-    
+
     AMF_RETURN_IF_FAILED(result, L"InitOpenCLEx failed\n");
 
     if (compute1)
