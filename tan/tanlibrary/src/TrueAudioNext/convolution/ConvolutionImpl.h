@@ -203,7 +203,7 @@ namespace amf
                                                    const amf_uint32 flagMasks[] // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG.
                                                    ) override;
 
-        virtual TANContext* AMF_STD_CALL GetContext() {return m_pContextTAN;}
+        virtual TANContext* AMF_STD_CALL GetContext() override {return m_pContextTAN;}
 
     protected:
         virtual AMF_RESULT  Init(TAN_CONVOLUTION_METHOD convolutionMethod,

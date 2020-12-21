@@ -60,8 +60,8 @@ namespace amf
 
         //TANMath interface
         virtual AMF_RESULT  AMF_STD_CALL Init();
-        virtual AMF_RESULT  AMF_STD_CALL Terminate();
-        virtual TANContext* AMF_STD_CALL GetContext()	{ return m_pContextTAN; }
+        virtual AMF_RESULT  AMF_STD_CALL Terminate() override;
+        virtual TANContext* AMF_STD_CALL GetContext() override { return m_pContextTAN; }
 
         virtual AMF_RESULT ComplexMultiplication(	const float* const inputBuffers1[],
                                                     const float* const inputBuffers2[],

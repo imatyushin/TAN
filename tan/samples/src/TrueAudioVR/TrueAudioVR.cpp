@@ -343,12 +343,12 @@ public:
         int maxBounces
         );
 
-    void SetExecutionMode(VRExecutionMode executionMode)
+    void SetExecutionMode(VRExecutionMode executionMode) override
     {
         m_executionMode = executionMode;
     }
 
-    VRExecutionMode GetExecutionMode()
+    VRExecutionMode GetExecutionMode() override
     {
         return m_executionMode;
     }
@@ -365,8 +365,8 @@ public:
     **************************************************************************************************/
     void generateSimpleHeadRelatedTransform(HeadModel & head, float earSpacing) override;
 
-    void applyHRTF(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
-    void applyHRTFoptCPU(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ);
+    void applyHRTF(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) override;
+    void applyHRTFoptCPU(const HeadModel & head, float scale, float *response, int length, float earVX, float earVY, float earVZ, float srcVX, float srcVY, float srcZ) override;
 };
 
 #ifndef TAN_NO_OPENCL
