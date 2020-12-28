@@ -27,7 +27,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <memory>
-
 #include <immintrin.h>
 
 #ifdef OMP_ENABLED
@@ -57,19 +56,10 @@
   typedef void * HMODULE;
 #endif
 
-//#ifdef _WIN32
-//  #define _mkdir mkdir
-//  #define _chdir chdir
-//  #define PATH_MAX MAX_PATH
-//#else
-//  #define PATH_MAX 1024
-//#endif
-
 #define AMF_FACILITY L"TANFFTImpl"
 
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
-//ivm: bool amf::TANFFTImpl::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
-bool amf::TANFFTImpl::useIntrinsics = false;
+bool amf::TANFFTImpl::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 using namespace amf;
 
@@ -106,14 +96,6 @@ TANFFTImpl::TANFFTImpl(TANContext *pContextTAN, bool useConvQueue) :
    // AMFPrimitivePropertyInfoMapBegin
    //     AMFPropertyInfoEnum(TAN_OUTPUT_MEMORY_TYPE ,  L"Output Memory Type", AMF_MEMORY_HOST, AMF_MEMORY_ENUM_DESCRIPTION, false),
    // AMFPrimitivePropertyInfoMapEnd
-
-		/*for (int i = 0; i < MAX_CACHE_POWER; i++)
-		{
-			fwdPlans[i] = NULL;
-			bwdPlans[i] = NULL;
-			fwdRealPlans[i] = NULL;
-			bwdRealPlans[i] = NULL;
-		}*/
 }
 //-------------------------------------------------------------------------------------------------
 TANFFTImpl::~TANFFTImpl(void)
@@ -125,24 +107,17 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 {
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
-/*
+
 #ifndef TAN_NO_OPENCL
-    if(m_pContextTAN->GetOpenCLContext())
-    {
-        return InitGpu();
-    }
+    if (m_pContextTAN->GetOpenCLContext())
 #else
-
-#ifndef ENABLE_METAL
-    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
+	if (m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
+#endif
     {
         return InitGpu();
     }
-#endif
 
-#endif*/
-
-	return InitCpu();
+    return InitCpu();
 }
 
 // Report IPP version and enabled features
@@ -261,8 +236,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
     m_doProcessingOnGpu = false;
 
-    /*ivm: void * FFTWDll = NULL;
-    bFFTWavailable = false;*/
+    void * FFTWDll = NULL;
+    bFFTWavailable = false;
 
 #ifdef USE_IPP
 	/* Init IPP library */
@@ -292,7 +267,6 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
     AMF_RETURN_IF_FALSE( (NULL != m_pContextTAN), AMF_WRONG_STATE,
     L"Cannot initialize after termination");
 
-	return AMF_OK;
 
 	/*
 		GetModuleFileNameA(NULL, Path, PATH_MAX);
@@ -303,7 +277,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 		*pslash = '\0';
 	}
 
-	* /
+	*/
 
 	//libfftw3f-3.dll
 #ifdef _WIN32
@@ -355,83 +329,39 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
     }
 
 	return bFFTWavailable ? AMF_OK : AMF_FAIL;
-	*/
 }
-
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
 {
+    /* AMF Initialization */
+
     AMFLock lock(&m_sect);
 
 #ifndef TAN_NO_OPENCL
-
     AMF_RETURN_IF_FALSE(m_pInputsOCL == nullptr, AMF_ALREADY_INITIALIZED, L"Already initialized");
-    AMF_RETURN_IF_FALSE( (nullptr != m_pContextTAN), AMF_WRONG_STATE,
-        L"Cannot initialize after termination");
-
-    amf_int64 tmp = 0;
-    GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
-    m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
-
-    cl_context context = m_pContextTAN->GetOpenCLContext();
-	/*cl_command_queue cmdQueue = nullptr;
-
-	if (m_useConvQueue)
-	{
-		cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
-	}
-	else
-	{
-		cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
-	}*/
-
-    m_doProcessingOnGpu = (nullptr != context);
-
-	//todo: ivm: fix me!
-    printf("\n\nTODO: Fix error here: context will be on CPU too!\n\n");
-
-    if (m_doProcessingOnGpu)
-    {
-		AMF_RETURN_IF_FAILED(AdjustInternalBufferSize(13, 2));
-    }
-
 #else
+    AMF_RETURN_IF_FALSE(mInputsAMF == nullptr, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#endif
 
-	AMF_RETURN_IF_FALSE(mInputsAMF == nullptr, AMF_ALREADY_INITIALIZED, L"Already initialized");
-    AMF_RETURN_IF_FALSE( (nullptr != m_pContextTAN), AMF_WRONG_STATE,
+	AMF_RETURN_IF_FALSE( (nullptr != m_pContextTAN), AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
     amf_int64 tmp = 0;
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
 
-    auto context = m_pContextTAN->GetAMFContext();
-	/*AMFComputePtr cmdQueue;
-
-	if (m_useConvQueue)
-	{
-		cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetAMFConvQueue());
-	}
-	else
-	{
-		cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetAMFGeneralQueue());
-	}*/
+    auto context = m_pContextTAN->GetComputeContext();
 
     m_doProcessingOnGpu = (nullptr != context);
-
-	//todo: ivm: fix me!
-    printf("\n\nTODO: Fix error here: context will be on CPU too!\n\n");
+	assert(false);
 
     if (m_doProcessingOnGpu)
-    {
-		AMF_RETURN_IF_FAILED(AdjustInternalBufferSize(13, 2));
+	{
+        AMF_RETURN_IF_FAILED(AdjustInternalBufferSize(13, 2));
     }
-
-#endif
 
     return AMF_OK;
 }
-
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 {
@@ -459,7 +389,6 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
     }
     else
 	{
-		/*ivm:
         for (int i = 0; i < MAX_CACHE_POWER; i++)
         {
             if (fwdPlans[i] != NULL) {
@@ -478,13 +407,13 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 				fftwf_destroy_plan(bwdRealPlans[i]);
 				bwdRealPlans[i] = NULL;
 			}
-		}*/
+		}
+
     }
 
     return AMF_OK;
 }
 
-/*
 void TANFFTImpl::GetFFTWCachePath(char *path, DWORD len)
 {
 #ifdef _WIN32
@@ -555,7 +484,7 @@ void TANFFTImpl::cacheFFTWplans()
 		delete(ppBufferInput); // _aligned_free(ppBufferInput);
 		delete(ppBufferOutput); // _aligned_free(ppBufferOutput);
 	}
-}*/
+}
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
@@ -566,9 +495,6 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
     float* ppBufferOutput[]
 )
 {
-	//PrintFloatArray("Transform - input[0]", ppBufferInput[0], 64);
-	//PrintFloatArray("Transform - input[1]", ppBufferInput[1], 64);
-
     AMFLock lock(&m_sect);
     AMF_RESULT res = AMF_OK;
 
@@ -592,41 +518,33 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 
 	if (m_doProcessingOnGpu)
 	{
-#ifndef TAN_NO_OPENCL
-		//CLFFT_TRANSFORM_TYPE transfrmType = CLFFT_TRANSFORM_COMPLEX;
-		//if (useRealFFT && == direction)  transfrmType = CLFFT_TRANSFORM_R2C_FORWARD;
-        cl_int status;
+		auto cmdQueue = m_useConvQueue
+		    ? m_pContextTAN->GetConvQueue()
+			: m_pContextTAN->GetGeneralQueue();
+
 		AMF_RETURN_IF_FAILED(AdjustInternalBufferSize(log2len + 1, channels));
-		cl_command_queue cmdQueue = nullptr;
-		if (m_useConvQueue) {
-			cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
-		}
-		else {
-			cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
-		}
 
+#ifndef TAN_NO_OPENCL
+
+		//FFT_TRANSFORM_TYPE transfrmType = FFT_TRANSFORM_COMPLEX;
+		//if (useRealFFT && == direction)  transfrmType = FFT_TRANSFORM_R2C_FORWARD;
+        cl_int status(CL_SUCCESS);
 
 		for (amf_uint32 i = 0; i < channels; i++){
-			clEnqueueWriteBuffer(cmdQueue, m_pInputsOCL, CL_TRUE, i*requiredChannelLengthInBytes, requiredChannelLengthInBytes, ppBufferInput[i], 0, NULL, NULL);
+		    AMF_RETURN_IF_CL_FAILED(
+				clEnqueueWriteBuffer(cmdQueue, m_pInputsOCL, CL_TRUE, i*requiredChannelLengthInBytes, requiredChannelLengthInBytes, ppBufferInput[i], 0, NULL, NULL)
+				);
         }
-		res = TransformImplGPUBatched(direction, log2len, channels, m_pInputsOCL, m_pOutputsOCL,0);
+		AMF_RETURN_IF_FAILED(
+			res = TransformImplGPUBatched(direction, log2len, channels, m_pInputsOCL, m_pOutputsOCL,0)
+			);
 		for (amf_uint32 i = 0; i < channels; i++){
-            clEnqueueReadBuffer(cmdQueue, m_pOutputsOCL, CL_TRUE, i*requiredChannelLengthInBytes, requiredChannelLengthInBytes, ppBufferOutput[i],0, NULL, NULL);
+            AMF_RETURN_IF_CL_FAILED(
+				clEnqueueReadBuffer(cmdQueue, m_pOutputsOCL, CL_TRUE, i*requiredChannelLengthInBytes, requiredChannelLengthInBytes, ppBufferOutput[i],0, NULL, NULL)
+				);
         }
 
 #else
-
-		AMF_RETURN_IF_FAILED(AdjustInternalBufferSize(log2len + 1, channels));
-
-		AMFComputePtr cmdQueue;
-		if (m_useConvQueue)
-		{
-			cmdQueue = m_pContextTAN->GetAMFConvQueue();
-		}
-		else
-		{
-			cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
-		}
 
 		for (amf_uint32 i = 0; i < channels; i++)
         {
@@ -673,26 +591,16 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 //	if ((direction & 1) != direction) {
 		res = TransformImplIPP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
 //	}
-#endif
-
+#else
     if (amf::TANFFTImpl::useIntrinsics)
 	{
-		THROW_NOT_IMPLEMENTED;
-        //res = TransformImplCpuOMP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
+        res = TransformImplCpuOMP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
     else
 	{
-    	//PrintFloatArray("Transform-TransformImplCpu0", ppBufferInput[0], log2len);
-    	//PrintFloatArray("Transform-TransformImplCpu1", ppBufferInput[1], log2len);
-
         res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
-
-    	//PrintFloatArray("Transform-TransformImplCpu2", ppBufferOutput[0], log2len);
-    	//PrintFloatArray("Transform-TransformImplCpu3", ppBufferOutput[1], log2len);
     }
-
-	//PrintFloatArray("Transform - output[0] b", ppBufferOutput[0], 64);
-	//PrintFloatArray("Transform - output[1] b", ppBufferOutput[1], 64);
+#endif
 
     AMF_RETURN_IF_FAILED(res, L"Transform() failed");
 
@@ -764,7 +672,12 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::TransformBatchGPU(
 #endif
 //-------------------------------------------------------------------------------------------------
 
-size_t TANFFTImpl::getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_TYPE transformType, int interBlockDistance)
+size_t TANFFTImpl::GetFFTPlan(
+	int log2len,
+	int numOfChannels,
+	FFT_TRANSFORM_TYPE transformType,
+	int interBlockDistance
+	)
 {
 	amf_uint64 key = log2len;
 	key <<= 16;
@@ -786,13 +699,11 @@ size_t TANFFTImpl::getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_
         clfftStatus status = CLFFT_SUCCESS;
         clfftPlanHandle plan = {0};
 
-#ifndef TAN_NO_OPENCL
-        // Create new plan
-        cl_context context = static_cast<cl_context>(m_pContextTAN->GetOpenCLContext());
-        cl_command_queue cmdQueue;
+		// Create new plan
+        auto context = m_pContextTAN->GetComputeContext();
 
 		//hack
-		cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
+		auto cmdQueue = m_pContextTAN->GetGeneralQueue();
 
         //if (m_useConvQueue){
         //    cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
@@ -801,20 +712,22 @@ size_t TANFFTImpl::getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_
         //    cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
         //}
 
-        status = clfftCreateDefaultPlan(&plan, context, CLFFT_1D, &fftLength);
+#ifndef TAN_NO_OPENCL
+
+		status = clfftCreateDefaultPlan(&plan, context, CLFFT_1D, &fftLength);
         assert(status == CLFFT_SUCCESS);
-		if (transformType == CLFFT_TRANSFORM_R2C_FORWARD){
+		if (transformType == FFT_TRANSFORM_R2C_FORWARD) {
 			// To Do, try:
 			status = clfftSetLayout(plan, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);// CLFFT_COMPLEX_INTERLEAVED);
 			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
 		} else
-		if (transformType == CLFFT_TRANSFORM_C2R_BACKWARD) {
+		if (transformType == FFT_TRANSFORM_C2R_BACKWARD) {
 			// To Do, try:
 			status = clfftSetLayout(plan, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);// CLFFT_COMPLEX_INTERLEAVED);
 			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
 		}
 		else
-		if(transformType == CLFFT_TRANSFORM_COMPLEX){
+		if(transformType == FFT_TRANSFORM_COMPLEX){
 			status = clfftSetLayout(plan, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED);
 		}
 
@@ -830,20 +743,9 @@ size_t TANFFTImpl::getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_
 #else
 
 		// Create new plan
-        cl_context contextNative = cl_context(m_pContextTAN->GetAMFContext()->GetOpenCLContext());
-		AMFComputePtr cmdQueue;
+        cl_context contextNative = cl_context(context->GetOpenCLContext());
 
-		//hack
-		cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
-
-        //if (m_useConvQueue){
-        //    cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
-        //}
-        //else {
-        //    cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
-        //}
-
-        status = clfftCreateDefaultPlan(
+		status = clfftCreateDefaultPlan(
 			&plan,
 			contextNative,
 			CLFFT_1D,
@@ -851,19 +753,19 @@ size_t TANFFTImpl::getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_
 			);
 		assert(status == CLFFT_SUCCESS);
 
-		if (transformType == CLFFT_TRANSFORM_R2C_FORWARD)
+		if (transformType == FFT_TRANSFORM_R2C_FORWARD)
 		{
 			// To Do, try:
 			status = clfftSetLayout(plan, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);// CLFFT_COMPLEX_INTERLEAVED);
 			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
 		}
-		else if (transformType == CLFFT_TRANSFORM_C2R_BACKWARD)
+		else if (transformType == FFT_TRANSFORM_C2R_BACKWARD)
 		{
 			// To Do, try:
 			status = clfftSetLayout(plan, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_REAL);// CLFFT_COMPLEX_INTERLEAVED);
 			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
 		}
-		else if(transformType == CLFFT_TRANSFORM_COMPLEX)
+		else if(transformType == FFT_TRANSFORM_COMPLEX)
 		{
 			status = clfftSetLayout(plan, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED);
 		}
@@ -895,7 +797,6 @@ size_t TANFFTImpl::getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_
 
     return 0;
 }
-
 //-------------------------------------------------------------------------------------------------
 
 /**************************************************************************************************
@@ -908,7 +809,7 @@ documentation for any purpose is hereby granted without fee, provided that
 the above copyright notice and this license appear in all source copies.
 
 **************************************************************************************************/
-AMF_RESULT TransformImplCpuImpl(
+AMF_RESULT TANFFTImpl::TransformImplCpu(
     TAN_FFT_TRANSFORM_DIRECTION direction,
     amf_size log2len,
     amf_size channels,
@@ -918,7 +819,7 @@ AMF_RESULT TransformImplCpuImpl(
 {
     const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
 
-    PrintReducedFloatArray(
+	PrintReducedFloatArray(
         "TransformImplCpu - input[0]",
         ppBufferInput[0],
         fftFrameSize * 2 * sizeof(float)
@@ -941,11 +842,11 @@ AMF_RESULT TransformImplCpuImpl(
 
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
 
-    double wr, wi, arg;
-    float  *p1, *p2, temp;
-    double tr, ti, ur, ui;
-    float *p1r, *p1i, *p2r, *p2i;
-    amf_uint32 bitm, j, le, le2, k, idx;
+	double wr(0), wi(0), arg(0);
+    float  *p1(nullptr), *p2(nullptr), temp(0);
+    double tr(0), ti(0), ur(0), ui(0);
+    float *p1r(nullptr), *p1i(nullptr), *p2r(nullptr), *p2i(nullptr);
+    amf_uint32 bitm(0), j(0), le(0), le2(0), k(0), idx(0);
 
     for (amf_size i = 0; i < channels; i++){
         if (ppBufferInput[i] != ppBufferOutput[i]) {
@@ -1015,94 +916,7 @@ AMF_RESULT TransformImplCpuImpl(
         fftFrameSize * 2 * sizeof(float)
         );
 
-    return AMF_OK;
-}
-
-AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu(
-    TAN_FFT_TRANSFORM_DIRECTION direction,
-    amf_size log2len,
-    amf_size channels,
-    float* ppBufferInput[],
-    float* ppBufferOutput[]
-    )
-{
-    return TransformImplCpuImpl(
-        direction,
-        log2len,
-        channels,
-        ppBufferInput,
-        ppBufferOutput
-        );
-
-    /*
-    const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
-
-    int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
-
-	double wr, wi, arg;
-    float  *p1, *p2, temp;
-	double tr, ti, ur, ui;
-	float *p1r, *p1i, *p2r, *p2i;
-    amf_uint32 bitm, j, le, le2, k, idx;
-
-    for (amf_size i = 0; i < channels; i++){
-        if (ppBufferInput[i] != ppBufferOutput[i]) {
-            memcpy(ppBufferOutput[i], ppBufferInput[i], fftFrameSize * 2 * sizeof(float));
-        }
-    }
-
-    for (amf_size i = 2; i < 2 * fftFrameSize - 2; i += 2) {
-        for (bitm = 2, j = 0; bitm < 2 * fftFrameSize; bitm <<= 1) {
-            if (i & bitm) j++;
-            j <<= 1;
-        }
-        if (i < j) {
-            for (idx = 0; idx < channels; idx++){
-                p1 = ppBufferOutput[idx] + i; p2 = ppBufferOutput[idx] + j;
-                temp = *p1; *(p1++) = *p2;
-                *(p2++) = temp; temp = *p1;
-                *p1 = *p2; *p2 = temp;
-            }
-        }
-    }
-    for (k = 0, le = 2; k < (amf_size)(log((float)fftFrameSize) / log(2.) + .5); k++) {
-        le <<= 1;
-        le2 = le >> 1;
-        ur = 1.0;
-        ui = 0.0;
-        arg = (double)(M_PI / (le2 >> 1));
-        wr = cos(arg);
-        wi = sign*sin(arg);
-        for (j = 0; j < le2; j += 2) {
-            for (idx = 0; idx < channels; idx++){
-                p1r = ppBufferOutput[idx] + j; p1i = p1r + 1;
-                p2r = p1r + le2; p2i = p2r + 1;
-                for (amf_size i = j; i < 2 * fftFrameSize; i += le) {
-                    tr = *p2r * ur - *p2i * ui;
-                    ti = *p2r * ui + *p2i * ur;
-                    *p2r = *p1r - tr; *p2i = *p1i - ti;
-                    *p1r += tr; *p1i += ti;
-                    p1r += le; p1i += le;
-                    p2r += le; p2i += le;
-                }
-            }
-            tr = ur*wr - ui*wi;
-            ui = ur*wi + ui*wr;
-            ur = tr;
-        }
-    }
-
-    // Riemann sum.
-    if (direction == TAN_FFT_TRANSFORM_DIRECTION_BACKWARD)
-    {
-        for (idx = 0; idx < channels; idx++){
-            for (int k = 0; k < 2 * fftFrameSize; k++){
-                ppBufferOutput[idx][k] /= fftFrameSize;
-            }
-        }
-    }
-
-    return AMF_OK;*/
+	return AMF_OK;
 }
 
 /**************************************************************************************************
@@ -1114,7 +928,7 @@ Permission to use, copy, modify, distribute and sell this software and its
 documentation for any purpose is hereby granted without fee, provided that
 the above copyright notice and this license appear in all source copies.
 
-************************************************************************************************** /
+**************************************************************************************************/
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu1Chan(
     TAN_FFT_TRANSFORM_DIRECTION direction,
     amf_size log2len,
@@ -1184,7 +998,6 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu1Chan(
     return AMF_OK;
 }
 
-/*
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTW1Chan(
     TAN_FFT_TRANSFORM_DIRECTION direction,
     amf_size log2len,
@@ -1303,8 +1116,8 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal1Chan(
 	return AMF_OK;
 }
 
-AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal(
-	TAN_FFT_TRANSFORM_DIRECTION direction,
+
+AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal(TAN_FFT_TRANSFORM_DIRECTION direction,
 	amf_size log2len,
 	float* in,
 	float* out
@@ -1333,7 +1146,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal(
 	}
 	amf_uint fftLength = 1 << log2len;
 
-	static fftwf_plan plan;
+	static fftwf_plan plan(nullptr);
 
 	// To Do: real,imaginary buffers should be spaced for 32 byte alignment:
 
@@ -1364,7 +1177,6 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal(
 
 	return AMF_OK;
 }
-*/
 
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
     TAN_FFT_TRANSFORM_DIRECTION direction,
@@ -1374,15 +1186,13 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
     float* ppBufferOutput[]
     )
 {
-	THROW_NOT_IMPLEMENTED;
-
-    /*amf_uint fftLength = 1 << log2len;
+    amf_uint fftLength = 1 << log2len;
 	bool useRealFFT = (direction == TAN_FFT_R2C_TRANSFORM_DIRECTION_FORWARD
 					|| direction == TAN_FFT_C2R_TRANSFORM_DIRECTION_BACKWARD
 					|| direction == TAN_FFT_R2C_PLANAR_TRANSFORM_DIRECTION_FORWARD
 					|| direction == TAN_FFT_C2R_PLANAR_TRANSFORM_DIRECTION_BACKWARD);
 
-    int idx;
+    int idx(0);
     if (bFFTWavailable){
         fftwf_complex * in = (fftwf_complex *)ppBufferInput[0];
         fftwf_complex * out = (fftwf_complex *)ppBufferOutput[0];
@@ -1430,7 +1240,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
         }
 //  todo try this:      res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
 
-    }*/
+    }
 
     return AMF_OK;
 }
@@ -1791,23 +1601,23 @@ AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 	int dataSpacing	)
 {
 	AMF_RETURN_IF_FALSE(m_doProcessingOnGpu, AMF_UNEXPECTED, L"Internal error");
-	CLFFT_TRANSFORM_TYPE transformType = CLFFT_TRANSFORM_COMPLEX;
+	FFT_TRANSFORM_TYPE transformType = FFT_TRANSFORM_COMPLEX;
 	clfftDirection clDir = CLFFT_FORWARD;
 	switch (direction) {
 	case TAN_FFT_TRANSFORM_DIRECTION_FORWARD:
-		transformType = CLFFT_TRANSFORM_COMPLEX;
+		transformType = FFT_TRANSFORM_COMPLEX;
 		clDir = CLFFT_FORWARD;
 		break;
 	case TAN_FFT_TRANSFORM_DIRECTION_BACKWARD:
-		transformType = CLFFT_TRANSFORM_COMPLEX;
+		transformType = FFT_TRANSFORM_COMPLEX;
 		clDir = CLFFT_BACKWARD;
 		break;
 	case TAN_FFT_R2C_TRANSFORM_DIRECTION_FORWARD:
-		transformType = CLFFT_TRANSFORM_R2C_FORWARD;
+		transformType = FFT_TRANSFORM_R2C_FORWARD;
 		clDir = CLFFT_FORWARD;
 		break;
 	case TAN_FFT_C2R_TRANSFORM_DIRECTION_BACKWARD:
-		transformType = CLFFT_TRANSFORM_C2R_BACKWARD;
+		transformType = FFT_TRANSFORM_C2R_BACKWARD;
 		clDir = CLFFT_BACKWARD;
 		break;
 	}
@@ -1815,7 +1625,7 @@ AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 //HACK debug
 	//if (channels > 2) channels = 2;
 
-    clfftPlanHandle plan = (clfftPlanHandle)getclFFTPlan(static_cast<int>(log2len), channels, transformType, dataSpacing);
+    clfftPlanHandle plan = (clfftPlanHandle)GetFFTPlan(static_cast<int>(log2len), channels, transformType, dataSpacing);
 	//clfftSetPlanBatchSize(plan, channels);
 	cl_command_queue cmdQueue = nullptr;
 	if (m_useConvQueue) {
@@ -1865,7 +1675,6 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplGpu(
 		cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
 	}
 
-
 	for (amf_uint32 i = 0; i < channels; i++){
 		clEnqueueCopyBuffer(cmdQueue, pBufferInput[i], m_pInputsOCL, 0, i*requiredChannelLengthInBytes,requiredChannelLengthInBytes, 0, NULL, NULL);
 	}
@@ -1890,28 +1699,28 @@ AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 {
 	AMF_RETURN_IF_FALSE(m_doProcessingOnGpu, AMF_UNEXPECTED, L"Internal error");
 
-	CLFFT_TRANSFORM_TYPE transformType = CLFFT_TRANSFORM_COMPLEX;
+	FFT_TRANSFORM_TYPE transformType = FFT_TRANSFORM_COMPLEX;
 	clfftDirection clDir = CLFFT_FORWARD;
 
 	switch (direction)
 	{
 	case TAN_FFT_TRANSFORM_DIRECTION_FORWARD:
-		transformType = CLFFT_TRANSFORM_COMPLEX;
+		transformType = FFT_TRANSFORM_COMPLEX;
 		clDir = CLFFT_FORWARD;
 		break;
 
 	case TAN_FFT_TRANSFORM_DIRECTION_BACKWARD:
-		transformType = CLFFT_TRANSFORM_COMPLEX;
+		transformType = FFT_TRANSFORM_COMPLEX;
 		clDir = CLFFT_BACKWARD;
 		break;
 
 	case TAN_FFT_R2C_TRANSFORM_DIRECTION_FORWARD:
-		transformType = CLFFT_TRANSFORM_R2C_FORWARD;
+		transformType = FFT_TRANSFORM_R2C_FORWARD;
 		clDir = CLFFT_FORWARD;
 		break;
 
 	case TAN_FFT_C2R_TRANSFORM_DIRECTION_BACKWARD:
-		transformType = CLFFT_TRANSFORM_C2R_BACKWARD;
+		transformType = FFT_TRANSFORM_C2R_BACKWARD;
 		clDir = CLFFT_BACKWARD;
 		break;
 	}
@@ -1919,7 +1728,12 @@ AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 //HACK debug
 	//if (channels > 2) channels = 2;
 
-    clfftPlanHandle plan = (clfftPlanHandle)getclFFTPlan(static_cast<int>(log2len), channels, transformType, dataSpacing);
+    clfftPlanHandle plan = (clfftPlanHandle)GetFFTPlan(
+		static_cast<int>(log2len),
+		channels,
+		transformType,
+		dataSpacing
+		);
 	//clfftSetPlanBatchSize(plan, channels);
 
 	AMFComputePtr cmdQueue;
@@ -2035,7 +1849,6 @@ void TANFFTImpl::clearInternalBuffers()
 		m_pOutputsOCL = nullptr;
 	}
 #else
-
     //release ocl bufers
 	if(mInputsAMF)
     {
@@ -2046,7 +1859,6 @@ void TANFFTImpl::clearInternalBuffers()
     {
         mOutputsAMF = nullptr;
 	}
-
 #endif
 }
 
@@ -2055,24 +1867,19 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 	const amf_size requiredChannelLengthInSamples = (1 << (desireSizeInSampleLog2 )); // Double the size for complex.
 	const amf_size requiredChannelLengthInBytes = requiredChannelLengthInSamples* sizeof(float);
 	const amf_size requiredBufferLengthInBytes = requiredChannelLengthInBytes * numOfChannels;
-
 	if (requiredBufferLengthInBytes > m_iInternalBufferSizeInBytes)
 	{
 		//release old bufers
 		clearInternalBuffers();
-
 		// create new buffers
 		m_iInternalBufferSizeInBytes = requiredChannelLengthInBytes;
-#ifndef TAN_NO_OPENCL
-		cl_context context = m_pContextTAN->GetOpenCLContext();
-		cl_command_queue cmdQueue = nullptr;
-		if (m_useConvQueue) {
-			cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
-		}
-		else {
-			cmdQueue = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLGeneralQueue());
-		}
 
+		auto context = m_pContextTAN->GetComputeContext();
+		auto cmdQueue = m_useConvQueue
+			? m_pContextTAN->GetConvQueue()
+			: m_pContextTAN->GetGeneralQueue();
+
+#ifndef TAN_NO_OPENCL
 		cl_int status;
 		m_pInputsOCL = clCreateBuffer(context, CL_MEM_READ_WRITE, requiredBufferLengthInBytes, NULL, &status);
 		m_pOutputsOCL = clCreateBuffer(context, CL_MEM_READ_WRITE, requiredBufferLengthInBytes, NULL, &status);
@@ -2081,17 +1888,6 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 		status = FixedEnqueueFillBuffer(context, cmdQueue, m_pInputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes);
 		status = FixedEnqueueFillBuffer(context, cmdQueue, m_pOutputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes);
 #else
-        auto context = m_pContextTAN->GetAMFContext();
-		AMFComputePtr cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
-
-		if (m_useConvQueue)
-		{
-			cmdQueue = m_pContextTAN->GetAMFConvQueue();
-		}
-		else
-		{
-			cmdQueue = m_pContextTAN->GetAMFGeneralQueue();
-		}
 
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(

@@ -243,7 +243,8 @@ bool TANContextImpl::checkOpenCL2_XCompatibility(cl_command_queue cmdQueue)
 }
 
 //-------------------------------------------------------------------------------------------------
-AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
+//never used
+/*AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     cl_context pClContext)
 {
     AMF_RETURN_IF_FALSE(m_oclConvContext == 0, AMF_ALREADY_INITIALIZED);
@@ -293,7 +294,7 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     InitOpenCL(m_oclGeneralQueue, m_oclConvQueue);
 
     return AMF_OK;
-}
+}*/
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     cl_command_queue pConvolutionQueue,
@@ -302,6 +303,12 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     AMF_RETURN_IF_FALSE(m_oclConvContext == 0, AMF_ALREADY_INITIALIZED);
     AMF_RETURN_IF_FALSE(InitOpenCLInt(pConvolutionQueue,QueueType::eConvQueue) == AMF_OK, AMF_FAIL, L"Could not initialize using the convolution queue");
     AMF_RETURN_IF_FALSE(InitOpenCLInt(pGeneralQueue, QueueType::eGeneralQueue) == AMF_OK, AMF_FAIL, L"Could not initialize using the general queue")
+
+    //currently general and convolution queues must have a same context
+    AMF_RETURN_IF_FALSE(
+        m_oclGeneralContext == m_oclConvContext,
+        AMF_NOT_SUPPORTED
+        );
 
     // Initialize clFft library here.
     AMF_RETURN_IF_FAILED(InitClfft(), L"Cannot initialize CLFFT");
@@ -392,6 +399,12 @@ AMF_RESULT amf::TANContextImpl::InitAMFInternal(
     AMFCompute *convolutionQueue
     )
 {
+    //currently general and convolution queues must have a same context
+    AMF_RETURN_IF_FALSE(
+        generalContext == convolutionContext,
+        AMF_NOT_SUPPORTED
+        );
+
     if(generalContext)
     {
         mContextGeneralAMF = generalContext;

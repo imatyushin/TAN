@@ -57,10 +57,8 @@
 #include "public/common/PropertyStorageExImpl.h"
 #include <unordered_map>
 
-#ifdef _WIN32
-  //#include "tanlibrary/src/fftw-3.3.5-dll64/fftw3.h"
-#else
-  //#include "tanlibrary/src/fftw-3.3.5/api/fftw3.h"
+#ifdef USE_FFTW
+  #include "api/fftw3.h"
 #endif
 
 #ifndef _WIN32
@@ -94,11 +92,13 @@ namespace amf
 
         // log2len - arrays' length should be power of 2, the true lenght is expected to be
         //           (2 ^ log2len) * (2 * sizeof(float)) (due to complex numbers).
-        AMF_RESULT  AMF_STD_CALL Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
-                                           amf_uint32 log2len,
-                                           amf_uint32 channels,
-                                           float* ppBufferInput[],
-                                           float* ppBufferOutput[]) override;
+        AMF_RESULT  AMF_STD_CALL Transform(
+												TAN_FFT_TRANSFORM_DIRECTION direction,
+                                           		amf_uint32 log2len,
+                                           		amf_uint32 channels,
+                                           		float* ppBufferInput[],
+                                           		float* ppBufferOutput[]
+												);
 
 #ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL TransformBatchGPU(TAN_FFT_TRANSFORM_DIRECTION direction,
@@ -116,7 +116,6 @@ namespace amf
 											int dataSpacing) override;
 #endif
 
-
     private:
 		//first 32 bit-> log2length, second 32 bit -> num of channel
 		std::unordered_map<amf_uint64, size_t> m_pCLFFTHandleMap;
@@ -128,8 +127,7 @@ namespace amf
 		Ipp8u **m_IppFFTworkBuf[MAX_CACHE_POWER];
 #endif
 
-/*
-#ifndef __linux__
+#ifdef WIN32
         bool bFFTWavailable;
         // FFTW declarations for dynamic load:
         typedef fftwf_plan(__cdecl* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
@@ -160,7 +158,7 @@ namespace amf
 													int howmany_rank, const fftw_iodim *howmany_dims,
 													double *in, double *ro, double *io,
 													unsigned flags);
-													* /
+													*/
 
 		typedef fftwf_plan(__cdecl* fftwf_plan_guru_split_dft_r2cType)(int rank, const fftwf_iodim *dims, int howmany_rank,
 			const fftwf_iodim *howmany_dims, float *in, float *ro, float *io,unsigned flags);
@@ -187,11 +185,8 @@ namespace amf
 
 		typedef int(__cdecl* fftwf_import_wisdom_from_filenameType)(const char *filename);
 		fftwf_import_wisdom_from_filenameType fftwf_import_wisdom_from_filename = nullptr;
-
 #else
-
-	    bool bFFTWavailable;
-
+	bool bFFTWavailable;
         // FFTW declarations for dynamic load:
         typedef fftwf_plan(* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
         fftwf_plan_dft_1dType fftwf_plan_dft_1d = nullptr;
@@ -221,7 +216,7 @@ namespace amf
 													int howmany_rank, const fftw_iodim *howmany_dims,
 													double *in, double *ro, double *io,
 													unsigned flags);
-													* /
+													*/
 
 		typedef fftwf_plan(* fftwf_plan_guru_split_dft_r2cType)(int rank, const fftwf_iodim *dims, int howmany_rank,
 			const fftwf_iodim *howmany_dims, float *in, float *ro, float *io,unsigned flags);
@@ -248,7 +243,6 @@ namespace amf
 
 		typedef int(* fftwf_import_wisdom_from_filenameType)(const char *filename);
 		fftwf_import_wisdom_from_filenameType fftwf_import_wisdom_from_filename = nullptr;
-
 #endif
 
         fftwf_plan fwdPlans[MAX_CACHE_POWER] = {nullptr};
@@ -260,15 +254,20 @@ namespace amf
 
 		void GetFFTWCachePath(char *path, DWORD len);
 		void cacheFFTWplans();
-*/
-		enum CLFFT_TRANSFORM_TYPE
+
+		enum FFT_TRANSFORM_TYPE
 		{
-			CLFFT_TRANSFORM_COMPLEX = 0,
-			CLFFT_TRANSFORM_R2C_FORWARD = 1,
-			CLFFT_TRANSFORM_C2R_BACKWARD = 2,
+			FFT_TRANSFORM_COMPLEX = 0,
+			FFT_TRANSFORM_R2C_FORWARD = 1,
+			FFT_TRANSFORM_C2R_BACKWARD = 2,
 		};
 
-        size_t getclFFTPlan(int log2len, int numOfChannels, CLFFT_TRANSFORM_TYPE transformType = CLFFT_TRANSFORM_COMPLEX, int interBlockDistance = 0);
+        size_t GetFFTPlan(
+			int log2len,
+			int numOfChannels,
+			FFT_TRANSFORM_TYPE transformType = FFT_TRANSFORM_COMPLEX,
+			int interBlockDistance = 0
+			);
 
 		AMF_RESULT virtual AMF_STD_CALL InitCpu();
         AMF_RESULT virtual AMF_STD_CALL InitGpu();
@@ -293,7 +292,7 @@ namespace amf
 														float* ppBufferOutput[]);
 #endif
 
-		/*AMF_RESULT virtual AMF_STD_CALL TransformImplCpu1Chan(TAN_FFT_TRANSFORM_DIRECTION direction,
+		AMF_RESULT virtual AMF_STD_CALL TransformImplCpu1Chan(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                         amf_size log2len,
                                                         float* pBufferInput,
                                                         float* pBufferOutput);
@@ -310,7 +309,7 @@ namespace amf
 		AMF_RESULT virtual AMF_STD_CALL TransformImplFFTWReal(TAN_FFT_TRANSFORM_DIRECTION direction,
 														amf_size log2len,
 														float* pBufferInput,
-														float* pBufferOutput);*/
+														float* pBufferOutput);
 
 #ifndef TAN_NO_OPENCL
 		AMF_RESULT virtual AMF_STD_CALL TransformImplGPUBatched(

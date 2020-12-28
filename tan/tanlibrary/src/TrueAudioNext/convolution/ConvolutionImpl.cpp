@@ -179,7 +179,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Init(
 #ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext())
 #else
-	if (m_pContextTAN->GetAMFContext())
+	if (m_pContextTAN->GetAMFConvQueue())
 #endif
     {
         return Init(
@@ -1523,7 +1523,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
 			m_eConvolutionMethod = convolutionMethod = TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM;
 			break;
         default:
-            return AMF_UNEXPECTED;
+            //return AMF_UNEXPECTED;
             break;
 		}
 	}

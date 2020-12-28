@@ -46,6 +46,31 @@ if(OpenMP_FOUND)
   endif()
 endif()
 
+if(FFTW_DIR)
+  message("FFTW_DIR: " ${FFTW_DIR})
+
+  INCLUDE(ExternalProject)
+  ExternalProject_Add(
+    thirdparty_fftw
+    SOURCE_DIR          ${FFTW_DIR}
+    #GIT_REPOSITORY      https://git.assembla.com/portaudio.git
+    PREFIX              thirdparty_fftw
+    #PREFIX              lib/external_fftw
+    #UPDATE_COMMAND      ""
+    #CONFIGURE_COMMAND   ${FFTW_DIR}/configure
+    #CONFIGURE_COMMAND   "" #cmake ${FFTW_DIR} -G "Unix Makefiles"
+    #BUILD_IN_SOURCE     0
+    #BUILD_COMMAND       make
+    #BUILD_COMMAND       ""
+    #INSTALL_COMMAND     "" #sudo make install
+    )
+
+  add_subdirectory(${FFTW_DIR} cmake-fftw-bin EXCLUDE_FROM_ALL)
+
+  ADD_DEFINITIONS(-DUSE_FFTW)
+  include_directories(${FFTW_DIR})
+endif()
+
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
@@ -242,6 +267,10 @@ target_link_libraries(TrueAudioNext clFFT-master)
 
 if(OpenMP_FOUND)
   #target_link_libraries(TrueAudioNext ${OpenMP_LIBRARY})
+endif()
+
+if(FFTW_DIR)
+  target_link_libraries(TrueAudioNext fftw3)
 endif()
 
 # Declare public API of your library.

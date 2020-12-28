@@ -762,8 +762,8 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
 
-        virtual AMF_RESULT  AMF_STD_CALL    InitOpenCL(
-                                                cl_context pContext) = 0;
+        //virtual AMF_RESULT  AMF_STD_CALL    InitOpenCL(
+        //                                        cl_context pContext) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    InitOpenCL(
                                                 cl_command_queue pGeneralQueue = nullptr,
                                                 cl_command_queue pConvolutionQueue = nullptr) = 0;
@@ -788,17 +788,19 @@ namespace amf
         virtual	cl_command_queue
                             AMF_STD_CALL    GetOpenCLConvQueue() = 0;
 
-        inline	cl_command_queue
+        inline cl_context   AMF_STD_CALL    GetComputeContext() {return GetOpenCLContext();}
+        inline cl_command_queue
                             AMF_STD_CALL    GetGeneralQueue()   {return GetOpenCLGeneralQueue();}
-        inline	cl_command_queue
+        inline cl_command_queue
                             AMF_STD_CALL    GetConvQueue()      {return GetOpenCLConvQueue();}
 #else
         virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFGeneralQueue() = 0;
         virtual	AMFCompute*	AMF_STD_CALL	GetAMFConvQueue() = 0;
 
-        inline  AMFCompute*	AMF_STD_CALL	GetGeneralQueue()   {return GetAMFGeneralQueue();}
-        inline 	AMFCompute*	AMF_STD_CALL	GetConvQueue()      {return GetAMFConvQueue();}
+        inline AMFContext* AMF_STD_CALL     GetComputeContext() {return GetAMFContext();}
+        inline AMFCompute* AMF_STD_CALL	    GetGeneralQueue()   {return GetAMFGeneralQueue();}
+        inline AMFCompute* AMF_STD_CALL	    GetConvQueue()      {return GetAMFConvQueue();}
 #endif
 
         virtual amf::AMFFactory *           GetFactory() = 0;

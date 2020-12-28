@@ -76,8 +76,22 @@ AMF_RESULT Audio3DAMF::InitObjects()
 {
     auto factory = g_AMFFactory.GetFactory();
 
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext, factory), L"TANCreateContext mTANConvolutionContext failed");
-    AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext, factory), L"TANCreateContext mTANRoomContext failed");
+    AMF_RETURN_IF_FAILED(
+        TANCreateContext(
+            TAN_FULL_VERSION,
+            &mTANConvolutionContext,
+            mComputeConvolution ? factory : nullptr
+            ),
+        L"TANCreateContext mTANConvolutionContext failed"
+        );
+    AMF_RETURN_IF_FAILED(
+        TANCreateContext(
+            TAN_FULL_VERSION,
+            &mTANRoomContext,
+            mComputeRoom ? factory : nullptr
+            ),
+        L"TANCreateContext mTANRoomContext failed"
+        );
 
     // Allocate computes
     {

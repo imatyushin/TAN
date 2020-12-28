@@ -48,7 +48,7 @@ namespace amf
         AMF_RESULT AMF_STD_CALL Terminate() override;
 
 #ifndef TAN_NO_OPENCL
-        AMF_RESULT AMF_STD_CALL InitOpenCL(cl_context pContext) override;
+        //AMF_RESULT AMF_STD_CALL InitOpenCL(cl_context pContext) override;
         AMF_RESULT AMF_STD_CALL InitOpenCL(
             cl_command_queue pGeneralQueue,
             cl_command_queue pConvolutionQueue
