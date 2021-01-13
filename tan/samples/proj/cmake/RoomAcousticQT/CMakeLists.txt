@@ -80,7 +80,7 @@ if(PortAudio_DIR)
     portaudio_sources
     #DOWNLOAD_DIR        ${TAN_ROOT}/downloads
     URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
-    #URL_HASH 5588a7b18261c20068beabfb4f530b87
+    URL_MD5             4df8224e047529ca9ad42f0521bf81a8
     )
 
   FetchContent_GetProperties(portaudio_sources)
@@ -90,6 +90,7 @@ if(PortAudio_DIR)
       #QUIET "0"
       DOWNLOAD_DIR        ${TAN_ROOT}/downloads
       URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+      URL_MD5             4df8224e047529ca9ad42f0521bf81a8
       SOURCE_DIR          ${Path_To_PortAudio}
       BINARY_DIR          cmake-portaudio-bin
       )

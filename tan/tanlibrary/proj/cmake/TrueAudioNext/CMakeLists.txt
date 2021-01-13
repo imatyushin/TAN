@@ -84,7 +84,7 @@ if(FFTW_DIR)
   FetchContent_Declare(
     fftw_sources
     URL                 http://fftw.org/fftw-3.3.9.tar.gz
-    #URL_HASH 5588a7b18261c20068beabfb4f530b87
+    URL_MD5             50145bb68a8510b5d77605f11cadf8dc
   )
 
   FetchContent_GetProperties(fftw_sources)
@@ -93,6 +93,7 @@ if(FFTW_DIR)
       fftw_sources
       DOWNLOAD_DIR      ${TAN_ROOT}/downloads
       URL               http://fftw.org/fftw-3.3.9.tar.gz
+      URL_MD5           50145bb68a8510b5d77605f11cadf8dc
       SOURCE_DIR        ${Path_To_FFTW}
       BINARY_DIR        cmake-fftw-bin
       )
