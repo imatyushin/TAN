@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 
 # The cmake-policies(7) manual explains that the OLD behaviors of all
 # policies are deprecated and that a policy should be set to OLD only under
@@ -47,28 +47,61 @@ if(OpenMP_FOUND)
 endif()
 
 if(FFTW_DIR)
+  message("")
   message("FFTW_DIR: " ${FFTW_DIR})
+
+  #test the ${FFTW_DIR} is not an absolute path
+  if(NOT IS_ABSOLUTE ${FFTW_DIR})
+    #test this cmake is included from other project
+    if(NOT ${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+      get_filename_component(Path_To_FFTW "${CMAKE_SOURCE_DIR}/${FFTW_DIR}" ABSOLUTE)
+    #assume that the project is built from itself
+    else()
+      get_filename_component(Path_To_FFTW "${CMAKE_CURRENT_SOURCE_DIR}/${FFTW_DIR}" ABSOLUTE)
+    endif()
+  else()
+    get_filename_component(Path_To_FFTW ${FFTW_DIR} ABSOLUTE)
+  endif()
+
+  message("FFTW_DIR expanded: " ${Path_To_FFTW})
 
   INCLUDE(ExternalProject)
   ExternalProject_Add(
     thirdparty_fftw
-    SOURCE_DIR          ${FFTW_DIR}
-    #GIT_REPOSITORY      https://git.assembla.com/portaudio.git
+    SOURCE_DIR          ${Path_To_FFTW}
+    #GIT_REPOSITORY     ""
     PREFIX              thirdparty_fftw
-    #PREFIX              lib/external_fftw
+    DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+    URL                 http://fftw.org/fftw-3.3.9.tar.gz
     #UPDATE_COMMAND      ""
-    #CONFIGURE_COMMAND   ${FFTW_DIR}/configure
-    #CONFIGURE_COMMAND   "" #cmake ${FFTW_DIR} -G "Unix Makefiles"
+    #CONFIGURE_COMMAND   ${Path_To_FFTW}/configure
     #BUILD_IN_SOURCE     0
     #BUILD_COMMAND       make
-    #BUILD_COMMAND       ""
     #INSTALL_COMMAND     "" #sudo make install
     )
 
-  add_subdirectory(${FFTW_DIR} cmake-fftw-bin EXCLUDE_FROM_ALL)
+  INCLUDE(FetchContent) #requires cmake 3.11
+  FetchContent_Declare(
+    fftw_sources
+    URL                 http://fftw.org/fftw-3.3.9.tar.gz
+    #URL_HASH 5588a7b18261c20068beabfb4f530b87
+  )
+
+  FetchContent_GetProperties(fftw_sources)
+  if(NOT fftw_sources_POPULATED)
+    FetchContent_Populate(
+      fftw_sources
+      DOWNLOAD_DIR      ${TAN_ROOT}/downloads
+      URL               http://fftw.org/fftw-3.3.9.tar.gz
+      SOURCE_DIR        ${Path_To_FFTW}
+      BINARY_DIR        cmake-fftw-bin
+      )
+  endif()
+
+  add_subdirectory(${Path_To_FFTW} cmake-fftw-bin EXCLUDE_FROM_ALL)
 
   ADD_DEFINITIONS(-DUSE_FFTW)
-  include_directories(${FFTW_DIR})
+  include_directories(${Path_To_FFTW})
 endif()
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
@@ -242,6 +275,8 @@ add_library(
   ${SOURCE_LIB}
   ${HEADER_LIB}
   )
+
+add_dependencies(TrueAudioNext thirdparty_fftw)
 
 generateCLKernel(
   TrueAudioNext
