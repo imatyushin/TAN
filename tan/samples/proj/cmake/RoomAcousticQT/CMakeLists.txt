@@ -66,6 +66,7 @@ if(PortAudio_DIR)
     PREFIX              thirdparty_portaudio
     DOWNLOAD_DIR        ${TAN_ROOT}/downloads
     URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+    URL_MD5             4df8224e047529ca9ad42f0521bf81a8
     #UPDATE_COMMAND     ""
     #CONFIGURE_COMMAND  ${Path_To_PortAudio}/configure
     #CONFIGURE_COMMAND  "" #cmake ${Path_To_PortAudio} -G "Unix Makefiles"

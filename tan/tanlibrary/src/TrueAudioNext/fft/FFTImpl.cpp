@@ -237,7 +237,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
     m_doProcessingOnGpu = false;
 
     void * FFTWDll = NULL;
-    bFFTWavailable = false;
+    mFFTWavailable = false;
 
 #ifdef USE_IPP
 	/* Init IPP library */
@@ -287,7 +287,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 #endif
 
     if (NULL != FFTWDll)
-    {
+    {/*
         fftwf_plan_dft_1d = (fftwf_plan_dft_1dType)LoadFunctionAddr(FFTWDll, "fftwf_plan_dft_1d");
         fftwf_destroy_plan = (fftwf_destroy_planType)LoadFunctionAddr(FFTWDll, "fftwf_destroy_plan");
 		fftwf_execute_dft = (fftwf_execute_dftType)LoadFunctionAddr(FFTWDll, "fftwf_execute_dft");
@@ -308,11 +308,11 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
 		fftwf_export_wisdom_to_filename = (fftwf_export_wisdom_to_filenameType)LoadFunctionAddr(FFTWDll, "fftwf_export_wisdom_to_filename");
 		fftwf_import_wisdom_from_filename = (fftwf_import_wisdom_from_filenameType)LoadFunctionAddr(FFTWDll, "fftwf_import_wisdom_from_filename");
-
+*/
 
 
         if (fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr){
-            bFFTWavailable = true;
+            mFFTWavailable = true;
 			char path[PATH_MAX + 2] = "\0";
 			int len = PATH_MAX;
 			GetFFTWCachePath(path, len);
@@ -328,7 +328,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
         }
     }
 
-	return bFFTWavailable ? AMF_OK : AMF_FAIL;
+	return mFFTWavailable ? AMF_OK : AMF_FAIL;
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
@@ -353,7 +353,6 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
     auto context = m_pContextTAN->GetComputeContext();
 
     m_doProcessingOnGpu = (nullptr != context);
-	assert(false);
 
     if (m_doProcessingOnGpu)
 	{
@@ -457,7 +456,7 @@ void TANFFTImpl::cacheFFTWplans()
 	int len = PATH_MAX;
 	GetFFTWCachePath(path, len);
 
-	if (bFFTWavailable) {
+	if (mFFTWavailable) {
 		float * ppBufferInput = new float[(1 << maxL2N)]; // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
 		float * ppBufferOutput = new float[(1 << maxL2N)];  // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
 		for (int log2len = minL2N; log2len < maxL2N; log2len++) {
@@ -1193,7 +1192,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 					|| direction == TAN_FFT_C2R_PLANAR_TRANSFORM_DIRECTION_BACKWARD);
 
     int idx(0);
-    if (bFFTWavailable){
+    if (mFFTWavailable){
         fftwf_complex * in = (fftwf_complex *)ppBufferInput[0];
         fftwf_complex * out = (fftwf_complex *)ppBufferOutput[0];
 

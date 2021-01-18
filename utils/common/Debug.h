@@ -10,7 +10,7 @@
 #include <string>
 #include <thread>
 
-//#define SILENT
+#define SILENT
 
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) \

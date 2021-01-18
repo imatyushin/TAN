@@ -65,20 +65,22 @@ if(FFTW_DIR)
 
   message("FFTW_DIR expanded: " ${Path_To_FFTW})
 
-  INCLUDE(ExternalProject)
-  ExternalProject_Add(
-    thirdparty_fftw
-    SOURCE_DIR          ${Path_To_FFTW}
-    #GIT_REPOSITORY     ""
-    PREFIX              thirdparty_fftw
-    DOWNLOAD_DIR        ${TAN_ROOT}/downloads
-    URL                 http://fftw.org/fftw-3.3.9.tar.gz
-    #UPDATE_COMMAND      ""
-    #CONFIGURE_COMMAND   ${Path_To_FFTW}/configure
-    #BUILD_IN_SOURCE     0
-    #BUILD_COMMAND       make
-    #INSTALL_COMMAND     "" #sudo make install
-    )
+  #INCLUDE(ExternalProject)
+  #ExternalProject_Add(
+  #  thirdparty_fftw
+  #  SOURCE_DIR          ${Path_To_FFTW}
+  #  #GIT_REPOSITORY     ""
+  #  PREFIX              thirdparty_fftw
+  #  DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+  #  URL                 http://fftw.org/fftw-3.3.9.tar.gz
+  #  URL_MD5             50145bb68a8510b5d77605f11cadf8dc
+  #  #UPDATE_COMMAND      ""
+  #  #CONFIGURE_COMMAND   ${Path_To_FFTW}/configure
+  #  #BUILD_IN_SOURCE     0
+  #  #BUILD_COMMAND       make
+  #  #INSTALL_COMMAND     "" #sudo make install
+  #  CMAKE_ARGS          "${CMAKE_ARGS};-DENABLE_FLOAT=1"
+  #  )
 
   INCLUDE(FetchContent) #requires cmake 3.11
   FetchContent_Declare(
@@ -99,7 +101,21 @@ if(FFTW_DIR)
       )
   endif()
 
+  #option(BUILD_SHARED_LIBS "" OFF)
+  #option(BUILD_TESTS "" OFF)
+  #option(ENABLE_OPENMP "" ON)
+  #option(ENABLE_THREADS "" ON)
+  option(ENABLE_FLOAT "" ON)
+  option(ENABLE_SSE "" ON)
+  option(ENABLE_SSE2 "" ON)
+  option(ENABLE_AVX "" ON)
+  option(ENABLE_AVX2 "" ON)
+  #option(DISABLE_FORTRAN "" ON)
   add_subdirectory(${Path_To_FFTW} cmake-fftw-bin EXCLUDE_FROM_ALL)
+
+  message("")
+  message("FFTW library name: ${fftw3_lib}")
+  message("")
 
   ADD_DEFINITIONS(-DUSE_FFTW)
   include_directories(${Path_To_FFTW})
@@ -277,7 +293,9 @@ add_library(
   ${HEADER_LIB}
   )
 
-add_dependencies(TrueAudioNext thirdparty_fftw)
+#add_dependencies(TrueAudioNext thirdparty_fftw)
+#add_dependencies(TrueAudioNext Graal)
+#add_dependencies(TrueAudioNext clFFT-master)
 
 generateCLKernel(
   TrueAudioNext
@@ -285,9 +303,6 @@ generateCLKernel(
   Tan_CL_Files
   Tan_CL_Output
   )
-
-#add_dependencies(TrueAudioNext Graal)
-#add_dependencies(TrueAudioNext clFFT-master)
 
 # linking
 target_link_libraries(TrueAudioNext ${OpenCL_LIBRARY})
@@ -306,7 +321,7 @@ if(OpenMP_FOUND)
 endif()
 
 if(FFTW_DIR)
-  target_link_libraries(TrueAudioNext fftw3)
+  target_link_libraries(TrueAudioNext fftw3f)
 endif()
 
 # Declare public API of your library.

@@ -325,6 +325,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 
     AMFLock lock(&m_sect);
 
+    m_initialized = false;
+
 	deallocateBuffers();
     m_updThread.RequestStop();
     m_procReadyForNewResponsesEvent.SetEvent();
@@ -461,6 +463,18 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     // Check if blocking flag is used
     const bool blockUntilReady =
         (operationFlags & TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY);
+
+    {
+        //hack
+        //	if (m_DelayedUpdate > 0)
+        //		return AMF_OK;
+
+		while (m_DelayedUpdate > 0)
+        {
+			//Sleep(5);
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+	}
 
     {
         AMFLock lock(&m_sectUpdate);
