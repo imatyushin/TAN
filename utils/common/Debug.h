@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <thread>
+#include <atomic>
 
 //#define SILENT
 

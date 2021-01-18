@@ -70,9 +70,9 @@ typedef struct _TanDeviceCapabilities {
 // TAN objects creation functions.
 extern "C"
 {
-    GPUUTILITIES_EXPORT GPUUTILITIES_CDECL_CALL void listGpuDeviceNames(std::vector<std::string> & devicesNames);
-    GPUUTILITIES_EXPORT GPUUTILITIES_CDECL_CALL void listCpuDeviceNames(std::vector<std::string> & devicesNames);
-    GPUUTILITIES_EXPORT GPUUTILITIES_CDECL_CALL void listOClDeviceNames(std::vector<std::string> & devicesNames, cl_device_type clDeviceType);
+    GPUUTILITIES_EXPORT void GPUUTILITIES_CDECL_CALL listGpuDeviceNames(std::vector<std::string> & devicesNames);
+    GPUUTILITIES_EXPORT void GPUUTILITIES_CDECL_CALL listCpuDeviceNames(std::vector<std::string> & devicesNames);
+    GPUUTILITIES_EXPORT void GPUUTILITIES_CDECL_CALL listOClDeviceNames(std::vector<std::string> & devicesNames, cl_device_type clDeviceType);
 
     GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
 
