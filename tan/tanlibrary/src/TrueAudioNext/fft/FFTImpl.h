@@ -127,8 +127,10 @@ namespace amf
 		Ipp8u **m_IppFFTworkBuf[MAX_CACHE_POWER];
 #endif
 
+		//FFTW support stuff
+        bool mFFTWavailable = false;
+
 #ifdef WIN32
-        bool bFFTWavailable;
         // FFTW declarations for dynamic load:
         typedef fftwf_plan(__cdecl* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
         fftwf_plan_dft_1dType fftwf_plan_dft_1d = nullptr;
@@ -186,7 +188,7 @@ namespace amf
 		typedef int(__cdecl* fftwf_import_wisdom_from_filenameType)(const char *filename);
 		fftwf_import_wisdom_from_filenameType fftwf_import_wisdom_from_filename = nullptr;
 #else
-	bool bFFTWavailable;
+	/*
         // FFTW declarations for dynamic load:
         typedef fftwf_plan(* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
         fftwf_plan_dft_1dType fftwf_plan_dft_1d = nullptr;
@@ -216,7 +218,7 @@ namespace amf
 													int howmany_rank, const fftw_iodim *howmany_dims,
 													double *in, double *ro, double *io,
 													unsigned flags);
-													*/
+													* /
 
 		typedef fftwf_plan(* fftwf_plan_guru_split_dft_r2cType)(int rank, const fftwf_iodim *dims, int howmany_rank,
 			const fftwf_iodim *howmany_dims, float *in, float *ro, float *io,unsigned flags);
@@ -243,6 +245,7 @@ namespace amf
 
 		typedef int(* fftwf_import_wisdom_from_filenameType)(const char *filename);
 		fftwf_import_wisdom_from_filenameType fftwf_import_wisdom_from_filename = nullptr;
+		*/
 #endif
 
         fftwf_plan fwdPlans[MAX_CACHE_POWER] = {nullptr};

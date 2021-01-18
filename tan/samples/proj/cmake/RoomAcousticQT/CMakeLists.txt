@@ -40,28 +40,67 @@ endif()
 project(RoomAcousticsQT DESCRIPTION "RoomAcousticsQT")
 
 if(PortAudio_DIR)
+  message("")
   message("PortAudio_DIR: " ${PortAudio_DIR})
+
+  #test the ${PortAudio_DIR} is not an absolute path
+  if(NOT IS_ABSOLUTE ${PortAudio_DIR})
+    #test this cmake is included from other project
+    if(NOT ${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+      get_filename_component(Path_To_PortAudio "${CMAKE_SOURCE_DIR}/${PortAudio_DIR}" ABSOLUTE)
+    #assume that the project is built from itself
+    else()
+      get_filename_component(Path_To_PortAudio "${CMAKE_CURRENT_SOURCE_DIR}/${PortAudio_DIR}" ABSOLUTE)
+    endif()
+  else()
+    get_filename_component(Path_To_PortAudio ${PortAudio_DIR} ABSOLUTE)
+  endif()
+
+  message("PortAudio_DIR expanded: " ${Path_To_PortAudio})
 
   INCLUDE(ExternalProject)
   ExternalProject_Add(
     thirdparty_portaudio
-    SOURCE_DIR          ${PortAudio_DIR}
-    #GIT_REPOSITORY      https://git.assembla.com/portaudio.git
+    SOURCE_DIR          ${Path_To_PortAudio}
+    #GIT_REPOSITORY     https://git.assembla.com/portaudio.git
     PREFIX              thirdparty_portaudio
-    #PREFIX              lib/external_portaudio
-    UPDATE_COMMAND      ""
-    #CONFIGURE_COMMAND   ${PortAudio_DIR}/configure
-    CONFIGURE_COMMAND   "" #cmake ${PortAudio_DIR} -G "Unix Makefiles"
-    BUILD_IN_SOURCE     0
-    #BUILD_COMMAND       make
-    BUILD_COMMAND       ""
-    INSTALL_COMMAND     "" #sudo make install
+    DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+    URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+    URL_MD5             4df8224e047529ca9ad42f0521bf81a8
+    #UPDATE_COMMAND     ""
+    #CONFIGURE_COMMAND  ${Path_To_PortAudio}/configure
+    #CONFIGURE_COMMAND  "" #cmake ${Path_To_PortAudio} -G "Unix Makefiles"
+    #BUILD_IN_SOURCE    0
+    #BUILD_COMMAND      make
+    #BUILD_COMMAND      ""
+    #INSTALL_COMMAND    "" #sudo make install
     )
 
-  add_subdirectory(${PortAudio_DIR} cmake-portaudio-bin EXCLUDE_FROM_ALL)
+  INCLUDE(FetchContent) #requires cmake 3.11
+  FetchContent_Declare(
+    portaudio_sources
+    #DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+    URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+    URL_MD5             4df8224e047529ca9ad42f0521bf81a8
+    )
+
+  FetchContent_GetProperties(portaudio_sources)
+  if(NOT portaudio_sources_POPULATED)
+    FetchContent_Populate(
+      portaudio_sources
+      #QUIET "0"
+      DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+      URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+      URL_MD5             4df8224e047529ca9ad42f0521bf81a8
+      SOURCE_DIR          ${Path_To_PortAudio}
+      BINARY_DIR          cmake-portaudio-bin
+      )
+  endif()
+
+  add_subdirectory(${Path_To_PortAudio} cmake-portaudio-bin EXCLUDE_FROM_ALL)
 
   ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
-  include_directories(${PortAudio_DIR}/include)
+  include_directories(${Path_To_PortAudio}/include)
 endif()
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
@@ -239,7 +278,7 @@ if(WIN32)
     add_custom_command(
       TARGET RoomAcousticsQT
       POST_BUILD
-      
+
       COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
       )
   endif()
@@ -252,7 +291,7 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
-    
+
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
