@@ -7,62 +7,58 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
-# cl kernel preprocessor
-include(../../../../samples/proj/cmake/CLKernelPreprocessor/CLKernelPreprocessor.cmake)
+#cl kernel preprocessor
+include(${TAN_ROOT}/utils/cmake/CLKernelPreprocessor.cmake)
 
-#cl-helper
-#SET(clHelper_DIR ../../../../../OpenCLHelper/clHelper)
-# this builds the clHelper library (optional, if you want
-# to manually access the globally generated symbols)
-#ADD_SUBDIRECTORY(${clHelper_DIR} cmake-clHelper-bin)
-# specify include paths for #include's in opencl files:
-#OPENCL_INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
-
-# compile some opencl kernels. This properly preprocessor-exapands
-# and test-compiles the given .cl files (once to asm, once to llvm),
-# and puts the preprocessor-expanded code (as a char[] array)
-# into dedicated .c files (that can be accessed through the
-# implicit EMBEDDED_OPENCL_KERNELS variable
-#COMPILE_OPENCL(
-#  ../../../src/Graal/amdFFT_conv_kernels.cl
-#  ../../../src/Graal/amdFIR_kernels.cl
-#  ../../../src/Graal/GraalFHT.cl
-#  ../../../src/Graal/GraalUtil.cl
-#  )
-
-# library name
-project(Graal)
-
-include_directories(../../../../../amf)
-include_directories(../../../..)
-include_directories(../../../../common)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_HEADERS})
+include_directories(${TAN_ROOT}/tan/tanlibrary/src/clFFT-master/src/include)
+include_directories(${TAN_ROOT}/utils/common)
 
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 ADD_DEFINITIONS(-DCLFFT_EXPORTS)
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 
+# library name
+project(Graal)
+
 # sources
 set(
   SOURCE_LIB
-  ../../../src/common/OCLHelper.cpp
+
+  ${TAN_ROOT}/utils/common/OCLHelper.cpp
+
   ../../../src/Graal/amdFHT.cpp
-  ../../../src/Graal/GraalConv.cpp
-  ../../../src/Graal/GraalConvOCL.cpp
-  ../../../src/Graal/GraalConv_clFFT.cpp
 )
+
+#if(TAN_NO_OPENCL)
+#  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConvAMF.cpp)
+#else()
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConv.cpp)
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConvOCL.cpp)
+  list(APPEND SOURCE_LIB ../../../src/Graal/GraalConv_clFFT.cpp)
+#endif()
 
 set(
   HEADER_LIB
-  ../../../src/common/OCLHelper.h
+
+  ${TAN_ROOT}/utils/common/OCLHelper.h
+
   ../../../src/Graal/amdFHT.h
-  ../../../src/Graal/GraalConv.hpp
-  ../../../src/Graal/GraalConvOCL.hpp
-  ../../../src/Graal/GraalConv_clFFT.hpp
   ../../../src/Graal/GraalInternal.h
   )
+
+#if(TAN_NO_OPENCL)
+#  list(APPEND HEADER_LIB ../../../src/Graal/GraalConvAMF.hpp)
+#else()
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConv.hpp)
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConvOCL.hpp)
+  list(APPEND HEADER_LIB ../../../src/Graal/GraalConv_clFFT.hpp)
+#endif()
 
 # cl kernels compilation
 set(
@@ -122,8 +118,6 @@ generateCLKernel(
   )
 
 add_dependencies(Graal CLKernelPreprocessor)
-
-target_link_libraries(Graal amf)
 
 set_property(TARGET Graal PROPERTY POSITION_INDEPENDENT_CODE ON)
 

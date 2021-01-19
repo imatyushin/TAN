@@ -19,12 +19,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include <CL/cl.h>
+#ifndef TAN_NO_OPENCL
+  #include <CL/cl.h>
+#endif
 
-int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count);
-int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count);
+#include "public/include/core/Context.h"        //AMF
+#include "public/include/core/Compute.h"        //AMF
 
+void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory);
+void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory);
+
+#ifndef TAN_NO_OPENCL
 bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
 bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
 
-bool CreateCommandQueuesWithCUcount(int deviceIndex,cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount);
+bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount);
+
+#else
+
+bool CreateGpuCommandQueues
+(
+    int                         deviceIndex,
+    int32_t                     flag1,
+    amf::AMFCompute **          compute1,
+    int32_t                     flag2,
+    amf::AMFCompute **          compute2,
+    amf::AMFContext **          context = nullptr
+);
+bool CreateCpuCommandQueues
+(
+    int                         deviceIndex,
+    int32_t                     flag1,
+    amf::AMFCompute **          compute1,
+    int32_t                     flag2,
+    amf::AMFCompute **          compute2,
+    amf::AMFContext **          context = nullptr
+);
+
+bool CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute ** compute1, amf::AMFCompute ** compute2, int Q1CUcount, int Q2CUcount);
+#endif

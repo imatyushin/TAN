@@ -12,8 +12,8 @@
 #include <memory.h>
 #include <math.h>
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
-    #include <omp.h>
+#ifdef OMP_ENABLED
+  #include <omp.h>
 #endif
 
 #if defined(_WIN32)
@@ -27,14 +27,14 @@
     #include <ppltasks.h>
 #endif
 
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 using namespace amf;
 
 #include "FileUtility.h"
 #include "wav.h"
 
-#include "samples/src/common/utilities.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "ConvUtilities.h"
+#include "GpuUtilities.h"
 const uint32_t c_modesCnt = 2;
 
 int main(int argc, char* argv[])

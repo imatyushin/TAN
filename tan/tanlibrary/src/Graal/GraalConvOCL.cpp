@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -233,7 +235,7 @@ cl_command_queue CGraalConvOCL::getClQueue(cl_command_queue_properties * _prop, 
                                             devices_[_deviceId],
                                             _prop,
                                             &status);
-        //printf("Queue created %llX\r\n", commandQueue);
+        printf("Queue created %llX\r\n", commandQueue);
         //ASSERT_CL_RETURN(status, "clCreateCommandQueue failed.");
         if (status != CL_SUCCESS)
         {

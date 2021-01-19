@@ -20,10 +20,13 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # name
 project(GPUUtilities DESCRIPTION "GPUUtilities")
+
+include_directories(${AMF_HOME}/amf)
 
 #
 ADD_DEFINITIONS(-D_USRDLL)
@@ -33,7 +36,7 @@ ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
 if(NOT WIN32)
-ADD_DEFINITIONS(-DLINUX)
+  ADD_DEFINITIONS(-DLINUX)
 endif()
 
 # sources
@@ -66,7 +69,12 @@ add_library(
   )
 
 # linking
-target_link_libraries(GPUUtilities amf)
+if(AMF_CORE_STATIC)
+  target_link_libraries(GPUUtilities ${AMF_NAME})
+else()
+  target_link_libraries(GPUUtilities ${AMF_LOADER_NAME})
+endif()
+
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")

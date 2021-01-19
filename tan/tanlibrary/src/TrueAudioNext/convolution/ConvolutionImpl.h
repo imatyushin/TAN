@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,24 +20,37 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+//
 ///-------------------------------------------------------------------------
 ///  @file   ConvolutionImpl.h
 ///  @brief  TANConvolutionImpl interface implementation
 ///-------------------------------------------------------------------------
 #pragma once
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Context.h"        //AMF
+#include "public/include/core/Buffer.h"         //AMF
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF
 
-#include "tanlibrary/src/Graal/GraalConv.hpp"
-#include "tanlibrary/src/Graal/GraalConv_clFFT.hpp"
+#include "GraalConv.hpp"
+#include "GraalConv_clFFT.hpp"
+#include "TANSampleBuffer.h"
+#include "TDFilterState.h"
+//#include "tanlibrary/src/Graal2/GraalWrapper.h"
+
+#include "Debug.h"
+
 #ifdef AMF_FACILITY
 #  undef AMF_FACILITY
 #endif
 
-#define SAFE_DELETE(x) { delete x; (x) = nullptr; }
-#define SAFE_ARR_DELETE(x) { delete[] x; (x) = nullptr; }
+#define TRANSFORMTYPE_FFTCOMPLEX 1
+#define TRANSFORMTYPE_FFTREAL 2
+#define TRANSFORMTYPE_FFTREAL_PLANAR 3
+#define TRANSFORMTYPE_HARTLEY 4
+
+#define PARTITION_PAD_FFTREAL_PLANAR 16
+#define PARTITION_PAD_FFTREAL 4 // might break CPU ??? was 2
 
 namespace amf
 {
@@ -55,42 +70,63 @@ namespace amf
 
 //TANConvolution interface
 
-		AMF_RESULT	AMF_STD_CALL	Init(TAN_CONVOLUTION_METHOD convolutionMethod,
-										 amf_uint32 responseLengthInSamples,
-										 amf_uint32 bufferSizeInSamples,
-										 amf_uint32 channels) override;
-        AMF_RESULT  AMF_STD_CALL InitCpu(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                         amf_uint32 responseLengthInSamples,
-                                         amf_uint32 bufferSizeInSamples,
-                                         amf_uint32 channels) override;
-        AMF_RESULT  AMF_STD_CALL InitGpu(TAN_CONVOLUTION_METHOD convolutionMethod,
-                                         amf_uint32 responseLengthInSamples,
-                                         amf_uint32 bufferSizeInSamples,
-                                         amf_uint32 channels) override;
-        AMF_RESULT  AMF_STD_CALL Terminate() override;
+		AMF_RESULT	AMF_STD_CALL    Init(TAN_CONVOLUTION_METHOD convolutionMethod,
+										amf_uint32 responseLengthInSamples,
+										amf_uint32 bufferSizeInSamples,
+										amf_uint32 channels) override;
+        AMF_RESULT  AMF_STD_CALL    InitCpu(TAN_CONVOLUTION_METHOD convolutionMethod,
+                                        amf_uint32 responseLengthInSamples,
+                                        amf_uint32 bufferSizeInSamples,
+                                        amf_uint32 channels) override;
+        AMF_RESULT  AMF_STD_CALL    InitGpu(TAN_CONVOLUTION_METHOD convolutionMethod,
+                                        amf_uint32 responseLengthInSamples,
+                                        amf_uint32 bufferSizeInSamples,
+                                        amf_uint32 channels) override;
+        AMF_RESULT  AMF_STD_CALL    Terminate() override;
 
-        AMF_RESULT  AMF_STD_CALL UpdateResponseTD(float* ppBuffer[],
-                                                  amf_size numOfSamplesToProcess,
-                                                  const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
-                                                  const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
-                                                  ) override;
-        AMF_RESULT  AMF_STD_CALL UpdateResponseTD(cl_mem ppBuffer[],
-                                                  amf_size numOfSamplesToProcess,
-                                                  const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
-                                                  const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
-                                                  ) override;
- 
-        AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(float* ppBuffer[],
-                                                     amf_size numOfSamplesToProcess,
-                                                     const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
-                                                     const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
-                                                     ) override;
+        AMF_RESULT  AMF_STD_CALL    UpdateResponseTD(
+                                        float* ppBuffer[],
+                                        amf_size numOfSamplesToProcess,
+                                        const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                        const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                        ) override;
+#ifndef TAN_NO_OPENCL
+        AMF_RESULT  AMF_STD_CALL    UpdateResponseTD(
+                                        cl_mem ppBuffer[],
+                                        amf_size numOfSamplesToProcess,
+                                        const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                        const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                        ) override;
+#else
+        AMF_RESULT AMF_STD_CALL     UpdateResponseTD(
+                                        AMFBuffer * ppBuffer[],
+                                        amf_size numOfSamplesToProcess,
+                                        const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                        const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                        ) override;
+#endif
+
+        AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(
+                                        float* ppBuffer[],
+                                        amf_size numOfSamplesToProcess,
+                                        const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                        const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                        ) override;
+
+#ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(cl_mem ppBuffer[],
-                                                     amf_size numOfSamplesToProcess,
-                                                     const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
-                                                     const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
-                                                     ) override;
- 
+                                        amf_size numOfSamplesToProcess,
+                                        const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                        const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                        ) override;
+#else
+        AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(const AMFBuffer * ppBuffer[],
+                                        amf_size numOfSamplesToProcess,
+                                        const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                        const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                        ) override;
+#endif
+
         AMF_RESULT  AMF_STD_CALL    Process(float* ppBufferInput[],
                                             float* ppBufferOutput[],
                                             amf_size numOfSamplesToProcess,
@@ -98,6 +134,7 @@ namespace amf
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr) override; // system memory
+#ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL    Process(cl_mem pBufferInput[],
                                             cl_mem pBufferOutput[],
                                             amf_size numOfSamplesToProcess,
@@ -112,7 +149,22 @@ namespace amf
                                             // TAN_CONVOLUTION_CHANNEL_FLAG.
                                             const amf_uint32 flagMasks[],
                                             amf_size *pNumOfSamplesProcessed = nullptr) override; // cl_mem
-
+#else
+        AMF_RESULT  AMF_STD_CALL    Process(const AMFBuffer * pBufferInput[],
+                                            AMFBuffer * pBufferOutput[],
+                                            amf_size numOfSamplesToProcess,
+                                            // Masks of flags from enum
+                                            // TAN_CONVOLUTION_CHANNEL_FLAG.
+                                            const amf_uint32 flagMasks[],
+                                            amf_size *pNumOfSamplesProcessed = nullptr) override;
+        AMF_RESULT  AMF_STD_CALL    Process(float* pBufferInput[],
+                                            AMFBuffer * pBufferOutput[],
+                                            amf_size numOfSamplesToProcess,
+                                            // Masks of flags from enum
+                                            // TAN_CONVOLUTION_CHANNEL_FLAG.
+                                            const amf_uint32 flagMasks[],
+                                            amf_size *pNumOfSamplesProcessed = nullptr) override;
+#endif
 
         // Process direct (no update required), system memory buffers:
         AMF_RESULT  AMF_STD_CALL    ProcessDirect(
@@ -124,6 +176,7 @@ namespace amf
                                             int *nzFirstLast = NULL
                                             ) override;
 
+#ifndef TAN_NO_OPENCL
         // Process direct (no update required),  OpenCL cl_mem  buffers:
         AMF_RESULT  AMF_STD_CALL    ProcessDirect(
                                             cl_mem* ppImpulseResponse[],
@@ -133,60 +186,74 @@ namespace amf
                                             amf_size *pNumOfSamplesProcessed,
                                             int *nzFirstLast = NULL
                                             ) override;
+#else
+        AMF_RESULT  AMF_STD_CALL    ProcessDirect(
+                                            const AMFBuffer * ppImpulseResponse[],
+                                            const AMFBuffer * ppBufferInput[],
+                                            AMFBuffer * ppBufferOutput[],
+                                            amf_size numOfSamplesToProcess,
+                                            amf_size *pNumOfSamplesProcessed,
+                                            int *nzFirstLast = NULL
+                                            ) override;
+#endif
 
+		virtual AMF_RESULT  AMF_STD_CALL    ProcessFinalize() override;
 
         AMF_RESULT AMF_STD_CALL GetNextFreeChannel(amf_uint32 *pChannelIndex,
                                                    const amf_uint32 flagMasks[] // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG.
                                                    ) override;
 
-        virtual TANContext* AMF_STD_CALL GetContext(){return m_pContextTAN;}
+        virtual TANContext* AMF_STD_CALL GetContext() override {return m_pContextTAN;}
 
     protected:
         virtual AMF_RESULT  Init(TAN_CONVOLUTION_METHOD convolutionMethod,
                                  amf_uint32 responseLengthInSamples,
                                  amf_uint32 bufferSizeInSamples,
                                  amf_uint32 channels,
-                                 bool doProcessingOnGpu);
+                                 bool doProcessingOnGpu
+                                 );
 
         virtual AMF_RESULT Flush(amf_uint32 filterStateId, amf_uint32 channelId);
 
-        struct TANSampleBuffer {
-            union {
-                float ** host;
-                cl_mem *clmem;
-            } buffer;
-            AMF_MEMORY_TYPE mType;
-        };
-
         AMF_RESULT  AMF_STD_CALL UpdateResponseTD(
-            TANSampleBuffer pBuffer,
+            TANSampleBuffer & pBuffer,
             amf_size numOfSamplesToProcess,
             const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
             const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
             );
 
-        AMF_RESULT  AMF_STD_CALL    Process(TANSampleBuffer pBufferInput,
-                                            TANSampleBuffer pBufferOutput,
-                                            amf_size numOfSamplesToProcess,
-                                            // Masks of flags from enum
-                                            // TAN_CONVOLUTION_CHANNEL_FLAG.
-                                            const amf_uint32 flagMasks[],
-                                            amf_size *pNumOfSamplesProcessed = nullptr); // TAN Audio buffers
+        AMF_RESULT  AMF_STD_CALL    Process(
+            const TANSampleBuffer & bufferInput,
+            TANSampleBuffer & bufferOutput,
+            amf_size numOfSamplesToProcess,
+            // Masks of flags from enum
+            // TAN_CONVOLUTION_CHANNEL_FLAG.
+            const amf_uint32 flagMasks[],
+            amf_size *pNumOfSamplesProcessed = nullptr
+            ); // TAN Audio buffers
 
-        TANContextPtr               m_pContextTAN;
+        bool                        ReadyForIRUpdate();
+
+		TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pProcContextAMF;
         AMFComputePtr               m_pUpdateContextAMF;
+		TANMathPtr                  m_pMath;
 
-        TAN_CONVOLUTION_METHOD      m_eConvolutionMethod;
-        amf_uint32                  m_iLengthInSamples;
-        amf_uint32                  m_iBufferSizeInSamples;
-        amf_uint32                  m_iChannels;    // Number of channels our buffers are allocated
-                                                    // to, as opposed to m_MaxChannels.
+        TAN_CONVOLUTION_METHOD      m_eConvolutionMethod = TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
+		bool						m_bUseProcessFinalize = false;
+		amf_uint32                  m_iLengthInSamples = 0;
+        amf_uint32                  m_iBufferSizeInSamples = 0;
+        amf_uint32                  m_iChannels = 0; // Number of channels our buffers are allocated
+                                                     // to, as opposed to m_MaxChannels.
 
+#ifndef TAN_NO_OPENCL
 		cl_kernel					m_pKernelCrossfade;
-        AMF_MEMORY_TYPE             m_eOutputMemoryType;
+#else
+        amf::AMFComputeKernelPtr    mKernelCrossfade;
+#endif
+        AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN;
 
-        AMF_KERNEL_ID               m_KernelIdCrossfade;
+        AMF_KERNEL_ID               m_KernelIdCrossfade = 0;
 
         AMFCriticalSection          m_sect;
 
@@ -203,64 +270,251 @@ namespace amf
         TANFFTPtr                   m_pTanFft;
         TANFFTPtr                   m_pUpdateTanFft;
 
-        bool                        m_doProcessOnGpu;
+        bool                        m_doProcessOnGpu = false;
+		int			                m_TransformType = 0;
 
 
     private:
-        bool m_initialized;
+        bool                        m_initialized = false;
+		//GraalWrapper                m_nonUniformGraal;
 
+#ifndef TAN_NO_OPENCL
         //cl_program m_TimeDomainProgram;
-        cl_kernel m_TimeDomainKernel;
+        cl_kernel                   m_TimeDomainKernel = nullptr;
+#else
+        amf::AMFComputeKernelPtr    mTimeDomainKernel;
+#endif
 
-        int m_length;           // Next power of two for the response's length.
-        int m_log2len;          // =log2(m_length)
-        int m_MaxChannels;      // Current number of channels, less or equal to m_iChannels.
-        float **m_OutSamples;   // Buffer to store FFT, multiplication and ^FFT for a buffer.
-        float** m_ovlAddLocalInBuffs;
-        float** m_ovlAddLocalOutBuffs;
-        TANSampleBuffer m_pCLXFadeSubBuf[2];  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
-        cl_mem m_pCLXFadeMasterBuf[2];
-        TANSampleBuffer m_pXFadeSamples;  // For cross-fading on CPU 
-        float *m_silence;       // Array filled with zeroes, used to emulate silent signal.
+        int                         m_length = -1;                       // Next power of two for the response's length.
+        int                         m_log2len = -1;                      // =log2(m_length)
+		int                         m_log2bsz = 0;                      // = log2( m_iBufferSizeInSamples)
+
+		int                         m_RunningChannels = -1;              // Current number of channels, less or equal to m_iChannels. //maxChannels
+        float                       **m_OutSamples = nullptr;           // Buffer to store FFT, multiplication and ^FFT for a buffer.
+		float                       **m_OutSamplesXFade = nullptr;      // Buffer to store FFT, multiplication and ^FFT for a buffer.
+		float                       **m_ovlAddLocalInBuffs = nullptr;
+        float                       **m_ovlAddLocalOutBuffs = nullptr;
+
+        TANSampleBuffer             mFadeSubbufers[2];                  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
+
+#ifndef TAN_NO_OPENCL
+        cl_mem                      m_pCLXFadeMasterBuf[2] = {nullptr};
+#else
+        amf::AMFBufferPtr           mAMFCLXFadeMasterBuffers[2];
+#endif
+
+        TANSampleBuffer             m_pXFadeSamples;                    // For cross-fading on CPU
+        float                       *m_silence = nullptr;               // Array filled with zeroes, used to emulate silent signal.
 
         TANSampleBuffer m_internalOutBufs;
         TANSampleBuffer m_internalInBufs;
-        bool *m_availableChannels;
-        bool *m_flushedChannels;// if a channel has just been flushed no need to flush it repeatedly
-        int *m_tailLeftOver;
+        bool *m_availableChannels = nullptr;
+        bool *m_flushedChannels = nullptr;                              // if a channel has just been flushed no need to flush it repeatedly
+        int *m_tailLeftOver = nullptr;
 
         AMF_RESULT allocateBuffers();
         AMF_RESULT deallocateBuffers();
         AMF_RESULT AMF_FAST_CALL Crossfade(
-            TANSampleBuffer pBufferOutput, amf_size numOfSamplesToProcess);
+            TANSampleBuffer & pBufferOutput,
+            amf_size numOfSamplesToProcess
+            );
 
-        typedef struct _ovlAddFilterState {
-            float **m_Filter;
-            float **m_Overlap;
-            float **m_internalFilter;
-            float **m_internalOverlap;
-        } ovlAddFilterState;
+        struct ovlAddFilterState
+        {
+            float **m_Filter = nullptr;
+            std::map<size_t, size_t> FilterLength;
 
-        typedef struct _tdFilterState {
-            float **m_Filter;
-            cl_mem *m_clFilter;
-            cl_mem *m_clTemp;
-            int *firstNz;
-            int *lastNz;
-            float **m_SampleHistory;
-            cl_mem *m_clSampleHistory;
-            int *m_sampHistPos;
-        }tdFilterState;
+            float **m_Overlap = nullptr;
+            std::map<size_t, size_t> OverlapLength;
+
+            float **m_internalFilter = nullptr;
+            float **m_internalOverlap = nullptr;
+            size_t mChannelsCount = 0;
+            bool mOverlapSet = false;
+
+            ~ovlAddFilterState()
+            {
+                Release();
+            }
+
+            inline void DebugPrint(const std::string & caption, size_t channel)
+            {
+                PrintDebug(caption);
+
+                PrintReducedFloatArray(
+                    "m_Filter",
+                    m_Filter[channel],
+                    FilterLength[channel]
+                    );
+                PrintReducedFloatArray(
+                    "m_Overlap",
+                    m_Overlap[channel],
+                    OverlapLength[channel]
+                    );
+
+                if(m_internalFilter[channel])
+                {
+                    PrintReducedFloatArray(
+                        "m_internalFilter",
+                        m_internalFilter[channel],
+                        FilterLength[channel]
+                        );
+                }
+                else
+                {
+                    //PrintDebug("m_internalFilter - null");
+                }
+
+                if(m_internalOverlap[channel])
+                {
+                    PrintReducedFloatArray(
+                        "m_internalOverlap",
+                        m_internalOverlap[channel],
+                        FilterLength[channel]
+                        );
+                }
+                else
+                {
+                    //PrintDebug("m_internalOverlap - null");
+                }
+            }
+
+            inline void Setup(size_t channelsCount)
+            {
+                mChannelsCount = channelsCount;
+
+                m_Filter = new float *[channelsCount];
+                std::memset(m_Filter, 0, sizeof(float *) * channelsCount);
+
+                m_Overlap = new float *[channelsCount];
+                std::memset(m_Overlap, 0, sizeof(float *) * channelsCount);
+
+                m_internalFilter = new float *[channelsCount];
+                std::memset(m_internalFilter, 0, sizeof(float *) * channelsCount);
+
+                m_internalOverlap = new float *[channelsCount];
+                std::memset(m_internalOverlap, 0, sizeof(float *) * channelsCount);
+            }
+
+            void Release()
+            {
+                if(!mChannelsCount)
+                {
+                    return;
+                }
+
+                for(size_t channel(0); channel < mChannelsCount; ++channel)
+                {
+                    delete [] m_Filter[channel], m_Filter[channel] = nullptr;
+
+                    if(mOverlapSet)
+                    {
+                        delete [] m_Overlap[channel], m_Overlap[channel] = nullptr;
+                    }
+                }
+
+                delete [] m_Filter, m_Filter = nullptr;
+                delete [] m_Overlap, m_Overlap = nullptr;
+                delete [] m_internalFilter, m_internalFilter = nullptr;
+                delete [] m_internalOverlap, m_internalOverlap = nullptr;
+
+                FilterLength.clear();
+                OverlapLength.clear();
+
+                mChannelsCount = 0;
+            }
+
+            inline void SetupFilter(size_t channelIndex, size_t length)
+            {
+                m_Filter[channelIndex] = new float[length];
+                memset(m_Filter[channelIndex], 0, sizeof(float) * length);
+                FilterLength[channelIndex] = length;
+            }
+
+            inline void SetupOverlap(size_t channelIndex, size_t length)
+            {
+                m_Overlap[channelIndex] = new float[length];
+                memset(m_Overlap[channelIndex], 0, sizeof(float) * length);
+                mOverlapSet = true;
+                OverlapLength[channelIndex] = length;
+            }
+
+            inline void ReferOverlap(size_t channelIndex, const ovlAddFilterState & source)
+            {
+                m_Overlap[channelIndex] = source.m_Overlap[channelIndex];
+
+                auto lengthIterator(source.OverlapLength.find(channelIndex));
+
+                if(lengthIterator != source.OverlapLength.end())
+                {
+                    OverlapLength[channelIndex] = (*lengthIterator).second;
+                }
+                else
+                {
+                    assert(false);
+                }
+            }
+
+            inline void FlushOverlap(size_t channelIndex)
+            {
+                size_t length = OverlapLength[channelIndex];
+                assert(length);
+                memset(m_Overlap[channelIndex], 0, length * sizeof(float));
+            }
+        };
+
+		int m_currentDataPartition = 0;
+		int m_dataRowLength = 0;
+		int m_DelayedUpdate = 0;
+		float **m_FilterTD = nullptr;
+
+		//const int m_PartitionPad = 8;
+		typedef struct _ovlUniformPartitionFilterState {
+			float **m_Filter;
+			float **m_DataPartitions;
+			float **m_Overlap;
+			float **m_internalFilter;
+			float **m_internalOverlap;
+			float **m_internalDataPartitions;
+			cl_mem *m_clFilters;
+			cl_mem *m_clDataPartitions;
+			cl_mem m_clOutput;
+			//cl_mem *m_clFilterSubParts;
+			//cl_mem *m_clDataSubParts;
+			//cl_mem *m_clOutputSubChans;
+		} ovlUniformPartitionFilterState;
+
+		int m_2ndBufSizeMultiple = 4;  // default 4
+		int m_2ndBufCurrentSubBuf = 0;  // 0 -> m_2ndBufSizeMultiple - 1
+		float **m_NUTailAccumulator = nullptr;   // store complex multiply accumulate data calculated in ovlNUPProcessTail
+		float **m_NUTailSaved = nullptr;   // save last complex multiply accumulate results
+		typedef struct _ovlNonUniformPartitionFilterState {
+			float **m_Filter;
+			float **m_DataPartitions;
+			float **m_Overlap;
+			float **m_internalFilter;
+			float **m_internalOverlap;
+			float **m_internalDataPartitions;
+			float **m_SubPartitions;
+			float **m_workBuffer;
+		} ovlNonUniformPartitionFilterState;
 
 #  define N_FILTER_STATES 3
-        ovlAddFilterState *m_FilterState[N_FILTER_STATES];
-        tdFilterState *m_tdFilterState[N_FILTER_STATES];
-        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES];
-        int m_idxFilter;                        // Currently USED current index.
-        int m_idxPrevFilter;                    // Currently USED previous index (for crossfading).
-        int m_idxUpdateFilter;                  // Next FREE  index.
-        int m_idxUpdateFilterLatest;
-        int m_first_round_ever;
+        ovlAddFilterState m_FilterState[N_FILTER_STATES];
+
+		_ovlUniformPartitionFilterState *m_upFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlUniformPartitionFilterState *m_upTailState = nullptr;
+		_ovlNonUniformPartitionFilterState *m_nupFilterState[N_FILTER_STATES] = {nullptr};
+		_ovlNonUniformPartitionFilterState *m_nupTailState = nullptr;
+		tdFilterState *m_tdFilterState[N_FILTER_STATES] = {nullptr};
+        tdFilterState *m_tdInternalFilterState[N_FILTER_STATES] = {nullptr};
+        int m_idxFilter = 1;                        // Currently USED current index.
+        int m_idxPrevFilter = 0;                    // Currently USED previous index (for crossfading).
+        int m_idxUpdateFilter = 2;                  // Next FREE  index.
+        int m_idxUpdateFilterLatest = 0;
+        int m_first_round_ever = 0;
+
+		int bestNUMultiple(int responseLength, int blockLength);
 
         AMFEvent m_procReadyForNewResponsesEvent;
         AMFEvent m_updateFinishedProcessing;
@@ -284,28 +538,82 @@ namespace amf
 
         AMF_RESULT VectorComplexMul(float *vA, float *vB, float *out, int count);
 
-        amf_size ovlAddProcess(ovlAddFilterState *state, TANSampleBuffer inputData, TANSampleBuffer outputData, amf_size length,
-                               amf_uint32 n_channels, bool advanceOverlap = true);
+        AMF_RESULT ovlAddProcess(
+            amf_size &              numberOfSamplesProcessed,
+            ovlAddFilterState *     state,
+            const TANSampleBuffer & inputData,
+            TANSampleBuffer &       outputData,
+            amf_size                length,
+            amf_uint32              n_channels,
+            bool                    advanceOverlap = true
+            );
+
+		amf_size ovlNUPProcess(
+            ovlNonUniformPartitionFilterState *
+                                            state,
+            const TANSampleBuffer &         inputData,
+            TANSampleBuffer &               outputData,
+            amf_size                        length,
+			amf_uint32                      n_channels,
+            bool                            advanceOverlap = true,
+            bool                            useXFadeAccumulator = false
+            );
+
+		amf_size ovlNUPProcessCPU(
+            ovlNonUniformPartitionFilterState *
+                                            state,
+            const TANSampleBuffer &         inputData,
+            TANSampleBuffer &               outputData,
+            amf_size                        length,
+			amf_uint32                      n_channels,
+            bool                            advanceOverlap = true,
+            bool                            useXFadeAccumulator = false
+            );
+
+		int ovlNUPProcessTail(_ovlNonUniformPartitionFilterState *state = NULL, bool useXFadeAccumulator = false);
+
 
         amf_size ovlTDProcess(tdFilterState *state, float **inputData, float **outputData, amf_size length,
             amf_uint32 n_channels);
 
-        void ovlTimeDomainCPU(float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
+        AMF_RESULT ovlTimeDomainCPU(float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
             float *in, float *out, float *histBuf, amf_uint32 bufPos,
             amf_size datalength, amf_size convlength);
 
-        void ovlTimeDomain(tdFilterState *state, int chIdx, float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
-            float *in, float *out, amf_uint32 bufPos,
-            amf_size datalength, amf_size convlength);
+        AMF_RESULT ovlTimeDomain(
+            tdFilterState *state,
+            int chIdx,
+            float *resp,
+            amf_uint32 firstNonZero,
+            amf_uint32 lastNonZero,
+            float *in,
+            float *out,
+            amf_uint32 bufPos,
+            amf_size datalength,
+            amf_size convlength
+            );
 
-        void ovlTimeDomainGPU(cl_mem resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
+#ifndef TAN_NO_OPENCL
+        AMF_RESULT ovlTimeDomainGPU(cl_mem resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
              cl_mem out, cl_mem histBuf, amf_uint32 bufPos,
             amf_size datalength, amf_size convlength);
+#else
+        AMF_RESULT ovlTimeDomainGPU(
+            AMFBuffer * resp,
+            amf_uint32 firstNonZero,
+            amf_uint32 lastNonZero,
+            AMFBuffer * out,
+            AMFBuffer * histBuf,
+            amf_uint32 bufPos,
+            amf_size datalength,
+            amf_size convlength
+            );
+#endif
 
         AMF_RESULT ProcessInternal(
             int idx,
-            TANSampleBuffer pBuffersInput,
-            TANSampleBuffer pBufferOutput,
+            const TANSampleBuffer & buffersInput,
+            TANSampleBuffer & bufferOutput,
             amf_size length,
             const amf_uint32 flagMasks[],
             amf_size *pNumOfSamplesProcessed,
@@ -385,9 +693,9 @@ namespace amf
             }
 
             void Negate(
-                const GraalArgs &from, 
-                amf_uint32 channelCnt, 
-                amf_uint32 fromVersion, 
+                const GraalArgs &from,
+                amf_uint32 channelCnt,
+                amf_uint32 fromVersion,
                 amf_uint32 toVersion)
             {
                 Clear(channelCnt);
@@ -428,17 +736,18 @@ namespace amf
         // response update parmeters (to pass to update facilities).
         GraalArgs m_updateArgs;
         // audio stream parameters (to pass to process facilities).
-        // Two buffers are used for storing the IR indices; so that back to back calls 
-        // to the ProcessInternal() during the crossfade will not corrupt the already stored data 
+        // Two buffers are used for storing the IR indices; so that back to back calls
+        // to the ProcessInternal() during the crossfade will not corrupt the already stored data
         const static int PARAM_BUF_COUNT = 2;
-        int * m_s_versions[PARAM_BUF_COUNT];
-        int * m_s_channels;
-        int m_n_delays_onconv_switch;
-        int m_onconv_switch_delay_counter;
-        bool m_doHeadTailXfade;
+        int * m_s_versions[PARAM_BUF_COUNT] = {nullptr};
+        int * m_s_channels = nullptr;
+        int m_n_delays_onconv_switch = 0;
+        int m_onconv_switch_delay_counter = 0;
+        bool m_doHeadTailXfade = false;
         // m_param_buf_idx is used to flip flop between alternate m_s_versions buffers,
-        int m_param_buf_idx;
-        /*************************************************************************************
+        int m_param_buf_idx = 0;
+		bool m_startNonUniformConvXFade = false;
+		/*************************************************************************************
         AmdTrueAudioConvolution destructor
         deallocates all internal buffers.
         *************************************************************************************/

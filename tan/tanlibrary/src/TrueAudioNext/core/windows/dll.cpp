@@ -1,5 +1,5 @@
 
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Platform.h"       //AMF
 #include "public/common/AMFFactory.h"           //AMF
 

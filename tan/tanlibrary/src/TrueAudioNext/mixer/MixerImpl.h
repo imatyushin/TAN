@@ -23,13 +23,10 @@
 ///  @brief  TANMixer interface implementation
 ///-------------------------------------------------------------------------
 #pragma once
-#include "tanlibrary/include/TrueAudioNext.h"   //TAN
+#include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"//AMF
-
-
-#define USE_SSE2 1
 
 namespace amf
 {
@@ -48,7 +45,10 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
 //TANMixer interface
-        AMF_RESULT  AMF_STD_CALL Init(amf_size buffer_size, int num_channels) override;
+        AMF_RESULT  AMF_STD_CALL Init(
+            amf_size buffer_size,
+            int num_channels
+            ) override;
         AMF_RESULT  AMF_STD_CALL Terminate() override;
         TANContext* AMF_STD_CALL GetContext() override { return m_pContextTAN; }
 
@@ -56,6 +56,7 @@ namespace amf
                                         float* ppBufferOutput
                                         ) override;
 
+#ifndef TAN_NO_OPENCL
         // For disjoint cl_mem input buffers
         AMF_RESULT  AMF_STD_CALL    Mix(cl_mem pBufferInput[],
                                         cl_mem pBufferOutput
@@ -66,31 +67,52 @@ namespace amf
                                         cl_mem pBufferOutput,
                                         amf_size inputStride
                                         ) override;
-    
+#else
+        AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput[],
+                                        AMFBuffer * pBufferOutput
+                                        ) override;
+
+        // For contigous cl_mem input buffers
+        AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput,
+                                        AMFBuffer * pBufferOutput,
+                                        amf_size inputStride
+                                        ) override;
+#endif
 
     protected:
         TANContextPtr               m_pContextTAN;
         AMFContextPtr               m_pContextAMF;
-        AMFComputePtr               m_pDeviceAMF;
+        AMFComputePtr               mAMFCompute;
 
-        AMF_MEMORY_TYPE             m_eOutputMemoryType;
+        AMF_MEMORY_TYPE             m_eOutputMemoryType = AMF_MEMORY_HOST;
         AMFCriticalSection          m_sect;
 
-        cl_command_queue			m_pCommandQueueCl;
-        cl_context					m_pContextCl;
-        cl_device_id				m_pDeviceCl;
+#ifndef TAN_NO_OPENCL
+        cl_command_queue			m_pCommandQueueCl = nullptr;
+        cl_context					m_pContextCl = nullptr;
+        cl_device_id				m_pDeviceCl = nullptr;
 
         cl_kernel					m_clMix = nullptr;
+#else
+        AMFComputeKernelPtr         mMixKernel;
+#endif
 
         /// It defines how many channels can be mixed together by a single call into the MixerMultiBuffer kernel
-        const static int            MAX_CHANNELS_TO_MIX_PER_KERNEL_CALL = 16; 
+        const static int            MAX_CHANNELS_TO_MIX_PER_KERNEL_CALL = 16;
     private:
         static bool useSSE2;
         AMF_RESULT	AMF_STD_CALL InitCpu();
         AMF_RESULT	AMF_STD_CALL InitGpu();
-		amf_size m_bufferSize;
-		cl_mem m_internalBuff;
-		int m_numChannels;
-		bool m_OCLInitialized = false;
+		amf_size m_bufferSize = 0;
+
+#ifndef TAN_NO_OPENCL
+		cl_mem m_internalBuff = nullptr;
+#else
+        AMFBufferPtr mInternalBufferAMF;
+#endif
+
+		int m_numChannels = 0;
+
+        bool mInitialized = false;
     };
 } //amf

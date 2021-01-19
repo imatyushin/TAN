@@ -1,6 +1,6 @@
-// 
-// MIT license 
-// 
+//
+// MIT license
+//
 // Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,17 +33,9 @@
 
 using namespace amf;
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] = 
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateFilter(
-    amf::TANContext* pContext, 
+    amf::TANContext* pContext,
     amf::TANFilter** ppComponent
     )
 {
@@ -57,7 +49,7 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateFilter(
 //-------------------------------------------------------------------------------------------------
 TANFilterImpl::TANFilterImpl(TANContext *pContextTAN) :
     m_pContextTAN(pContextTAN)
-{ 
+{
 
     TANCreateFFT(pContextTAN, &m_pFft);
     m_pFft->Init();
@@ -100,8 +92,6 @@ AMF_RESULT  AMF_STD_CALL TANFilterImpl::Init()
 	return AMF_OK;
 }
 
-
-
 /**************************************************************************************************
 freq	-	compute the frequency corresponding to a point in an FFT:
 **************************************************************************************************/
@@ -110,7 +100,7 @@ float TANFilterImpl::freq(int i, int samplesPerSec, int fftLen)
     float f;
     float inDelta = (float)(1.0 / (float)samplesPerSec);
 
-	f = (float)((float)(i) / ((float)fftLen*inDelta));	
+	f = (float)((float)(i) / ((float)fftLen*inDelta));
 
     return(f);
 }

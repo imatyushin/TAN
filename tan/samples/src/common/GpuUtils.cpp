@@ -28,10 +28,12 @@
 #endif
 #include <CL/cl.h>
 
-#include "public/include/core/Variant.h"        //AMF
-#include "public/include/core/Context.h"        //AMF
-#include "public/include/core/ComputeFactory.h" //AMF
+#include "public/common/TraceAdapter.h"         //AMF
 #include "public/common/AMFFactory.h"           //AMF
+#include "public/include/core/Variant.h"        //AMF
+#include "public/include/core/ComputeFactory.h" //AMF
+
+#define AMF_FACILITY amf::AMF_FACILITY
 
 #ifdef RTQ_ENABLED
 #define AMFQUEPROPERTY L"MaxRealTimeComputeUnits"
@@ -39,7 +41,7 @@
 #define AMFQUEPROPERTY L"None"
 #endif
 
-#include "../GPUUtilities/GpuUtilities.h"
+#include "GpuUtilities.h"
 
 /**
 *******************************************************************************
@@ -50,16 +52,14 @@
 * @param[in] count		  : length of devNames
 
 * @return INT number of strings written to devNames array. (<= count)
-*         
+*
 *******************************************************************************
 */
-int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
+int listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory)
+{
+    AMF_RESULT res = g_AMFFactory.Init(); // initialize AMF
 
-    int foundCount = 0;
-
-    
-    AMF_RESULT res = g_AMFFactory.Init();   // initialize AMF
-    if (AMF_OK == res)
+    if(AMF_OK == res)
     {
         // Create default CPU AMF context.
         amf::AMFContextPtr pContextAMF = NULL;
@@ -68,35 +68,46 @@ int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
         if (AMF_OK == res)
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
+
+#if !defined ENABLE_METAL
             res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
+#else
+            res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
+#endif
+
             if (AMF_OK == res)
             {
                 amf_int32 deviceCount = pOCLFactory->GetDeviceCount();
+
                 for (amf_int32 i = 0; i < deviceCount; i++)
                 {
-                    amf::AMFComputeDevicePtr         pDeviceAMF;
+                    amf::AMFComputeDevicePtr pDeviceAMF;
                     res = pOCLFactory->GetDeviceAt(i, &pDeviceAMF);
                     {
-                        amf::AMFVariant pName;
-                        res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &pName);
+                        amf::AMFVariant name;
+                        res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &name);
+
                         if (AMF_OK == res)
                         {
-                            std::strcpy(devNames[i], pName.stringValue);
-                            foundCount++;
+                            devicesNames.push_back(name.stringValue);
                         }
                     }
                 }
             }
+
             pOCLFactory.Release();
         }
+
         pContextAMF.Release();
         g_AMFFactory.Terminate();
     }
-    else  //USE OpenCL wrapper
+
+#ifndef ENABLE_METAL
+    else //USE OpenCL wrapper
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
-        typedef int(__cdecl *listGpuDeviceNamesType)(char *devNames[], unsigned int count);
+        typedef int(__cdecl * listGpuDeviceNamesType)(std::vector<std::string>& devicesNames);
         listGpuDeviceNamesType listGpuDeviceNames = nullptr;
 
         GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
@@ -105,7 +116,7 @@ int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
             listGpuDeviceNames = (listGpuDeviceNamesType)GetProcAddress(GPUUtilitiesDll, "listGpuDeviceNames");
             if (NULL != listGpuDeviceNames)
             {
-                foundCount = listGpuDeviceNames(devNames, count);
+                listGpuDeviceNames(devicesNames);
             }
             else
             {
@@ -114,14 +125,13 @@ int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
         }
         else
         {
-            MessageBoxA( NULL, "NOT FOUND GPUUtilities.dll", "GPUUtils...", MB_ICONERROR );
+            MessageBoxA(NULL, "NOT FOUND GPUUtilities.dll", "GPUUtils...", MB_ICONERROR);
         }
-        #else
-        foundCount = listGpuDeviceNames(devNames, count);
-        #endif
+#else
+        listGpuDeviceNames(devicesNames);
+#endif
     }
-
-    return foundCount;
+#endif
 }
 
 /**
@@ -136,10 +146,13 @@ int listGpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
 *
 *******************************************************************************
 */
-int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
-
+void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory)
+{
+#if defined ENABLE_METAL
+    return;
+#else
     int foundCount = 0;
-    AMF_RESULT res = g_AMFFactory.Init();   // initialize AMF
+    AMF_RESULT res = g_AMFFactory.Init(); // initialize AMF
     if (AMF_OK == res)
     {
         // Create default CPU AMF context.
@@ -155,34 +168,39 @@ int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
         if (AMF_OK == res)
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
-            res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
-            if (AMF_OK == res)
+
+            res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
+
+            if(amf::AMFResultIsOK(res))
             {
                 amf_int32 deviceCount = pOCLFactory->GetDeviceCount();
                 for (amf_int32 i = 0; i < deviceCount; i++)
                 {
-                    amf::AMFComputeDevicePtr         pDeviceAMF;
+                    amf::AMFComputeDevicePtr pDeviceAMF;
                     res = pOCLFactory->GetDeviceAt(i, &pDeviceAMF);
                     {
-                        amf::AMFVariant pName;
-                        res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &pName);
+                        amf::AMFVariant name;
+                        res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &name);
+
                         if (AMF_OK == res)
                         {
-                            std::strcpy(devNames[i], pName.stringValue);
-                            foundCount++;
+                            devicesNames.push_back(name.stringValue);
                         }
                     }
                 }
             }
+
             pOCLFactory.Release();
         }
+
         pContextAMF.Release();
         g_AMFFactory.Terminate();
-    } else
+    }
+    else
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
-        typedef int(__cdecl *listCpuDeviceNamesType)(char *devNames[], unsigned int count);
+        typedef int(__cdecl * listCpuDeviceNamesType)(std::vector<std::string>& devicesNames);
         listCpuDeviceNamesType listCpuDeviceNames = nullptr;
 
         GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
@@ -191,7 +209,7 @@ int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
             listCpuDeviceNames = (listCpuDeviceNamesType)GetProcAddress(GPUUtilitiesDll, "listCpuDeviceNames");
             if (NULL != listCpuDeviceNames)
             {
-                foundCount = listCpuDeviceNames(devNames, count);
+                listCpuDeviceNames(devicesNames);
             }
             else
             {
@@ -202,16 +220,14 @@ int listCpuDeviceNamesWrapper(char *devNames[], unsigned int count) {
         {
             MessageBoxA(NULL, "NOT FOUND GPUUtilities.dll", "GPUUtils...", MB_ICONERROR);
         }
-        #else
-        foundCount = listCpuDeviceNames(devNames, count);
-        #endif
+#else
+        listCpuDeviceNames(devicesNames);
+#endif
     }
-
-    return foundCount;
+#endif
 }
 
-
-AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2, int amfDeviceType = AMF_CONTEXT_DEVICE_TYPE_GPU)
+AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2, int amfDeviceType = AMF_CONTEXT_DEVICE_TYPE_GPU)
 {
     bool AllIsOK = true;
 
@@ -228,7 +244,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         *pcmdQueue2 = NULL;
     }
 
-    AMF_RESULT res = g_AMFFactory.Init();   // initialize AMF
+    AMF_RESULT res = g_AMFFactory.Init(); // initialize AMF
     if (AMF_OK == res)
     {
         // Create default CPU AMF context.
@@ -239,7 +255,15 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         if (AMF_OK == res)
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
+
+#if !defined ENABLE_METAL
             res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
+            AMF_RETURN_IF_FAILED(res, L"GetOpenCLComputeFactory failed\n");
+#else
+            res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
+            AMF_RETURN_IF_FAILED(res, L"GetMetalComputeFactory failed\n");
+#endif
+
             if (AMF_OK == res)
             {
                 amf_int32 deviceCount = pOCLFactory->GetDeviceCount();
@@ -250,14 +274,14 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                     if (nullptr != pDeviceAMF)
                     {
                         pContextAMF->InitOpenCLEx(pDeviceAMF);
-                        cl_context clContext  = static_cast<cl_context>(pDeviceAMF->GetNativeContext());
+                        cl_context clContext = static_cast<cl_context>(pDeviceAMF->GetNativeContext());
                         cl_device_id clDevice = static_cast<cl_device_id>(pDeviceAMF->GetNativeDeviceID());
 #ifdef RTQ_ENABLED
-	#define QUEUE_MEDIUM_PRIORITY                   0x00010000
-	#define QUEUE_REAL_TIME_COMPUTE_UNITS           0x00020000
+#define QUEUE_MEDIUM_PRIORITY 0x00010000
+#define QUEUE_REAL_TIME_COMPUTE_UNITS 0x00020000
 #endif
                         if (NULL != pcmdQueue1)
-                        {//user requested one queue
+                        { //user requested one queue
                             int ComputeFlag = 0;
                             amf_int64 Param = flag1 & 0x0FFFF;
 #ifdef RTQ_ENABLED
@@ -290,7 +314,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                         }
 
                         if (NULL != pcmdQueue2)
-                        {//user requested second queue
+                        { //user requested second queue
                             int ComputeFlag = 0;
                             amf_int64 Param = flag2 & 0x0FFFF;
 #ifdef RTQ_ENABLED
@@ -321,7 +345,6 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
 
                             *pcmdQueue2 = tempQueue;
                         }
-
                     }
                 }
                 else
@@ -364,22 +387,113 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
     return res;
 }
 
-//bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_device_type clDeviceType);
+AMF_RESULT CreateCommandQueuesVIAamf(
+    int deviceIndex,
+    amf_int32 flag1,
+    amf::AMFCompute **compute1,
+    amf_int32 flag2,
+    amf::AMFCompute **compute2,
+    AMF_CONTEXT_DEVICETYPE_ENUM amfDeviceType,
+    amf::AMFContext **context = nullptr)
+{
+    bool AllIsOK = true;
 
-bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *context, cl_device_type clDeviceType){
+    if (compute1 && *compute1)
+    {
+        (*compute1)->Release();
+        *compute1 = nullptr;
+    }
 
-    #ifdef _WIN32
+    if (compute2 && *compute2)
+    {
+        (*compute2)->Release();
+        *compute2 = nullptr;
+    }
+
+    AMF_RESULT result = g_AMFFactory.Init();
+    AMF_RETURN_IF_FAILED(result, L"Factory init failed\n");
+
+    // Create default CPU AMF context.
+    amf::AMFContextPtr contextAMF = nullptr;
+    result = g_AMFFactory.GetFactory()->CreateContext(&contextAMF);
+    AMF_RETURN_IF_FAILED(result, L"CreateContext failed\n");
+
+    if (context)
+    {
+        *context = contextAMF;
+        (*context)->Acquire();
+    }
+
+    result = contextAMF->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
+    AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+
+    amf::AMFComputeFactoryPtr computeFactory = nullptr;
+
+#if !defined ENABLE_METAL
+    result = contextAMF->GetOpenCLComputeFactory(&computeFactory);
+    AMF_RETURN_IF_FAILED(result, L"GetOpenCLComputeFactory failed\n");
+#else
+    result = contextAMF->GetMetalComputeFactory(&computeFactory);
+    AMF_RETURN_IF_FAILED(result, L"GetMetalComputeFactory failed\n");
+#endif
+
+    amf_int32 deviceCount = computeFactory->GetDeviceCount();
+
+    if (deviceIndex >= deviceCount)
+    {
+        AMF_RETURN_IF_FAILED(AMF_INVALID_ARG, L"Incorrect deviceIndex\n");
+    }
+
+    amf::AMFComputeDevicePtr computeDevice;
+    result = computeFactory->GetDeviceAt(deviceIndex, &computeDevice);
+    AMF_RETURN_IF_FAILED(result, L"GetDeviceAt failed\n");
+
+#if !defined ENABLE_METAL
+    result = contextAMF->InitOpenCLEx(computeDevice);
+#else
+    result = contextAMF->InitMetalEx(computeDevice);
+#endif
+
+    AMF_RETURN_IF_FAILED(result, L"InitOpenCLEx failed\n");
+
+    if (compute1)
+    {
+        amf_int64 param = flag1 & 0x0FFFF;
+        result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
+        AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+
+        result = computeDevice->CreateCompute(nullptr, compute1);
+        AMF_RETURN_IF_FAILED(result, L"CreateCompute 1 failed\n");
+    }
+
+    if (compute2)
+    {
+        amf_int64 param = flag2 & 0x0FFFF;
+        result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
+        AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+
+        result = computeDevice->CreateCompute(nullptr, compute2);
+        AMF_RETURN_IF_FAILED(result, L"CreateCompute 2 failed\n");
+    }
+
+    return result;
+}
+
+bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *context, cl_device_type clDeviceType)
+{
+
+#ifdef _WIN32
     HMODULE GPUUtilitiesDll = NULL;
     GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
     if (NULL == GPUUtilitiesDll)
         return false;
 
-    typedef int  (WINAPI *getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType);
+    typedef int(WINAPI * getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType);
     getDeviceAndContextType getDeviceAndContext = nullptr;
     getDeviceAndContext = (getDeviceAndContextType)GetProcAddress(GPUUtilitiesDll, "getDeviceAndContext");
     if (NULL == getDeviceAndContext)
         return false;
-    #endif
+#endif
 
     cl_context clContext = NULL;
     cl_device_id clDevice = NULL;
@@ -395,23 +509,23 @@ bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *conte
     return true;
 }
 
-bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount)
+bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue *pcmdQueue1, cl_command_queue *pcmdQueue2, int Q1CUcount, int Q2CUcount)
 {
     cl_int err = 0;
     cl_device_id device = NULL;
     cl_context context = NULL;
-    cl_device_partition_property props[] = { CL_DEVICE_PARTITION_BY_COUNTS,
-        Q2CUcount, Q1CUcount, CL_DEVICE_PARTITION_BY_COUNTS_LIST_END, 0 }; // count order seems reversed! 
+    cl_device_partition_property props[] = {CL_DEVICE_PARTITION_BY_COUNTS,
+                                            Q2CUcount, Q1CUcount, CL_DEVICE_PARTITION_BY_COUNTS_LIST_END, 0}; // count order seems reversed!
 
     GetDeviceFromIndex(deviceIndex, &device, &context, CL_DEVICE_TYPE_CPU); // only implemented for CPU
 
-    cl_device_id outdevices[2] = { NULL , NULL };
+    cl_device_id outdevices[2] = {NULL, NULL};
 
     err = clCreateSubDevices(device,
-        props,
-        2,
-        outdevices,
-        NULL);
+                             props,
+                             2,
+                             outdevices,
+                             NULL);
 
     *pcmdQueue1 = clCreateCommandQueue(context, outdevices[0], NULL, &err);
     //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue1, err);
@@ -422,29 +536,28 @@ bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue
     return err;
 }
 
-
-bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2, cl_device_type clDeviceType)
+bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2, cl_device_type clDeviceType)
 {
     bool AllIsOK = true;
 
-    #ifdef _WIN32
+#ifdef _WIN32
     HMODULE GPUUtilitiesDll = NULL;
     GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
     if (NULL == GPUUtilitiesDll)
         return false;
 
-    typedef int  (WINAPI *getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType);
+    typedef int(WINAPI * getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType);
     getDeviceAndContextType getDeviceAndContext = nullptr;
     getDeviceAndContext = (getDeviceAndContextType)GetProcAddress(GPUUtilitiesDll, "getDeviceAndContext");
     if (NULL == getDeviceAndContext)
         return false;
 
-    typedef cl_command_queue(WINAPI *createQueueType)(cl_context context, cl_device_id device, int, int);
+    typedef cl_command_queue(WINAPI * createQueueType)(cl_context context, cl_device_id device, int, int);
     createQueueType createQueue = nullptr;
     createQueue = (createQueueType)GetProcAddress(GPUUtilitiesDll, "createQueue");
     if (NULL == createQueue)
         return false;
-    #endif
+#endif
 
     cl_context clContext = NULL;
     cl_device_id clDevice = NULL;
@@ -458,7 +571,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
     clRetainContext(clContext);
 
     if (NULL != pcmdQueue1)
-    {//user requested one queue
+    { //user requested one queue
         cl_command_queue tempQueue = createQueue(clContext, clDevice, 0, 0);
         if (NULL == tempQueue)
         {
@@ -469,7 +582,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
     }
 
     if (NULL != pcmdQueue2)
-    {//user requested second queue
+    { //user requested second queue
         cl_command_queue tempQueue = createQueue(clContext, clDevice, 0, 0);
         if (NULL == tempQueue)
         {
@@ -514,7 +627,8 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue*
     return AllIsOK;
 }
 
-bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2)
+#ifndef TAN_NO_OPENCL
+bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2)
 {
     bool bResult = false;
     switch (CreateCommandQueuesVIAamf(deviceIndex, flag1, pcmdQueue1, flag2, pcmdQueue2, AMF_CONTEXT_DEVICE_TYPE_GPU))
@@ -522,13 +636,12 @@ bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pc
     case AMF_NOT_INITIALIZED:
         bResult = CreateCommandQueuesVIAocl(deviceIndex, 0, pcmdQueue1, 0, pcmdQueue2, CL_DEVICE_TYPE_GPU);
         break;
-    default:
-        ;
+    default:;
     }
     return bResult;
 }
 
-bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2)
+bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2)
 {
     bool bResult = false;
     switch (CreateCommandQueuesVIAamf(deviceIndex, flag1, pcmdQueue1, flag2, pcmdQueue2, AMF_CONTEXT_DEVICE_TYPE_CPU))
@@ -536,41 +649,32 @@ bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pc
     case AMF_NOT_INITIALIZED:
         bResult = CreateCommandQueuesVIAocl(deviceIndex, 0, pcmdQueue1, 0, pcmdQueue2, CL_DEVICE_TYPE_CPU);
         break;
-    default:
-        ;
+    default:;
     }
     return bResult;
-
-    return bResult;
 }
 
-/*
-int create1QueueOnDevice(cl_command_queue *queue, int devIdx = 0)
+#else
+
+bool CreateGpuCommandQueues(
+    int deviceIndex,
+    int32_t flag1,
+    amf::AMFCompute **compute1,
+    int32_t flag2,
+    amf::AMFCompute **compute2,
+    amf::AMFContext **context = nullptr)
 {
-    cl_context context;
-    cl_device_id device;
-    getDeviceAndContext(devIdx, &context, &device);
-
-    *queue = createQueue(context, device);
-
-    clReleaseContext(context);
-    clReleaseDevice(device);
-
-    return 0;
+    return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_GPU, context);
 }
-int create2QueuesOnDevice(cl_command_queue *queue1, cl_command_queue *queue2, int devIdx = 0)
+
+bool CreateCpuCommandQueues(
+    int deviceIndex,
+    int32_t flag1,
+    amf::AMFCompute **compute1,
+    int32_t flag2,
+    amf::AMFCompute **compute2,
+    amf::AMFContext **context = nullptr)
 {
-    cl_context context;
-    cl_device_id device;
-    getDeviceAndContext(devIdx, &context, &device);
-
-    *queue1 = createQueue(context, device);
-    *queue2 = createQueue(context, device);
-
-    clReleaseContext(context);
-    clReleaseDevice(device);
-
-
-    return 0;
+    return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_CPU, context);
 }
-*/
+#endif

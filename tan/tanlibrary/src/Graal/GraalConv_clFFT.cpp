@@ -1,5 +1,6 @@
+// MIT license
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -65,7 +66,14 @@ namespace graal
     }
 #endif
 
-CGraalConv_clFFT::CGraalConv_clFFT()
+CGraalConv_clFFT::CGraalConv_clFFT(
+#ifdef TAN_NO_OPENCL
+        amf::AMFFactory * factory
+#endif
+    )
+#ifdef TAN_NO_OPENCL
+        : CGraalConv(factory)
+#endif
 {
 }
 
@@ -199,10 +207,10 @@ int CGraalConv_clFFT::initializeConv(
 
     num_blocks_ = static_cast<int>((_max_conv_sz + block_sz_ - 1) / block_sz_);
 
-    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);    
+    //aligned_proc_bufffer_sz_ = (1 << processing_log2_);
     aligned_proc_bufffer_sz_ = static_cast<int>(max_proc_buffer_sz_);
     aligned_processing_sz_ = aligned_proc_bufffer_sz_ * 2;
-    
+
     //max_conv_sz_ = ((_max_conv_sz + 1023) / 1024 ) * 1024;
     max_conv_sz_ = num_blocks_ * block_sz_;
 
@@ -256,6 +264,14 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     //CGraalConv::setupCL(pComputeConvolution, pComputeUpdate);
 #endif
 
+#ifndef TAN_NO_OPENCL
+    cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
+    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
+#else
+    cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
+#endif
+
     clIRInputBuf.resize(n_max_channels_);
     clIRInputPaddedBuf.resize(n_max_channels_);
     clIRBlocksBuf.resize(n_max_channels_);
@@ -270,8 +286,13 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     }
     else
     {
+#ifndef TAN_NO_OPENCL
         clientContext_ = m_pContextTAN->GetOpenCLContext();
-        clientQ_ = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
+        clientQ_ = convolutionQueue;
+#else
+        clientContext_ = cl_context(m_pContextTAN->GetAMFContext()->GetOpenCLContext());
+        clientQ_ = convolutionQueue;
+#endif
     }
 
 
@@ -358,37 +379,204 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     }
 
     bool goit = false;
-    goit = GetOclKernel(padKernel_, pComputeUpdate, this->m_pContextTAN->GetOpenCLGeneralQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels,
-                                    amdFFT_conv_kernelsCount, "amdPadFFTBlock", "");
+
+    goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
+        padKernel_,
+#else
+        mPadKernel,
+#endif
+
+        pComputeUpdate,
+
+#ifndef TAN_NO_OPENCL
+        generalQueue,
+#else
+
+#endif
+
+        "FFT_conv_kernels",
+        (const char*)amdFFT_conv_kernels,
+        amdFFT_conv_kernelsCount,
+        "amdPadFFTBlock",
+        ""
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdPadFFTBlock");
 
+#ifdef TAN_NO_OPENCL
+    padKernel_ = cl_kernel(mPadKernel->GetNative());
+#endif
+
     m_copyWithPaddingKernel = padKernel_;
-    goit = GetOclKernel(interleaveKernel_, pComputeUpdate, this->m_pContextTAN->GetOpenCLGeneralQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
-                                      "amdInterleaveFFTBlock", "");
+
+    goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
+        interleaveKernel_,
+#else
+        mInterleaveKernel,
+#endif
+
+        pComputeUpdate,
+
+#ifndef TAN_NO_OPENCL
+        generalQueue,
+#else
+
+#endif
+
+        "FFT_conv_kernels",
+        (const char*)amdFFT_conv_kernels,
+        amdFFT_conv_kernelsCount,
+        "amdInterleaveFFTBlock",
+        ""
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdInterleaveFFTBlock");
-    goit = GetOclKernel(deinterleaveKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
-                                      "amdDeinterleaveFFTBlock", "");
+
+#ifdef TAN_NO_OPENCL
+    interleaveKernel_ = cl_kernel(mInterleaveKernel->GetNative());
+#endif
+
+    goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
+        deinterleaveKernel_,
+#else
+        mDeinterleaveKernel,
+#endif
+
+        pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
+        convolutionQueue,
+#else
+
+#endif
+
+        "FFT_conv_kernels",
+        (const char*)amdFFT_conv_kernels,
+        amdFFT_conv_kernelsCount,
+        "amdDeinterleaveFFTBlock",
+        ""
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdDeinterleaveFFTBlock");
 
+#ifdef TAN_NO_OPENCL
+    deinterleaveKernel_ = cl_kernel(mDeinterleaveKernel->GetNative());
+#endif
+
     //These MuliChan kernels handle multiple channels at a time
-    goit = GetOclKernel(interleaveMultiChanKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
-                                      "amdInterleaveFFTBlockMultiChan", "");
+    goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
+        interleaveMultiChanKernel_,
+#else
+        mInterleaveMultiChanKernel,
+#endif
+
+        pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
+        convolutionQueue,
+#else
+
+#endif
+
+        "FFT_conv_kernels",
+        (const char*)amdFFT_conv_kernels,
+        amdFFT_conv_kernelsCount,
+        "amdInterleaveFFTBlockMultiChan",
+        ""
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdInterleaveFFTBlockMultiChan");
-    goit = GetOclKernel(madaccMultiChanKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
-                                      "amdMADAccBlocksMultiChan", "");
+
+#ifdef TAN_NO_OPENCL
+    interleaveMultiChanKernel_ = cl_kernel(mInterleaveMultiChanKernel->GetNative());
+#endif
+
+    goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
+        madaccMultiChanKernel_,
+#else
+        mMadaccMultiChanKernel,
+#endif
+
+        pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
+        convolutionQueue,
+#else
+
+#endif
+
+        "FFT_conv_kernels",
+        (const char*)amdFFT_conv_kernels,
+        amdFFT_conv_kernelsCount,
+        "amdMADAccBlocksMultiChan",
+        ""
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdMADAccBlocksMultiChan");
-    goit = GetOclKernel(sigHistInsertMultiChanKernel_, pComputeConvolution, this->m_pContextTAN->GetOpenCLConvQueue(),
-                                    "FFT_conv_kernels", (const char*)amdFFT_conv_kernels, amdFFT_conv_kernelsCount,
-                                      "amdSigHistoryInsertMultiChan", "");
+
+#ifdef TAN_NO_OPENCL
+    madaccMultiChanKernel_ = cl_kernel(mMadaccMultiChanKernel->GetNative());
+#endif
+
+    goit = GetOclKernel(
+
+#ifndef TAN_NO_OPENCL
+        sigHistInsertMultiChanKernel_,
+#else
+        mSigHistInsertMultiChanKernel,
+#endif
+
+        pComputeConvolution,
+
+#ifndef TAN_NO_OPENCL
+        convolutionQueue,
+#else
+
+#endif
+
+        "FFT_conv_kernels",
+        (const char*)amdFFT_conv_kernels,
+        amdFFT_conv_kernelsCount,
+        "amdSigHistoryInsertMultiChan",
+        ""
+
+#ifdef TAN_NO_OPENCL
+        , mFactory
+#endif
+        );
     AMF_RETURN_IF_FALSE(true == goit, goit, L"failed: GetOclKernel amdSigHistoryInsertMultiChan");
 
+#ifdef TAN_NO_OPENCL
+    sigHistInsertMultiChanKernel_ = cl_kernel(mSigHistInsertMultiChanKernel->GetNative());
+#endif
+
     /////////////////
-    cl_command_queue graalQ_ = static_cast<cl_command_queue>(m_pContextTAN->GetOpenCLConvQueue());
+    cl_command_queue graalQ_ = static_cast<cl_command_queue>(convolutionQueue);
 
     // channels map
     CABuf<int> *chnls_map_buf = new CABuf<int>(CABufArgs);
@@ -417,11 +605,19 @@ CGraalConv_clFFT::setupCLFFT()
     clfftStatus status;
     size_t double_block_sz_64 = double_block_sz_;
 
-    cl_command_queue    commandqueue_Convolution = m_pContextTAN->GetOpenCLConvQueue();
+#ifndef TAN_NO_OPENCL
+    cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
+    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
+#else
+    cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
+#endif
+
+    cl_command_queue    commandqueue_Convolution = convolutionQueue;
     cl_context          context_Convolution = NULL;
     clGetCommandQueueInfo(commandqueue_Convolution, CL_QUEUE_CONTEXT, sizeof(context_Convolution), &context_Convolution, NULL);
 
-    m_commandqueue_Update = m_pContextTAN->GetOpenCLGeneralQueue();
+    m_commandqueue_Update = generalQueue;
     cl_context          context_Update = NULL;
     clGetCommandQueueInfo(m_commandqueue_Update, CL_QUEUE_CONTEXT, sizeof(context_Update), &context_Update, NULL);
 
@@ -773,6 +969,14 @@ int CGraalConv_clFFT::updateConv(
 {
     processLock.lock();
 
+#ifndef TAN_NO_OPENCL
+    //cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
+    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
+#else
+    //cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
+#endif
+
     cl_int ret = CL_SUCCESS;
     clfftStatus fftstatus = CLFFT_SUCCESS;
 
@@ -834,7 +1038,7 @@ int CGraalConv_clFFT::updateConv(
         }
 
 #ifdef TAN_SDK_EXPORTS
-        ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLGeneralQueue(), padKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
+        ret = clEnqueueNDRangeKernel(generalQueue, padKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"updateConv clEnqueueNDRangeKernel failed: " )
 #else
         ret = clEnqueueNDRangeKernel(clientQ_, padKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
@@ -854,7 +1058,7 @@ int CGraalConv_clFFT::updateConv(
             g_wk[0] = num_blocks_ * double_block_sz_;
 
 #ifdef TAN_SDK_EXPORTS
-            ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLGeneralQueue(), interleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
+            ret = clEnqueueNDRangeKernel(generalQueue, interleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"updateConv clEnqueueNDRangeKernel failed: " )
 #else
             ret = clEnqueueNDRangeKernel(clientQ_, interleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
@@ -912,6 +1116,14 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
     const bool synchronous
     )
 {
+#ifndef TAN_NO_OPENCL
+    //cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
+    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
+#else
+    //cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
+#endif
+
     for (amf_uint32 channelId = 0; channelId < n_channels; channelId++)
     {
         AMF_RETURN_IF_FALSE(pFromUploadIds[channelId] < n_sets_, AMF_INVALID_ARG,
@@ -950,7 +1162,7 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
 
         size_t l_wk[3] = { size_t(std::min(max_conv_sz_freq_, 256)), 1, 1 };
         size_t g_wk[3] = { size_t(max_conv_sz_freq_), 1, 1 }; //divide by 4 as we process a vec4
-        ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLGeneralQueue(), m_copyWithPaddingKernel, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
+        ret = clEnqueueNDRangeKernel(generalQueue, m_copyWithPaddingKernel, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"copyResponses clEnqueueNDRangeKernel failed: " )
     }
 
@@ -986,9 +1198,15 @@ int CGraalConv_clFFT::process(
 
     int inspectCh = 1;
 
+#ifndef TAN_NO_OPENCL
+    cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
+#else
+    cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
+#endif
+
     //setup maps used to control kernels
 #ifdef TAN_SDK_EXPORTS
-    cl_command_queue clientQ_ = m_pContextTAN->GetOpenCLConvQueue();
+    cl_command_queue clientQ_ = convolutionQueue;
 #endif
 
     int* ChannelMap = clChannelMap->map(clientQ_, CL_MAP_WRITE);
@@ -1062,7 +1280,7 @@ int CGraalConv_clFFT::process(
 
     g_wk[0] = freq_block_sz_ * n_channels / 2;
 #ifdef TAN_SDK_EXPORTS
-    ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLConvQueue(), interleaveMultiChanKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(convolutionQueue, interleaveMultiChanKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
 #else
     ret = clEnqueueNDRangeKernel(clientQ_, interleaveMultiChanKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
@@ -1111,7 +1329,7 @@ int CGraalConv_clFFT::process(
     g_wk[0] = freq_block_sz_;
     g_wk[1] = n_channels;
 #ifdef TAN_SDK_EXPORTS
-    ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLConvQueue(), sigHistInsertMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(convolutionQueue, sigHistInsertMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
 #else
     ret = clEnqueueNDRangeKernel(clientQ_, sigHistInsertMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
@@ -1149,7 +1367,7 @@ int CGraalConv_clFFT::process(
     g_wk[0] = freq_block_num_elements_;
     g_wk[1] = n_channels;
 #ifdef TAN_SDK_EXPORTS
-    ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLConvQueue(), madaccMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(convolutionQueue, madaccMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
 #else
     ret = clEnqueueNDRangeKernel(clientQ_, madaccMultiChanKernel_, 2, NULL, g_wk, l_wk, 0, NULL, NULL);
@@ -1196,7 +1414,7 @@ int CGraalConv_clFFT::process(
     g_wk[0] = double_block_sz_ * n_channels;
     g_wk[1] = 1;
 #ifdef TAN_SDK_EXPORTS
-    ret = clEnqueueNDRangeKernel(this->m_pContextTAN->GetOpenCLConvQueue(), deinterleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
+    ret = clEnqueueNDRangeKernel(convolutionQueue, deinterleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"process clEnqueueNDRangeKernel failed: " )
 #else
     ret = clEnqueueNDRangeKernel(clientQ_, deinterleaveKernel_, 1, NULL, g_wk, l_wk, 0, NULL, NULL);

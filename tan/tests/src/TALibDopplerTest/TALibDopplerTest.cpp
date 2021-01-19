@@ -4,9 +4,9 @@
 #include "FileUtility.h"
 #include "StringUtility.h"
 
-#include "tanlibrary/include/TrueAudioNext.h"
-#include "samples/src/TrueAudioVR/TrueAudioVR.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "TrueAudioNext.h"
+#include "TrueAudioVR.h"
+#include "GpuUtilities.h"
 
 #include <vector>
 #include <iostream>
@@ -15,8 +15,8 @@
 #include <memory.h>
 #include <math.h>
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
-    #include <omp.h>
+#ifdef OMP_ENABLED
+  #include <omp.h>
 #endif
 
 #if defined(_WIN32)
@@ -443,9 +443,9 @@ int main(int argc, char* argv[])
 
     waveFileNames[0] = new char[MAX_PATH + 4];
 
-	uint32_t SamplesPerSec = 48000;
+	uint32_t SamplesPerSec = FILTER_SAMPLE_RATE;
 	uint16_t BitsPerSample = 16;
-	uint16_t NChannels = 2;
+	uint16_t NChannels = STEREO_CHANNELS_COUNT;
     uint32_t NSamples = 0;
     unsigned char *pSamples = NULL;
     float **pfSamples = NULL;

@@ -17,15 +17,17 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # name
 project(TALibVRTest DESCRIPTION "TALibVRTest")
 
-include_directories(../../../../../amf)
-include_directories(../../../../../tan)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_HEADERS})
 
-include_directories(../../../../common)
+include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
+include_directories(${TAN_ROOT}/tan/samples/src/TrueAudioVR)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -35,8 +37,8 @@ ADD_DEFINITIONS(-D_UNICODE)
 # sources
 set(
   SOURCE_EXE
-  ../../../../common/wav.cpp
-  ../../../../common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
 
   ../../../src/TALibVRTest/stdafx.cpp
   ../../../src/TALibVRTest/TALibVRTest.cpp
@@ -44,8 +46,8 @@ set(
 
 set(
   HEADER_EXE
-  ../../../../common/wav.h
-  ../../../../common/FileUtility.h
+  ${TAN_ROOT}/utils/common/wav.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
 
   ../../../src/TALibVRTest/stdafx.h
   ../../../src/TALibVRTest/targetver.h
@@ -58,6 +60,6 @@ add_executable(
   ${HEADER_EXE}
   )
 
-  target_link_libraries(TALibVRTest TrueAudioNext)
-  target_link_libraries(TALibVRTest GPUUtilities)
-  target_link_libraries(TALibVRTest TrueAudioVR)
+target_link_libraries(TALibVRTest TrueAudioNext)
+target_link_libraries(TALibVRTest GPUUtilities)
+target_link_libraries(TALibVRTest TrueAudioVR)

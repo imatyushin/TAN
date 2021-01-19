@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +43,7 @@
 
 #include "public/common/thread.h"
 
-#  include "tanlibrary/include/TrueAudioNext.h"
+#  include "TrueAudioNext.h"
 
 #  include "public/include/core/Compute.h"
 #  include "public/include/core/Context.h"
@@ -115,7 +117,7 @@ static double subtractTimes(double endTime, double startTime)
 namespace graal
 {
 // implemented pipelines
-    enum {
+    enum GRAAL_ALG {
 // selected by Graal
         ALG_ANY,
 // uniform "classical" pipeline:
@@ -126,8 +128,9 @@ namespace graal
 // direct transform-> MAD (with the 0th conv block) + tail sum->inverse transform
 // 2nd stage is done in background, bulids the "tail" sum.
 // MAD (with all conv blocks except 0th)
-        ALG_UNI_HEAD_TAIL
-    };
+        ALG_UNI_HEAD_TAIL,
+		ALG_USE_PROCESS_FINALIZE = 0x8000 // use ProcessFinalize() optimization for HEAD_TAIL mode
+	};
 
 class CGraalConv
 {
@@ -137,7 +140,11 @@ class CGraalConv
      * Constructor
      * Initialize member variables
      */
-     CGraalConv(void);
+     CGraalConv(
+#ifdef TAN_NO_OPENCL
+        amf::AMFFactory * factory
+#endif
+        );
 
     /**
      * Destructor
@@ -327,11 +334,22 @@ class CGraalConv
       */
      virtual AMF_RESULT finishProcess(void)
      {
+#ifndef TAN_NO_OPENCL
         cl_int status = CL_SUCCESS;
         status = clFlush(m_pContextTAN->GetOpenCLConvQueue());
+        cl_command_queue uploadQ = m_pContextTAN->GetOpenCLGeneralQueue();
         AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFlush" );
+#else
+        AMF_RETURN_IF_FAILED(m_pContextTAN->GetAMFConvQueue()->FlushQueue());
+#endif
+
+#ifndef TAN_NO_OPENCL
         status = clFinish(m_pContextTAN->GetOpenCLConvQueue());
         AMF_RETURN_IF_CL_FAILED(status, L"failed: finishProcess clFinish" );
+#else
+        AMF_RETURN_IF_FAILED(m_pContextTAN->GetAMFConvQueue()->FinishQueue());
+#endif
+
         return AMF_OK;
      }
 
@@ -412,6 +430,7 @@ class CGraalConv
         int _crossfade_state = 0
         );
 
+	virtual AMF_RESULT processFinalize();
 
      /**
       * Flushes history.
@@ -488,6 +507,10 @@ class CGraalConv
 
 
 protected:
+#ifdef TAN_NO_OPENCL
+    amf::AMFFactory             *mFactory = nullptr;
+#endif
+
 #ifdef TAN_SDK_EXPORTS
     amf::TANContextPtr          m_pContextTAN;
 
@@ -619,6 +642,27 @@ protected:
         bool _use_xf_buff = false
         );
 
+	struct ProcessParams {
+		int prev_input;
+		int advance_time;
+		int skip_stage;
+		int n_channels;
+		ProcessParams() {
+			n_channels = 0;
+		}
+		void set(
+			int _prev_input,
+			int _advance_time,
+			int _skip_stage,
+			int _n_channels
+		) {
+			prev_input = _prev_input;
+			advance_time = _advance_time;
+			skip_stage = _skip_stage;
+			n_channels = _n_channels;
+		}
+	} m_processParams, m_processParams_xf;
+
     /*
         classic
     */
@@ -673,8 +717,9 @@ protected:
     int n_input_qs_;    // n process queues 2
     int n_accum_blocks_; // n blocks accumulated at one CMAD invokation
     int n_stages_;    // classic  = 1, head tail 2
+	int m_useProcessFinalize;
 
-// intenal state
+// internal state
     int algorithm_;
     int n_max_channels_;
     int max_conv_sz_;
@@ -695,8 +740,8 @@ protected:
     // single Graal OCL Q ???
 #ifndef TAN_SDK_EXPORTS
     bool own_queue_;
-    cl_command_queue graalQ_;
-    cl_command_queue graalTailQ_;
+    //cl_command_queue graalQ_;
+    //cl_command_queue graalTailQ_;
     // end of pipeline event
     cl_event eop_event_;
     // end of head event
@@ -721,15 +766,24 @@ protected:
     void * kernel_trasformed_union_;  // base union store
 
 private:
+//#ifndef TAN_NO_OPENCL
 // upload in a single run
     cl_kernel uploadKernel_;
 // upload per stream
     cl_kernel uploadKernel2_;
 
     cl_kernel resetKernel_;
+//#endif
 
 protected:
     cl_kernel m_copyWithPaddingKernel;
+
+#ifdef TAN_NO_OPENCL
+    amf::AMFComputeKernelPtr mUploadKernel;
+    amf::AMFComputeKernelPtr mUploadKernel2;
+    amf::AMFComputeKernelPtr mResetKernel;
+    amf::AMFComputeKernelPtr mCopyWithPaddingKernel;
+#endif
 
     int64_t round_counter_;
 
@@ -743,6 +797,7 @@ protected:
     void* channels_map_;
 // set map
     void* sets_map_;
+	void* sets_map_xf;
 // input data
     CABuf<float> m_process_input_staging_;
 // input transformed history
@@ -764,6 +819,16 @@ protected:
     cl_kernel inverseTransformKernel_;
     std::vector<cl_kernel> CMADKernels_;
     cl_kernel convHead1_;
+
+#ifdef TAN_NO_OPENCL
+    amf::AMFComputeKernelPtr mInputKernel;
+    amf::AMFComputeKernelPtr mInputStageKernel;
+    amf::AMFComputeKernelPtr mDirectTransformKernel;
+    amf::AMFComputeKernelPtr mInverseTransformKernel;
+    std::vector<amf::AMFComputeKernelPtr> mCMADKernels;
+    amf::AMFComputeKernelPtr mConvHead1;
+#endif
+
     cl_event m_headTailKernelEvent;
     cl_event m_pullKernelEvent;
     void * FHT_transformCPU_;
@@ -773,6 +838,5 @@ protected:
 };
 
 };
-
 
 #endif

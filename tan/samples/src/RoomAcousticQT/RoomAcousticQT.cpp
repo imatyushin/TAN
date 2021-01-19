@@ -1,7 +1,25 @@
 #include "RoomAcousticQT.h"
-#include "samples/src/common/GpuUtils.h"
-#include "samples/src//TrueAudioVR/TrueAudioVR.h"
+#include "GpuUtils.h"
+#include "TrueAudioVR.h"
 #include "FileUtility.h"
+
+#if defined(_WIN32)
+    #include "../common/WASAPIPlayer.h"
+#else
+	#if !defined(__MACOSX) && !defined(__APPLE__)
+		#include "../common/AlsaPlayer.h"
+	#endif
+#endif
+
+#ifdef ENABLE_PORTAUDIO
+	#include "../common/PortPlayer.h"
+#endif
+
+#ifndef TAN_NO_OPENCL
+  #include "Audio3DOpenCL.h"
+#else
+  #include "Audio3DAMF.h"
+#endif
 
 #include <time.h>
 #include <ctime>
@@ -9,7 +27,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
-#include <cassert>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <io.h>
@@ -71,7 +89,36 @@ bool RoomAcousticQT::start()
 		}
 	}
 
-	bool started = mAudioEngine->Init(
+	//initialize hardware
+    mPlayer.reset(
+#if defined(__MACOSX) || defined(__APPLE__)
+        static_cast<IWavPlayer *>(new PortPlayer())
+#else
+
+#ifdef ENABLE_PORTAUDIO
+        playerType == "PortAudio"
+            ? static_cast<IWavPlayer *>(new PortPlayer())
+            :
+#ifdef _WIN32
+                static_cast<IWavPlayer *>(new WASAPIPlayer())
+#elif !defined(__MACOSX) && !defined(__APPLE__)
+                static_cast<IWavPlayer *>(new AlsaPlayer())
+#endif
+
+#else
+
+#ifdef _WIN32
+        new WASAPIPlayer()
+#elif !defined(__MACOSX) && !defined(__APPLE__)
+        new AlsaPlayer()
+#endif
+
+#endif
+
+#endif
+        );
+
+	bool started = AMF_OK == mAudioEngine->Init(
 		mTANDLLPath,
 		m_RoomDefinition,
 
@@ -105,7 +152,7 @@ bool RoomAcousticQT::start()
 
 		m_eConvolutionMethod,
 
-		mPlayerName
+		mPlayer.get()
 		);
 
 	if(started)
@@ -183,7 +230,14 @@ void RoomAcousticQT::initializeEnvironment()
 
 void RoomAcousticQT::initializeAudioEngine()
 {
-	mAudioEngine.reset(new Audio3D());
+	mAudioEngine.reset(
+		(IAudio3D *)
+#ifndef TAN_NO_OPENCL
+		new Audio3DOpenCL()
+#else
+		new Audio3DAMF()
+#endif
+	    );
 }
 
 void RoomAcousticQT::initializeRoom()
@@ -236,41 +290,17 @@ void RoomAcousticQT::initializeAudioPosition(int index)
 void RoomAcousticQT::enumDevices()
 {
 	{
-		char buffer[MAX_DEVICES * MAX_PATH] = {0};
-		char *devicesNames[MAX_DEVICES] = {0};
+		std::vector<std::string> devicesNames;
+		listCpuDeviceNamesWrapper(devicesNames, g_AMFFactory);
 
-		for(int i = 0; i < MAX_DEVICES; i++)
-		{
-			devicesNames[i] = &buffer[i * MAX_PATH];
-			devicesNames[i][0] = 0;
-		}
-
-		mCPUDevicesCount = listCpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
-		//mCPUDevicesCount = 0; for test
-
-		for(int i = 0; i < mCPUDevicesCount; i++)
-		{
-			mCPUDevicesNames[i] = devicesNames[i];
-		}
+		mCPUDevicesNames = devicesNames;
 	}
 
 	{
-		char buffer[MAX_DEVICES * MAX_PATH] = {0};
-		char *devicesNames[MAX_DEVICES] = {0};
+		std::vector<std::string> devicesNames;
+		listGpuDeviceNamesWrapper(devicesNames, g_AMFFactory);
 
-		for(int i = 0; i < MAX_DEVICES; i++)
-		{
-			devicesNames[i] = &buffer[i * MAX_PATH];
-			devicesNames[i][0] = 0;
-		}
-
-		mGPUDevicesCount = listGpuDeviceNamesWrapper(devicesNames, MAX_DEVICES);
-		//mGPUDevicesCount = 1; //for test
-
-		for(int i = 0; i < mGPUDevicesCount; i++)
-		{
-			mGPUDevicesNames[i] = devicesNames[i];
-		}
+		mGPUDevicesNames = devicesNames;
 	}
 }
 
@@ -290,12 +320,7 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 
 	for(int waveFileIndex(0); waveFileIndex < MAX_SOURCES; ++waveFileIndex)
 	{
-		if(waveFileIndex > m_iNumOfWavFile)
-		{
-			mWavFileNames[waveFileIndex].resize(0);
-			mSoundSourceEnable[waveFileIndex] = false;
-		}
-		else
+		if(waveFileIndex < m_iNumOfWavFile)
 		{
 			auto sourceName = std::string("SOURCES/Source") + std::to_string(waveFileIndex);
 
@@ -311,6 +336,11 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 			m_SoundSources[waveFileIndex].speakerY = settings.value((sourceName + "SpeakerY").c_str()).toFloat();
 			m_SoundSources[waveFileIndex].speakerZ = settings.value((sourceName + "SpeakerZ").c_str()).toFloat();
 		}
+        else
+        {
+            mWavFileNames[waveFileIndex].resize(0);
+            mSoundSourceEnable[waveFileIndex] = false;
+        }
 	}
 
 	mPlayerName = settings.value("MAIN/Player").toString().toStdString();
@@ -351,7 +381,7 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 }
 
 /* Save Room acoustic configuration in xml file*/
-void RoomAcousticQT::saveConfiguraiton(const std::string& xmlfilename)
+void RoomAcousticQT::saveConfiguration(const std::string& xmlfilename)
 {
 	QSettings settings(xmlfilename.c_str(), QSettings::IniFormat);
 
@@ -528,44 +558,28 @@ float RoomAcousticQT::getReverbTime(float final_db, int* nreflections)
 
 float RoomAcousticQT::getConvolutionTime()
 {
-	return m_iConvolutionLength / 48000.0f;
+	return m_iConvolutionLength / float(FILTER_SAMPLE_RATE);
 }
 
 float RoomAcousticQT::getBufferTime()
 {
-	return m_iBufferSize / 48000.0f;
+	return m_iBufferSize / float(FILTER_SAMPLE_RATE);
 }
 
-std::vector<std::string> RoomAcousticQT::getCPUConvMethod() const
-{
-	return {
-		"FFT OVERLAP ADD"
-		};
-}
+std::map<TAN_CONVOLUTION_METHOD, std::string> RoomAcousticQT::MethodNames = {
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, "FFT OVERLAP ADD"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL, "UNIFORM PARTITIONED_GPU"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED, "NONUNIFORM PARTITIONED_GPU"}
+	};
+std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesCPU = {
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD
+	};
 
-std::vector<std::string> RoomAcousticQT::getGPUConvMethod() const
-{
-	return {
-		"FFT OVERLAP ADD",
-		"FFT UNIFORM PARTITIONED",
-		"FHT UNIFORM PARTITIONED",
-		"FHT UINFORM HEAD TAIL"
-		};
-}
-
-amf::TAN_CONVOLUTION_METHOD RoomAcousticQT::getConvMethodFlag(const std::string& _name)
-{
-	if (_name == "FFT OVERLAP ADD")
-		return TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-	if (_name == "FFT UNIFORM PARTITIONED")
-		return TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED;
-	if (_name == "FHT UNIFORM PARTITIONED")
-		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED;
-	if (_name == "FHT UINFORM HEAD TAIL")
-		return TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL;
-
-	return TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
-}
+std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesGPU = {
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
+	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED
+	};
 
 void RoomAcousticQT::updateAllSoundSourcesPosition()
 {
@@ -590,8 +604,7 @@ void RoomAcousticQT::updateSoundSourcePosition(int index)
 
 void RoomAcousticQT::UpdateSoundSourcesPositions()
 {
-	return;
-	for(int index = 0; index < MAX_SOURCES; index++)
+	/*for(int index = 0; index < MAX_SOURCES; index++)
 	{
 		if(mWavFileNames[index].length() && mSoundSourceEnable[index])
 		{
@@ -610,7 +623,7 @@ void RoomAcousticQT::UpdateSoundSourcesPositions()
 				m_SoundSources[index].speakerZ
 				);
 		}
-	}
+	}*/
 }
 
 void RoomAcousticQT::updateListenerPosition()

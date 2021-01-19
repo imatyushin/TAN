@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,15 +20,23 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+//
+
 #include "MixerImpl.h"
 #include "../core/TANContextImpl.h"
 #include "public/common/AMFFactory.h"
-#include "../../common/OCLHelper.h"
+#include "OCLHelper.h"
+#include "Debug.h"
 #include "cpucaps.h"
 
 #include <math.h>
 
-#include "CLKernel_Mixer.h"
+#ifdef ENABLE_METAL
+  #include "MetalKernel_Mixer.h"
+#else
+  #include "CLKernel_Mixer.h"
+#endif
+
 #define AMF_FACILITY L"TANMixerImpl"
 
 #ifndef _WIN32
@@ -35,16 +45,8 @@
 
 using namespace amf;
 
-bool TANMixerImpl::useSSE2 = InstructionSet::SSE2();
+bool TANMixerImpl::useSSE2 = true; // InstructionSet::SSE2();
 
-static const AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
-{
-#if AMF_BUILD_OPENCL
-    {AMF_MEMORY_OPENCL,     L"OpenCL"},
-#endif
-    {AMF_MEMORY_HOST,       L"CPU"},
-    {AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
-};
 //-------------------------------------------------------------------------------------------------
 TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMixer(
     amf::TANContext* pContext,
@@ -52,17 +54,24 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateMixer(
     )
 {
     TANContextImplPtr contextImpl(pContext);
-    *ppComponent = new TANMixerImpl(pContext, NULL );
+    *ppComponent = new TANMixerImpl(pContext, NULL);
     (*ppComponent)->Acquire();
     return AMF_OK;
 }
 //-------------------------------------------------------------------------------------------------
 TANMixerImpl::TANMixerImpl(TANContext *pContextTAN, AMFContext* pContextAMF) :
     m_pContextTAN(pContextTAN),
-    m_pContextAMF(pContextAMF),
-    m_pCommandQueueCl(nullptr),
-    m_eOutputMemoryType(AMF_MEMORY_HOST)
+    m_pContextAMF(pContextAMF)
 {
+#ifndef TAN_NO_OPENCL
+    printf("TODO: implement this?\n");
+#else
+    if(!m_pContextAMF && m_pContextTAN)
+    {
+        m_pContextAMF = m_pContextTAN->GetAMFContext();
+    }
+#endif
+
     AMFPrimitivePropertyInfoMapBegin
         AMFPropertyInfoEnum(TAN_OUTPUT_MEMORY_TYPE ,  L"Output Memory Type", AMF_MEMORY_HOST, AMF_MEMORY_ENUM_DESCRIPTION, false),
     AMFPrimitivePropertyInfoMapEnd
@@ -72,6 +81,7 @@ TANMixerImpl::~TANMixerImpl(void)
 {
     Terminate();
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     amf_size buffer_size,
@@ -81,13 +91,23 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Init(
     AMFLock lock(&m_sect);
     m_bufferSize = buffer_size;
     m_numChannels = num_channels;
-    AMF_RETURN_IF_FALSE(!m_pDeviceAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
+    AMF_RETURN_IF_FALSE(!mAMFCompute, AMF_ALREADY_INITIALIZED, L"Already initialized");
+
+#ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pCommandQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
+#else
+    printf("TODO: add related check\n");
+#endif
+
     AMF_RETURN_IF_FALSE((NULL != m_pContextTAN), AMF_WRONG_STATE,
     L"Cannot initialize after termination");
 
     // Determine how to initialize based on context, CPU for CPU and GPU for GPU
-    if (m_pContextTAN->GetOpenCLContext())
+#ifndef TAN_NO_OPENCL
+    if(m_pContextTAN->GetOpenCLContext())
+#else
+    if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
+#endif
     {
         return InitGpu();
     }
@@ -102,16 +122,18 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitCpu()
     // No device setup needs to occur here; we're done!
     return AMF_OK;
 }
+
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 {
+#ifndef TAN_NO_OPENCL
     cl_int ret;
     AMF_RESULT res = AMF_OK;
 
     /* OpenCL Initialization */
 
     // Given some command queue, retrieve the cl_context...
-    m_pCommandQueueCl = m_pContextTAN->GetOpenCLGeneralQueue();
+    m_pCommandQueueCl = m_pContextTAN->GetOpenCLConvQueue();
     ret = clGetCommandQueueInfo(m_pCommandQueueCl, CL_QUEUE_CONTEXT, sizeof(cl_context),
         &m_pContextCl, NULL);
         AMF_RETURN_IF_CL_FAILED(ret,  L"Cannot retrieve cl_context from cl_command_queue.");
@@ -123,7 +145,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     // Retain the queue for use
     ret = clRetainCommandQueue(m_pCommandQueueCl);
-    //printf("Queue %llX +1\r\n", m_pCommandQueueCl);
+	CLQUEUE_REFCOUNT(m_pCommandQueueCl);
 
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to retain command queue.");
 
@@ -131,23 +153,66 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
     TANContextImplPtr contextImpl(m_pContextTAN);
-    m_pDeviceAMF = contextImpl->GetGeneralCompute();
+    mAMFCompute = contextImpl->GetConvolutionCompute();
 
     m_internalBuff = clCreateBuffer(m_pContextTAN->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufferSize * m_numChannels * sizeof(float), nullptr, &ret);
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create CL buffer");
     //... Preparing OCL Kernel
     bool OCLKenel_Err = false;
-    OCLKenel_Err = GetOclKernel(m_clMix, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "Mixer", Mixer, MixerCount, "Mixer", "");
+    OCLKenel_Err = GetOclKernel(m_clMix, mAMFCompute, contextImpl->GetOpenCLConvQueue(), "Mixer", Mixer, MixerCount, "Mixer", "");
     if (!OCLKenel_Err){ printf("Failed to compile Mixer Kernel"); return AMF_FAIL; }
-	m_OCLInitialized = true;
+	mInitialized = true;
     return res;
+
+#else
+    amf_int64 tmp = 0;
+    GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
+    m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
+
+    TANContextImplPtr contextImpl(m_pContextTAN);
+    mAMFCompute = contextImpl->GetConvolutionCompute();
+    AMF_RETURN_IF_FALSE(mAMFCompute != nullptr, AMF_FAIL);
+
+    AMF_RETURN_IF_FAILED(
+        m_pContextAMF->AllocBuffer(
+#ifndef ENABLE_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+#else
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+#endif
+            ,
+            m_bufferSize * m_numChannels * sizeof(float),
+            &mInternalBufferAMF
+            )
+        );
+    AMF_RETURN_IF_FALSE(
+        GetOclKernel(
+            mMixKernel,
+            mAMFCompute,
+
+            "Mixer",
+            (const char *)Mixer,
+            MixerCount,
+            "Mixer",
+
+            "",
+            TANContextImplPtr(m_pContextTAN)->GetFactory()
+            ),
+        AMF_FAIL
+        );
+    mInitialized = true;
+
+    return AMF_OK;
+
+#endif
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
 {
+#ifndef TAN_NO_OPENCL
     AMFLock lock(&m_sect);
 
-    m_pDeviceAMF = NULL;
+    mAMFCompute = NULL;
     if (m_pContextTAN->GetOpenCLContext() != nullptr)
     {
         AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_clMix), L"Failed to release cl kernel");
@@ -158,17 +223,28 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
     m_pDeviceCl = NULL;
     if (m_pCommandQueueCl)
     {
-        //printf("Queue release %llX\r\n", m_pCommandQueueCl);
-        cl_int ret = clReleaseCommandQueue(m_pCommandQueueCl);
-        AMF_RETURN_IF_CL_FAILED(ret, L"Failed to release command queue.");
+        DBG_CLRELEASE_QUEUE(m_pCommandQueueCl,"m_pCommandQueueCl");
     }
     m_pCommandQueueCl = NULL;
     m_pContextAMF = NULL;
     m_pContextTAN = NULL;
 
+#else
+
+    AMFLock lock(&m_sect);
+
+    mAMFCompute = nullptr;
+    mMixKernel = nullptr;
+
+    mInternalBufferAMF = nullptr;
+
+    m_pContextAMF = nullptr;
+    m_pContextTAN = nullptr;
+
+#endif
+
     return AMF_OK;
 }
-
 
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     float* ppBufferInput[],
@@ -200,6 +276,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     return AMF_OK;
 }
 
+#ifndef TAN_NO_OPENCL
 // For contigous cl_mem input buffers
 AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     cl_mem pBufferInput,
@@ -207,7 +284,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     amf_size inputStride
     )
 {
-	if (!m_OCLInitialized) return AMF_FAIL;
+	if (!mInitialized) return AMF_FAIL;
 	amf_size numOfSamplesToProcess = m_bufferSize;
     int input_stride = inputStride;
     int num_channels = m_numChannels;
@@ -226,7 +303,7 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     amf_size global[3] = { numOfSamplesToProcess, 0, 0 };
     amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 0, 0 };
     //amf_size local[3] = { 1, 0, 0 };
-    int status = clEnqueueNDRangeKernel(m_pContextTAN->GetOpenCLGeneralQueue(), m_clMix, 1, NULL, global, local, 0, NULL, NULL);
+    int status = clEnqueueNDRangeKernel(m_pContextTAN->GetOpenCLConvQueue(), m_clMix, 1, NULL, global, local, 0, NULL, NULL);
     AMF_RETURN_IF_CL_FAILED(status, L"Failed to enqueue OCL kernel");
     return AMF_OK;
 }
@@ -237,12 +314,12 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
     cl_mem pBufferOutput
     )
 {
-	if (!m_OCLInitialized) return AMF_FAIL;
+	if (!mInitialized) return AMF_FAIL;
     // Copy data into the internal contiguous buffers
     for (int i = 0; i < m_numChannels; i++)
     {
         int status = clEnqueueCopyBuffer(
-            m_pContextTAN->GetOpenCLGeneralQueue(),
+            m_pContextTAN->GetOpenCLConvQueue(),
             pBufferInput[i],
             m_internalBuff,
             0,
@@ -254,7 +331,102 @@ AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
             );
 		AMF_RETURN_IF_CL_FAILED(status, L"Failed to enqueue OCL copy");
     }
+
+    /*PrintCLArray(
+        "TANMixerImpl::Mix",
+        m_internalBuff,
+        m_pContextTAN->GetOpenCLConvQueue(),
+        m_numChannels * m_bufferSize * sizeof(float)
+        );*/
+
 	AMF_RESULT ret = Mix(m_internalBuff, pBufferOutput, m_bufferSize);
+
+    /*PrintCLArray(
+        "TANMixerImpl::Mix out",
+        pBufferOutput,
+        m_pContextTAN->GetOpenCLConvQueue(),
+        m_bufferSize * sizeof(float)
+        );*/
+
 	return ret;
 }
 
+#else
+
+AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
+    AMFBuffer * pBufferInput,
+    AMFBuffer * pBufferOutput,
+    amf_size inputStride
+    )
+{
+    /*PrintAMFArray(
+        "TANMixerImpl::Mix-pBufferInput",
+        pBufferInput,
+        m_pContextTAN->GetAMFConvQueue(),
+        m_numChannels * m_bufferSize * sizeof(float),
+        m_numChannels * m_bufferSize * sizeof(float)
+        );*/
+
+	if (!mInitialized) return AMF_FAIL;
+
+	amf_size numOfSamplesToProcess = m_bufferSize;
+
+    int input_stride = inputStride;
+    int num_channels = m_numChannels;
+
+    AMFBuffer * input_buf = pBufferInput;
+    AMFBuffer * output_buf = pBufferOutput;
+
+    int argIndex = 0;
+
+    AMF_RETURN_IF_FAILED(mMixKernel->SetArgBuffer(argIndex++, input_buf, AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mMixKernel->SetArgBuffer(argIndex++, output_buf, AMF_ARGUMENT_ACCESS_READWRITE));
+
+    AMF_RETURN_IF_FAILED(mMixKernel->SetArgInt32(argIndex++, input_stride));
+    AMF_RETURN_IF_FAILED(mMixKernel->SetArgInt32(argIndex++, num_channels));
+
+    amf_size global[3] = { numOfSamplesToProcess, 0, 0 };
+    amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 0, 0 };
+
+    AMF_RETURN_IF_FAILED(
+        mMixKernel->Enqueue(1, nullptr, global, local)
+        );
+
+    /*PrintAMFArray(
+        "TANMixerImpl::Mix-pBufferOutput",
+        pBufferOutput,
+        m_pContextTAN->GetAMFConvQueue(),
+        m_bufferSize * sizeof(float)
+        );*/
+
+    return AMF_OK;
+}
+
+// For disjoint cl_mem input buffers
+AMF_RESULT  AMF_STD_CALL    TANMixerImpl::Mix(
+    AMFBuffer * pBufferInput[],
+    AMFBuffer * pBufferOutput
+    )
+{
+    if (!mInitialized) return AMF_FAIL;
+
+    // Copy data into the internal contiguous buffers
+    for (int i = 0; i < m_numChannels; i++)
+    {
+        AMF_RETURN_IF_CL_FAILED(
+            mAMFCompute->CopyBuffer(
+                pBufferInput[i],
+                0,
+                m_bufferSize * sizeof(float),
+                mInternalBufferAMF,
+                i * m_bufferSize * sizeof(float)
+                )
+            );
+    }
+
+	AMF_RESULT ret = Mix(mInternalBufferAMF, pBufferOutput, m_bufferSize);
+
+    return ret;
+}
+
+#endif

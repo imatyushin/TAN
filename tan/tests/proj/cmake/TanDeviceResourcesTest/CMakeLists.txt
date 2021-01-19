@@ -17,7 +17,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # name
 project(TanDeviceResourcesTest DESCRIPTION "TanDeviceResourcesTest")
@@ -30,8 +30,9 @@ project(TanDeviceResourcesTest DESCRIPTION "TanDeviceResourcesTest")
   ADD_DEFINITIONS(-D_UNICODE)
 #endif()
 
-include_directories(../../../../../amf)
-include_directories(../../../../../tan)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_HEADERS})
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 
 # sources
 set(

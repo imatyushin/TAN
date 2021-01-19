@@ -17,16 +17,17 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
 # name
 project(TAlibTestDynamicChannelConvolution DESCRIPTION "TAlibTestDynamicChannelConvolution")
 
-include_directories(../../../../../amf)
-include_directories(../../../../../tan)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_HEADERS})
 
-include_directories(../../../../common)
+include_directories(${TAN_ROOT}/utils/common)
 include_directories(../../../../samples/src/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -38,18 +39,14 @@ set(
   SOURCE_EXE
   ../../../src/TAlibTestDynamicChannelConvolution/TALibTestDynamicChannelConvolution.cpp
 
-  ../../../../samples/src/common/utilities.c
-
-  ../../../../common/FileUtility.cpp
-  ../../../../common/wav.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
   )
 
 set(
   HEADER_EXE
-  ../../../../common/FileUtility.h
-  ../../../../common/wav.h
-
-  ../../../../samples/src/common/utilities.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/wav.h
   )
 
 # create binary

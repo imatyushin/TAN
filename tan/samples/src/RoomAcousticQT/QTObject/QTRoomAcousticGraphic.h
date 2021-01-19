@@ -1,6 +1,8 @@
 #include <QtWidgets/QtWidgets>
-#include <samples/src/common/maxlimits.h>
 #include <QGraphicsItemGroup>
+
+#include "maxlimits.h"
+
 #define ROOMSCALE 100
 
 class RoomAcousticRoomGraphics : public QGraphicsItemGroup
@@ -51,7 +53,7 @@ public:
 	void update_listener_position(float x, float y, float z);
 	void update_listener_orientation(float pitch, float yaw, float roll);
 protected:
-	virtual void mouseMoveEvent(QGraphicsSceneMouseEvent* event);
+	virtual void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
 	void wheelEvent(QGraphicsSceneWheelEvent *event) override;
 private:
 	void initAnimation();

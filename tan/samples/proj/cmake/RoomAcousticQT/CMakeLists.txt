@@ -19,7 +19,8 @@ enable_language(CXX)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -39,37 +40,79 @@ endif()
 project(RoomAcousticsQT DESCRIPTION "RoomAcousticsQT")
 
 if(PortAudio_DIR)
+  message("")
   message("PortAudio_DIR: " ${PortAudio_DIR})
 
+  #test the ${PortAudio_DIR} is not an absolute path
+  if(NOT IS_ABSOLUTE ${PortAudio_DIR})
+    #test this cmake is included from other project
+    if(NOT ${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+      get_filename_component(Path_To_PortAudio "${CMAKE_SOURCE_DIR}/${PortAudio_DIR}" ABSOLUTE)
+    #assume that the project is built from itself
+    else()
+      get_filename_component(Path_To_PortAudio "${CMAKE_CURRENT_SOURCE_DIR}/${PortAudio_DIR}" ABSOLUTE)
+    endif()
+  else()
+    get_filename_component(Path_To_PortAudio ${PortAudio_DIR} ABSOLUTE)
+  endif()
+
+  message("PortAudio_DIR expanded: " ${Path_To_PortAudio})
+
   INCLUDE(ExternalProject)
-  ExternalProject_Add(
-    thirdparty_portaudio
-    SOURCE_DIR          ${PortAudio_DIR}
-    #GIT_REPOSITORY      https://git.assembla.com/portaudio.git
-    PREFIX              thirdparty_portaudio
-    #PREFIX              lib/external_portaudio
-    UPDATE_COMMAND      ""
-    #CONFIGURE_COMMAND   ${PortAudio_DIR}/configure
-    CONFIGURE_COMMAND   "" #cmake ${PortAudio_DIR} -G "Unix Makefiles"
-    BUILD_IN_SOURCE     0
-    #BUILD_COMMAND       make
-    BUILD_COMMAND       ""
-    INSTALL_COMMAND     "" #sudo make install
+  #ExternalProject_Add(
+  #  thirdparty_portaudio
+  #  SOURCE_DIR          ${Path_To_PortAudio}
+  #  #GIT_REPOSITORY     https://git.assembla.com/portaudio.git
+  #  PREFIX              thirdparty_portaudio
+  #  DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+  #  URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+  #  URL_MD5             4df8224e047529ca9ad42f0521bf81a8
+  #  #UPDATE_COMMAND     ""
+  #  #CONFIGURE_COMMAND  ${Path_To_PortAudio}/configure
+  #  #CONFIGURE_COMMAND  "" #cmake ${Path_To_PortAudio} -G "Unix Makefiles"
+  #  #BUILD_IN_SOURCE    0
+  #  #BUILD_COMMAND      make
+  #  #BUILD_COMMAND      ""
+  #  #INSTALL_COMMAND    "" #sudo make install
+  #  )
+
+  INCLUDE(FetchContent) #requires cmake 3.11
+  FetchContent_Declare(
+    portaudio_sources
+    #DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+    URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+    URL_MD5             4df8224e047529ca9ad42f0521bf81a8
     )
 
-  add_subdirectory(${PortAudio_DIR} cmake-portaudio-bin EXCLUDE_FROM_ALL)
-  
+  FetchContent_GetProperties(portaudio_sources)
+  if(NOT portaudio_sources_POPULATED)
+    FetchContent_Populate(
+      portaudio_sources
+      #QUIET "0"
+      DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+      URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+      URL_MD5             4df8224e047529ca9ad42f0521bf81a8
+      SOURCE_DIR          ${Path_To_PortAudio}
+      BINARY_DIR          cmake-portaudio-bin
+      )
+  endif()
+
+  add_subdirectory(${Path_To_PortAudio} cmake-portaudio-bin EXCLUDE_FROM_ALL)
+
   ADD_DEFINITIONS(-DENABLE_PORTAUDIO)
-  include_directories(${PortAudio_DIR}/include)
+  include_directories(${Path_To_PortAudio}/include)
 endif()
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 link_directories(${Qt5Widgets_LIBRARY})
 
-include_directories(../../../../../amf)
-include_directories(../../../../../tan)
-include_directories(../../../src/common)
-include_directories(../../../../common)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_HEADERS})
+
+include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/samples/src/common)
+include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
+include_directories(${TAN_ROOT}/tan/samples/src/TrueAudioVR)
 
 include_directories(../../../src/RoomAcousticQT/QTObject)
 
@@ -79,15 +122,12 @@ set(
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
   ../../../src/common/GpuUtils.cpp
-  ../../../src/common/SimpleVRaudio.cpp
-  ../../../src/common/utilities.c
-
-  ../../../../common/FileUtility.cpp
-  ../../../../common/StringUtility.cpp
-  ../../../../common/RegisterBrowser.cpp
-  ../../../../common/wav.cpp
-  ../../../../common/fifo.cpp
-  ../../../../common/cpucaps.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/RegisterBrowser.cpp
+  ${TAN_ROOT}/utils/common/wav.cpp
+  ${TAN_ROOT}/utils/common/fifo.cpp
+  ${TAN_ROOT}/utils/common/cpucaps.cpp
 
   ../../../src/RoomAcousticQT/main.cpp
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.cpp
@@ -96,6 +136,12 @@ set(
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticGraphic.cpp
   ../../../src/RoomAcousticQT/RoomAcousticQT.cpp
   )
+
+if(TAN_NO_OPENCL)
+  list(APPEND SOURCE_EXE ../../../src/common/Audio3DAMF.cpp)
+else()
+  list(APPEND SOURCE_EXE ../../../src/common/Audio3DOpenCL.cpp)
+endif()
 
 if(WIN32)
   list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
@@ -109,25 +155,30 @@ endif()
 set(
   HEADER_EXE
 
-  ../../../../common/fifo.h
+  ${TAN_ROOT}/utils/common/fifo.h
 
   ../../../src/common/GpuUtils.h
   ../../../src/common/maxlimits.h
-  ../../../src/common/SimpleVRaudio.h
-  ../../../src/common/utilities.h
   ../../../src/common/WasAPI.h
   ../../../src/common/IWavPlayer.h
+  ../../../src/common/IAudio3D.h
 
-  ../../../../common/FileUtility.h
-  ../../../../common/StringUtility.h
-  ../../../../common/RegisterBrowser.h
-  ../../../../common/wav.h
-  ../../../../common/cpucaps.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
+  ${TAN_ROOT}/utils/common/RegisterBrowser.h
+  ${TAN_ROOT}/utils/common/wav.h
+  ${TAN_ROOT}/utils/common/cpucaps.h
 
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
   ../../../src/RoomAcousticQT/RoomAcousticQT.h
 )
+
+if(TAN_NO_OPENCL)
+  list(APPEND HEADER_EXE ../../../src/common/Audio3DAMF.h)
+else()
+  list(APPEND HEADER_EXE ../../../src/common/Audio3DOpenCL.h)
+endif()
 
 if(WIN32)
   list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)
@@ -176,7 +227,12 @@ add_executable(
   ${RCC_SOURCES}
   )
 
-target_link_libraries(RoomAcousticsQT amf)
+if(AMF_CORE_STATIC)
+  target_link_libraries(RoomAcousticsQT ${AMF_NAME})
+else()
+  target_link_libraries(RoomAcousticsQT ${AMF_LOADER_NAME})
+endif()
+
 target_link_libraries(RoomAcousticsQT TrueAudioNext)
 target_link_libraries(RoomAcousticsQT TrueAudioVR)
 target_link_libraries(RoomAcousticsQT GPUUtilities)
@@ -214,4 +270,30 @@ if(NOT WIN32)
   if(NOT APPLE)
     target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
   endif()
+endif()
+
+#copy runtime dll to the binary dir
+if(WIN32)
+  if(NOT AMF_CORE_STATIC)
+    add_custom_command(
+      TARGET RoomAcousticsQT
+      POST_BUILD
+
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+      )
+  endif()
+
+  add_custom_command(
+    TARGET RoomAcousticsQT
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    )
 endif()

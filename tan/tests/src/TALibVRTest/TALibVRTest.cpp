@@ -2,9 +2,9 @@
 //
 #include "stdafx.h"
 
-#include "tanlibrary/include/TrueAudioNext.h"
-#include "samples/src/TrueAudioVR/TrueAudioVR.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
+#include "TrueAudioNext.h"
+#include "TrueAudioVR.h"
+#include "GpuUtilities.h"
 
 #include "FileUtility.h"
 #include "wav.h"
@@ -17,7 +17,7 @@
 #include <math.h>
 #include <assert.h>
 
-#if !defined(__APPLE__) && !defined(__MACOSX)
+#ifdef OMP_ENABLED
   #include <omp.h>
 #endif
 
@@ -494,9 +494,9 @@ int main(int argc, char* argv[])
 
 	char *xmlFileName, *outFileName;
 
-	int SamplesPerSec = 48000;
+	int SamplesPerSec = FILTER_SAMPLE_RATE;
 	int BitsPerSample = 16;
-	int NChannels = 2;
+	int NChannels = STEREO_CHANNELS_COUNT;
 
 	bool gpu = 0;
 	bool test = 0;

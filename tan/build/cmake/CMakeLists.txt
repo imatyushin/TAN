@@ -35,39 +35,93 @@ if(RTQ_ENABLED)
 endif()
 
 # name
-project(TAN DESCRIPTION "TAN")
+if(TAN_NO_OPENCL)
+  if(ENABLE_METAL)
+    project(TAN-AMF-METAL DESCRIPTION "TAN-AMF-METAL")
+  else()
+    project(TAN-AMF-CL DESCRIPTION "TAN-AMF-CL")
+  endif()
+else()
+  project(TAN-CL DESCRIPTION "TAN-CL")
+endif()
 
 get_filename_component(ABSOLUTE_PATH "${PROJECT_SOURCE_DIR}/../../../" ABSOLUTE)
+
 set(TAN_ROOT ${ABSOLUTE_PATH})
+set(TAN_HEADERS ${TAN_ROOT}/tan/tanlibrary/include)
+
+include(${TAN_ROOT}/utils/cmake/test_TAN.cmake)
 message("TAN_ROOT: ${TAN_ROOT}")
+
+#setup opencl
+include(setup_OpenCL.cmake)
+
+if(NOT OpenCL_FOUND)
+  message(SEND_ERROR "Error: Could not setup OpenCL")
+  return()
+endif()
+
+if(TAN_NO_OPENCL)
+  ADD_DEFINITIONS(-DTAN_NO_OPENCL)
+endif()
+
+if(AMF_CORE_STATIC)
+  message("static AMF build will be used")
+  ADD_DEFINITIONS(-DAMF_CORE_STATIC)
+else()
+  message("shared AMF build will be used")
+endif()
+
+if((APPLE OR XCODE) AND ENABLE_METAL)
+  SET(ENABLE_METAL 1)
+  ADD_DEFINITIONS(-DENABLE_METAL)
+  ADD_DEFINITIONS(-DENABLE_METAL)
+  message("Metal support will be enabled for OpenAMF")
+
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
+    -framework AppKit \
+    -framework Metal \
+    -framework MetalKit"
+    )
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} \
+    -framework AppKit \
+    -framework Metal \
+    -framework MetalKit"
+    )
+endif()
+
+#choose amf library to use
+include(setup_amf.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
+
+#utilities
+add_subdirectory(${TAN_ROOT}/utils/proj/cmake/CLKernelPreprocessor cmake-CLKernelPreprocessor-bin)
+add_subdirectory(${TAN_ROOT}/utils/proj/cmake/FileToHeader cmake-FileToHeader-bin)
+
+#libraries
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/Graal cmake-Graal-bin)
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/TrueAudioNext cmake-TrueAudioNext-bin)
 
 #examples
 add_subdirectory(../../samples/proj/cmake/GPUUtilities cmake-GPUUtilities-bin)
-add_subdirectory(../../samples/proj/cmake/Ambisonic1stOrderDecoder cmake-Ambisonic1stOrderDecoder-bin)
-add_subdirectory(../../samples/proj/cmake/Ambisonic1stOrderEncoder cmake-Ambisonic1stOrderEncoder-bin)
-add_subdirectory(../../samples/proj/cmake/Ambisonic2ndOrderEncoder cmake-Ambisonic2ndOrderEncoder-bin)
-add_subdirectory(../../samples/proj/cmake/AmbisonicVRDecoder cmake-AmbisonicVRDecoder-bin)
-add_subdirectory(../../samples/proj/cmake/CLKernelPreprocessor cmake-CLKernelPreprocessor-bin)
-add_subdirectory(../../samples/proj/cmake/FileToHeader cmake-FileToHeader-bin)
+#add_subdirectory(../../samples/proj/cmake/Ambisonic1stOrderDecoder cmake-Ambisonic1stOrderDecoder-bin)
+#add_subdirectory(../../samples/proj/cmake/Ambisonic1stOrderEncoder cmake-Ambisonic1stOrderEncoder-bin)
+#add_subdirectory(../../samples/proj/cmake/Ambisonic2ndOrderEncoder cmake-Ambisonic2ndOrderEncoder-bin)
+#add_subdirectory(../../samples/proj/cmake/AmbisonicVRDecoder cmake-AmbisonicVRDecoder-bin)
 add_subdirectory(../../samples/proj/cmake/TrueAudioVR cmake-TrueAudioVR-bin)
 add_subdirectory(../../samples/proj/cmake/RoomAcousticQT cmake-RoomAcousticQT-bin)
-
-add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
-
+#add_subdirectory(../../samples/proj/cmake/ReverbMixer cmake-ReverbMixer-bin)
 if(WIN32)
   #not implemented yet: add_subdirectory(../../samples/proj/cmake/OculusRoomTAN cmake-OculusRoomTAN-bin)
   #migration to new Audio3D class not yet done: add_subdirectory(../../samples/proj/cmake/RoomAcoustics cmake-RoomAcoustics-bin)
 endif()
 
-#libraries
-add_subdirectory(../../tanlibrary/proj/cmake/amf cmake-amf-bin)
-add_subdirectory(../../tanlibrary/proj/cmake/Graal cmake-Graal-bin)
-add_subdirectory(../../tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
-add_subdirectory(../../tanlibrary/proj/cmake/TAN cmake-TAN-bin)
-
 #tests
-add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
-add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
-add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
-add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
-add_subdirectory(../../tests/proj/cmake/TanDeviceResourcesTest cmake-TanDeviceResourcesTest-bin)
+#add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
+#add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
+#add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
+#add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
+#add_subdirectory(../../tests/proj/cmake/TanDeviceResourcesTest cmake-TanDeviceResourcesTest-bin)
+
+add_subdirectory(../../tests/proj/cmake/TanCPUTest cmake-TanCPUTest-bin)

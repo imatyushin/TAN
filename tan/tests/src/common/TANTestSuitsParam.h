@@ -1,6 +1,6 @@
 #pragma once
 #include "UnitTest.h"
-#include "tanlibrary/include/TrueAudioNext.h"
+#include "TrueAudioNext.h"
 
 class TANTestSuitsParam : public UnitTestParamBlob
 {

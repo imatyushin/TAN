@@ -1,5 +1,7 @@
 //
-// Copyright (c) 2016 Advanced Micro Devices, Inc. All rights reserved.
+// MIT license
+//
+// Copyright (c) 2019 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +25,16 @@
 
 #pragma once
 
-#include <CL/cl.h>
+#ifndef TAN_NO_OPENCL
+  #include <CL/cl.h>
+#endif
 
 #include "public/include/core/Interface.h"
 #include "public/include/core/Data.h"
 #include "public/include/core/PropertyStorageEx.h"
+#include "public/include/core/Context.h"
+#include "public/include/core/Buffer.h"
+#include "public/common/AMFFactory.h"
 
 #ifdef RTQ_ENABLED
 ///This section is not related to RTQ, only listed so it can be strip away
@@ -39,9 +46,9 @@
 #endif
 
 #define TAN_VERSION_MAJOR          1
-#define TAN_VERSION_MINOR          2
-#define TAN_VERSION_RELEASE        2
-#define TAN_VERSION_BUILD          5
+#define TAN_VERSION_MINOR          3
+#define TAN_VERSION_RELEASE        1
+#define TAN_VERSION_BUILD          1
 
 #define TAN_FULL_VERSION ( (uint64_t(TAN_VERSION_MAJOR) << 48ull) |   \
                            (uint64_t(TAN_VERSION_MINOR) << 32ull) |   \
@@ -63,8 +70,19 @@
     #define TAN_CDECL_CALL
 #endif // #ifdef _WIN32
 
+#define TAN_OUTPUT_MEMORY_TYPE         L"OutputMemoryType" // Values : AMF_MEMORY_OPENCL or AMF_MEMORY_METAL or AMF_MEMORY_HOST
 
-#define TAN_OUTPUT_MEMORY_TYPE         L"OutputMemoryType" // Values : AMF_MEMORY_OPENCL or AMF_MEMORY_HOST
+static const amf::AMFEnumDescriptionEntry AMF_MEMORY_ENUM_DESCRIPTION[] =
+{
+#if AMF_BUILD_OPENCL
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,     L"OpenCL"},
+#endif
+#if ENABLE_METAL
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,      L"Metal"},
+#endif
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST,       L"CPU"},
+    {amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN,    0}  // This is end of description mark
+};
 
 namespace amf
 {
@@ -76,22 +94,26 @@ namespace amf
 
     class TANContext;
 
-    enum TAN_CONVOLUTION_METHOD 
+    enum TAN_CONVOLUTION_METHOD
     {
         TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,             // [CPU processing] FFT overlap add algorithm. Processes bufSize samples at a time.
-
+        TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,     // [CPU processing] FFT convolution using uniform partitions. Efficiently processes bufSize samples at a time.
+		TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,     // [CPU processing] FFT convolution using nonuniform partitions.
+        //Graal methods
         TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,     // Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
         TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,     // Uniform Partitioned FHT algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
         TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
 
-        // Note: currently not supported:
+        //
         TAN_CONVOLUTION_METHOD_TIME_DOMAIN,                 // pure time domain convolution. Processes from 1 to length samples at a time.
-        TAN_CONVOLUTION_METHOD_FFT_UINFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
+        TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED,
         TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,  // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_INVALID_METHOD = 100
-    };
+		TAN_CONVOLUTION_METHOD_USE_PROCESS_FINALIZE = 0x8000, // use ProcessFinalize() optimization for HEAD_TAIL mode called from external thread
+		TAN_CONVOLUTION_METHOD_USE_PROCESS_TAILTHREAD = 0xC000, // use ProcessFinalize() optimization for HEAD_TAIL mode called from internal thread
+	};
 
-    // Per-channel buffer flags.
+   // Per-channel buffer flags.
     //
     // STOP_INPUT    - let's the channel's stream to fade out, new input isn't applied while this
     //                 flag is set.
@@ -116,7 +138,8 @@ namespace amf
     //----------------------------------------------------------------------------------------------
     // TANConvolution interface
     //----------------------------------------------------------------------------------------------
-    class TANConvolution : virtual public AMFPropertyStorageEx
+    class TANConvolution:
+        virtual public AMFPropertyStorageEx
     {
     public:
         AMF_DECLARE_IID(0x99d46c18, 0xc92, 0x40bd, 0x8a, 0xc7, 0x1c, 0x30, 0xf7, 0xe4, 0xeb, 0xcb)
@@ -154,12 +177,20 @@ namespace amf
                                                          const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                          const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                          ) = 0;
+
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT AMF_STD_CALL UpdateResponseTD(cl_mem ppBuffer[],
                                                          amf_size numOfSamplesToProcess,
                                                          const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                          const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                          ) = 0;
-
+#else
+        virtual AMF_RESULT AMF_STD_CALL UpdateResponseTD(AMFBuffer * ppBuffer[],
+                                                         amf_size numOfSamplesToProcess,
+                                                         const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                                         const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                                         ) = 0;
+#endif
 
         // Frequency domain float data update responce functions.
         //
@@ -173,30 +204,41 @@ namespace amf
                                                              const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                              const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                              ) = 0;
+
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(cl_mem ppBuffer[],
                                                              amf_size numOfSamplesToProcess,
                                                              const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                              const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
                                                              ) = 0;
- 
+#else
+        virtual AMF_RESULT  AMF_STD_CALL    UpdateResponseFD(const AMFBuffer * ppBuffer[],
+                                                             amf_size numOfSamplesToProcess,
+                                                             const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                                             const amf_uint32 operationFlags // Mask of flags from enum TAN_CONVOLUTION_OPERATION_FLAG.
+                                                             ) = 0;
+#endif
+
         // Convolution process functions.
         //
         // ppBufferInput            - pointer to a channels long array of arrays of floats to be processed
         // ppBufferOutput            - pointer to a channels long array of arrays of floats to take output
-        // numOfSamplesToProcess    - number of samples, from each array, of input samples to process 
+        // numOfSamplesToProcess    - number of samples, from each array, of input samples to process
         // pNumOfSamplesProcessed    - number of samples, from each array, actually processed.
-        // 
-        // On success:  returns AMF_OK and pNumOfSamplesProcessed will contain number of samples actually processed. This 
+        //
+        // On success:  returns AMF_OK and pNumOfSamplesProcessed will contain number of samples actually processed. This
         // will be numOfSamplesToProcess, rounded down to next lower integral number of bufSize samples. Also see
         // Init().
-        // On failure: returns appropriate AMF_RESULT value. 
+        // On failure: returns appropriate AMF_RESULT value.
         // Process system memory buffers:
         virtual AMF_RESULT  AMF_STD_CALL    Process(float* ppBufferInput[],
                                                     float* ppBufferOutput[],
                                                     amf_size numOfSamplesToProcess,
                                                     const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                     amf_size *pNumOfSamplesProcessed // Can be NULL.
-                                                    ) = 0; 
+                                                    ) = 0;
+
+#ifndef TAN_NO_OPENCL
         // Process OpenCL cl_mem buffers at output, host memory buffers at input:
         virtual AMF_RESULT  AMF_STD_CALL    Process(float* pBufferInput[],
                                                     cl_mem pBufferOutput[],
@@ -211,7 +253,22 @@ namespace amf
                                                     amf_size numOfSamplesToProcess,
                                                     const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
                                                     amf_size *pNumOfSamplesProcessed // Can be NULL.
-                                                    ) = 0; 
+                                                    ) = 0;
+#else
+        virtual AMF_RESULT  AMF_STD_CALL    Process(float* pBufferInput[],
+                                                    AMFBuffer * pBufferOutput[],
+                                                    amf_size numOfSamplesToProcess,
+                                                    const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                                    amf_size *pNumOfSamplesProcessed // Can be NULL.
+                                                    ) = 0;
+
+        virtual AMF_RESULT  AMF_STD_CALL    Process(const AMFBuffer * pBufferInput[],
+                                                    AMFBuffer * pBufferOutput[],
+                                                    amf_size numOfSamplesToProcess,
+                                                    const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_CONVOLUTION_CHANNEL_FLAG, can be NULL.
+                                                    amf_size *pNumOfSamplesProcessed // Can be NULL.
+                                                    ) = 0;
+#endif
 
         // Process direct (no update required), system memory buffers:
         virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(
@@ -223,6 +280,10 @@ namespace amf
                                                     int *nzFirstLast = NULL
                                                     ) = 0;
 
+		virtual AMF_RESULT  AMF_STD_CALL    ProcessFinalize(void) = 0;
+
+
+#ifndef TAN_NO_OPENCL
         // Process direct (no update required),  OpenCL cl_mem  buffers:
         virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(
                                                 cl_mem* ppImpulseResponse[],
@@ -232,7 +293,16 @@ namespace amf
                                                 amf_size *pNumOfSamplesProcessed,
                                                 int *nzFirstLast = NULL
                                                 ) = 0;
-
+#else
+        virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(
+                                                const AMFBuffer * ppImpulseResponse[],
+                                                const AMFBuffer * ppBufferInput[],
+                                                AMFBuffer * ppBufferOutput[],
+                                                amf_size numOfSamplesToProcess,
+                                                amf_size *pNumOfSamplesProcessed,
+                                                int *nzFirstLast = NULL
+                                                ) = 0;
+#endif
 
         // Returns index for a stopped channel which's stopped fading out (or was flushed), if
         // available; if no such channel can be found AMF_NOT_FOUND is returned.
@@ -260,8 +330,9 @@ namespace amf
             // Note: this method allocates internal buffers and initializes internal structures. Should
             // only be called once.
             virtual	AMF_RESULT	AMF_STD_CALL	Init(
-            amf_uint32 numInputTaps, 
+            amf_uint32 numInputTaps,
             amf_uint32 numOutputTaps,
+			amf_uint32 bufferSizeInSamples,
             amf_uint32 channels) = 0;
 
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
@@ -283,15 +354,39 @@ namespace amf
             amf_size *pNumOfSamplesProcessed // Can be NULL.
             ) = 0;
 
-       virtual AMF_RESULT  AMF_STD_CALL    Process(
+	   virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(
+		   float* ppBufferInput[],
+		   float* ppBufferOutput[],
+		   amf_size numOfSamplesToProcess,
+		   const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
+		   amf_size *pNumOfSamplesProcessed // Can be NULL.
+	   ) = 0;
+
+#ifndef TAN_NO_OPENCL
+        virtual AMF_RESULT  AMF_STD_CALL    Process(
            cl_mem ppBufferInput[],
            cl_mem ppBufferOutput[],
            amf_size numOfSamplesToProcess,
            const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
            amf_size *pNumOfSamplesProcessed // Can be NULL.
            ) = 0;
+#else
+       virtual AMF_RESULT  AMF_STD_CALL    Process(
+           const AMFBuffer * ppBufferInput[],
+           AMFBuffer * ppBufferOutput[],
+           amf_size numOfSamplesToProcess,
+           const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
+           amf_size *pNumOfSamplesProcessed // Can be NULL.
+           ) = 0;
+#endif
 
     };
+
+	//----------------------------------------------------------------------------------------------
+	// smart pointer
+	//----------------------------------------------------------------------------------------------
+	typedef AMFInterfacePtr_T<TANIIRfilter> TANIIRfilterPtr;
+
     //----------------------------------------------------------------------------------------------
     // smart pointer
     //----------------------------------------------------------------------------------------------
@@ -327,39 +422,41 @@ namespace amf
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
         virtual TANContext* AMF_STD_CALL    GetContext() = 0;
 
-        virtual AMF_RESULT  AMF_STD_CALL    Convert(short* inputBuffer, amf_size inputStep, 
-                                                    amf_size numOfSamplesToProcess, 
+        virtual AMF_RESULT  AMF_STD_CALL    Convert(short* inputBuffer, amf_size inputStep,
+                                                    amf_size numOfSamplesToProcess,
                                                     float* outputBuffer, amf_size outputStep,
                                                     float conversionGain) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    Convert(float* inputBuffer, amf_size inputStep,
                                                     amf_size numOfSamplesToProcess,
-                                                    short* outputBuffer, amf_size outputStep, 
+                                                    short* outputBuffer, amf_size outputStep,
                                                     float conversionGain, bool* outputClipped = NULL) = 0;
 
         // Method for batch processing
         virtual AMF_RESULT  AMF_STD_CALL    Convert(short** inputBuffers, amf_size inputStep,
                                                     amf_size numOfSamplesToProcess,
                                                     float** outputBuffers, amf_size outputStep,
-                                                    float conversionGain, 
+                                                    float conversionGain,
                                                     int channels) = 0;
         // Method for batch processing
         virtual AMF_RESULT  AMF_STD_CALL    Convert(float** inputBuffers, amf_size inputStep,
                                                     amf_size numOfSamplesToProcess,
                                                     short** outputBuffers, amf_size outputStep,
-                                                    float conversionGain, 
+                                                    float conversionGain,
                                                     int channels, bool* outputClipped = NULL) = 0;
 
+
+#ifndef TAN_NO_OPENCL
         virtual AMF_RESULT  AMF_STD_CALL    Convert(cl_mem inputBuffer,
                                                     amf_size inputStep,
                                                     amf_size inputOffset,
-                                                    TAN_SAMPLE_TYPE inputType, 
+                                                    TAN_SAMPLE_TYPE inputType,
                                                     cl_mem outputBuffer,
                                                     amf_size outputStep,
                                                     amf_size outputOffset,
-                                                    TAN_SAMPLE_TYPE outputType,                                                
+                                                    TAN_SAMPLE_TYPE outputType,
                                                     amf_size numOfSamplesToProcess,
                                                     float conversionGain, bool* outputClipped = NULL) = 0;
-        
+
         // Method for batch processing
         virtual AMF_RESULT  AMF_STD_CALL    Convert(cl_mem* inputBuffers,
 													amf_size inputStep,
@@ -370,8 +467,41 @@ namespace amf
 													amf_size* outputOffsets,
                                                     TAN_SAMPLE_TYPE outputType,
                                                     amf_size numOfSamplesToProcess,
-                                                    float conversionGain,                                                   
+                                                    float conversionGain,
                                                     int count, bool* outputClipped = NULL) = 0;
+
+#else
+
+        virtual AMF_RESULT  AMF_STD_CALL    Convert(
+                                                    AMFBuffer * inputBuffer,
+                                                    amf_size inputStep,
+                                                    amf_size inputOffset,
+                                                    TAN_SAMPLE_TYPE inputType,
+                                                    AMFBuffer * outputBuffer,
+                                                    amf_size outputStep,
+                                                    amf_size outputOffset,
+                                                    TAN_SAMPLE_TYPE outputType,
+                                                    amf_size numOfSamplesToProcess,
+                                                    float conversionGain,
+                                                    bool* outputClipped = nullptr
+                                                    ) = 0;
+        // Method for batch processing
+        virtual AMF_RESULT  AMF_STD_CALL    Convert(
+                                                    AMFBuffer ** inputBuffers,
+													amf_size inputStep,
+                                                    amf_size* inputOffsets,
+                                                    TAN_SAMPLE_TYPE inputType,
+                                                    AMFBuffer ** outputBuffers,
+                                                    amf_size outputStep,
+													amf_size* outputOffsets,
+                                                    TAN_SAMPLE_TYPE outputType,
+                                                    amf_size numOfSamplesToProcess,
+                                                    float conversionGain,
+                                                    int count,
+                                                    bool* outputClipped = nullptr
+                                                    ) = 0;
+
+#endif
 
     };
     //----------------------------------------------------------------------------------------------
@@ -402,6 +532,8 @@ namespace amf
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
 
+#ifndef TAN_NO_OPENCL
+
         virtual AMF_RESULT ComplexMultiplication(		const cl_mem inputBuffers1[],
 														const amf_size buffers1OffsetInSamples[],
 														const cl_mem inputBuffers2[],
@@ -411,28 +543,95 @@ namespace amf
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
 
+#else
+
+        virtual AMF_RESULT ComplexMultiplication(		const AMFBuffer * inputBuffers1[],
+														const amf_size buffers1OffsetInSamples[],
+														const AMFBuffer * inputBuffers2[],
+														const amf_size buffers2OffsetInSamples[],
+														AMFBuffer * outputBuffers[],
+														const amf_size outputBuffersOffsetInSamples[],
+														amf_uint32 channels,
+														amf_size numOfSamplesToProcess) = 0;
+
+#endif
+
 		virtual AMF_RESULT ComplexMultiplyAccumulate(	const float* const inputBuffers1[],
 														const float* const inputBuffers2[],
 														float *accumbuffers[],
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
 
-		virtual AMF_RESULT ComplexMultiplyAccumulate(	const cl_mem inputBuffers1[],
+#ifndef TAN_NO_OPENCL
+        virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                        const cl_mem inputBuffers1,
+                                                        const cl_mem inputBuffers2,
+                                                        cl_mem accumBuffers,
+                                                        amf_uint32 channels,
+                                                        amf_size countOfComplexNumbers,
+                                                        amf_size inputOffset1,
+                                                        amf_size inputOffset2,
+                                                        amf_size inputStride1,
+                                                        amf_size inputStride2) = 0;
+#else
+        virtual AMF_RESULT ComplexMultiplyAccumulate(
+                                                        const AMFBuffer * inputBuffers1,
+                                                        const AMFBuffer * inputBuffers2,
+                                                        AMFBuffer * accumBuffers,
+                                                        amf_uint32 channels,
+                                                        amf_size countOfComplexNumbers,
+                                                        amf_size inputOffset1,
+                                                        amf_size inputOffset2,
+                                                        amf_size inputStride1,
+                                                        amf_size inputStride2) = 0;
+#endif
+
+		virtual AMF_RESULT PlanarComplexMultiplyAccumulate(const float* const inputBuffers1[],
+			const float* const inputBuffers2[],
+			float *accumbuffers[],
+			amf_uint32 channels,
+			amf_size numOfSamplesToProcess,
+			amf_uint riPlaneSpacing) = 0;
+#ifdef USE_IPP
+		virtual AMF_RESULT IPPComplexMultiplyAccumulate(const float* const inputBuffers1[],
+			const float* const inputBuffers2[],
+			float *accumbuffers[],
+			float *workbuffer[],
+			amf_uint32 channels,
+			amf_size numOfSamplesToProcess) = 0;
+#endif
+
+#ifndef TAN_NO_OPENCL
+        /*virtual AMF_RESULT ComplexMultiplyAccumulate(	const cl_mem inputBuffers1[],
 														const amf_size buffers1OffsetInSamples[],
 														const cl_mem inputBuffers2[],
 														const amf_size buffers2OffsetInSamples[],
 														cl_mem accumBuffers[],
 														const amf_size accumBuffersOffsetInSamples[],
 														amf_uint32 channels,
-														amf_size numOfSamplesToProcess) = 0;
- 
+														amf_size numOfSamplesToProcess) = 0;*/
+#else
+		/*virtual AMF_RESULT ComplexMultiplyAccumulate(	const AMFBuffer * inputBuffers1[],
+														const amf_size buffers1OffsetInSamples[],
+														const AMFBuffer * inputBuffers2[],
+														const amf_size buffers2OffsetInSamples[],
+														AMFBuffer * accumBuffers[],
+														const amf_size accumBuffersOffsetInSamples[],
+														amf_uint32 channels,
+														amf_size numOfSamplesToProcess) = 0;*/
+#endif
+
+
         virtual AMF_RESULT ComplexDivision(				const float* const inputBuffers1[],
 														const float* const inputBuffers2[],
 														float *outputBuffers[],
 														amf_uint32 channels,
 														amf_size numOfSamplesToProcess) = 0;
 
-        virtual AMF_RESULT ComplexDivision(				const cl_mem inputBuffers1[],
+
+#ifndef TAN_NO_OPENCL
+
+        virtual AMF_RESULT ComplexDivision(			   const cl_mem inputBuffers1[],
 													   const amf_size buffers1OffsetInSamples[],
 													   const cl_mem inputBuffers2[],
 													   const amf_size buffers2OffsetInSamples[],
@@ -440,6 +639,19 @@ namespace amf
 													   const amf_size outputBuffersOffsetInSamples[],
 													   amf_uint32 channels,
 													   amf_size numOfSamplesToProcess) = 0;
+
+#else
+
+        virtual AMF_RESULT ComplexDivision(				const AMFBuffer * inputBuffers1[],
+													    const amf_size buffers1OffsetInSamples[],
+													    const AMFBuffer * inputBuffers2[],
+													    const amf_size buffers2OffsetInSamples[],
+													    AMFBuffer * outputBuffers[],
+													    const amf_size outputBuffersOffsetInSamples[],
+													    amf_uint32 channels,
+													    amf_size numOfSamplesToProcess) = 0;
+
+#endif
     };
     //----------------------------------------------------------------------------------------------
     // smart pointer
@@ -454,7 +666,11 @@ namespace amf
     {
         TAN_FFT_TRANSFORM_DIRECTION_FORWARD = 0,
         TAN_FFT_TRANSFORM_DIRECTION_BACKWARD = 1,
-    };
+		TAN_FFT_R2C_TRANSFORM_DIRECTION_FORWARD = 2,
+		TAN_FFT_C2R_TRANSFORM_DIRECTION_BACKWARD = 3,
+		TAN_FFT_R2C_PLANAR_TRANSFORM_DIRECTION_FORWARD = 4,
+		TAN_FFT_C2R_PLANAR_TRANSFORM_DIRECTION_BACKWARD = 5
+	};
 
     class TANFFT : virtual public AMFPropertyStorageEx
     {
@@ -480,12 +696,25 @@ namespace amf
                                                       amf_uint32 channels,
                                                       float* pBufferInput[],
                                                       float* pBufferOutput[]) = 0;
-        virtual AMF_RESULT  AMF_STD_CALL    Transform(TAN_FFT_TRANSFORM_DIRECTION direction,
+
+
+#ifndef TAN_NO_OPENCL
+        virtual AMF_RESULT  AMF_STD_CALL    TransformBatchGPU(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                       amf_uint32 log2len,
                                                       amf_uint32 channels,
-                                                      cl_mem pBufferInput[],
-                                                      cl_mem pBufferOutput[]) = 0;
-    };
+                                                      cl_mem pBufferInput,
+                                                      cl_mem pBufferOutput,
+                                                      int dataSpacing) = 0;
+#else
+        virtual AMF_RESULT  AMF_STD_CALL    TransformBatchGPU(TAN_FFT_TRANSFORM_DIRECTION direction,
+                                                      amf_uint32 log2len,
+                                                      amf_uint32 channels,
+                                                      AMFBuffer * pBufferInput,
+                                                      AMFBuffer * pBufferOutput,
+			                                          int dataSpacing) = 0;
+#endif
+
+	};
 	//----------------------------------------------------------------------------------------------
 	// smart pointer
 	//----------------------------------------------------------------------------------------------
@@ -516,12 +745,12 @@ namespace amf
 
     //----------------------------------------------------------------------------------------------
     // TANContext interface:
-    // TANContext may be initialized for OpenCL using either a cl_context, or one or two 
+    // TANContext may be initialized for OpenCL using either a cl_context, or one or two
     // cl_command_queues.
     // the general queue may be shared by application kernels, the convolution queue is meant to be
     // dedicated for a convolution object.
     //
-    // NOTE: If TANContext::InitOpenCL is not called, objects initialized with the context will 
+    // NOTE: If TANContext::InitOpenCL is not called, objects initialized with the context will
     // use CPU processing only.
     //----------------------------------------------------------------------------------------------
     class TANContext : virtual public AMFPropertyStorage
@@ -531,15 +760,50 @@ namespace amf
 
         virtual AMF_RESULT  AMF_STD_CALL    Terminate() = 0;
 
-        virtual AMF_RESULT  AMF_STD_CALL    InitOpenCL(
-                                                cl_context pContext) = 0;
+#ifndef TAN_NO_OPENCL
+
+        //virtual AMF_RESULT  AMF_STD_CALL    InitOpenCL(
+        //                                        cl_context pContext) = 0;
         virtual AMF_RESULT  AMF_STD_CALL    InitOpenCL(
                                                 cl_command_queue pGeneralQueue = nullptr,
                                                 cl_command_queue pConvolutionQueue = nullptr) = 0;
 
-        virtual cl_context   AMF_STD_CALL   GetOpenCLContext() = 0;
-        virtual	cl_command_queue	AMF_STD_CALL	GetOpenCLGeneralQueue() = 0;
-        virtual	cl_command_queue	AMF_STD_CALL	GetOpenCLConvQueue() = 0;
+#else
+
+        virtual AMF_RESULT  AMF_STD_CALL    InitAMF(
+                                                AMFContext *generalContext,
+                                                AMFCompute *generalQueue,
+                                                AMFContext *convolutionContext,
+                                                AMFCompute *convolutionQueue
+                                                ) = 0;
+
+#endif
+
+		virtual AMF_RESULT  AMF_STD_CALL    InitOpenMP(int nThreads) = 0;
+
+#ifndef TAN_NO_OPENCL
+        virtual cl_context  AMF_STD_CALL    GetOpenCLContext() = 0;
+        virtual	cl_command_queue
+                            AMF_STD_CALL    GetOpenCLGeneralQueue() = 0;
+        virtual	cl_command_queue
+                            AMF_STD_CALL    GetOpenCLConvQueue() = 0;
+
+        inline cl_context   AMF_STD_CALL    GetComputeContext() {return GetOpenCLContext();}
+        inline cl_command_queue
+                            AMF_STD_CALL    GetGeneralQueue()   {return GetOpenCLGeneralQueue();}
+        inline cl_command_queue
+                            AMF_STD_CALL    GetConvQueue()      {return GetOpenCLConvQueue();}
+#else
+        virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;
+        virtual	AMFCompute*	AMF_STD_CALL	GetAMFGeneralQueue() = 0;
+        virtual	AMFCompute*	AMF_STD_CALL	GetAMFConvQueue() = 0;
+
+        inline AMFContext* AMF_STD_CALL     GetComputeContext() {return GetAMFContext();}
+        inline AMFCompute* AMF_STD_CALL	    GetGeneralQueue()   {return GetAMFGeneralQueue();}
+        inline AMFCompute* AMF_STD_CALL	    GetConvQueue()      {return GetAMFConvQueue();}
+#endif
+
+        virtual amf::AMFFactory *           GetFactory() = 0;
     };
 
     //----------------------------------------------------------------------------------------------
@@ -550,7 +814,7 @@ namespace amf
     //----------------------------------------------------------------------------------------------
     // TANMixer interface
     //
-    // Mixes the input audio channels 
+    // Mixes the input audio channels
     //
     // Mixes a set of floating point arrays each representing one channel's audio samples
     //----------------------------------------------------------------------------------------------
@@ -566,8 +830,10 @@ namespace amf
         virtual AMF_RESULT  AMF_STD_CALL    Mix(float* ppBufferInput[],
                                                 float* ppBufferOutput
                                                 ) = 0;
-        
-        // For disjoint cl_mem input buffers, 
+
+#ifndef TAN_NO_OPENCL
+
+        // For disjoint cl_mem input buffers,
         virtual AMF_RESULT  AMF_STD_CALL    Mix(cl_mem pBufferInput[],
                                                 cl_mem pBufferOutput
                                                 ) = 0;
@@ -577,6 +843,20 @@ namespace amf
                                                 cl_mem pBufferOutput,
                                                 amf_size inputStride
                                                 ) = 0;
+
+#else
+
+        virtual AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput[],
+                                                AMFBuffer * pBufferOutput
+                                                ) = 0;
+
+        // For contigous cl_mem input buffers. Each channel's sample offset is found using the inputStride and channel index.
+        virtual AMF_RESULT  AMF_STD_CALL    Mix(AMFBuffer * pBufferInput,
+                                                AMFBuffer * pBufferOutput,
+                                                amf_size inputStride
+                                                ) = 0;
+
+#endif
 
     };
     //----------------------------------------------------------------------------------------------
@@ -590,7 +870,7 @@ extern "C"
 {
     // Creates a True Audio Next context. After the Context is initialized, it can be passed to creation functions
     // for Convolution, Converter, FFT, and Math objects.
-    TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANCreateContext(amf_uint64 version, amf::TANContext** ppContext);
+    TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANCreateContext(amf_uint64 version, amf::TANContext** ppContext, amf::AMFFactory * factory);
 
     // Create a TANConvolution object:
     TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANCreateConvolution(
@@ -615,7 +895,8 @@ extern "C"
     // Create a TANMath object:
     TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANCreateMath(
                                                         amf::TANContext* pContext,
-                                                        amf::TANMath** ppMath);
+                                                        amf::TANMath** ppMath,
+		                                                bool useConvolutionQueue = false);
     // Create a TANIIRfilter object:
     TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANCreateIIRfilter(
                                                         amf::TANContext* pContext,
@@ -625,4 +906,3 @@ extern "C"
     TAN_SDK_LINK AMF_RESULT         AMF_CDECL_CALL TANSetCacheFolder(const wchar_t* path);
     TAN_SDK_LINK const wchar_t*     AMF_CDECL_CALL TANGetCacheFolder();
 }
-

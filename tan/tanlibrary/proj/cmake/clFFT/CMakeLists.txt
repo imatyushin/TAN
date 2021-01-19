@@ -7,16 +7,14 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 
-include_directories(../../../../../amf)
-include_directories(../../../../..)
-include_directories(../../../../common)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_ROOT}/tan/tanlibrary/src/clFFT-master/src/include)
 
 # library name
 project(clFFT-master)
-
-include_directories(../../../src/clFFT-master/src/include)
 
 ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)

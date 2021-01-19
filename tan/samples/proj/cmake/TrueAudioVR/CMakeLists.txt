@@ -17,10 +17,11 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-include(../../../../tanlibrary/proj/cmake/utils/OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
+include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
 # cl kernel to hex header
-include(../../../../samples/proj/cmake/FileToHeader/FileToHeader.cmake)
+include(${TAN_ROOT}/utils/cmake/FileToHeader.cmake)
 
 # name
 project(TrueAudioVR DESCRIPTION "TrueAudioVR")
@@ -31,16 +32,19 @@ ADD_DEFINITIONS(-DUNICODE)
 ADD_DEFINITIONS(-D_UNICODE)
 ADD_DEFINITIONS(-DTAN_SDK_EXPORTS)
 
-include_directories(../../../../../amf)
-include_directories(../../../..)
-include_directories(../../../../common)
+include_directories(${AMF_HOME}/amf)
+include_directories(${TAN_ROOT}/utils/common)
+include_directories(${TAN_HEADERS})
 
 # sources
 set(
   SOURCE_LIB
   ../../../src/TrueAudioVR/stdafx.cpp
   ../../../src/TrueAudioVR/TrueAudioVR.cpp
-  ../../../../common/cpucaps.cpp
+
+  ${TAN_ROOT}/utils/common/OCLHelper.cpp
+  ${TAN_ROOT}/utils/common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/cpucaps.cpp
   )
 
 if(WIN32)
@@ -58,7 +62,9 @@ set(
   ../../../src/TrueAudioVR/targetver.h
   ../../../src/TrueAudioVR/TrueAudioVR.h
 
-  ../../../../common/cpucaps.h
+  ${TAN_ROOT}/utils/common/OCLHelper.h
+  ${TAN_ROOT}/utils/common/StringUtility.h
+  ${TAN_ROOT}/utils/common/cpucaps.h
   )
 
 # create library
@@ -75,11 +81,21 @@ set(
   "${TAN_ROOT}/tan/samples/src/TrueAudioVR/Kernels"
   "${TAN_ROOT}/tan/samples/src/TrueAudioVR/Kernels"
   )
-set(
-  CL_Files
-  "Fill.cl"
-  "GenerateRoomResponse.cl"
-  )
+
+if(ENABLE_METAL)
+  set(
+    CL_Files
+    "Fill.metal"
+    "GenerateRoomResponse.metal"
+    )
+else()
+  set(
+    CL_Files
+    "Fill.cl"
+    "GenerateRoomResponse.cl"
+    )
+endif()
+
 set(
   CL_Output
   "Fill"
@@ -95,7 +111,12 @@ generateCLKernelHeader(
 
 # linking
 target_link_libraries(TrueAudioVR ${OpenCL_LIBRARY})
-target_link_libraries(TrueAudioVR amf)
+
+if(AMF_CORE_STATIC)
+  target_link_libraries(TrueAudioVR ${AMF_NAME})
+else()
+  target_link_libraries(TrueAudioVR ${AMF_LOADER_NAME})
+endif()
 
 if(NOT WIN32)
   target_compile_options(TrueAudioVR PUBLIC -mavx2)
@@ -105,7 +126,7 @@ if(NOT WIN32)
   if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
     target_compile_options(TrueAudioVR PUBLIC -g)
   endif()
-  
+
   if(NOT APPLE)
     target_compile_options(TrueAudioVR PUBLIC -Wpsabi)
   endif()

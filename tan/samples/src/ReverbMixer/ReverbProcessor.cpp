@@ -1,11 +1,11 @@
 #define MAX_RESPONSE_LENGTH 131072
-#define FILTER_SAMPLE_RATE 48000
 
 #include "ReverbProcessor.h"
-#include "samples/src/GPUUtilities/GpuUtilities.h"
-#include "samples/src/common/GpuUtils.h"
+#include "GpuUtilities.h"
+#include "GpuUtils.h"
 #include "FileUtility.h"
 #include "wav.h"
+#include "Exceptions.h"
 
 #if defined(_WIN32)
     #include "../common/WASAPIPlayer.h"
@@ -156,7 +156,7 @@ AMF_RESULT ReverbProcessor::playerProcessToWAV(char* inWAVFile, char* outWAVFile
 	short *pOut;
 	short *pWaves;
 	size_t totalNumOfBytes = 0;
-	
+
 	uint32_t samplePerSec = 0;
 	uint16_t bitPerSample = 0;
 	uint16_t numOfChannel = 0;
@@ -240,7 +240,7 @@ AMF_RESULT ReverbProcessor::recorderInit(size_t SamplesPerSec)
   #ifdef ENABLE_PORTAUDIO
         static_cast<IWavPlayer *>(new PortPlayer())
   #else
-            
+
     #ifdef _WIN32
 	    static_cast<IWavPlayer *>(new WASAPIPlayer())
     #elif !defined(__MACOSX) && !defined(__APPLE__)
@@ -253,7 +253,7 @@ AMF_RESULT ReverbProcessor::recorderInit(size_t SamplesPerSec)
 
 #endif
 		);
-	
+
 	//STD_RETURN_IF_NOT_ZERO(m_WASAPIRecorder.wasapiInit(&streaminfo, &m_WASAPIRecorder.bufferSize, &m_WASAPIRecorder.frameSize, AUDCLNT_SHAREMODE_SHARED, true), "Failed to initialize recorder", AMF_FAIL);
 	if(PlayerError::OK != m_WASAPIRecorder->Init(2, 16, SamplesPerSec, false, true))
 	{
@@ -281,7 +281,7 @@ AMF_RESULT ReverbProcessor::recorderStart(char* outputWAVName)
 
 		if (!m_WASAPIRecorder)
 		{
-			STD_RETURN_IF_NOT_ZERO(recorderInit(48000), "Failed to intialize record device", AMF_FAIL);
+			STD_RETURN_IF_NOT_ZERO(recorderInit(FILTER_SAMPLE_RATE), "Failed to intialize record device", AMF_FAIL);
 		}
 
 		m_threadRecord = new std::thread(&ReverbProcessor::recorderStartInternel, this);
@@ -302,11 +302,11 @@ AMF_RESULT ReverbProcessor::recorderStop()
 
 		//RtlSecureZeroMemory(outputBuffer, outputBufferSizeInBytes);
 		std::memset(outputBuffer, 0, outputBufferSizeInBytes);
-		
+
 		fseek(m_pDiskBuffer, 0, SEEK_SET);
 		STD_RETURN_IF_FALSE(fread(outputBuffer, 1, outputBufferSizeInBytes, m_pDiskBuffer) == outputBufferSizeInBytes,
 			"Failed to retrived buffer from disk", AMF_FAIL);
-		STD_RETURN_IF_FALSE(WriteWaveFileS(m_cpRecordWAVFileName, 48000, 2, sampleSizeInBits,outputBufferSizeInSample, outputBuffer),
+		STD_RETURN_IF_FALSE(WriteWaveFileS(m_cpRecordWAVFileName, FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT, sampleSizeInBits,outputBufferSizeInSample, outputBuffer),
 			"Failed to write to wav", AMF_FAIL);
 		IF_NOT_NULL_DELETE(m_threadRecord);
 
@@ -346,13 +346,13 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 
 			int a = std::min(3, 4);
 
-			for (int chan = 0; chan < channelcount; chan++) 
+			for (int chan = 0; chan < channelcount; chan++)
 			{
 				AMF_RETURN_IF_FAILED(m_pTANConverter->Convert(
-					output_short + chan, 
-					channelcount, 
-					(std::min)((uint32_t)m_iFilterLengthInFloat / 2, sampleCount), 
-					bufferTD[chan], 2, 1.f), 
+					output_short + chan,
+					channelcount,
+					(std::min)((uint32_t)m_iFilterLengthInFloat / 2, sampleCount),
+					bufferTD[chan], 2, 1.f),
 					"Failed to execute tan convert\n"
 					);
 			}
@@ -386,7 +386,7 @@ int ReverbProcessor::addFilterTDFromWAV(char* FilePath, AMF_RESULT* AMFErr)
 #else
 				std::memset(outputFD[i], 0, sizeof(float)*m_iFilterLengthInFloat);
 #endif
-				
+
 				outputFD[i][0] = 1.0f;
 			}
 			if(channelcount == 1)
@@ -594,7 +594,7 @@ int ReverbProcessor::playerPlayInternal()
 		unsigned char *pData;
 		pData = (unsigned char *)pOut;
 
-		while(bytes2Play > 0) 
+		while(bytes2Play > 0)
 		{
 			//bytesPlayed = m_WASAPIPlayer.Play(pData, bytes2Play, false);
 			bytesPlayed = m_WASAPIPlayer->Play(pData, bytes2Play, false);
@@ -619,13 +619,13 @@ int ReverbProcessor::playerPlayInternal()
 
 AMF_RESULT ReverbProcessor::recorderStartInternel()
 {
-	size_t tempBufferSize = 48000;
+	size_t tempBufferSize = FILTER_SAMPLE_RATE;
 	size_t recordedBytes = 0;
 	unsigned char* tempBuffer = new unsigned char[tempBufferSize];
 
 	//RtlSecureZeroMemory(tempBuffer, tempBufferSize);
 	std::memset(tempBuffer, 0, tempBufferSize);
-	
+
 	while (m_bIsRecording)
 	{
 		//recordedBytes = m_WASAPIRecorder.Record(tempBuffer, tempBufferSize);
@@ -652,11 +652,11 @@ int ReverbProcessor::loadWAVFile(char* FilePath)
 	{
 		return -1;
 	}
-    
+
 	//WavError queueErrors = m_WASAPIPlayer.ReadWaveFile(FilePath, &m_iInputSizeInBytesPerChannel, &m_pInputRawBuffer);
 	m_iInputSizeInBytesPerChannel = (BitsPerSample / 8) * NSamples;
 	m_iInputSizeInFloatPerChannel = m_iInputSizeInBytesPerChannel / sizeof(float);
-	
+
 	return 0;
 }
 
@@ -713,7 +713,7 @@ void ReverbProcessor::adjustInternalFilterBuffer(size_t sizeInComplex, size_t nu
 		{
 			m_pInternalProcessedFilterFDBuffer[channelID] = new float[requireSizeInFloat];
 			m_pInternalProcessedFilterTDBuffer[channelID] = new float[requireSizeInFloat];
-			
+
 			//RtlSecureZeroMemory(m_pInternalProcessedFilterFDBuffer[channelID], requireSizeInFloat*sizeof(float));
 			std::memset(m_pInternalProcessedFilterFDBuffer[channelID], 0, requireSizeInFloat*sizeof(float));
 
@@ -728,7 +728,7 @@ void ReverbProcessor::adjustInternalFilterBuffer(size_t sizeInComplex, size_t nu
 	m_iFilterLengthInFloat = requireSizeInFloat;
 	m_iFilterLengthInComplexLog2 = 0;
 	m_iFilterLengthInComplex = sizeInComplex;
-	
+
 	size_t temp = 1;
 	while (temp < sizeInComplex)
 	{
@@ -755,7 +755,7 @@ void ReverbProcessor::adjustInternalInputBuffer(size_t sizeInFloat, size_t numOf
 		{
 			m_pfConvolutionInputBufferFloat[channelID] = new float[sizeInFloat];
 			m_pfConvolutionOutputBuffer[channelID] = new float[sizeInFloat];
-			
+
 			//RtlSecureZeroMemory(m_pfConvolutionInputBufferFloat[channelID], sizeInFloat * sizeof(float));
 			std::memset(m_pfConvolutionInputBufferFloat[channelID], 0, sizeInFloat * sizeof(float));
 
@@ -772,7 +772,7 @@ void ReverbProcessor::zeroInternelInOutBuffer()
 	{
 		//RtlSecureZeroMemory(m_pfConvolutionInputBufferFloat[i], m_pInternalInOutBufferSizeInfloat * sizeof(float));
 		std::memset(m_pfConvolutionInputBufferFloat[i], 0, m_pInternalInOutBufferSizeInfloat * sizeof(float));
-		
+
 		//RtlSecureZeroMemory(m_pfConvolutionOutputBuffer[i], m_pInternalInOutBufferSizeInfloat * sizeof(float));
 		std::memset(m_pfConvolutionOutputBuffer[i], 0, m_pInternalInOutBufferSizeInfloat * sizeof(float));
 	}
@@ -934,7 +934,7 @@ AMF_RESULT ReverbProcessor::generate10BandEQFilterTD(float in[10], int sampleRat
 	for (int i = 0; i < numOfChannel; i++)
 	{
 		FilterTDC[i] = new float[sizeInfloats];
-		
+
 		//RtlSecureZeroMemory(FilterTDC[i], sizeInfloats * sizeof(float));
 		std::memset(FilterTDC[i], 0, sizeInfloats * sizeof(float));
 
