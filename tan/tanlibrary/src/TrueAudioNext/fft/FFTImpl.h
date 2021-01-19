@@ -98,7 +98,7 @@ namespace amf
                                            		amf_uint32 channels,
                                            		float* ppBufferInput[],
                                            		float* ppBufferOutput[]
-												);
+												) override;
 
 #ifndef TAN_NO_OPENCL
         AMF_RESULT  AMF_STD_CALL TransformBatchGPU(TAN_FFT_TRANSFORM_DIRECTION direction,
