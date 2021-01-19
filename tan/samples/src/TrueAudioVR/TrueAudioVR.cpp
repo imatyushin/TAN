@@ -1362,31 +1362,41 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
         AMF_FAIL
         );
 
+#ifndef ENABLE_METAL
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-            ,
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
             responseLength * sizeof(float),
             &mResponse
             )
         );
-
+#else
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
+            responseLength * sizeof(float),
+            &mResponse
+        )
+    );
 #endif
-            ,
+
+#ifndef ENABLE_METAL
+    AMF_RETURN_IF_FAILED(
+        mContext->GetAMFContext()->AllocBuffer(
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
             responseLength * sizeof(float),
             &mFloatResponse
             )
         );
+#else
+    AMF_RETURN_IF_FAILED(
+        mContext->GetAMFContext()->AllocBuffer(
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
+            responseLength * sizeof(float),
+            &mFloatResponse
+        )
+    );
+#endif
 
     // zero buffers
     float fill = 0.0;

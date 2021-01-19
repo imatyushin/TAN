@@ -174,13 +174,15 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
             nullptr
             )
         );
-    AMF_RETURN_IF_FAILED(mOverflowBuffer->Convert(
+    AMF_RETURN_IF_FAILED(
+        mOverflowBuffer->Convert(
 #ifndef ENABLE_METAL
-        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
 #else
-        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
+            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
 #endif
-        ));
+            )
+        );
 
     //... Preparing OCL Kernel
     AMF_RETURN_IF_FALSE(

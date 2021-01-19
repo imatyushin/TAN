@@ -200,7 +200,7 @@ void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
     {
 #ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
-        typedef int(__cdecl * listCpuDeviceNamesType)(char *devNames[], unsigned int count);
+        typedef int(__cdecl * listCpuDeviceNamesType)(std::vector<std::string>& devicesNames);
         listCpuDeviceNamesType listCpuDeviceNames = nullptr;
 
         GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");

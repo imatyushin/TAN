@@ -269,7 +269,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
 
 	/*
-		GetModuleFileNameA(NULL, Path, PATH_MAX);
+		GetModuleFileNameA(NULL, Path, MAX_PATH);
 	char *pslash = strrchr(Path, '\\');
 	char exename[80] = "\0";
 	if (pslash){
@@ -313,8 +313,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
         if (fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr){
             mFFTWavailable = true;
-			char path[PATH_MAX + 2] = "\0";
-			int len = PATH_MAX;
+			char path[MAX_PATH + 2] = "\0";
+			int len = MAX_PATH;
 			GetFFTWCachePath(path, len);
 			FILE *fp = NULL;
 			fp = fopen(path, "r");
@@ -367,8 +367,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
     AMFLock lock(&m_sect);
 
 	//if (bFFTWavailable) {
-	//	char path[PATH_MAX + 2] = "\0";
-	//	int len = PATH_MAX;
+	//	char path[MAX_PATH + 2] = "\0";
+	//	int len = MAX_PATH;
 	//	GetFFTWCachePath(path, len);
 	//	fftwf_export_wisdom_to_filename(path);
 	//}
@@ -417,13 +417,13 @@ void TANFFTImpl::GetFFTWCachePath(char *path, DWORD len)
 {
 #ifdef _WIN32
 	char* appdata = getenv("LOCALAPPDATA");
-	WCHAR curDir[2 * PATH_MAX];
+	WCHAR curDir[2 * MAX_PATH];
 	curDir[0] = L'\0';
 
 	//for Linux, use _getcwd()
 
 	// use W version in case folders have unicode names:
-	GetCurrentDirectoryW(PATH_MAX, curDir);
+	GetCurrentDirectoryW(MAX_PATH, curDir);
 
 	strcpy(path, appdata);
 	strcat(path, "\\AMD");
@@ -452,8 +452,8 @@ void TANFFTImpl::cacheFFTWplans()
 	int minL2N = 4;
 	int maxL2N = MAX_CACHE_POWER;
 
-	char path[PATH_MAX + 2] = "\0";
-	int len = PATH_MAX;
+	char path[MAX_PATH + 2] = "\0";
+	int len = MAX_PATH;
 	GetFFTWCachePath(path, len);
 
 	if (mFFTWavailable) {
