@@ -4,6 +4,3 @@
 [submodule "amfOpen"]
 	path = amfOpen
 	url = https://github.com/amfdev/AMF
-[submodule "thirdparty/fftw"]
-	path = thirdparty/fftw
-	url = https://github.com/FFTW/fftw3
