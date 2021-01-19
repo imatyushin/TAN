@@ -10,6 +10,7 @@
 #include <string>
 #include <thread>
 #include <atomic>
+#include <mutex>
 
 #define SILENT
 

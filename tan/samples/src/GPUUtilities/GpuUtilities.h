@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 
 //define export declaration
 #ifdef _WIN32

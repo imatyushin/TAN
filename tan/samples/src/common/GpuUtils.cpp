@@ -107,7 +107,7 @@ int listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMF
     {
 #ifdef _WIN32
         HMODULE GPUUtilitiesDll = NULL;
-        typedef int(__cdecl * listGpuDeviceNamesType)(char *devNames[], unsigned int count);
+        typedef int(__cdecl * listGpuDeviceNamesType)(std::vector<std::string>& devicesNames);
         listGpuDeviceNamesType listGpuDeviceNames = nullptr;
 
         GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");

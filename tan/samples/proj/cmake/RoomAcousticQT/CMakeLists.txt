@@ -59,22 +59,22 @@ if(PortAudio_DIR)
   message("PortAudio_DIR expanded: " ${Path_To_PortAudio})
 
   INCLUDE(ExternalProject)
-  ExternalProject_Add(
-    thirdparty_portaudio
-    SOURCE_DIR          ${Path_To_PortAudio}
-    #GIT_REPOSITORY     https://git.assembla.com/portaudio.git
-    PREFIX              thirdparty_portaudio
-    DOWNLOAD_DIR        ${TAN_ROOT}/downloads
-    URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
-    URL_MD5             4df8224e047529ca9ad42f0521bf81a8
-    #UPDATE_COMMAND     ""
-    #CONFIGURE_COMMAND  ${Path_To_PortAudio}/configure
-    #CONFIGURE_COMMAND  "" #cmake ${Path_To_PortAudio} -G "Unix Makefiles"
-    #BUILD_IN_SOURCE    0
-    #BUILD_COMMAND      make
-    #BUILD_COMMAND      ""
-    #INSTALL_COMMAND    "" #sudo make install
-    )
+  #ExternalProject_Add(
+  #  thirdparty_portaudio
+  #  SOURCE_DIR          ${Path_To_PortAudio}
+  #  #GIT_REPOSITORY     https://git.assembla.com/portaudio.git
+  #  PREFIX              thirdparty_portaudio
+  #  DOWNLOAD_DIR        ${TAN_ROOT}/downloads
+  #  URL                 http://files.portaudio.com/archives/pa_stable_v190600_20161030.tgz
+  #  URL_MD5             4df8224e047529ca9ad42f0521bf81a8
+  #  #UPDATE_COMMAND     ""
+  #  #CONFIGURE_COMMAND  ${Path_To_PortAudio}/configure
+  #  #CONFIGURE_COMMAND  "" #cmake ${Path_To_PortAudio} -G "Unix Makefiles"
+  #  #BUILD_IN_SOURCE    0
+  #  #BUILD_COMMAND      make
+  #  #BUILD_COMMAND      ""
+  #  #INSTALL_COMMAND    "" #sudo make install
+  #  )
 
   INCLUDE(FetchContent) #requires cmake 3.11
   FetchContent_Declare(

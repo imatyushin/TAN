@@ -1,3 +1,4 @@
+CLS
 SETLOCAL
 
 RMDIR /S /Q vs2017-amf
