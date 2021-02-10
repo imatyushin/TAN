@@ -34,6 +34,7 @@
 #include <direct.h>
 #include "AclAPI.h"
 #include <Shlwapi.h>
+#include <cassert>
 #else
 #include <unistd.h>
 #endif
@@ -164,8 +165,6 @@ bool RoomAcousticQT::start()
 
 		return mAudioEngine->Run();
 	}
-
-	mLastError = mAudioEngine->GetLastError();
 
 	return false;
 }

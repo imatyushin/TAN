@@ -70,7 +70,7 @@ public:
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-struct alignas(32) Timer:
+struct Timer:
     public BasicTimer
 {
     clock_serv_t clock;

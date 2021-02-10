@@ -23,6 +23,7 @@
 /tan/build/cmake/vs2017-amf
 /tan/build/cmake/vs2017-cl
 /thirdparty/portaudio/*
+/thirdparty/fftw/*
 /thirdparty/OpenCL-Headers/*
 /tan/tanlibrary/src/fftw-3.3.5
 /downloads

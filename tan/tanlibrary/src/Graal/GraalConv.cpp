@@ -51,16 +51,6 @@
 #undef min
 #endif
 
-#ifndef AMF_RETURN_IF_FALSE
-#define AMF_RETURN_IF_FALSE(exp, ret_value, /*optional message,*/ ...)
-#endif
-#ifndef AMF_RETURN_IF_FAILED
-#define AMF_RETURN_IF_FAILED(exp, ...)
-#endif
-#ifndef AMF_ASSERT_OK
-#define AMF_ASSERT_OK(exp, ... /*optional format, args*/)
-#endif
-
 namespace graal
 {
 

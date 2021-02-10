@@ -60,10 +60,9 @@ private:
 #include <iostream>
 
 //two-threads frendly fifo
-//with uniform buffer usage
 //one thread - write
 //another thread - read
-class alignas(32) Fifo //mac demands 32bit alignment
+class Fifo
 {
     //std::atomic<size_t>
     size_t
@@ -77,6 +76,27 @@ class alignas(32) Fifo //mac demands 32bit alignment
     std::vector<uint8_t>
                     mBuffer;
 
+    /*inline size_t   GetQueueSize() const
+    {
+        std::lock_guard<std::mutex> lock(mLockMutex);
+
+        return mQueueSize;
+    }
+
+    inline size_t   GetBufferInPosition() const
+    {
+        std::lock_guard<std::mutex> lock(mLockMutex);
+
+        return mBufferInPosition;
+    }
+
+    inline size_t   GetBufferOutPosition() const
+    {
+        std::lock_guard<std::mutex> lock(mLockMutex);
+
+        return mBufferOutPosition;
+    }*/
+
 public:
     Fifo():
         mQueueSize(0),
@@ -85,25 +105,27 @@ public:
     {
     }
 
-    //atomic variant
-    /*inline void Reset(size_t newSize)
+#ifdef ATOMIC_FIFO
+    inline void     Reset(size_t newSize)
     {
         mBuffer.resize(newSize);
         mQueueSize.store(0);
-        
+
         mBufferInPosition.store(0);
         mBufferOutPosition.store(0);
-    }*/
-    void Reset(size_t newSize); //mutex variant
+    }
 
-    /*inline size_t GetQueueSize() const
+    inline size_t   GetQueueSize() const
     {
         return mQueueSize.load();
-    }*/
-    size_t GetQueueSize() const; //mutex variant
+    }
+#else
+    void            Reset(size_t newSize);
+    size_t          GetQueueSize() const;
+#endif
 
-    uint32_t Write(const uint8_t *data, size_t size);
-    uint32_t Read(uint8_t *outputBuffer, size_t size2Fill);
+    uint32_t        Write(const uint8_t *data, size_t size);
+    uint32_t        Read(uint8_t *outputBuffer, size_t size2Fill);
 };
 
 #endif

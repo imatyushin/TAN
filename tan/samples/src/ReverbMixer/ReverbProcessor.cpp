@@ -31,24 +31,6 @@
   #include <process.h>
 #endif
 
-#define AMF_RETURN_IF_FAILED(x,y) \
-{ \
-    AMF_RESULT tmp = (x); \
-    if (tmp != AMF_OK) { \
-        printf(y); \
-        return tmp; \
-	    } \
-}
-
-#define OCL_RETURN_IF_FAILED(x,y) \
-{ \
-    cl_int tmp = (x); \
-    if (tmp != CL_SUCCESS) { \
-        printf(y); \
-        return tmp; \
-		    } \
-}
-
 #define STD_RETURN_IF_NULL(x,message, ret) \
 { \
     if (x == nullptr) { \

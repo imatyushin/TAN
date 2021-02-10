@@ -20,11 +20,9 @@
 // THE SOFTWARE.
 //
 #include "fifo.h"
-#include <cassert>
 #include <memory.h>
-#include <algorithm>
 
-//#include <errno.h>
+#include <algorithm>
 
 // #define BE_THREAD_SAFE
 
@@ -219,41 +217,55 @@ void FifoBuffer::flush(){
     m_Head = 0;
 }
 
-/**/
-std::mutex gLockMutex;
+#ifndef ATOMIC_FIFO
+std::mutex mLockMutex;
+#endif
 
 void Fifo::Reset(size_t newSize)
 {
-    std::lock_guard<std::mutex> lock(gLockMutex);
-    
+#ifndef ATOMIC_FIFO
+    std::lock_guard<std::mutex> lock(mLockMutex);
+#endif
+
     mBuffer.resize(newSize);
-    
+
+#ifndef ATOMIC_FIFO
+    mQueueSize.store(0);
+    mBufferInPosition.store(0);
+    mBufferOutPosition.store(0);
+#else
     mQueueSize = 0;
-    
-    //mBufferInPosition.store(0);
     mBufferInPosition = 0;
-    //mBufferOutPosition.store(0);
     mBufferOutPosition = 0;
+#endif
 }
 
-size_t Fifo::GetQueueSize() const 
+size_t Fifo::GetQueueSize() const
 {
-    std::lock_guard<std::mutex> lock(gLockMutex);
-    
-    return mQueueSize;
+#ifndef ATOMIC_FIFO
+    std::lock_guard<std::mutex> lock(mLockMutex);
+
+    return mQueueSize/*.load()*/;
+#else
+    return mQueueSize.load();
+#endif
 }
-/**/
 
 uint32_t Fifo::Write(const uint8_t *data, size_t size)
 {
-    //auto bufferDataSize(mQueueSize.load());
-    //auto bufferInPosition(mBufferInPosition.load());
-    //auto bufferOutPosition(mBufferOutPosition.load());
+#ifndef ATOMIC_FIFO
+    std::lock_guard<std::mutex> lock(mLockMutex);
 
-    std::lock_guard<std::mutex> lock(gLockMutex);
-    auto bufferDataSize(mQueueSize/*.load()*/);
-    auto bufferInPosition(mBufferInPosition/*.load()*/);
-    auto bufferOutPosition(mBufferOutPosition/*.load()*/);
+    auto bufferDataSize(mQueueSize);
+    auto bufferInPosition(mBufferInPosition);
+    auto bufferOutPosition(mBufferOutPosition);
+#else
+    auto bufferDataSize(mQueueSize.load());
+    auto bufferInPosition(mBufferInPosition.load());
+    auto bufferOutPosition(mBufferOutPosition.load());
+#endif
+
+    //std::cout << "play position: " << bufferInPosition << " (" << mBuffer.size() << ") " << std::endl;
 
     //free size from bufferInPosition and higher
     auto tailBlock(
@@ -278,6 +290,13 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
     {
         auto size2Write(std::min(size_t(size), tailBlock));
 
+        if(bufferDataSize + size2Write > mBuffer.size())
+        {
+            int i = 0;
+            ++i;
+        }
+
+        //std::cout << "write in tail " << size2Write << std::endl;
         std::memcpy(&mBuffer.front() + bufferInPosition, data, size2Write);
 
         size -= size2Write;
@@ -288,6 +307,7 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
     //some free space exists at front
     if(bufferInPosition == mBuffer.size() && headBlock)
     {
+        //std::cout << "reset in " << std::endl;
         bufferInPosition = 0;
     }
 
@@ -297,9 +317,11 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
         if(bufferDataSize + sizeWritten + size2Write > mBuffer.size())
         {
-            //assert(false);
+            int i =0;
+            ++i;
         }
 
+        //std::cout << "write in head" << size2Write << std::endl;
         std::memcpy(&mBuffer.front(), data, size2Write);
 
         size -= size2Write;
@@ -312,14 +334,28 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
         bufferInPosition = 0;
     }
 
-    //mBufferInPosition.store(bufferInPosition);
-    mBufferInPosition = bufferInPosition;
-    
-    //if(mQueueSize.load() + sizeWritten > mBuffer.size())
-    //if(mQueueSize + sizeWritten > mBuffer.size())
-    //{
-        //assert(false);
-    //}
+#ifndef ATOMIC_FIFO
+    mBufferInPosition = /*.store*/(bufferInPosition);
+    //std::cout << "play end, new position: " << bufferInPosition << " played: " << sizeWritten << std::endl;
+
+    if(mQueueSize/*.load()*/ + sizeWritten > mBuffer.size())
+    {
+        int i =0;
+        ++i;
+    }
+
+#else
+    mBufferInPosition.store(bufferInPosition);
+
+    //std::cout << "play end, new position: " << bufferInPosition << " played: " << sizeWritten << std::endl;
+
+    if(mQueueSize.load() + sizeWritten > mBuffer.size())
+    {
+        int i =0;
+        ++i;
+    }
+
+#endif
 
     mQueueSize += sizeWritten;
 
@@ -328,14 +364,17 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
 uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 {
-    //auto bufferDataSize(mQueueSize.load());
-    //auto bufferInPosition(mBufferInPosition.load());
-    //auto bufferOutPosition(mBufferOutPosition.load());
+#ifndef ATOMIC_FIFO
+    std::lock_guard<std::mutex> lock(mLockMutex);
 
-    std::lock_guard<std::mutex> lock(gLockMutex);
     auto bufferDataSize(mQueueSize);
     auto bufferInPosition(mBufferInPosition);
     auto bufferOutPosition(mBufferOutPosition);
+#else
+    auto bufferDataSize(mQueueSize.load());
+    auto bufferInPosition(mBufferInPosition.load());
+    auto bufferOutPosition(mBufferOutPosition.load());
+#endif
 
     auto tailSize(
         bufferInPosition == bufferOutPosition
@@ -356,15 +395,24 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
     auto sizeFilled(0);
 
+    //std::cout << "in: " << bufferInPosition << " out: " << bufferOutPosition << std::endl;
+    //std::cout << "tail: " << tailSize << " head: " << headSize << std::endl;
+
+    //std::memset(output + sizeFilled, 0, size2Play);
+    //std::cout << "out position: " << bufferOutPosition << " " << sizeFilled << " " << size2Play << std::endl;
+    //return paContinue;
+
     if(tailSize)
     {
         auto fillTailSize(std::min(tailSize, size2Fill));
 
         if(fillTailSize > mQueueSize)
         {
-            assert(false);
+            int i = 0;
+            ++i;
         }
 
+        //std::cout << "eat tail from " << bufferOutPosition << " to " << bufferOutPosition + fillTailSize << std::endl;
         std::memcpy(outputBuffer, &mBuffer.front() + bufferOutPosition, fillTailSize);
 
         sizeFilled += fillTailSize;
@@ -384,9 +432,11 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
         if(sizeFilled + fillHeadSize > mQueueSize)
         {
-            assert(false);
+            int i = 0;
+            ++i;
         }
 
+        //std::cout << "eat head from " << 0 << " to " << fillHeadSize << std::endl;
         std::memcpy(outputBuffer + sizeFilled, &mBuffer.front(), fillHeadSize);
 
         sizeFilled += fillHeadSize;
@@ -405,8 +455,11 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
         bufferOutPosition = 0;
     }*/
 
-    //mBufferOutPosition.store(bufferOutPosition);
+#ifndef ATOMIC_FIFO
     mBufferOutPosition = bufferOutPosition;
+#else
+    mBufferOutPosition.store(bufferOutPosition);
+#endif
 
     mQueueSize -= sizeFilled;
 

@@ -42,6 +42,8 @@
 #include "Exceptions.h"
 #include "Debug.h"
 
+#include <wav.h>
+
 #ifdef OMP_ENABLED
   #include <omp.h>
 #endif

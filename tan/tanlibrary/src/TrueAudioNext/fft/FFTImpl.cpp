@@ -48,6 +48,7 @@
 #include "OCLHelper.h"
 #include "Exceptions.h"
 #include "Debug.h"
+#include "FileUtility.h" //MAX_PATH constant
 
 #include "clFFT.h"
 #include "sharedLibrary.h"
