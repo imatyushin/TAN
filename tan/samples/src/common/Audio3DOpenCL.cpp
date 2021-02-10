@@ -140,6 +140,19 @@ void Audio3DOpenCL::Close()
     mTANRoomContext.Release();
     mTANConvolutionContext.Release();
 
+    ///*
+    //why this called here too? queues was released inside convolution processor first!
+    if (mCmdQueue1 != NULL){
+        clReleaseCommandQueue(mCmdQueue1);
+    }
+    if (mCmdQueue2 != NULL){
+        clReleaseCommandQueue(mCmdQueue2);
+    }
+    if (mCmdQueue3 != NULL && mCmdQueue3 != mCmdQueue2){
+        clReleaseCommandQueue(mCmdQueue3);
+    }
+    //*/
+
     mCmdQueue1 = NULL;
     mCmdQueue2 = NULL;
     mCmdQueue3 = NULL;
@@ -736,11 +749,14 @@ int Audio3DOpenCL::ProcessProc()
 
     auto *processed = &mStereoProcessedBuffer.front();
 
+    //double previousTimerValue(0.0);
+    //bool firstFrame(true);
     mTimer.Start();
     mStartTime = mTimer.Sample();
 
     while(!mStop)
     {
+        //from master
         auto demandedAmount = (mTimer.Sample() - mStartTime) * mWavFiles[0].SamplesPerSecond;
         auto sheduledAmount = uint64_t(demandedAmount) + mBufferSizeInSamples;
 
@@ -749,6 +765,7 @@ int Audio3DOpenCL::ProcessProc()
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
+        //
 
         uint32_t bytes2Play(0);
 
@@ -809,6 +826,10 @@ int Audio3DOpenCL::ProcessProc()
 
             if(bytes2Play)
             {
+                //new
+                //Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
+
+                //old:
                 Process(&outputBuffer.front(), pWaves, bytes2Play);
             }
         }
@@ -823,6 +844,40 @@ int Audio3DOpenCL::ProcessProc()
 
         while(bytes2Play && !mStop)
         {
+            //new:
+
+            //if(!mRealtimeTimer.IsStarted())
+            {
+                //mRealtimeTimer.Start();
+                //firstFrame = true;
+            }
+
+            //double timerValue(firstFrame ? 0.0 : mRealtimeTimer.Sample());
+
+            if
+            (
+                firstFrame
+                ||
+                true
+                //((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
+            )
+            {
+                auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
+                bytesTotalPlayed += bytesPlayed;
+
+                outputBufferData += bytesPlayed;
+                bytes2Play -= bytesPlayed;
+
+                //previousTimerValue = timerValue;
+                firstFrame = false;
+            }
+            else
+            {
+                //std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            }
+
+            //old
             auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
             mSamplesSent += bytesPlayed / (mWavFiles[0].BitsPerSample / 8) / STEREO_CHANNELS_COUNT;
 
@@ -832,6 +887,7 @@ int Audio3DOpenCL::ProcessProc()
             bytes2Play -= bytesPlayed;
         }
 
+        //new for(int fileIndex = 0; fileIndex < mWavFiles.size(); ++fileIndex)
         for(int fileIndex = 0; bytesTotalPlayed && fileIndex < mWavFiles.size(); ++fileIndex)
         {
             waveBytesPlayed[fileIndex] += bytesTotalPlayed;
@@ -853,6 +909,16 @@ int Audio3DOpenCL::ProcessProc()
                 waveBytesPlayed[fileIndex] = 0;
             }
         }
+
+        //new /*
+        if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+        {
+            processed = &mStereoProcessedBuffer.front();
+        }
+        else
+        {
+            processed += (mBufferSizeInBytes / sizeof(int16_t));
+        }*/
 
         if(bytes2Play)
         {
