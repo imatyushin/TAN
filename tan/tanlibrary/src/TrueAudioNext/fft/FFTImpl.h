@@ -73,7 +73,7 @@ namespace amf
         : public virtual AMFInterfaceImpl < AMFPropertyStorageExImpl< TANFFT> >
     {
     public:
-        static bool useIntrinsics;
+        static bool mUseIntrinsics;
 
         typedef AMFInterfacePtr_T<TANFFTImpl> Ptr;
 

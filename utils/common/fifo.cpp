@@ -230,13 +230,13 @@ void Fifo::Reset(size_t newSize)
     mBuffer.resize(newSize);
 
 #ifndef ATOMIC_FIFO
-    mQueueSize.store(0);
-    mBufferInPosition.store(0);
-    mBufferOutPosition.store(0);
-#else
     mQueueSize = 0;
     mBufferInPosition = 0;
     mBufferOutPosition = 0;
+#else
+    mQueueSize.store(0);
+    mBufferInPosition.store(0);
+    mBufferOutPosition.store(0);
 #endif
 }
 
@@ -245,7 +245,7 @@ size_t Fifo::GetQueueSize() const
 #ifndef ATOMIC_FIFO
     std::lock_guard<std::mutex> lock(mLockMutex);
 
-    return mQueueSize/*.load()*/;
+    return mQueueSize;
 #else
     return mQueueSize.load();
 #endif

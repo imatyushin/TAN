@@ -37,27 +37,22 @@ public:
     AMF_RESULT InitObjects() override;
 
 	// finalize, deallocate resources, close files, etc.
-	void Close();
+	void Close() override;
 
 	// start audio engine:
-    bool Run();
+    bool Run() override;
 
 	// Stop audio engine:
-    void Stop();
-
-    std::string GetLastError() const
-    {
-        return mLastError;
-    }
+    void Stop() override;
 
 protected:
-    static bool useIntrinsics;
+    static bool mUseIntrinsics;
     static const int IR_UPDATE_MODE = 1; // 0: Non-Blocking 1: Blocking
     static unsigned processThreadProc(void *ptr);
     static unsigned updateThreadProc(void *ptr);
 
-    int ProcessProc();
-    int UpdateProc();
+    int ProcessProc() override;
+    int UpdateProc() override;
     AMF_RESULT Process(int16_t * pOut, int16_t * pChan[MAX_SOURCES], uint32_t sampleCount);
 
     cl_mem mOCLResponses[MAX_SOURCES * 2] = {nullptr};

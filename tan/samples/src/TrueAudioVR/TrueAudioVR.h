@@ -214,7 +214,7 @@ public:
 
     static const int HeadFilterSize = 64;
 
-    static bool useIntrinsics;
+    static bool mUseIntrinsics;
 
     virtual ~AmdTrueAudioVR()
     {

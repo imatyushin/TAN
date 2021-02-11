@@ -62,7 +62,7 @@
 #include <iomanip>
 /**/
 
-bool Audio3DOpenCL::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
+bool Audio3DOpenCL::mUseIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 #ifndef ERROR_MESSAGE
 
@@ -667,7 +667,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
     for (int idx = 2; idx < 2 * mWavFiles.size(); idx += 2) {
         int k = 0;
         int n = sampleCount;
-        while (n >= 8 && useIntrinsics){
+        while (n >= 8 && mUseIntrinsics){
             register __m256 *outL, *outR, *inL, *inR;
             outL = (__m256 *)&outputFloatBufs[0][k];
             outR = (__m256 *)&outputFloatBufs[1][k];
@@ -845,7 +845,7 @@ int Audio3DOpenCL::ProcessProc()
         while(bytes2Play && !mStop)
         {
             //new:
-
+            /*
             //if(!mRealtimeTimer.IsStarted())
             {
                 //mRealtimeTimer.Start();
@@ -875,7 +875,7 @@ int Audio3DOpenCL::ProcessProc()
             {
                 //std::this_thread::sleep_for(std::chrono::milliseconds(2));
                 std::this_thread::sleep_for(std::chrono::milliseconds(0));
-            }
+            }*/
 
             //old
             auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
@@ -910,7 +910,8 @@ int Audio3DOpenCL::ProcessProc()
             }
         }
 
-        //new /*
+        //new
+        /*
         if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
         {
             processed = &mStereoProcessedBuffer.front();

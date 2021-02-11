@@ -60,7 +60,7 @@
 #define AMF_FACILITY L"TANFFTImpl"
 
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
-bool amf::TANFFTImpl::useIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
+bool amf::TANFFTImpl::mUseIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 using namespace amf;
 
@@ -592,7 +592,7 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 		res = TransformImplIPP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
 //	}
 #else
-    if (amf::TANFFTImpl::useIntrinsics)
+    if (amf::TANFFTImpl::mUseIntrinsics)
 	{
         res = TransformImplCpuOMP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }

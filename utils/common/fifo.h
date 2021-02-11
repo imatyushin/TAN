@@ -105,24 +105,8 @@ public:
     {
     }
 
-#ifdef ATOMIC_FIFO
-    inline void     Reset(size_t newSize)
-    {
-        mBuffer.resize(newSize);
-        mQueueSize.store(0);
-
-        mBufferInPosition.store(0);
-        mBufferOutPosition.store(0);
-    }
-
-    inline size_t   GetQueueSize() const
-    {
-        return mQueueSize.load();
-    }
-#else
     void            Reset(size_t newSize);
     size_t          GetQueueSize() const;
-#endif
 
     uint32_t        Write(const uint8_t *data, size_t size);
     uint32_t        Read(uint8_t *outputBuffer, size_t size2Fill);

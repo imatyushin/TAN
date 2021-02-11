@@ -55,7 +55,7 @@
 #include <cmath>
 
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
-bool AmdTrueAudioVR::useIntrinsics = true; // InstructionSet::AVX() && InstructionSet::FMA();
+bool AmdTrueAudioVR::mUseIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
 //const float AmdTrueAudioVR::S = 340.0f; //Speed of sound
 
@@ -634,7 +634,7 @@ void TrueAudioVRimpl::applyHRTF(
     )
 {
 #ifdef _WIN32
-    if (AmdTrueAudioVR::useIntrinsics){
+    if (AmdTrueAudioVR::mUseIntrinsics){
         return applyHRTFoptCPU(head, scale, response, length, earVX, earVY, earVZ, srcVX, srcVY, srcVZ);
     }
 #endif
