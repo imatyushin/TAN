@@ -81,6 +81,16 @@ bool setCurrentDirectory(const std::string& directoryName)
 
 std::string joinPaths(const std::string & left, const std::string & right)
 {
+    if(!left.length())
+    {
+        return right;
+    }
+
+    if(!right.length())
+    {
+        return left;
+    }
+
 	std::string foundSeparator;
 	auto leftSeparatorPosition(getLastSeparatorPosition(left, foundSeparator));
 
@@ -181,13 +191,16 @@ std::string getPath2File(const std::string& fileNameWithPath)
 	std::string foundSeparator;
 	auto separatorPosition(getLastSeparatorPosition(fileNameWithPath, foundSeparator));
 
-	auto path2File(
-		(separatorPosition != std::string::npos)
-			? fileNameWithPath.substr(0, separatorPosition/*  + 1 */)
-			: ""
-		);
+    if(!separatorPosition)
+    {
+        return fileNameWithPath.substr(0, 1);
+    }
 
-	//std::cout << "path to file [" << fileNameWithPath << "] is [" << path2File << "]" << std::endl;
+    auto path2File(
+        (separatorPosition != std::string::npos)
+            ? fileNameWithPath.substr(0, separatorPosition/*  + 1 */)
+            : ""
+        );
 
 	return path2File;
 }
@@ -195,7 +208,7 @@ std::string getPath2File(const std::string& fileNameWithPath)
 bool createPath(const std::string & path)
 {
 	//std::cout << "create path: " << path << std::endl;
-	
+
 	std::vector<std::string> directories;
 
 	auto component = getFileNameWithExtension(path);
@@ -208,11 +221,23 @@ bool createPath(const std::string & path)
 
 	//std::cout << "INCOME: [" << path << "] [" << component << "] [" << otherPath << "]" << std::endl;
 
-	for( ; component.length(); )
+	for( ; component.length() || otherPath.length(); )
 	{
 		//std::cout << "PUSH:" << component << std::endl;
 
-		directories.push_back(component);
+        if(component.length())
+        {
+            directories.push_back(component);
+        }
+        else
+        {
+            if(otherPath.length())
+            {
+                directories.push_back(otherPath);
+            }
+
+            break;
+        }
 
 		if(otherPath.length())
 		{
@@ -232,6 +257,9 @@ bool createPath(const std::string & path)
 		}
 	}
 
+    std::string currentPath;
+    currentPath.reserve(path.length());
+
 	for
 	(
 		auto componentIterator(directories.rbegin());
@@ -241,9 +269,11 @@ bool createPath(const std::string & path)
 	{
 		auto directory(*componentIterator);
 
+        currentPath = joinPaths(currentPath, directory);
+
 		//std::cout << "check directory exists: " << directory << std::endl;
 
-		if(!checkDirectoryExist(directory))
+		if(!checkDirectoryExist(currentPath))
 		{
 			//std::cout << "directory does not exist: " << directory << std::endl;
 
@@ -251,7 +281,7 @@ bool createPath(const std::string & path)
 
 			auto result(
 				mkdir(
-					directory.c_str(), 0777
+                      currentPath.c_str(), 0777
 					)
 				);
 
@@ -264,7 +294,7 @@ bool createPath(const std::string & path)
 
 			auto result(
 				_mkdir(
-					directory.c_str()
+                       currentPath.c_str()
 				)
 				);
 
@@ -342,16 +372,26 @@ bool checkFileExist(const std::string& filename)
 
 bool checkDirectoryExist(const std::string& path)
 {
-	struct stat statInfo = { 0 };
+	struct stat statInfo = {0};
 
 	auto pathStat = stat(path.c_str(), &statInfo);
-	
 	if(pathStat)
 	{
+		if(errno == ENOENT) //path does not exist
+		{
+			return false;
+		}
+
+		if(errno == ENOTDIR) //path is not a dir
+		{
+			return false;
+		}
+
+		assert(false);
 		return false;
 	}
 
-	return statInfo.st_mode & S_IFDIR;
+	return (statInfo.st_mode & S_IFDIR) ? true : false;
 }
 
 /*bool isDirExist(const std::string& path)
@@ -442,6 +482,29 @@ std::string getModuleFileName()
 		? str.substr(0, separatorPosition + 1)
 		: str;
 	*/
+}
+
+std::string             getTempFolderName()
+{
+#if defined(__linux) || defined(__APPLE__) || defined(__MACOSX)
+
+	//getenv result should not be modified or deleted by program
+	auto tempPath(std::getenv("TMPDIR"));
+
+	return tempPath ? tempPath : "/var/tmp/";
+
+#elif defined(_WIN32)
+
+	std::string tempPath;
+
+	tempPath.reserve(MAX_PATH);
+	DWORD ret_val = GetTempPathA(MAX_PATH, &tempPath.front());
+
+	return tempPath;
+#endif
+
+	assert(false);
+	return "";
 }
 
 #ifndef _WIN32

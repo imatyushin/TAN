@@ -459,9 +459,12 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     //To Do use gpu mem responses
     for(int idx = 0; idx < mWavFiles.size(); idx++)
     {
-        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 512, 512);
-        PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 512, 512);
-
+        if(mCmdQueue3)
+        {
+            PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 512, 512);
+            PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 512, 512);
+        }
+        
         if(mUseComputeBuffers)
         {
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
@@ -471,8 +474,11 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
         }
 
-        PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, mFFTLength * sizeof(float));
-        PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, mFFTLength * sizeof(float));
+        if(mCmdQueue3)
+        {
+            PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, mFFTLength * sizeof(float));
+            PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, mFFTLength * sizeof(float));
+        }
     }
 
     if (mUseComputeBuffers)
@@ -566,8 +572,8 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
         for (int src = 0; src < MAX_SOURCES; src++)
         {
-            outputCLBufLeft[src] = mOutputCLBufs[src*2 ];// Even indexed channels for left ear input
-            outputCLBufRight[src] = mOutputCLBufs[src*2+1];// Odd indexed channels for right ear input
+            outputCLBufLeft[src] = mOutputCLBufs[src * 2];// Even indexed channels for left ear input
+            outputCLBufRight[src] = mOutputCLBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
         PrintCLArray("::outputBufLeft", outputCLBufLeft[0], mCmdQueue1, sampleCount * sizeof(float));
@@ -626,9 +632,12 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
         AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputFloatBufs, sampleCount,
             nullptr, nullptr));
+        
+        PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
+        PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
 
-        float * outputFloatBufLeft[MAX_SOURCES];
-        float * outputFloatBufRight[MAX_SOURCES];
+        float * outputFloatBufLeft[MAX_SOURCES] = {nullptr};
+        float * outputFloatBufRight[MAX_SOURCES] = {nullptr};
 
         for (int src = 0; src < MAX_SOURCES; src++)
         {
@@ -636,8 +645,14 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
             outputFloatBufRight[src] = mOutputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
+        PrintFloatArray("::outputBufLeft", outputFloatBufLeft[0], sampleCount * sizeof(float));
+        PrintFloatArray("::outputBufRight", outputFloatBufRight[0], sampleCount * sizeof(float));
+
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]));
+
+        PrintFloatArray("::Mixer->Mix[0]", mOutputMixFloatBufs[0], sampleCount * sizeof(float));
+        PrintFloatArray("::Mixer->Mix[1]", mOutputMixFloatBufs[1], sampleCount * sizeof(float));
 
         auto ret = mConverter->Convert(mOutputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);

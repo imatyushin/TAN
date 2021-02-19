@@ -102,7 +102,7 @@ if(FFTW_DIR)
   endif()
 
   #option(BUILD_SHARED_LIBS "" OFF)
-  #option(BUILD_TESTS "" OFF)
+  option(BUILD_TESTS "" OFF)
   #option(ENABLE_OPENMP "" ON)
   #option(ENABLE_THREADS "" ON)
   option(ENABLE_FLOAT "" ON)
@@ -110,8 +110,9 @@ if(FFTW_DIR)
   option(ENABLE_SSE2 "" ON)
   option(ENABLE_AVX "" ON)
   option(ENABLE_AVX2 "" ON)
-  #option(DISABLE_FORTRAN "" ON)
+  option(DISABLE_FORTRAN "" ON)
   add_subdirectory(${Path_To_FFTW} cmake-fftw-bin EXCLUDE_FROM_ALL)
+  add_subdirectory(${TAN_ROOT}/utils/proj/cmake/FFTWCache cmake-FFTWCache-bin EXCLUDE_FROM_ALL)
 
   message("")
   message("FFTW library name: ${fftw3_lib}")
@@ -157,6 +158,7 @@ set(
   ${TAN_ROOT}/utils/common/OCLHelper.cpp
 
   ${TAN_ROOT}/utils/common/StringUtility.cpp
+  ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/cpucaps.cpp
 
   ../../../src/TrueAudioNext/converter/ConverterImpl.cpp
@@ -182,6 +184,8 @@ set(
   ${TAN_HEADERS}/TrueAudioNext.h
 
   ${TAN_ROOT}/utils/common/OCLHelper.h
+  ${TAN_ROOT}/utils/common/FileUtility.h
+
   ../../../src/TrueAudioNext/converter/ConverterImpl.h
   #../../../src/TrueAudioNext/convolution/CLKernel_ConvolutionTD.h
   ../../../src/TrueAudioNext/convolution/ConvolutionImpl.h
@@ -296,6 +300,9 @@ add_library(
 #add_dependencies(TrueAudioNext thirdparty_fftw)
 #add_dependencies(TrueAudioNext Graal)
 #add_dependencies(TrueAudioNext clFFT-master)
+#if(FFTW_DIR)
+#  add_dependencies(TrueAudioNext FFTWCache)
+#endif()
 
 generateCLKernel(
   TrueAudioNext
@@ -303,6 +310,22 @@ generateCLKernel(
   Tan_CL_Files
   Tan_CL_Output
   )
+
+set(CacheFileName "FFTW_TAN_WISDOM.cache")
+set(MaxFFTPower "20")
+set(ForceRebuild "0")
+
+if(FFTW_DIR)
+  add_custom_command(
+    TARGET TrueAudioNext
+    POST_BUILD
+    COMMAND
+    FFTWCache ${CacheFileName} ${MaxFFTPower} ${ForceRebuild}
+    COMMENT
+    "Building FFTW cache file ${CacheFileName} for max ${MaxFFTPower} power..."
+    VERBATIM
+    )
+endif()
 
 # linking
 target_link_libraries(TrueAudioNext ${OpenCL_LIBRARY})

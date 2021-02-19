@@ -1518,8 +1518,10 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     PrintFloatArray("floats", floats, 9, 9);
     PrintArray("ints", ints, 7, 7);
 
-    PrintCLArrayReduced("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float));
-    PrintCLArrayReduced("m_pLPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float));
+    //PrintCLArrayReduced("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float));
+    //PrintCLArrayReduced("m_pLPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float));
+    PrintCLArray("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    PrintCLArray("m_pHPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
 
     PrintCLArrayReduced("m_pResponse bfr", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
     PrintCLArrayReduced("floatResponse bfr", floatResponse, m_cmdQueue, responseLength * sizeof(float));
@@ -1826,7 +1828,6 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
     else
         dr = maxGain*dMin / d0;
 
-
     float W = room.width;
     float H = room.height;
     float L = room.length;
@@ -1922,8 +1923,6 @@ void TrueAudioVRimpl::generateRoomResponseCPU(
         }
     }
 }
-
-
 
 void TrueAudioVRimpl::generateDirectResponseCPU(
     const RoomDefinition & room,

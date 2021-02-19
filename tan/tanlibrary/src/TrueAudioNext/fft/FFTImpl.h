@@ -130,6 +130,8 @@ namespace amf
 		//FFTW support stuff
         bool mFFTWavailable = false;
 
+#ifdef USE_FFTW
+
 #ifdef WIN32
         // FFTW declarations for dynamic load:
         typedef fftwf_plan(__cdecl* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
@@ -255,8 +257,9 @@ namespace amf
 		fftwf_plan fwdRealPlanarPlans[MAX_CACHE_POWER] = {nullptr};
 		fftwf_plan bwdRealPlanarPlans[MAX_CACHE_POWER] = {nullptr};
 
-		void GetFFTWCachePath(char *path, DWORD len);
-		void cacheFFTWplans();
+		void CacheFFTWPlans(const std::string & cacheFileNameWithPath);
+
+#endif
 
 		enum FFT_TRANSFORM_TYPE
 		{
@@ -281,11 +284,13 @@ namespace amf
                                                          amf_size channels,
                                                          float* ppBufferInput[],
                                                          float* ppBufferOutput[]);
+#ifdef USE_FFTW
         AMF_RESULT virtual AMF_STD_CALL TransformImplCpuOMP(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                         amf_size log2len,
                                                         amf_size channels,
                                                         float* ppBufferInput[],
                                                         float* ppBufferOutput[]);
+#endif
 
 #ifdef USE_IPP
 		AMF_RESULT virtual AMF_STD_CALL TransformImplIPP(TAN_FFT_TRANSFORM_DIRECTION direction,
@@ -299,6 +304,7 @@ namespace amf
                                                         amf_size log2len,
                                                         float* pBufferInput,
                                                         float* pBufferOutput);
+#ifdef USE_FFTW
         AMF_RESULT virtual AMF_STD_CALL TransformImplFFTW1Chan(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                         amf_size log2len,
                                                         amf_size channel,
@@ -313,6 +319,7 @@ namespace amf
 														amf_size log2len,
 														float* pBufferInput,
 														float* pBufferOutput);
+#endif
 
 #ifndef TAN_NO_OPENCL
 		AMF_RESULT virtual AMF_STD_CALL TransformImplGPUBatched(

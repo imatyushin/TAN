@@ -109,6 +109,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
+#ifndef ENABLE_METAL
+
 #ifndef TAN_NO_OPENCL
     if (m_pContextTAN->GetOpenCLContext())
 #else
@@ -117,6 +119,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
     {
         return InitGpu();
     }
+
+#endif
 
     return InitCpu();
 }
@@ -279,6 +283,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 	}
 
 	*/
+#ifdef USE_FFTW
 
 	//libfftw3f-3.dll
 #ifdef _WIN32
@@ -311,25 +316,37 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 		fftwf_import_wisdom_from_filename = (fftwf_import_wisdom_from_filenameType)LoadFunctionAddr(FFTWDll, "fftwf_import_wisdom_from_filename");
 */
 
+        assert(fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr);
+		mFFTWavailable = true;
 
-        if (fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr){
-            mFFTWavailable = true;
-			char path[MAX_PATH + 2] = "\0";
-			int len = MAX_PATH;
-			GetFFTWCachePath(path, len);
-			FILE *fp = NULL;
-			fp = fopen(path, "r");
-			if (fp == NULL) {
-				cacheFFTWplans();
-			}
-			else {
-				fclose(fp);
-			}
-			int result = fftwf_import_wisdom_from_filename(path);
-        }
+        auto cacheFileName(getTempFolderName());
+        cacheFileName = joinPaths(cacheFileName, "AMD");
+        cacheFileName = joinPaths(cacheFileName, "TAN");
+        createPath(cacheFileName);
+        cacheFileName = joinPaths(cacheFileName, "FFTW_TAN_WISDOM.cache");
+
+		std::cout << "FFTWCache: " << cacheFileName << std::endl;
+
+		if(!checkFileExist(cacheFileName))
+		{
+			CacheFFTWPlans(cacheFileName);
+		}
+
+		int result = fftwf_import_wisdom_from_filename(cacheFileName.c_str());
+
+		if(result)
+		{
+			return AMF_OK;
+		}
     }
 
-	return mFFTWavailable ? AMF_OK : AMF_FAIL;
+    return mFFTWavailable ? AMF_OK : AMF_FAIL;
+
+#else
+
+    return AMF_OK; //generic one will be used
+
+#endif
 }
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
@@ -389,6 +406,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
     }
     else
 	{
+#ifdef USE_FFTW
         for (int i = 0; i < MAX_CACHE_POWER; i++)
         {
             if (fwdPlans[i] != NULL) {
@@ -408,83 +426,52 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 				bwdRealPlans[i] = NULL;
 			}
 		}
-
+#endif
     }
 
     return AMF_OK;
 }
 
-void TANFFTImpl::GetFFTWCachePath(char *path, DWORD len)
+#ifdef USE_FFTW
+
+void TANFFTImpl::CacheFFTWPlans(const std::string & path)
 {
-#ifdef _WIN32
-	char* appdata = getenv("LOCALAPPDATA");
-	WCHAR curDir[2 * MAX_PATH];
-	curDir[0] = L'\0';
+	assert(mFFTWavailable);
 
-	//for Linux, use _getcwd()
-
-	// use W version in case folders have unicode names:
-	GetCurrentDirectoryW(MAX_PATH, curDir);
-
-	strcpy(path, appdata);
-	strcat(path, "\\AMD");
-	if (_chdir(path) == -1) {
-		_mkdir(path);
-	}
-	strcat(path, "\\TAN");
-	if (_chdir(path) == -1) {
-		_mkdir(path);
-	}
-	strcat(path, "\\FFTW_TAN_WISDOM.cache");
-	len = strlen(path);
-
-	// for Linux use _chdir()
-
-	// use W version in case folders have unicode names:
-	SetCurrentDirectoryW(curDir);
-#else
-	strncpy(path, "/var/tmp/FFTW_TAN_WISDOM.cache",len);
-#endif
-	return;
-}
-
-void TANFFTImpl::cacheFFTWplans()
-{
 	int minL2N = 4;
-	int maxL2N = MAX_CACHE_POWER;
+    int maxL2N = MAX_CACHE_POWER;
 
-	char path[MAX_PATH + 2] = "\0";
-	int len = MAX_PATH;
-	GetFFTWCachePath(path, len);
+	float * ppBufferInput = new float[(1 << maxL2N)]; // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
+	float * ppBufferOutput = new float[(1 << maxL2N)];  // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
 
-	if (mFFTWavailable) {
-		float * ppBufferInput = new float[(1 << maxL2N)]; // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
-		float * ppBufferOutput = new float[(1 << maxL2N)];  // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
-		for (int log2len = minL2N; log2len < maxL2N; log2len++) {
+	for (int log2len = minL2N; log2len < maxL2N; log2len++)
+	{
+		amf_uint fftLength = 1 << log2len;
 
-			amf_uint fftLength = 1 << log2len;
+		fftwf_complex * in = (fftwf_complex *)ppBufferInput;
+		fftwf_complex * out = (fftwf_complex *)ppBufferOutput;
 
-			fftwf_complex * in = (fftwf_complex *)ppBufferInput;
-			fftwf_complex * out = (fftwf_complex *)ppBufferOutput;
+		fftw_iodim iod;
+		iod.n = fftLength;
+		iod.is = 1;
+		iod.os = 1;
 
-			fftw_iodim iod;
-			iod.n = fftLength;
-			iod.is = 1;
-			iod.os = 1;
+		fwdRealPlans[log2len] = fftwf_plan_dft_r2c_1d(fftLength, (float *)in, (fftwf_complex *)out, FFTW_MEASURE);//correct flag ??
+		bwdRealPlans[log2len] = fftwf_plan_dft_c2r_1d(fftLength, (fftwf_complex *)in, (float *)out, FFTW_MEASURE);
+		fwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_r2c(1, &iod, 0, NULL, (float *)in, (float *)(out), (float *)(out)+(8 + fftLength / 2), FFTW_MEASURE);//correct flag ??
+		bwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_c2r(1, &iod, 0, NULL, (float *)in, (float *)(in)+(8 + fftLength / 2), (float *)out, FFTW_MEASURE);
 
-			fwdRealPlans[log2len] = fftwf_plan_dft_r2c_1d(fftLength, (float *)in, (fftwf_complex *)out, FFTW_MEASURE);//correct flag ??
-			bwdRealPlans[log2len] = fftwf_plan_dft_c2r_1d(fftLength, (fftwf_complex *)in, (float *)out, FFTW_MEASURE);
-			fwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_r2c(1, &iod, 0, NULL, (float *)in, (float *)(out), (float *)(out)+(8 + fftLength / 2), FFTW_MEASURE);//correct flag ??
-			bwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_c2r(1, &iod, 0, NULL, (float *)in, (float *)(in)+(8 + fftLength / 2), (float *)out, FFTW_MEASURE);
-
-			fwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, in, out, FFTW_FORWARD, FFTW_MEASURE);
-			bwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, in, out, FFTW_BACKWARD, FFTW_MEASURE);
-		}
-		fftwf_export_wisdom_to_filename(path);
-		delete(ppBufferInput); // _aligned_free(ppBufferInput);
-		delete(ppBufferOutput); // _aligned_free(ppBufferOutput);
+		fwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, in, out, FFTW_FORWARD, FFTW_MEASURE);
+		bwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, in, out, FFTW_BACKWARD, FFTW_MEASURE);
 	}
+
+	fftwf_export_wisdom_to_filename(path.c_str());
+
+	delete(ppBufferInput); // _aligned_free(ppBufferInput);
+	delete(ppBufferOutput); // _aligned_free(ppBufferOutput);
 }
+
+#endif
 
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
@@ -592,11 +579,14 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 		res = TransformImplIPP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
 //	}
 #else
+
+#ifdef USE_FFTW
     if (amf::TANFFTImpl::mUseIntrinsics)
 	{
         res = TransformImplCpuOMP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
     else
+#endif
 	{
         res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
@@ -998,6 +988,8 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpu1Chan(
     return AMF_OK;
 }
 
+#ifdef USE_FFTW
+
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTW1Chan(
     TAN_FFT_TRANSFORM_DIRECTION direction,
     amf_size log2len,
@@ -1244,6 +1236,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 
     return AMF_OK;
 }
+#endif
 
 #ifdef USE_IPP
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplIPP(

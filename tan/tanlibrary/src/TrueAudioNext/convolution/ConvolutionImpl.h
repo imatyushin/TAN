@@ -316,7 +316,9 @@ namespace amf
         AMF_RESULT deallocateBuffers();
         AMF_RESULT AMF_FAST_CALL Crossfade(
             TANSampleBuffer & pBufferOutput,
-            amf_size numOfSamplesToProcess
+            amf_size numOfSamplesToProcess,
+            int curFadeSample,
+			int fadeLength
             );
 
         struct ovlAddFilterState
@@ -466,6 +468,7 @@ namespace amf
 		int m_currentDataPartition = 0;
 		int m_dataRowLength = 0;
 		int m_DelayedUpdate = 0;
+        int m_curCrossFadeSample = 0;
 		float **m_FilterTD = nullptr;
 
 		//const int m_PartitionPad = 8;

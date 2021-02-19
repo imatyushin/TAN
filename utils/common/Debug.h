@@ -137,7 +137,7 @@ static void PrintArray(const std::string & hint, const void * array, size_t coun
 
     for(size_t i(0); i < (count < max ? count : max); ++i)
     {
-		std::cout << std::setw(2) << std::setfill('0') << uint16_t(data[i]) << " ";
+        std::cout << std::setw(2) << std::setfill('0') << uint16_t(data[i]) << " ";
     }
 
     std::cout << std::resetiosflags(std::ios_base::basefield) << std::endl;
@@ -149,25 +149,7 @@ static void PrintFloatArray(const std::string & hint, const float * array, size_
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
-
-    PrintThreadInfo() << hint << ": " << count << std::endl;
-
-    if(!array)
-    {
-        std::cout << "NULL" << std::endl;
-
-        return;
-    }
-
-    const uint8_t *data(reinterpret_cast<const uint8_t *>(array));
-
-    for(size_t i(0); i < (count < max ? count : max); ++i)
-    {
-        std::cout << int(data[i]) << " ";
-    }
-
-    std::cout << std::endl;
+    PrintArray(hint, array, count, max);
 }
 
 static void PrintFloatArray(const char * hint, const float * array, size_t count, size_t max = 64)
@@ -215,25 +197,7 @@ static void PrintShortArray(const std::string & hint, const int16_t * array, siz
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
-
-    PrintThreadInfo() << hint << ": " << count << std::endl;
-
-    if(!array)
-    {
-        std::cout << "NULL" << std::endl;
-
-        return;
-    }
-
-    const uint8_t *data(reinterpret_cast<const uint8_t *>(array));
-
-    for(size_t i(0); i < (count < max ? count : max); ++i)
-    {
-        std::cout << int(data[i]) << " ";
-    }
-
-    std::cout << std::endl;
+    PrintArray(hint, array, count, max);
 }
 
 static void PrintShortArray(const char * hint, const int16_t * array, size_t count, size_t max = 64)

@@ -1146,7 +1146,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     amf_size *pNumOfSamplesProcessed
 )
 {
-    for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+    /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
     {
         for(int channel = 0; channel < m_iChannels; ++channel)
         {
@@ -1157,8 +1157,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 channel
                 );
         }
-    }
+    }*/
 
+    /*
     pBufferInput.Debug(
         "TANConvolutionImpl::Process - in",
         64,
@@ -1168,6 +1169,37 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
         m_pContextTAN->GetAMFConvQueue()
 #endif
         );
+    */
+
+    for(int i=0; i<3; ++i)
+    {
+        ovlAddFilterState * state = &m_FilterState[i];
+
+        float **filter = state->m_internalFilter;
+        float **overlap = state->m_internalOverlap;
+
+        PrintFloatArray(
+            "::ovlAddProcess->filter[0]",
+            filter[0],
+            64
+            );
+        PrintFloatArray(
+            "::ovlAddProcess->filter[1]",
+            filter[1],
+            64
+            );
+
+        PrintFloatArray(
+            "::ovlAddProcess->overlap[0]",
+            overlap[0],
+            64
+            );
+        PrintFloatArray(
+            "::ovlAddProcess->overlap[1]",
+            overlap[1],
+            64
+            );
+    }
 
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
 
@@ -1184,10 +1216,13 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
         *pNumOfSamplesProcessed = 0;
     }
 
+	amf_size samplesProcessed = 0;
+
     TANSampleBuffer xFadeBuffs[2];
     xFadeBuffs[0] = pBufferOutput.IsHost() ? pBufferOutput : mFadeSubbufers[0];
     xFadeBuffs[1] = pBufferOutput.IsHost() ? m_pXFadeSamples : mFadeSubbufers[1];
 
+    //todo: why these does not work? investigate, shoud be fixed!
     /*TANSampleBuffer xFadeBuffs[2] = {
         pBufferOutput.IsHost() ? pBufferOutput : mFadeSubbufers[0],
         pBufferOutput.IsHost() ? m_pXFadeSamples : mFadeSubbufers[1]
@@ -1196,77 +1231,112 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     // Crossfade should never start if there is a pending TD->FD  (m_accumulatedArgs.updatesCnt == 0)
 	bool doCrossFade = false;
 
+    int bufSz = (1 << m_log2bsz);
+	int fadeLength = bufSz; //hack  48000; // bufSz;  // 2048;
+
+    //todo: note: refactored after merge with beta-cross-platform, check
+
 	//if (m_eConvolutionMethod == (TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM || TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM) && m_bUseProcessFinalize) {
 	if ((m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM ||
 		m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM ||
 		m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL)
 		&& m_bUseProcessFinalize) {
 		doCrossFade = false;
-		if (ReadyForIRUpdate()) {
-			m_DelayedUpdate = 1;
+		if (ReadyForIRUpdate() && m_DelayedUpdate == 0) {
+			m_DelayedUpdate = true;
+			m_curCrossFadeSample = 0;
 		}
-		else
-        {
-			doCrossFade = m_DelayedUpdate == 1;
+		else {
+			doCrossFade = m_DelayedUpdate;
 		}
 	}
 	else
     {
-		doCrossFade = ReadyForIRUpdate();
+        //doCrossFade = ReadyForIRUpdate();
+
+        doCrossFade = false;
+        if (ReadyForIRUpdate() && m_DelayedUpdate == false) {
+            m_DelayedUpdate = true;
+            m_curCrossFadeSample = 0;
+        }
+        else {
+            if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM) {
+                if ((m_currentDataPartition % m_2ndBufSizeMultiple) == 0) {
+                    doCrossFade = m_DelayedUpdate;
+                    //fadeLength = m_2ndBufSizeMultiple * bufSz;
+                }
+            }
+            else {
+                doCrossFade = m_DelayedUpdate;
+            }
+        }
 	}
 
 	if (doCrossFade) //IR_UPDATE_DETECTED_STATE;
 	{
         PrintDebug("DoCrossfade...");
 
-		m_DelayedUpdate = 0;
+		AMFLock lock(&m_sectUpdate);
+
+		//m_DelayedUpdate = 0;
 		// new responses available (obtained in the Update() method).
 		// We've switched to a new filter response, so we need to cross fade from old IR to the new one
 		//advance indices modulo 3:
-		m_idxPrevFilter = m_idxFilter; // old filter needed for cross fade
-		m_idxFilter = (m_idxFilter + N_FILTER_STATES + 1) % N_FILTER_STATES; // new (updated) impulse response filter
-																			 //m_idxUpdateFilter = (m_idxUpdateFilter + N_FILTER_STATES + 1) % N_FILTER_STATES; // slot for next update
-		m_idxUpdateFilter = (m_idxUpdateFilter + N_FILTER_STATES + 1) % N_FILTER_STATES; // slot for next update
-		m_xFadeStarted.SetEvent();
-		if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED)
-        {
+		if (m_curCrossFadeSample == 0) {
+			m_idxPrevFilter = m_idxFilter; // old filter needed for cross fade
+			m_idxFilter = (m_idxFilter + N_FILTER_STATES + 1) % N_FILTER_STATES; // new (updated) impulse response filter
+																				 //m_idxUpdateFilter = (m_idxUpdateFilter + N_FILTER_STATES + 1) % N_FILTER_STATES; // slot for next update
+			m_idxUpdateFilter = (m_idxUpdateFilter + N_FILTER_STATES + 1) % N_FILTER_STATES; // slot for next update
+		}
+
+		///m_xFadeStarted.SetEvent();
+		if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED) {
+			m_DelayedUpdate = false;
 			// For non-uniform partitioned convolution, there is no control states needed to be passed , just triggering the crossfade and it internally takes care of the states
 			m_startNonUniformConvXFade = true;
 			ret = ProcessInternal(m_idxFilter, pBufferInput, pBufferOutput,
-				numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed);
+				numOfSamplesToProcess, flagMasks, &samplesProcessed);
 		}
 		else if (m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL)
 		{
+			m_DelayedUpdate = false;
 			// Calculate the current output using the old IR, time advances so that current input frame is stored and is part of the history buffer.
 			// No skip stage is selected, and since the crossfade state is set to one, the crossfade specefic accum buffer (cmad_accum_xf_) is used
 			ret = ProcessInternal(m_idxPrevFilter, pBufferInput, pBufferOutput,
-				numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 0, 1, 0, 1);
+				numOfSamplesToProcess, flagMasks, &samplesProcessed, 0, 1, 0, 1);
 			RETURN_IF_FAILED(ret);
 
 			// Run the MAD tail for the new IR and, no output is generated (skip_stage == 1), time not advancing at this stage , it has been advanced in the previous call
 			ret = ProcessInternal(m_idxFilter, pBufferInput, xFadeBuffs[0],
-				numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 1, 0, 1);
+				numOfSamplesToProcess, flagMasks, &samplesProcessed, 1, 0, 1);
 			RETURN_IF_FAILED(ret);
 
 			m_doHeadTailXfade = true;// Real crossfade will be performed when next input buffer is received
 		}
-		else if (m_eConvolutionMethod == (TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM || TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM) && m_bUseProcessFinalize)
-        {
+		else if (m_eConvolutionMethod == (TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM || TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM) && m_bUseProcessFinalize) {
+
 			//new head data, old filter
 			ret = ProcessInternal(m_idxPrevFilter, pBufferInput, xFadeBuffs[0],
-				numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 0, 0, 0, 1);
+				numOfSamplesToProcess, flagMasks, &samplesProcessed, 0, 1, 0, 1);
 			RETURN_IF_FAILED(ret);
 
 			//new head data, new filter
 			ret = ProcessInternal(m_idxFilter, pBufferInput, xFadeBuffs[1],
-				numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 1);
+				numOfSamplesToProcess, flagMasks, &samplesProcessed, 1,0, 1 );
 			RETURN_IF_FAILED(ret);
 
 			//cross fade
-			AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess));
+			//AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess, m_curCrossFadeSample, fadeLength));
 			//}
+			AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, samplesProcessed, m_curCrossFadeSample, fadeLength));
+			m_curCrossFadeSample += samplesProcessed;
+			if (m_curCrossFadeSample >= fadeLength) {
+				m_DelayedUpdate = false;
+				m_curCrossFadeSample = 0;
+			}
+
 		}
-		else
+        else
 		{
 			// for non head-tail case, do the crossfade process now and back to normal operation on the next input buffer
 			// last previous conv run, do not advance the internal Graal timer
@@ -1276,7 +1346,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 xFadeBuffs[0],
 				numOfSamplesToProcess,
                 flagMasks,
-                pNumOfSamplesProcessed,
+                &samplesProcessed,
                 0,
                 0
                 );
@@ -1301,7 +1371,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 xFadeBuffs[1],
 				numOfSamplesToProcess,
                 flagMasks,
-                pNumOfSamplesProcessed,
+                &samplesProcessed,
                 1
                 );
 			RETURN_IF_FAILED(ret);
@@ -1312,7 +1382,12 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 m_pContextTAN->GetConvQueue()
                 );
 
-			AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess));
+			AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess, m_curCrossFadeSample, fadeLength));
+            m_curCrossFadeSample += samplesProcessed;
+			if (m_curCrossFadeSample >= fadeLength) {
+				m_DelayedUpdate = false;
+				m_curCrossFadeSample = 0;
+			}
 		}
 	}
 	else if (m_doHeadTailXfade) //HEAD_TAIL_CROSS_FADE_STATE
@@ -1321,26 +1396,28 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 
 		// Only for the head-tail algorithm, crossfade process has started before and will finish when this step is over
 		m_doHeadTailXfade = false; // reset the flag
+		m_DelayedUpdate = false;
 
-								   // Avoiding useless computation by not launching the FDL accum kernel with the old IRs during IR update (skip_stage==2)
-								   // crossfade_state == 2 means it uses the data accumulated in the cmad_accum_xf_ when the previous frame was received
-		ret = ProcessInternal(m_idxPrevFilter, pBufferInput, xFadeBuffs[0],
-			numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 0, 0, 2, 2);
+		 // Avoiding useless computation by not launching the FDL accum kernel with the old IRs during IR update (skip_stage==2)
+		 // crossfade_state == 2 means it uses the data accumulated in the cmad_accum_xf_ when the previous frame was received
+		ret = ProcessInternal(m_idxPrevFilter, pBufferInput, xFadeBuffs[1],
+			numOfSamplesToProcess, flagMasks, &samplesProcessed, 0, 0, 2, 2);
 		RETURN_IF_FAILED(ret);
 
 		// regular convolution using the previous input
-		ret = ProcessInternal(m_idxFilter, pBufferInput, xFadeBuffs[1],
-			numOfSamplesToProcess, flagMasks, pNumOfSamplesProcessed, 1);
+		ret = ProcessInternal(m_idxFilter, pBufferInput, xFadeBuffs[0],
+			numOfSamplesToProcess, flagMasks, &samplesProcessed, 1);
 		RETURN_IF_FAILED(ret);
 
 		// cross fade old to new:
-		AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess));
+		AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, samplesProcessed, m_curCrossFadeSample, fadeLength));
 	}
 	else //REGULAR_PROCESS_STATE;
     {
         PrintDebug("REGULAR_PROCESS_STATE...");
 
         // wakeup update thread. New IR updates are allowed after the conv process completely done with crossfade
+		m_xFadeStarted.SetEvent();
 
         ret = ProcessInternal(
             m_idxFilter,
@@ -1348,7 +1425,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
             pBufferOutput,
             numOfSamplesToProcess,
             flagMasks,
-            pNumOfSamplesProcessed
+            &samplesProcessed
             );
 
 		if (!m_bUseProcessFinalize)
@@ -1366,13 +1443,12 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     #endif
             );
 
-		return(ret);
-        //AMF_RETURN_IF_FAILED(ret);
+		//(called later) return(ret);
     }
 
     if (pNumOfSamplesProcessed)
     {
-        *pNumOfSamplesProcessed = numOfSamplesToProcess;
+        *pNumOfSamplesProcessed = samplesProcessed;
     }
 
     pBufferOutput.Debug(
@@ -1666,6 +1742,39 @@ AMF_RESULT  TANConvolutionImpl::Init(
 	m_tailThread.Start();
 #endif
 
+
+    ///////////
+    for(int i=0; i<3; ++i)
+    {
+        ovlAddFilterState * state = &m_FilterState[i];
+
+        float **filter = state->m_internalFilter;
+        float **overlap = state->m_internalOverlap;
+
+        PrintFloatArray(
+            "::ovlAddProcess->filter",
+            filter[0],
+            64
+            );
+        PrintFloatArray(
+            "::ovlAddProcess->filter",
+            filter[1],
+            64
+            );
+
+        PrintFloatArray(
+            "::ovlAddProcess->overlap",
+            overlap[0],
+            64
+            );
+        PrintFloatArray(
+            "::ovlAddProcess->overlap",
+            overlap[1],
+            64
+            );
+    }
+    ///////////
+
     return AMF_OK;
 }
 
@@ -1768,7 +1877,9 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
     TANSampleBuffer & pBufferOutput,
-    amf_size numOfSamplesToProcess
+    amf_size numOfSamplesToProcess,
+	int curFadeSample,
+	int fadeLength
 )
 {
     PrintDebug(__FUNCTION__);
@@ -1861,14 +1972,17 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
     else
     {
         // CPU Implementation
+		float step = 1.0 / float(fadeLength);
 		for (int n = 0; n < m_iChannels; n++) {
 			if (!m_availableChannels[n]){ // !available == running
                 float *pFltOut = pBufferOutput.GetHostBuffers()[n];
                 float *pFltFade = m_pXFadeSamples.GetHostBuffers()[n];
-                for (amf_size i = 0; i < numOfSamplesToProcess; i++){
-                    pFltOut[i] = (pFltFade[i] * i +
-                        pFltOut[i] * (numOfSamplesToProcess - i)) /
-                        float(numOfSamplesToProcess);
+				int j = curFadeSample;
+                for (amf_size i = 0; i < numOfSamplesToProcess; i++,j++){
+					float w1, w2;
+					w1 = step * j;
+					w2 = step * (fadeLength - j);
+					pFltOut[i] = pFltFade[i] * w1 + pFltOut[i] * w2;
                 }
             }
         }
@@ -3862,7 +3976,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                 m_internalOutBufs.ReferAMFBuffers(idxInt, pOutputData.GetAMFBuffers()[channelId]);
 #endif
             }
-            else if(pOutputData.GetType() == amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST)
+            else if(pOutputData.IsHost())
             {
                 //m_internalInBufs.GetHostBuffers()[channelId] = m_silence;
 		        //hack
@@ -3879,6 +3993,9 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
                 m_internalInBufs.ReferHostBuffer(idxInt, pInputData.GetHostBuffers()[channelId]);
             }
+
+            PrintFloatArray("in", m_internalInBufs.GetHostBuffers()[idxInt], 64);
+            //PrintFloatArray("out", m_internalOutBufs.GetHostBuffers()[idxInt], 64);
 
             if (!m_availableChannels[channelId])
             { // !available == running
