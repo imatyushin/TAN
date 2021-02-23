@@ -52,6 +52,8 @@ include_directories(../../../common)
 # sources
 set(
   SOURCE_EXE
+  ../../../src/FFTWCache/FFTWCache.cpp
+  ../../../src/FFTWCache/stdafx.cpp
 
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/StringUtility.cpp
@@ -59,6 +61,8 @@ set(
 
 set(
   HEADER_EXE
+  ../../../src/FFTWCache/stdafx.h
+  ../../../src/FFTWCache/targetver.h
 
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/StringUtility.h
