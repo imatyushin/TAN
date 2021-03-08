@@ -1062,7 +1062,7 @@ void TrueAudioVRimpl::generateRoomResponse(
             {
 
 #ifndef TAN_NO_OPENCL
-                PrintCLArrayReduced(!chan ? "Left" : "Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
+                //PrintCLArrayReduced(!chan ? "Left" : "Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
 #else
                 PrintAMFArrayReduced(!chan ? "Left" : "Right", amfResponse, mCompute, 64);
 #endif
@@ -1090,7 +1090,7 @@ void TrueAudioVRimpl::generateRoomResponse(
                     );
 
 #ifndef TAN_NO_OPENCL
-                PrintCLArrayReduced(!chan ? "after Left" : "after Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
+                //PrintCLArrayReduced(!chan ? "after Left" : "after Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
 #else
                 PrintAMFArrayReduced(!chan ? "after Left" : "after Right", amfResponse, mCompute, responseLength * sizeof(float));
 #endif

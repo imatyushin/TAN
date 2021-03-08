@@ -3,6 +3,10 @@
 #include "public/common/AMFSTL.h"
 #include "public/common/Thread.h"
 #include "public/include/core/Platform.h"
+#include "public/include/core/Buffer.h"
+#include "public/include/core/Compute.h"
+
+#include "Timer.h"
 
 #include <iostream>
 #include <iomanip>
@@ -12,7 +16,7 @@
 #include <atomic>
 #include <mutex>
 
-#define SILENT
+//#define SILENT
 
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) \
@@ -48,6 +52,14 @@ static size_t GetMessageNumber()
     static std::atomic<size_t> messageNumber;
 
     return messageNumber.fetch_add(1);
+}
+
+static size_t GetTime()
+{
+    static Timer timer;
+    static auto start = timer.Sample();
+
+    return size_t((timer.Sample() - start) * 100);
 }
 
 struct AmfMutex
@@ -96,8 +108,12 @@ static std::ostream & PrintThreadInfo()
 {
     return std::cout
         << std::endl
-        << "[" << GetMessageNumber() << "] "
-        << "thread " << std::this_thread::get_id() << " ";
+        << GetTime()
+        << "ms [" << GetMessageNumber() //<< "] "
+        //<< "thread "
+        << " - "
+        << std::this_thread::get_id()
+        << "] ";
 }
 
 static void PrintDebug(const std::string & hint)

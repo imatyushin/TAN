@@ -716,7 +716,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
     PrintDebug(info);
 
-    if(++counter == 2)
+    if(++counter == 4)
     {
         int i = 0;
         ++i;

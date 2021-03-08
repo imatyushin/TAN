@@ -566,9 +566,6 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
         }
 #endif
 
-		PrintFloatArray("Transform - output[0] a", ppBufferOutput[0], 64);
-		PrintFloatArray("Transform - output[1] a", ppBufferOutput[1], 64);
-
 		return AMF_OK;
     }
 
@@ -809,26 +806,53 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
 {
     const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
 
-	PrintReducedFloatArray(
-        "TransformImplCpu - input[0]",
+    /*PrintReducedFloatArray(
+        "fft-in[0]",
         ppBufferInput[0],
-        fftFrameSize * 2 * sizeof(float)
+        fftFrameSize * sizeof(float)
         );
-    PrintReducedFloatArray(
-        "TransformImplCpu - input[1]",
+    PrintFloatArray(
+        "fft-in[0]",
+        ppBufferInput[0],
+        64
+        );
+    if(channels > 1)
+    {
+        PrintReducedFloatArray(
+            "fft-in[1]",
+            ppBufferInput[1],
+            fftFrameSize * sizeof(float)
+            );
+    PrintFloatArray(
+        "fft-in[1]",
         ppBufferInput[1],
-        fftFrameSize * 2 * sizeof(float)
+        64
         );
+    }
+
     PrintReducedFloatArray(
-        "TransformImplCpu - output[0] in",
+        "fft-out-in[0]",
         ppBufferOutput[0],
-        fftFrameSize * 2 * sizeof(float)
+        fftFrameSize * sizeof(float)
         );
-    PrintReducedFloatArray(
-        "TransformImplCpu - output[1] in",
+    PrintFloatArray(
+        "fft-out-in[0]",
+        ppBufferOutput[0],
+        64
+        );
+    if(channels > 1)
+    {
+        PrintReducedFloatArray(
+            "fft-out-in[0]",
+            ppBufferOutput[1],
+            fftFrameSize * sizeof(float)
+            );
+    PrintFloatArray(
+        "fft-out[1]",
         ppBufferOutput[1],
-        fftFrameSize * 2 * sizeof(float)
+        64
         );
+    }*/
 
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
 
@@ -895,16 +919,30 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
         }
     }
 
-    PrintReducedFloatArray(
-        "TransformImplCpu - output[0]",
+    /*PrintReducedFloatArray(
+        "fft-out[0]",
         ppBufferOutput[0],
-        fftFrameSize * 2 * sizeof(float)
+        fftFrameSize * sizeof(float)
         );
-    PrintReducedFloatArray(
-        "TransformImplCpu - output[1]",
+
+    PrintFloatArray(
+        "fft-out[0]",
+        ppBufferOutput[0],
+        64
+        );
+    if(channels > 1)
+    {
+        PrintReducedFloatArray(
+            "fft-out[0]",
+            ppBufferOutput[1],
+            fftFrameSize * sizeof(float)
+            );
+    PrintFloatArray(
+        "fft-out[1]",
         ppBufferOutput[1],
-        fftFrameSize * 2 * sizeof(float)
+        64
         );
+    }*/
 
 	return AMF_OK;
 }

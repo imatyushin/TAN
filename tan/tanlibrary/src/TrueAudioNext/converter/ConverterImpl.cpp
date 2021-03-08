@@ -669,11 +669,8 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
         }
         *outputClipped = overflowBufferOut;
     }
-    PrintCLArray("ConvertGpu - output", cl_mem(outputBuffer), m_pQueueCl, 64);
-
+    
 #else
-    PrintAMFArray("ConvertGpu - input", (amf::AMFBuffer *)inputBuffer, mQueueAMF, 64);
-
     AMFComputeKernel *kernel = nullptr;
 
     bool convert = false;
@@ -775,9 +772,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
 
         *outputClipped = overflowBufferOut;
     }
-
-    PrintAMFArray("ConvertGpu - output", (amf::AMFBuffer *)outputBuffer, mQueueAMF, 64);
-
+    
 #endif
 
     return res;

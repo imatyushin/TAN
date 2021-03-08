@@ -36,6 +36,7 @@
 #include "GraalConv_clFFT.hpp"
 #include "TANSampleBuffer.h"
 #include "TDFilterState.h"
+#include "FilterState.h"
 //#include "tanlibrary/src/Graal2/GraalWrapper.h"
 
 #include "Debug.h"
@@ -292,8 +293,11 @@ namespace amf
 		int                         m_RunningChannels = -1;              // Current number of channels, less or equal to m_iChannels. //maxChannels
         float                       **m_OutSamples = nullptr;           // Buffer to store FFT, multiplication and ^FFT for a buffer.
 		float                       **m_OutSamplesXFade = nullptr;      // Buffer to store FFT, multiplication and ^FFT for a buffer.
-		float                       **m_ovlAddLocalInBuffs = nullptr;
-        float                       **m_ovlAddLocalOutBuffs = nullptr;
+
+        std::vector<std::vector<float>>
+                                    m_ovlAddLocalInBuffs;
+        std::vector<std::vector<float>>
+                                    m_ovlAddLocalOutBuffs;
 
         TANSampleBuffer             mFadeSubbufers[2];                  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
 
@@ -321,151 +325,7 @@ namespace amf
 			int fadeLength
             );
 
-        struct ovlAddFilterState
-        {
-            float **m_Filter = nullptr;
-            std::map<size_t, size_t> FilterLength;
-
-            float **m_Overlap = nullptr;
-            std::map<size_t, size_t> OverlapLength;
-
-            float **m_internalFilter = nullptr;
-            float **m_internalOverlap = nullptr;
-            size_t mChannelsCount = 0;
-            bool mOverlapSet = false;
-
-            ~ovlAddFilterState()
-            {
-                Release();
-            }
-
-            inline void DebugPrint(const std::string & caption, size_t channel)
-            {
-                PrintDebug(caption);
-
-                PrintReducedFloatArray(
-                    "m_Filter",
-                    m_Filter[channel],
-                    FilterLength[channel]
-                    );
-                PrintReducedFloatArray(
-                    "m_Overlap",
-                    m_Overlap[channel],
-                    OverlapLength[channel]
-                    );
-
-                if(m_internalFilter[channel])
-                {
-                    PrintReducedFloatArray(
-                        "m_internalFilter",
-                        m_internalFilter[channel],
-                        FilterLength[channel]
-                        );
-                }
-                else
-                {
-                    //PrintDebug("m_internalFilter - null");
-                }
-
-                if(m_internalOverlap[channel])
-                {
-                    PrintReducedFloatArray(
-                        "m_internalOverlap",
-                        m_internalOverlap[channel],
-                        FilterLength[channel]
-                        );
-                }
-                else
-                {
-                    //PrintDebug("m_internalOverlap - null");
-                }
-            }
-
-            inline void Setup(size_t channelsCount)
-            {
-                mChannelsCount = channelsCount;
-
-                m_Filter = new float *[channelsCount];
-                std::memset(m_Filter, 0, sizeof(float *) * channelsCount);
-
-                m_Overlap = new float *[channelsCount];
-                std::memset(m_Overlap, 0, sizeof(float *) * channelsCount);
-
-                m_internalFilter = new float *[channelsCount];
-                std::memset(m_internalFilter, 0, sizeof(float *) * channelsCount);
-
-                m_internalOverlap = new float *[channelsCount];
-                std::memset(m_internalOverlap, 0, sizeof(float *) * channelsCount);
-            }
-
-            void Release()
-            {
-                if(!mChannelsCount)
-                {
-                    return;
-                }
-
-                for(size_t channel(0); channel < mChannelsCount; ++channel)
-                {
-                    delete [] m_Filter[channel], m_Filter[channel] = nullptr;
-
-                    if(mOverlapSet)
-                    {
-                        delete [] m_Overlap[channel], m_Overlap[channel] = nullptr;
-                    }
-                }
-
-                delete [] m_Filter, m_Filter = nullptr;
-                delete [] m_Overlap, m_Overlap = nullptr;
-                delete [] m_internalFilter, m_internalFilter = nullptr;
-                delete [] m_internalOverlap, m_internalOverlap = nullptr;
-
-                FilterLength.clear();
-                OverlapLength.clear();
-
-                mChannelsCount = 0;
-            }
-
-            inline void SetupFilter(size_t channelIndex, size_t length)
-            {
-                m_Filter[channelIndex] = new float[length];
-                memset(m_Filter[channelIndex], 0, sizeof(float) * length);
-                FilterLength[channelIndex] = length;
-            }
-
-            inline void SetupOverlap(size_t channelIndex, size_t length)
-            {
-                m_Overlap[channelIndex] = new float[length];
-                memset(m_Overlap[channelIndex], 0, sizeof(float) * length);
-                mOverlapSet = true;
-                OverlapLength[channelIndex] = length;
-            }
-
-            inline void ReferOverlap(size_t channelIndex, const ovlAddFilterState & source)
-            {
-                m_Overlap[channelIndex] = source.m_Overlap[channelIndex];
-
-                auto lengthIterator(source.OverlapLength.find(channelIndex));
-
-                if(lengthIterator != source.OverlapLength.end())
-                {
-                    OverlapLength[channelIndex] = (*lengthIterator).second;
-                }
-                else
-                {
-                    assert(false);
-                }
-            }
-
-            inline void FlushOverlap(size_t channelIndex)
-            {
-                size_t length = OverlapLength[channelIndex];
-                assert(length);
-                memset(m_Overlap[channelIndex], 0, length * sizeof(float));
-            }
-        };
-
-		int m_currentDataPartition = 0;
+        int m_currentDataPartition = 0;
 		int m_dataRowLength = 0;
 		int m_DelayedUpdate = 0;
         int m_curCrossFadeSample = 0;
