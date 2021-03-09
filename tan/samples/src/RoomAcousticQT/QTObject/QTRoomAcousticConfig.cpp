@@ -349,40 +349,24 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 	ConfigUi.LB_ConvolutionTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getConvolutionTime())));
 	ConfigUi.LB_BufferTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getBufferTime())));
 
-	//convolution method
-	{
-		if
-		(
-			m_RoomAcousticInstance.mConvolutionOverCL
-			&&
-			m_RoomAcousticInstance.mConvolutionOverGPU
-		)
-		{
-			update_convMethod(true);
+    update_convMethod(m_RoomAcousticInstance.mConvolutionOverGPU);
+        
+    bool set(false);
 
-			bool set(false);
+    for(int index = 0; index < ConfigUi.CB_ConvMethod->count(); ++index)
+    {
+        if(TAN_CONVOLUTION_METHOD(ConfigUi.CB_ConvMethod->itemData(index).toInt()) == m_RoomAcousticInstance.m_eConvolutionMethod)
+        {
+            ConfigUi.CB_ConvMethod->setCurrentIndex(index);
+            set = true;
 
-			for(int index = 0; index < ConfigUi.CB_ConvMethod->count(); ++index)
-			{
-				if(TAN_CONVOLUTION_METHOD(ConfigUi.CB_ConvMethod->itemData(index).toInt()) == m_RoomAcousticInstance.m_eConvolutionMethod)
-				{
-					ConfigUi.CB_ConvMethod->setCurrentIndex(index);
-					set = true;
+            break;
+        }
+    }
 
-					break;
-				}
-			}
-
-			assert(set);
-		}
-		else
-		{
-			update_convMethod(false);
-			ConfigUi.CB_ConvMethod->setCurrentIndex(0);
-		}
-	}
-
-	ConfigUi.CB_ConvolutionDevice->setCurrentIndex(
+    assert(set);
+    
+    ConfigUi.CB_ConvolutionDevice->setCurrentIndex(
 		!m_RoomAcousticInstance.mConvolutionOverCL
 		    ? 0
 			:
@@ -600,9 +584,10 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 	}
 	else
 	{
-		m_RoomAcousticInstance.m_eConvolutionMethod = TAN_CONVOLUTION_METHOD(
-			ConfigUi.CB_ConvMethod->currentData().toInt()
-			);
+        auto selectedMethodIndex = ConfigUi.CB_ConvMethod->currentData().toInt();
+        auto selectedMethod = TAN_CONVOLUTION_METHOD(selectedMethodIndex);
+        
+        m_RoomAcousticInstance.m_eConvolutionMethod = selectedMethod;
 	}
 
 #ifdef RTQ_ENABLED

@@ -37,9 +37,12 @@ public:
 	float getConvolutionTime();													// Based on the convolution length, calculate the convoltion time
 	float getBufferTime();														// Based on the buffer length, calculate the buffer tiem
 
-	static std::map<TAN_CONVOLUTION_METHOD, std::string>	MethodNames;
-	static std::vector<TAN_CONVOLUTION_METHOD> 				MethodNamesCPU;
-	static std::vector<TAN_CONVOLUTION_METHOD> 				MethodNamesGPU;
+	static std::map<TAN_CONVOLUTION_METHOD, std::string>
+											MethodNames;
+	static std::vector<TAN_CONVOLUTION_METHOD>
+											MethodNamesCPU;
+	static std::vector<TAN_CONVOLUTION_METHOD>
+											MethodNamesGPU;
 
 	/*Run time - these function should be used only when engine is running*/
 	void updateAllSoundSourcesPosition();										// update all the sound source position
