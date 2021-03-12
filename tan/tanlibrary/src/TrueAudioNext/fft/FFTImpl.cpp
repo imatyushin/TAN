@@ -806,16 +806,12 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
 {
     const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
 
-    /*PrintReducedFloatArray(
+    PrintReducedFloatArray(
         "fft-in[0]",
         ppBufferInput[0],
         fftFrameSize * sizeof(float)
         );
-    PrintFloatArray(
-        "fft-in[0]",
-        ppBufferInput[0],
-        64
-        );
+
     if(channels > 1)
     {
         PrintReducedFloatArray(
@@ -823,36 +819,25 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
             ppBufferInput[1],
             fftFrameSize * sizeof(float)
             );
-    PrintFloatArray(
-        "fft-in[1]",
-        ppBufferInput[1],
-        64
-        );
     }
 
-    PrintReducedFloatArray(
+    /*PrintReducedFloatArray(
         "fft-out-in[0]",
         ppBufferOutput[0],
         fftFrameSize * sizeof(float)
         );
-    PrintFloatArray(
-        "fft-out-in[0]",
-        ppBufferOutput[0],
-        64
-        );
+
     if(channels > 1)
     {
         PrintReducedFloatArray(
-            "fft-out-in[0]",
+            "fft-out-in[1]",
             ppBufferOutput[1],
             fftFrameSize * sizeof(float)
             );
-    PrintFloatArray(
-        "fft-out[1]",
-        ppBufferOutput[1],
-        64
-        );
     }*/
+
+    static size_t counter(0);
+    PrintDebug(std::to_string(counter++));
 
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
 
@@ -919,30 +904,20 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
         }
     }
 
-    /*PrintReducedFloatArray(
+    PrintReducedFloatArray(
         "fft-out[0]",
         ppBufferOutput[0],
         fftFrameSize * sizeof(float)
         );
 
-    PrintFloatArray(
-        "fft-out[0]",
-        ppBufferOutput[0],
-        64
-        );
     if(channels > 1)
     {
         PrintReducedFloatArray(
-            "fft-out[0]",
+            "fft-out[1]",
             ppBufferOutput[1],
             fftFrameSize * sizeof(float)
             );
-    PrintFloatArray(
-        "fft-out[1]",
-        ppBufferOutput[1],
-        64
-        );
-    }*/
+    }
 
 	return AMF_OK;
 }

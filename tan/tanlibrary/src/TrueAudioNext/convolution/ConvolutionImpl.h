@@ -299,7 +299,7 @@ namespace amf
         std::vector<std::vector<float>>
                                     m_ovlAddLocalOutBuffs;
 
-        TANSampleBuffer             mFadeSubbufers[2];                  // For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
+        TANSampleBuffer             mFadeSubbufers[2];                  //(m_pCLXFadeSubBuf) For cross-fading on GPU is created as subfolder of m_pCLXFadeMasterBuf[] memory objects
 
 #ifndef TAN_NO_OPENCL
         cl_mem                      m_pCLXFadeMasterBuf[2] = {nullptr};
@@ -333,15 +333,15 @@ namespace amf
 
 		//const int m_PartitionPad = 8;
 		typedef struct _ovlUniformPartitionFilterState {
-			float **m_Filter;
-			float **m_DataPartitions;
-			float **m_Overlap;
-			float **m_internalFilter;
-			float **m_internalOverlap;
-			float **m_internalDataPartitions;
-			cl_mem *m_clFilters;
-			cl_mem *m_clDataPartitions;
-			cl_mem m_clOutput;
+			float **m_Filter = nullptr;
+            float **m_DataPartitions = nullptr;
+            float **m_Overlap = nullptr;
+            float **m_internalFilter = nullptr;
+            float **m_internalOverlap = nullptr;
+            float **m_internalDataPartitions = nullptr;
+            cl_mem *m_clFilters = nullptr;
+            cl_mem *m_clDataPartitions = nullptr;
+            cl_mem m_clOutput = nullptr;
 			//cl_mem *m_clFilterSubParts;
 			//cl_mem *m_clDataSubParts;
 			//cl_mem *m_clOutputSubChans;
@@ -351,16 +351,20 @@ namespace amf
 		int m_2ndBufCurrentSubBuf = 0;  // 0 -> m_2ndBufSizeMultiple - 1
 		float **m_NUTailAccumulator = nullptr;   // store complex multiply accumulate data calculated in ovlNUPProcessTail
 		float **m_NUTailSaved = nullptr;   // save last complex multiply accumulate results
+		bool m_CrossFading = false;
 		typedef struct _ovlNonUniformPartitionFilterState {
-			float **m_Filter;
-			float **m_DataPartitions;
-			float **m_Overlap;
-			float **m_internalFilter;
-			float **m_internalOverlap;
-			float **m_internalDataPartitions;
-			float **m_SubPartitions;
-			float **m_workBuffer;
+			float **m_Filter = nullptr;
+            float **m_DataPartitions = nullptr;
+            float **m_Overlap = nullptr;
+            float **m_internalFilter = nullptr;
+            float **m_internalOverlap = nullptr;
+            float **m_internalDataPartitions = nullptr;
+            float **m_SubPartitions = nullptr;
+            float **m_workBuffer = nullptr;
 		} ovlNonUniformPartitionFilterState;
+        size_t mNUPSize = 0;
+        size_t mNUPSize2 = 0;
+
 
 #  define N_FILTER_STATES 3
         ovlAddFilterState m_FilterState[N_FILTER_STATES];
