@@ -32,8 +32,16 @@ template<typename Type, size_t Alignment>
 class AllignedAllocator
 {
 protected:
-    std::vector<uint8_t> mMemory;
-    Type *mPointer = nullptr;
+    static size_t           GetIndex()
+    {
+        static size_t index(0);
+
+        return index++;
+    }
+    std::vector<uint8_t>    mMemory;
+    Type                    *mPointer = nullptr;
+    size_t                  mIndex = GetIndex();
+    bool                    mAllocated = false;
 
 public:
     AllignedAllocator()
@@ -43,6 +51,19 @@ public:
         {
             throw std::runtime_error("Error: alignment is not a power of 2!");
         }
+    }
+
+    virtual ~AllignedAllocator()
+    {
+        //std::cout << "~AllignedAllocator " << mIndex << " " << mAllocated << std::endl;
+
+        //if(mAllocated)
+        {
+            //std::cout << "address " << std::hex << (float *)(&mMemory.front()) << std::dec << std::endl;
+        }
+
+        mMemory.resize(0);
+        mAllocated = false;
     }
 
     Type * GetAlignedAddress() const
@@ -78,6 +99,15 @@ public:
     Type * Allocate(size_t count)
     {
         mMemory.resize(count * sizeof(Type) + Alignment);
+        mAllocated = true;
+
+        //std::cout << "AllignedAllocator " << mIndex << " " << mAllocated << std::endl;
+
+        //if(130 == mIndex)
+        //{
+        //    int i = 0;
+        //    ++i;
+        //}
 
         //c-style, not wastful, but need smartpointer to deallocate
         //posix_memalign(outPointer, Alignment, sizeof(Type) * count);
@@ -86,11 +116,24 @@ public:
         void *pointer(&mMemory.front());
         size_t capacity(mMemory.size());
 
-        return mPointer = static_cast<Type *>(std::align(Alignment, sizeof(Type), pointer, capacity));
+        mPointer = static_cast<Type *>(std::align(Alignment, sizeof(Type), pointer, capacity));
+
+        //std::cout << "allocated: " << std::hex << (float *)(&mMemory.front()) << std::dec << std::endl;
+
+        return mPointer;
     }
 
     inline void Clear()
     {
         std::fill(mMemory.begin(), mMemory.end(), 0);
+    }
+
+    Type * AllocateClean(size_t count)
+    {
+        auto result(Allocate(count));
+
+        Clear();
+
+        return result;
     }
 };

@@ -78,8 +78,8 @@ struct HeadModel
             hint
             + " " + std::to_string(filterLength)
             );
-        PrintFloatArray(hint + "lowPass", lowPass, 64);
-        PrintFloatArray(hint + "highPass", highPass, 64);
+        //PrintFloatArray(hint + "lowPass", lowPass, 64);
+        //PrintFloatArray(hint + "highPass", highPass, 64);
     }
 };
 

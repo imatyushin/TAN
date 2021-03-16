@@ -52,6 +52,7 @@ namespace amf
 
         bool                mBuffersAllocated
                                             = false;
+        bool                mBuffersReferred = false;
 
     public:
         ~TANSampleBuffer()
@@ -64,24 +65,27 @@ namespace amf
             if(mChannelsAllocated)
             {
 #ifdef _DEBUG
-                //verify that content buffers was properly deallocated previously
-                for(size_t channel(0); channel < mChannelsCount; ++channel)
+                if(mBuffersAllocated)
                 {
-                    if(IsHost())
+                    //verify that content buffers was properly deallocated previously
+                    for(size_t channel(0); channel < mChannelsCount; ++channel)
                     {
-                        assert(!mChannels.host[channel]);
-                    }
+                        if(IsHost())
+                        {
+                            assert(!mChannels.host[channel]);
+                        }
 #ifndef TAN_NO_OPENCL
-                    else if(IsCL())
-                    {
-                        assert(!mChannels.clmem[channel]);
-                    }
+                        else if(IsCL())
+                        {
+                            assert(!mChannels.clmem[channel]);
+                        }
 #else
-                    else if(IsAMF())
-                    {
-				        assert(!mChannels.amfBuffers[channel]);
-                    }
+                        else if(IsAMF())
+                        {
+                            assert(!mChannels.amfBuffers[channel]);
+                        }
 #endif
+                    }
                 }
 #else
 test
@@ -147,6 +151,8 @@ test
                 {
                     assert(mChannels.host[channel]);
 
+                    std::cout << "delete host buffer " << std::hex << mChannels.host[channel] << std::dec << std::endl;
+
                     delete [] mChannels.host[channel];
                     mChannels.host[channel] = nullptr;
                 }
@@ -173,15 +179,23 @@ test
 			mChannelsType = AMF_MEMORY_UNKNOWN;
         }
 
-		TANSampleBuffer &                   operator =(const TANSampleBuffer & other)
+		TANSampleBuffer &                   operator=(const TANSampleBuffer & other)
 		{
+            //todo: add a != b and a.xx != b.xx
+
+            if(IsBuffersAllocated())
+            {
+                DeallocateBuffers();
+            }
+
             if(IsSet())
 			{
 				Release();
 			}
 
 			mChannelsAllocated              = false;
-            mBuffersAllocated               = other.mBuffersAllocated;
+            mBuffersAllocated               = false;
+            mBuffersReferred                = true;
 			mChannelsType                   = other.mChannelsType;
 			mChannels                       = other.mChannels;
             mChannelsCount                  = other.mChannelsCount;
@@ -209,7 +223,7 @@ test
 
                 if(IsHost() && mBuffersAllocated)
                 {
-                    PrintFloatArray(channelHint.c_str(), mChannels.host[0], count);
+                    //PrintFloatArray(channelHint.c_str(), mChannels.host[0], count);
                 }
     #ifndef TAN_NO_OPENCL
                 else if(IsCL() && mBuffersAllocated)
@@ -232,6 +246,8 @@ test
         }
 
         inline bool                         IsSet() const   {return /*amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN != mChannelsType &&*/ mChannelsAllocated;}
+        inline bool                         IsBuffersAllocated() const
+                                                            {return mBuffersAllocated;}
         inline bool                         IsHost() const  {return amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST == mChannelsType;}
 #ifndef TAN_NO_OPENCL
         inline bool                         IsCL() const    {return amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == mChannelsType;}
@@ -261,13 +277,13 @@ test
 
         inline float * const * const        GetHostBuffers() const
         {
-            //assert(IsHost() && mBuffersAllocated && mChannels.host[0]);
+            assert(IsHost() && (mBuffersAllocated || mBuffersReferred));
 
-            return GetHostBuffersReadWrite();//mChannels.host;
+            return GetHostBuffersReadWrite();
         }
         inline float ** const               GetHostBuffersReadWrite() const
         {
-            assert(IsHost() && mBuffersAllocated);
+            assert(IsHost() && (mBuffersAllocated || mBuffersReferred));
 
             return mChannels.host;
         }
@@ -275,7 +291,7 @@ test
 #ifndef TAN_NO_OPENCL
         inline cl_mem const * const         GetCLBuffers() const
         {
-            assert(IsCL() && mBuffersAllocated);
+            assert(IsCL() && (mBuffersAllocated || mBuffersReferred));
 
             return mChannels.clmem;
         }
@@ -400,9 +416,9 @@ test
 
         void                                ReferHostBuffer(size_t channelIndex, float * buffer)
         {
-            assert(IsSet() && IsHost() /*&& (!mBuffersAllocated || channelIndex)*/ /*&& !mChannels.host[channelIndex]*/);
+            assert(IsSet() && IsHost() && !mBuffersAllocated);
 
-            mBuffersAllocated = true;
+            mBuffersReferred = true;
             mChannels.host[channelIndex] = buffer;
         }
 
@@ -411,6 +427,7 @@ test
         void                                ReferCLChannels(cl_mem *buffers/*, size_t channelsCount*/)
         {
             assert(!mChannelsAllocated);
+            assert(!mBuffersAllocated);
             assert(!mChannelsCount);
 
             mChannelsType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
@@ -433,9 +450,9 @@ test
 
         void                                ReferCLBuffers(size_t channelIndex, cl_mem buffer)
         {
-            assert(IsSet() && IsCL() /*&& (!mBuffersAllocated || channelIndex)*/ /*&& !mChannels.amfBuffers[channelIndex]*/);
+            assert(IsSet() && IsCL() && !mBuffersAllocated);// || channelIndex)*/ /*&& !mChannels.amfBuffers[channelIndex]*/);
 
-            mBuffersAllocated = true; //this is a not correct for a common case
+            mBuffersReferred = true;
             mChannels.clmem[channelIndex] = buffer;
         }
 #else
@@ -479,9 +496,9 @@ test
 
         void                                ReferAMFBuffers(size_t channelIndex, amf::AMFBuffer * buffer)
         {
-            assert(IsSet() && IsAMF() /*&& (!mBuffersAllocated || channelIndex)*/ /*&& !mChannels.amfBuffers[channelIndex]*/);
+            assert(IsSet() && IsAMF() && !mBuffersAllocated/*) || channelIndex)*/ /*&& !mChannels.amfBuffers[channelIndex]*/);
 
-            mBuffersAllocated = true; //this is a not correct for common case
+            mBuffersReferred = true;
             mChannels.amfBuffers[channelIndex] = buffer;
         }
 

@@ -1099,11 +1099,11 @@ void TrueAudioVRimpl::generateRoomResponse(
         }
         else
         {
-            PrintReducedFloatArray(!chan ? "Left" : "Right", response, responseLength * sizeof(float));
+            //PrintReducedFloatArray(!chan ? "Left" : "Right", response, responseLength * sizeof(float));
 
             generateRoomResponseCPU(room, sound, ears.earSpacing, ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, hrtfResponseLength, nW, nH, nL);
 
-            PrintReducedFloatArray(!chan ? "after Left" : "after Right", response, responseLength * sizeof(float));
+            //PrintReducedFloatArray(!chan ? "after Left" : "after Right", response, responseLength * sizeof(float));
         }
     }
 }
@@ -1515,7 +1515,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         nH,
         nL
         };
-    PrintFloatArray("floats", floats, 9, 9);
+    //PrintFloatArray("floats", floats, 9, 9);
     PrintArray("ints", ints, 7, 7);
 
     //PrintCLArrayReduced("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float));
@@ -1624,7 +1624,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         nH,
         nL
         };
-    PrintFloatArray("floats", floats, 9, 9);
+    //PrintFloatArray("floats", floats, 9, 9);
     PrintArray("ints", ints, 7, 7);
 
     PrintAMFArray("mHPF", mHPF, mCompute, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));

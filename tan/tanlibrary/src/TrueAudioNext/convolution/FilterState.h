@@ -52,7 +52,7 @@ struct ovlAddFilterState
     {
         PrintDebug(caption);
 
-        m_Filter ?
+        /*m_Filter ?
             PrintFloatArray(
                 "m_Filter",
                 m_Filter[channel],
@@ -67,16 +67,16 @@ struct ovlAddFilterState
                 OverlapLength[channel],
                 64
                 ) :
-            PrintDebug("m_Overlap is null");
+            PrintDebug("m_Overlap is null");*/
 
         if(m_internalFilter && m_internalFilter[channel])
         {
-            PrintFloatArray(
+            /*PrintFloatArray(
                 "m_internalFilter",
                 m_internalFilter[channel],
                 FilterLength[channel],
                 64
-                );
+                );*/
         }
         else
         {
@@ -85,12 +85,12 @@ struct ovlAddFilterState
 
         if(m_internalOverlap && m_internalOverlap[channel])
         {
-            PrintFloatArray(
+            /*PrintFloatArray(
                 "m_internalOverlap",
                 m_internalOverlap[channel],
                 FilterLength[channel],
                 64
-                );
+                );*/
         }
         else
         {

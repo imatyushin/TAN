@@ -602,7 +602,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             );
 #endif
 
-                        PrintFloatArray(ES + "m_ovlAddLocalInBuffs[" + std::to_string(n) + "]", m_ovlAddLocalInBuffs[n].data(), numOfSamplesToProcess * sizeof(float), 64);
+                        //PrintFloatArray(ES + "m_ovlAddLocalInBuffs[" + std::to_string(n) + "]", m_ovlAddLocalInBuffs[n].data(), numOfSamplesToProcess * sizeof(float), 64);
                     }
 
                     //pBuffer.Release();
@@ -635,8 +635,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 							filter[n][k << 1] = inputBuffers[n][k];
 						}
 
-                        PrintReducedFloatArray("filter[n]", filter[n], 2 * numOfSamplesToProcess * sizeof(float));
-                        PrintFloatArray("filter[n]", filter[n], 2 * numOfSamplesToProcess * sizeof(float), 64);
+                        //PrintReducedFloatArray("filter[n]", filter[n], 2 * numOfSamplesToProcess * sizeof(float));
+                        //PrintFloatArray("filter[n]", filter[n], 2 * numOfSamplesToProcess * sizeof(float), 64);
 
                         m_accumulatedArgs.responses[n] = filter[n];
                         m_accumulatedArgs.lens[n] = static_cast<int>(numOfSamplesToProcess);
@@ -1157,13 +1157,13 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     xFadeBuffs[0] = pBufferOutput.IsHost() ? pBufferOutput : mFadeSubbufers[0];
     xFadeBuffs[1] = pBufferOutput.IsHost() ? m_pXFadeSamples : mFadeSubbufers[1];
 
-    PrintReducedFloatArray("pBufferInput 0bf", pBufferInput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
-    PrintReducedFloatArray("pBufferInput 1bf", pBufferInput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
-    PrintReducedFloatArray("pBufferOutput 0bf", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
-    PrintReducedFloatArray("pBufferOutput 1bf", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
+    //PrintReducedFloatArray("pBufferInput 0bf", pBufferInput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
+    //PrintReducedFloatArray("pBufferInput 1bf", pBufferInput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
+    //PrintReducedFloatArray("pBufferOutput 0bf", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
+    //PrintReducedFloatArray("pBufferOutput 1bf", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
 
-    PrintReducedFloatArray("xfade 0bf", xFadeBuffs[0].GetHostBuffers()[0], samplesProcessed * sizeof(float));
-    PrintReducedFloatArray("xfade 1bf", xFadeBuffs[1].GetHostBuffers()[0], samplesProcessed * sizeof(float));
+    //PrintReducedFloatArray("xfade 0bf", xFadeBuffs[0].GetHostBuffers()[0], samplesProcessed * sizeof(float));
+    //PrintReducedFloatArray("xfade 1bf", xFadeBuffs[1].GetHostBuffers()[0], samplesProcessed * sizeof(float));
 
     //todo: why these does not work? investigate, shoud be fixed!
     /*TANSampleBuffer xFadeBuffs[2] = {
@@ -1296,7 +1296,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 );
 			RETURN_IF_FAILED(ret);
 
-            PrintReducedFloatArray("xfade 0", xFadeBuffs[0].GetHostBuffers()[0], samplesProcessed * sizeof(float));
+            //PrintReducedFloatArray("xfade 0", xFadeBuffs[0].GetHostBuffers()[0], samplesProcessed * sizeof(float));
 
             // new conv run, previous input, advance the internal Graal timer
 			ret = ProcessInternal(
@@ -1310,7 +1310,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
                 );
 			RETURN_IF_FAILED(ret);
 
-            PrintReducedFloatArray("xfade 1", xFadeBuffs[1].GetHostBuffers()[0], samplesProcessed * sizeof(float));
+            //PrintReducedFloatArray("xfade 1", xFadeBuffs[1].GetHostBuffers()[0], samplesProcessed * sizeof(float));
 
 			AMF_RETURN_IF_FAILED(Crossfade(pBufferOutput, numOfSamplesToProcess, m_curCrossFadeSample, fadeLength));
             m_curCrossFadeSample += samplesProcessed;
@@ -1319,8 +1319,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 				m_curCrossFadeSample = 0;
 			}
 
-            PrintReducedFloatArray("aft Crossfade", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
-            PrintReducedFloatArray("aft Crossfade", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
+            //PrintReducedFloatArray("aft Crossfade", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
+            //PrintReducedFloatArray("aft Crossfade", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
 		}
 	}
 	else if (m_doHeadTailXfade) //HEAD_TAIL_CROSS_FADE_STATE
@@ -1362,8 +1362,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
             &samplesProcessed
             );
 
-        PrintReducedFloatArray("aft ProcessInternal0", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
-        PrintReducedFloatArray("aft ProcessInternal1", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
+        //PrintReducedFloatArray("aft ProcessInternal0", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
+        //PrintReducedFloatArray("aft ProcessInternal1", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
 
         if (!m_bUseProcessFinalize)
 		{
@@ -1665,23 +1665,23 @@ AMF_RESULT  TANConvolutionImpl::Init(
         float **filter = state->m_internalFilter;
         float **overlap = state->m_internalOverlap;
 
-        PrintFloatArray(
+        //PrintFloatArray(
             "::ovlAddProcess->filter[0] - init",
             filter[0],
             64
             );
-        PrintFloatArray(
+        //PrintFloatArray(
             "::ovlAddProcess->filter[1] - init",
             filter[1],
             64
             );
 
-        PrintFloatArray(
+        //PrintFloatArray(
             "::ovlAddProcess->overlap",
             overlap[0],
             64
             );
-        PrintFloatArray(
+        //PrintFloatArray(
             "::ovlAddProcess->overlap",
             overlap[1],
             64
@@ -1962,12 +1962,6 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     memset(m_tailLeftOver, 0, sizeof(int)*m_iChannels);
     m_silence = new float[m_length];
     memset(m_silence, 0, sizeof(float)*m_length);
-
-    //ivm: for (amf_uint32 n = 0; n < m_iChannels; n++)
-    //{
-    //    m_internalInBufs.GetHostBuffers()[n] = NULL;
-    //    m_internalOutBufs.GetHostBuffers()[n] = NULL;
-    //}
 
     m_updateArgs.Alloc(m_iChannels);
     m_uploadArgs.Alloc(m_iChannels);
@@ -2463,13 +2457,13 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
 	SAFE_ARR_DELETE(m_OutSamples);
 	SAFE_ARR_DELETE(m_OutSamplesXFade);
 
-    if(m_internalOutBufs.IsSet())
+    if(m_internalOutBufs.IsSet() && m_internalOutBufs.IsBuffersAllocated())
     {
         m_internalOutBufs.DeallocateBuffers();
     }
 	m_internalOutBufs.Release();
 
-    if(m_internalInBufs.IsSet())
+    if(m_internalInBufs.IsSet() && m_internalInBufs.IsBuffersAllocated())
     {
         m_internalInBufs.DeallocateBuffers();
     }
@@ -3197,8 +3191,8 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
         output = outputExpanded.data();
 	}
 
-    PrintReducedFloatArray("ovlNU in0", inputData.GetHostBuffers()[0], nSamples * sizeof(float));
-    PrintReducedFloatArray("ovlNU in1", inputData.GetHostBuffers()[1], nSamples * sizeof(float));
+    //PrintReducedFloatArray("ovlNU in0", inputData.GetHostBuffers()[0], nSamples * sizeof(float));
+    //PrintReducedFloatArray("ovlNU in1", inputData.GetHostBuffers()[1], nSamples * sizeof(float));
 
 	float **filter = state->m_internalFilter;
 	float **dataParts = new float *[n_channels]; //leak
@@ -3207,10 +3201,10 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
 	float **subParts = state->m_SubPartitions; //leak
 	float **workBuffer = state->m_workBuffer;
 
-    PrintReducedFloatArray("ovlNU filter", filter[0], mNUPSize * sizeof(float));
-    PrintReducedFloatArray("ovlNU overlap", overlap[0], mNUPSize2 * sizeof(float));
-    PrintReducedFloatArray("ovlNU subParts", subParts[0], mNUPSize2 * sizeof(float));
-    PrintReducedFloatArray("ovlNU workBuffer", workBuffer[0], mNUPSize2 * sizeof(float));
+    //PrintReducedFloatArray("ovlNU filter", filter[0], mNUPSize * sizeof(float));
+    //PrintReducedFloatArray("ovlNU overlap", overlap[0], mNUPSize2 * sizeof(float));
+    //PrintReducedFloatArray("ovlNU subParts", subParts[0], mNUPSize2 * sizeof(float));
+    //PrintReducedFloatArray("ovlNU workBuffer", workBuffer[0], mNUPSize2 * sizeof(float));
 
 	m_nupTailState = state;
 
@@ -3280,12 +3274,12 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
 		memcpy(dataParts[iChan], subParts[iChan], sizeof(float) * (2 * iBuffSizeNU + pad));
 	}
 
-    PrintReducedFloatArray("ovlNU dataParts0", dataParts[0], sizeof(float) * (2 * m_iBufferSizeInSamples + pad));
-    PrintReducedFloatArray("ovlNU dataParts1", dataParts[1], sizeof(float) * (2 * m_iBufferSizeInSamples + pad));
-    PrintReducedFloatArray("ovlNU filterParts0", filterParts[0], mNUPSize * sizeof(float));
-    PrintReducedFloatArray("ovlNU filterParts1", filterParts[1], mNUPSize * sizeof(float));
-    PrintReducedFloatArray("ovlNU outSamples0", outSamples[0], nSamples * sizeof(float));
-    PrintReducedFloatArray("ovlNU outSamples1", outSamples[1], nSamples * sizeof(float));
+    //PrintReducedFloatArray("ovlNU dataParts0", dataParts[0], sizeof(float) * (2 * m_iBufferSizeInSamples + pad));
+    //PrintReducedFloatArray("ovlNU dataParts1", dataParts[1], sizeof(float) * (2 * m_iBufferSizeInSamples + pad));
+    //PrintReducedFloatArray("ovlNU filterParts0", filterParts[0], mNUPSize * sizeof(float));
+    //PrintReducedFloatArray("ovlNU filterParts1", filterParts[1], mNUPSize * sizeof(float));
+    //PrintReducedFloatArray("ovlNU outSamples0", outSamples[0], nSamples * sizeof(float));
+    //PrintReducedFloatArray("ovlNU outSamples1", outSamples[1], nSamples * sizeof(float));
 
 	// transform real data to complex:
 	AMF_RETURN_IF_FAILED(m_pTanFft->Transform(fwdDir, log2FFTLen, n_channels,
@@ -3344,8 +3338,8 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
 	//}
 	//}
 
-    PrintReducedFloatArray("ovlNU out0", outputData.GetHostBuffers()[0], nSamples * sizeof(float));
-    PrintReducedFloatArray("ovlNU out1", outputData.GetHostBuffers()[1], nSamples * sizeof(float));
+    //PrintReducedFloatArray("ovlNU out0", outputData.GetHostBuffers()[0], nSamples * sizeof(float));
+    //PrintReducedFloatArray("ovlNU out1", outputData.GetHostBuffers()[1], nSamples * sizeof(float));
 
 	return nSamples;
 }
@@ -3782,22 +3776,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
     // copy valid channel buffer pointers to internal list:
     int idxInt = 0;
 
-    //todo: ivm: investigate!
-    //m_internalInBufs.mType = pInputData.mType;
-    //m_internalOutBufs.mType = pOutputData.mType;
-    //printf("\n\nTEST TYPE!!!\n\n");
-
-    //if(m_internalInBufs.IsSet())
-    {
-        //m_internalInBufs.Release();
-    }
-
-    //if(m_internalOutBufs.IsSet())
-    {
-        //m_internalOutBufs.Release();
-    }
-
-	for (amf_uint32 channelId = 0; channelId < m_iChannels; channelId++)
+    for (amf_uint32 channelId = 0; channelId < m_iChannels; channelId++)
     {
         if (!m_availableChannels[channelId]) // !available == running
         {
@@ -3825,7 +3804,6 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     pOutputData.GetType()
                     );
             }
-
             assert(m_internalOutBufs.GetType() == pOutputData.GetType());
 
             if(pOutputData.IsComputeBuffer())
@@ -3868,8 +3846,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 		}
 	}
 
-    PrintReducedFloatArray("in0", m_internalInBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
-    PrintReducedFloatArray("in1", m_internalInBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
+    //PrintReducedFloatArray("in0", m_internalInBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
+    //PrintReducedFloatArray("in1", m_internalInBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
 
     int n_channels = m_RunningChannels = idxInt; //hack
 	if (!(n_channels > 0))
@@ -3977,8 +3955,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
             *pNumOfSamplesProcessed = numOfSamplesProcessed;
         }
 
-        PrintReducedFloatArray("out0", m_internalOutBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
-        PrintReducedFloatArray("out1", m_internalOutBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
+        //PrintReducedFloatArray("out0", m_internalOutBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
+        //PrintReducedFloatArray("out1", m_internalOutBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
 
         return AMF_OK;
     }
@@ -3994,11 +3972,11 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 		float **dataParts = state->m_DataPartitions;
 		float **idataParts = state->m_internalDataPartitions;
 
-        PrintReducedFloatArray("filter", filter[0], mNUPSize * sizeof(float));
-        PrintReducedFloatArray("overlap", overlap[0], m_length * sizeof(float));
+        //PrintReducedFloatArray("filter", filter[0], mNUPSize * sizeof(float));
+        //PrintReducedFloatArray("overlap", overlap[0], m_length * sizeof(float));
 		PrintReducedFloatArray("ifilter", ifilter[0], mNUPSize * sizeof(float));
 		PrintReducedFloatArray("ioverlap", ioverlap[0], m_length * sizeof(float));
-        PrintReducedFloatArray("dataParts", dataParts[0], mNUPSize * sizeof(float));
+        //PrintReducedFloatArray("dataParts", dataParts[0], mNUPSize * sizeof(float));
 		PrintReducedFloatArray("idataParts", idataParts[0], mNUPSize * sizeof(float));
 
         //PrintReducedFloatArray("filter", filter[1], mNUPSize * sizeof(float));
@@ -4041,8 +4019,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 			*pNumOfSamplesProcessed = numOfSamplesProcessed;
 		}
 
-        PrintReducedFloatArray("out0", m_internalOutBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
-        PrintReducedFloatArray("out1", m_internalOutBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
+        //PrintReducedFloatArray("out0", m_internalOutBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
+        //PrintReducedFloatArray("out1", m_internalOutBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
 
 		return AMF_OK;
 	}
@@ -4226,8 +4204,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         *pNumOfSamplesProcessed = nSamples;
     }
 
-    PrintReducedFloatArray("out0", m_internalOutBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
-    PrintReducedFloatArray("out1", m_internalOutBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
+    //PrintReducedFloatArray("out0", m_internalOutBufs.GetHostBuffers()[0], sizeof(float) * nSamples);
+    //PrintReducedFloatArray("out1", m_internalOutBufs.GetHostBuffers()[1], sizeof(float) * nSamples);
 
     return AMF_OK;
 }

@@ -293,29 +293,20 @@ public:
         // allocate responses in one block
         // to optimize transfer to GPU
         //mResponseBuffer = new float[mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT];
-        mResponseBuffer = mResponseBufferStorage.Allocate(mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT);
+        mResponseBuffer = mResponseBufferStorage.AllocateClean(mWavFiles.size() * mFFTLength * STEREO_CHANNELS_COUNT);
 
         //todo: use std::align(32, sizeof(__m256), out2, space)...
-        for(int idx = 0; idx < mWavFiles.size() * 2; idx++)
+        for(int idx = 0; idx < mWavFiles.size() * STEREO_CHANNELS_COUNT; idx++)
         {
             mResponses[idx] = mResponseBuffer + idx * mFFTLength;
 
-            mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].Allocate(mFFTLength);
-            mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].Allocate(mFFTLength);
-        }
-
-        for (int i = 0; i < mWavFiles.size() * STEREO_CHANNELS_COUNT; i++)
-        {
-            memset(mResponses[i], 0, sizeof(float) * mFFTLength);
-
-            mInputFloatBufsStorage[i].Clear();
-            mOutputFloatBufsStorage[i].Clear();
+            mInputFloatBufs[idx] = mInputFloatBufsStorage[idx].AllocateClean(mFFTLength);
+            mOutputFloatBufs[idx] = mOutputFloatBufsStorage[idx].AllocateClean(mFFTLength);
         }
 
         for (int i = 0; i < STEREO_CHANNELS_COUNT; i++)//Right and left channel after mixing
         {
-            mOutputMixFloatBufs[i] = mOutputMixFloatBufsStorage[i].Allocate(mFFTLength);
-            memset(mOutputMixFloatBufs[i], 0, sizeof(float)*mFFTLength);
+            mOutputMixFloatBufs[i] = mOutputMixFloatBufsStorage[i].AllocateClean(mFFTLength);
         }
 
         memset(&room, 0, sizeof(room));

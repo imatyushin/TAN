@@ -464,7 +464,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 512, 512);
             PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 512, 512);
         }
-        
+
         if(mUseComputeBuffers)
         {
             mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
@@ -553,7 +553,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
                     )
                 );
 
-            PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
+            //PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
 
@@ -632,9 +632,9 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
         AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputFloatBufs, sampleCount,
             nullptr, nullptr));
-        
-        PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
-        PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
+
+        //PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
+        //PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
 
         float * outputFloatBufLeft[MAX_SOURCES] = {nullptr};
         float * outputFloatBufRight[MAX_SOURCES] = {nullptr};
@@ -645,14 +645,14 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
             outputFloatBufRight[src] = mOutputFloatBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        PrintFloatArray("::outputBufLeft", outputFloatBufLeft[0], sampleCount * sizeof(float));
-        PrintFloatArray("::outputBufRight", outputFloatBufRight[0], sampleCount * sizeof(float));
+        //PrintFloatArray("::outputBufLeft", outputFloatBufLeft[0], sampleCount * sizeof(float));
+        //PrintFloatArray("::outputBufRight", outputFloatBufRight[0], sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputFloatBufLeft, mOutputMixFloatBufs[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputFloatBufRight, mOutputMixFloatBufs[1]));
 
-        PrintFloatArray("::Mixer->Mix[0]", mOutputMixFloatBufs[0], sampleCount * sizeof(float));
-        PrintFloatArray("::Mixer->Mix[1]", mOutputMixFloatBufs[1], sampleCount * sizeof(float));
+        //PrintFloatArray("::Mixer->Mix[0]", mOutputMixFloatBufs[0], sampleCount * sizeof(float));
+        //PrintFloatArray("::Mixer->Mix[1]", mOutputMixFloatBufs[1], sampleCount * sizeof(float));
 
         auto ret = mConverter->Convert(mOutputMixFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
@@ -661,8 +661,8 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
     }
 
-    PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
-    PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
+    //PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
+    //PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
 #if 0// Old code: Crossfade, Mixing and Conversion on CPU
 

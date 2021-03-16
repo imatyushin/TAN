@@ -579,7 +579,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                     )
                 );
 
-            PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
+            //PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
 
@@ -673,8 +673,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 )
             );
 
-        PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
-        PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
+        //PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
+        //PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(ret);
 
@@ -700,8 +700,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
      }
 
-    PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
-    PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
+    //PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
+    //PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
     static int counter(0);
 

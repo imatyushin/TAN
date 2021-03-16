@@ -806,35 +806,35 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
 {
     const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
 
-    PrintReducedFloatArray(
+    /*PrintReducedFloatArray(
         "fft-in[0]",
         ppBufferInput[0],
         fftFrameSize * sizeof(float)
-        );
+        );*/
 
     if(channels > 1)
     {
-        PrintReducedFloatArray(
+        /*PrintReducedFloatArray(
             "fft-in[1]",
             ppBufferInput[1],
             fftFrameSize * sizeof(float)
-            );
+            );*/
     }
 
     /*PrintReducedFloatArray(
         "fft-out-in[0]",
         ppBufferOutput[0],
         fftFrameSize * sizeof(float)
-        );
+        );*/
 
     if(channels > 1)
     {
-        PrintReducedFloatArray(
+        /*PrintReducedFloatArray(
             "fft-out-in[1]",
             ppBufferOutput[1],
             fftFrameSize * sizeof(float)
-            );
-    }*/
+            );*/
+    }
 
     static size_t counter(0);
     PrintDebug(std::to_string(counter++));
@@ -904,7 +904,7 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
         }
     }
 
-    PrintReducedFloatArray(
+    /*PrintReducedFloatArray(
         "fft-out[0]",
         ppBufferOutput[0],
         fftFrameSize * sizeof(float)
@@ -912,12 +912,12 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
 
     if(channels > 1)
     {
-        PrintReducedFloatArray(
+        //PrintReducedFloatArray(
             "fft-out[1]",
             ppBufferOutput[1],
             fftFrameSize * sizeof(float)
             );
-    }
+    }*/
 
 	return AMF_OK;
 }
