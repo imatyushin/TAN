@@ -305,7 +305,7 @@ test
 #else
         inline AMFBuffer * const * const    GetAMFBuffers() const
         {
-            assert(IsAMF() && mBuffersAllocated && mChannels.amfBuffers[0]);
+            assert(IsAMF() && (mBuffersAllocated || mBuffersReferred));
 
             return mChannels.amfBuffers;
         }
