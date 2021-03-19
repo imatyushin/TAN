@@ -59,43 +59,29 @@ private:
 #include <thread>
 #include <iostream>
 
+#define ATOMIC_FIFO
+
 //two-threads frendly fifo
 //one thread - write
 //another thread - read
 class Fifo
 {
-    //std::atomic<size_t>
-    size_t
+#ifndef ATOMIC_FIFO
+    size_t          mQueueSize(0);
+    size_t          mBufferInPosition(0);
+    size_t          mBufferOutPosition(0);
+    std::vector<uint8_t>
+                    mBuffer;
+#else
+    std::atomic<size_t>
                     mQueueSize;
-    //std::atomic<size_t>
-    size_t
+    std::atomic<size_t>
                     mBufferInPosition;
-    //std::atomic<size_t>
-    size_t
+    std::atomic<size_t>
                     mBufferOutPosition;
     std::vector<uint8_t>
                     mBuffer;
-
-    /*inline size_t   GetQueueSize() const
-    {
-        std::lock_guard<std::mutex> lock(mLockMutex);
-
-        return mQueueSize;
-    }
-
-    inline size_t   GetBufferInPosition() const
-    {
-        std::lock_guard<std::mutex> lock(mLockMutex);
-
-        return mBufferInPosition;
-    }
-
-    inline size_t   GetBufferOutPosition() const
-    {
-        std::lock_guard<std::mutex> lock(mLockMutex);
-
-        return mBufferOutPosition;
-    }*/
+#endif
 
 public:
     Fifo():
