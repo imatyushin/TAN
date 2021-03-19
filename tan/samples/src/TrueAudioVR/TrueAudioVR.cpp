@@ -65,10 +65,9 @@ private:
     TANFFTPtr mFFT;
     TANMathPtr mMath;
     TANContextPtr mContext;
+    bool mInitialized = false;
 
 #ifndef TAN_NO_OPENCL
-    bool m_clInitialized = false;
-
     //OpenCL initialization
     cl_context m_context = nullptr;
     cl_command_queue m_cmdQueue = nullptr;
@@ -81,16 +80,13 @@ private:
     cl_mem m_pFloatResponse = nullptr;
     cl_mem m_pLPF = nullptr;
     cl_mem m_pHPF = nullptr;
-
 #else
-
-    bool mInitialized = false;
-
 	//todo: smrtptr
 	amf::AMFFactory * mFactory = nullptr;
     bool mFactoryCreated = false;
 
     amf::AMFComputePtr mCompute;
+    amf::AMF_MEMORY_TYPE mMemoryType = AMF_MEMORY_UNKNOWN;
 
     amf::AMFComputeKernelPtr mKernelResponse;
     amf::AMFComputeKernelPtr mKernelFill;
@@ -307,7 +303,7 @@ public:
         int responseLength
         );
 
-    void generateRoomResponse(
+    AMF_RESULT generateRoomResponse(
         const RoomDefinition & room,
         MonoSource source,
         const StereoListener & ear,
@@ -449,6 +445,10 @@ TrueAudioVRimpl::TrueAudioVRimpl(
     mFFT        (fft),
     mCompute    (compute)
 {
+    if(mCompute)
+    {
+        mMemoryType = compute->GetMemoryType();
+    }
 }
 #endif
 
@@ -865,7 +865,7 @@ Generates an impulse response for a rectangular room, given room dimensions, dam
 each of the six walls, source and microphone positions in the room.
 
 **************************************************************************************************/
-void TrueAudioVRimpl::generateRoomResponse(
+AMF_RESULT TrueAudioVRimpl::generateRoomResponse(
     const RoomDefinition & room,
     MonoSource sound,
     const StereoListener & ears,
@@ -941,19 +941,15 @@ void TrueAudioVRimpl::generateRoomResponse(
 
     if (m_executionMode == VRExecutionMode::GPU)
     {
+        if (!mInitialized)
+        {
 #ifndef TAN_NO_OPENCL
-        if (!m_clInitialized)
-        {
-            InitializeCL(ears, 2 * nW, 2 * nH, 2 * nL, responseLength);
-            m_clInitialized = true;
-        }
+            AMF_RETURN_IF_FAILED(InitializeCL(ears, 2 * nW, 2 * nH, 2 * nL, responseLength));
 #else
-        if(!mInitialized)
-        {
-            InitializeAMF(ears, 2 * nW, 2 * nH, 2 * nL, responseLength);
+            AMF_RETURN_IF_FAILED(InitializeAMF(ears, 2 * nW, 2 * nH, 2 * nL, responseLength));
+#endif
             mInitialized = true;
         }
-#endif
     }
 
     for (int chan = 0; chan < STEREO_CHANNELS_COUNT; chan++)
@@ -1364,41 +1360,21 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
         AMF_FAIL
         );
 
-#ifndef ENABLE_METAL
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+            mMemoryType,
             responseLength * sizeof(float),
             &mResponse
             )
         );
-#else
-    AMF_RETURN_IF_FAILED(
-        mContext->GetAMFContext()->AllocBuffer(
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
-            responseLength * sizeof(float),
-            &mResponse
-        )
-    );
-#endif
 
-#ifndef ENABLE_METAL
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL,
+            mMemoryType,
             responseLength * sizeof(float),
             &mFloatResponse
             )
         );
-#else
-    AMF_RETURN_IF_FAILED(
-        mContext->GetAMFContext()->AllocBuffer(
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL,
-            responseLength * sizeof(float),
-            &mFloatResponse
-        )
-    );
-#endif
 
     // zero buffers
     float fill = 0.0;
@@ -1436,13 +1412,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
-    AMF_RETURN_IF_FAILED(mHPF->Convert(
-#ifndef ENABLE_METAL
-        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-        ));
+    AMF_RETURN_IF_FAILED(mHPF->Convert(mMemoryType));
 
     //m_pLPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
     //    HeadFilterSize * sizeof(float), ears.hrtf.lowPass, &status);
@@ -1454,13 +1424,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             nullptr
             )
         );
-    AMF_RETURN_IF_FAILED(mLPF->Convert(
-#ifndef ENABLE_METAL
-        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-        ));
+    AMF_RETURN_IF_FAILED(mLPF->Convert(mMemoryType));
 
     m_globalWorkSize[0] = RoundUp(localX, nW);
     m_globalWorkSize[1] = RoundUp(localY, nH);

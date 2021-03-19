@@ -220,7 +220,7 @@ public:
     {
     };
 
-    virtual void generateRoomResponse(
+    virtual AMF_RESULT generateRoomResponse(
         const RoomDefinition & room,
         MonoSource source,
         const StereoListener & ear,
@@ -245,7 +245,7 @@ public:
         ) = 0;
 
 #ifdef DOORWAY_TRANSFORM
-    virtual void generateDoorwayResponse(
+    virtual AMF_RESULT generateDoorwayResponse(
         const RoomDefinition & room1,
         const RoomDefinition & room2,
         const MonoSource & source,

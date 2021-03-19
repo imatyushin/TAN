@@ -256,19 +256,19 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 #ifndef ATOMIC_FIFO
     std::lock_guard<std::mutex> lock(mLockMutex);
 
-    auto bufferDataSize(mQueueSize);
-    auto bufferInPosition(mBufferInPosition);
-    auto bufferOutPosition(mBufferOutPosition);
+    size_t bufferDataSize(mQueueSize);
+    size_t bufferInPosition(mBufferInPosition);
+    size_t bufferOutPosition(mBufferOutPosition);
 #else
-    auto bufferDataSize(mQueueSize.load());
-    auto bufferInPosition(mBufferInPosition.load());
-    auto bufferOutPosition(mBufferOutPosition.load());
+    size_t bufferDataSize(mQueueSize.load());
+    size_t bufferInPosition(mBufferInPosition.load());
+    size_t bufferOutPosition(mBufferOutPosition.load());
 #endif
 
     //std::cout << "play position: " << bufferInPosition << " (" << mBuffer.size() << ") " << std::endl;
 
     //free size from bufferInPosition and higher
-    auto tailBlock(
+    size_t tailBlock(
         bufferInPosition == bufferOutPosition
             ? (bufferDataSize == mBuffer.size() ? 0 : mBuffer.size() - bufferInPosition)
             :
@@ -278,17 +278,17 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
                     : bufferOutPosition - bufferInPosition
             )
         );
-    auto headBlock(
+    size_t headBlock(
         bufferInPosition > bufferOutPosition
             ? bufferOutPosition
             : 0
         );
 
-    auto sizeWritten(0);
+    size_t sizeWritten(0);
 
     if(tailBlock)
     {
-        auto size2Write(std::min(size_t(size), tailBlock));
+        size_t size2Write(std::min(size_t(size), tailBlock));
 
         if(bufferDataSize + size2Write > mBuffer.size())
         {
@@ -313,7 +313,7 @@ uint32_t Fifo::Write(const uint8_t *data, size_t size)
 
     if(size && headBlock)
     {
-        auto size2Write(std::min(size_t(size), headBlock));
+        size_t size2Write(std::min(size_t(size), headBlock));
 
         if(bufferDataSize + sizeWritten + size2Write > mBuffer.size())
         {
@@ -367,16 +367,16 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 #ifndef ATOMIC_FIFO
     std::lock_guard<std::mutex> lock(mLockMutex);
 
-    auto bufferDataSize(mQueueSize);
-    auto bufferInPosition(mBufferInPosition);
-    auto bufferOutPosition(mBufferOutPosition);
+    size_t bufferDataSize(mQueueSize);
+    size_t bufferInPosition(mBufferInPosition);
+    size_t bufferOutPosition(mBufferOutPosition);
 #else
-    auto bufferDataSize(mQueueSize.load());
-    auto bufferInPosition(mBufferInPosition.load());
-    auto bufferOutPosition(mBufferOutPosition.load());
+    size_t bufferDataSize(mQueueSize.load());
+    size_t bufferInPosition(mBufferInPosition.load());
+    size_t bufferOutPosition(mBufferOutPosition.load());
 #endif
 
-    auto tailSize(
+    size_t tailSize(
         bufferInPosition == bufferOutPosition
             ? (bufferDataSize ? mBuffer.size() - bufferInPosition : 0)
             :
@@ -387,13 +387,13 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
                     : (bufferInPosition < bufferOutPosition ? mBuffer.size() - bufferOutPosition : 0)
             )
         );
-    auto headSize(
+    size_t headSize(
         bufferInPosition < bufferOutPosition
             ? bufferInPosition
             : 0
         );
 
-    auto sizeFilled(0);
+    size_t sizeFilled(0);
 
     //std::cout << "in: " << bufferInPosition << " out: " << bufferOutPosition << std::endl;
     //std::cout << "tail: " << tailSize << " head: " << headSize << std::endl;
@@ -404,7 +404,7 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
     if(tailSize)
     {
-        auto fillTailSize(std::min(tailSize, size2Fill));
+        size_t fillTailSize(std::min(tailSize, size2Fill));
 
         if(fillTailSize > mQueueSize)
         {
@@ -428,7 +428,7 @@ uint32_t Fifo::Read(uint8_t *outputBuffer, size_t size2Fill)
 
     if(size2Fill && headSize)
     {
-        auto fillHeadSize(std::min(headSize, size2Fill));
+        size_t fillHeadSize(std::min(headSize, size2Fill));
 
         if(sizeFilled + fillHeadSize > mQueueSize)
         {

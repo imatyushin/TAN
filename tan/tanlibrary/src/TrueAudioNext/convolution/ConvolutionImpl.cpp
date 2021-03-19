@@ -465,9 +465,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     const amf_uint32 operationFlags
 )
 {
-    pBuffer.Debug(__FUNCTION__, 64, m_pContextTAN->GetConvQueue());
-    pBuffer.Debug(__FUNCTION__, 64, m_pContextTAN->GetGeneralQueue());
-
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(numOfSamplesToProcess <= m_iLengthInSamples, AMF_INVALID_ARG,
                         L"Inconsistent with one set in Init() call length passed");
@@ -1840,8 +1837,6 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
                 );
 
             CHECK_OPENCL_ERROR(status, "copy failed.");
-
-            pBufferOutput.Debug("copy", 64, crossfadeQueue);
         }
 
 #else
@@ -1875,8 +1870,6 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
                     0
                     )
                 );
-
-            pBufferOutput.Debug("copy", 64, crossfadeQueue);
         }
 
 #endif
