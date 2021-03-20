@@ -1047,22 +1047,9 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponse(
                     2 * nH,
                     2 * nL
                     );
-
-#ifndef TAN_NO_OPENCL
-                PrintCLArrayReduced(!chan ? "after Left" : "after Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
-#else
-                PrintAMFArrayReduced(!chan ? "after Left" : "after Right", amfResponse, mCompute, 64);
-#endif
             }
             else
             {
-
-#ifndef TAN_NO_OPENCL
-                //PrintCLArrayReduced(!chan ? "Left" : "Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
-#else
-                PrintAMFArrayReduced(!chan ? "Left" : "Right", amfResponse, mCompute, 64);
-#endif
-
                 generateRoomResponseGPU(
                     sound,
                     room,
@@ -1084,24 +1071,15 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponse(
                     2 * nH,
                     2 * nL
                     );
-
-#ifndef TAN_NO_OPENCL
-                //PrintCLArrayReduced(!chan ? "after Left" : "after Right", oclResponse, m_cmdQueue, responseLength * sizeof(float));
-#else
-                PrintAMFArrayReduced(!chan ? "after Left" : "after Right", amfResponse, mCompute, responseLength * sizeof(float));
-#endif
-
             }
         }
         else
         {
-            //PrintReducedFloatArray(!chan ? "Left" : "Right", response, responseLength * sizeof(float));
-
             generateRoomResponseCPU(room, sound, ears.earSpacing, ears.hrtf, response, headX, headY, headZ, earVX, earVY, earVZ, inSampRate, responseLength, hrtfResponseLength, nW, nH, nL);
-
-            //PrintReducedFloatArray(!chan ? "after Left" : "after Right", response, responseLength * sizeof(float));
         }
     }
+
+    return AMF_OK;
 }
 
 /**************************************************************************************************

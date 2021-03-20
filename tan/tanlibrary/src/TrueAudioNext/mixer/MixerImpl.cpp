@@ -175,12 +175,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
 
     AMF_RETURN_IF_FAILED(
         m_pContextAMF->AllocBuffer(
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-            ,
+            mAMFCompute->GetMemoryType(),
             m_bufferSize * m_numChannels * sizeof(float),
             &mInternalBufferAMF
             )

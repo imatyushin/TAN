@@ -374,15 +374,7 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
         AMFCompute* pAMFCompute = NULL;
         AMF_RESULT res = pAMFContext->InitOpenCL(queue);
         AMF_RETURN_IF_FAILED(res, L"InitOpenCL() failed");
-        pAMFContext->GetCompute(
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-            ,
-            &pAMFCompute
-            );
+        AMF_RETURN_IF_FAILED(pAMFContext->GetCompute(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL));
         AMF_RETURN_IF_FALSE(pAMFCompute != NULL, AMF_FAIL, L"Could not get the AMFCompute.");
         pCompute = pAMFCompute;
     }

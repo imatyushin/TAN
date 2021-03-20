@@ -54,9 +54,9 @@ namespace amf
             cl_command_queue pConvolutionQueue
             ) override;
 
-        cl_context AMF_STD_CALL GetOpenCLContext() override;
-        cl_command_queue AMF_STD_CALL GetOpenCLGeneralQueue() override;
-        cl_command_queue AMF_STD_CALL GetOpenCLConvQueue() override;
+        cl_context AMF_STD_CALL         GetOpenCLContext() override;
+        cl_command_queue AMF_STD_CALL   GetOpenCLGeneralQueue() override;
+        cl_command_queue AMF_STD_CALL   GetOpenCLConvQueue() override;
 #else
         AMF_RESULT  AMF_STD_CALL InitAMF(
             AMFContext *generalContext,
@@ -65,9 +65,9 @@ namespace amf
             AMFCompute *convolutionQueue
             ) override;
 
-        AMFContext * AMF_STD_CALL GetAMFContext() override;
-        AMFCompute * AMF_STD_CALL GetAMFGeneralQueue() override;
-        AMFCompute * AMF_STD_CALL GetAMFConvQueue() override;
+        AMFContext * AMF_STD_CALL       GetAMFContext() override;
+        AMFCompute * AMF_STD_CALL       GetAMFGeneralQueue() override;
+        AMFCompute * AMF_STD_CALL       GetAMFConvQueue() override;
 #endif
 
         amf::AMFFactory * GetFactory() override         { return mFactory; }
@@ -123,18 +123,6 @@ namespace amf
 
         bool m_clfftInitialized = false;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.
-
-#if AMF_BUILD_OPENCL
-        AMFDeviceComputePtr m_pDeviceOpenCL;
-#endif //AMF_BUILD_OPENCL
-
-#if AMF_BUILD_MCL && AMF_BUILD_DIRECTX9
-        AMFDeviceComputePtr m_pDeviceMCL_DX9;
-#endif //AMF_BUILD_MCL && AMF_BUILD_DIRECTX9
-
-#if AMF_BUILD_MCL && AMF_BUILD_DIRECTX11
-        AMFDeviceComputePtr m_pDeviceMCL_DX11;
-#endif //AMF_BUILD_MCL && AMF_BUILD_DIRECTX11
 
         AMFCriticalSection m_sync;
     };

@@ -176,11 +176,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
         );
     AMF_RETURN_IF_FAILED(
         mOverflowBuffer->Convert(
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
+            mQueueAMF->GetMemoryType()
             )
         );
 
@@ -669,7 +665,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
         }
         *outputClipped = overflowBufferOut;
     }
-    
+
 #else
     AMFComputeKernel *kernel = nullptr;
 
@@ -772,7 +768,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
 
         *outputClipped = overflowBufferOut;
     }
-    
+
 #endif
 
     return res;

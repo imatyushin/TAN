@@ -454,7 +454,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(
     result = contextAMF->InitMetalEx(computeDevice);
 #endif
 
-    AMF_RETURN_IF_FAILED(result, L"InitOpenCLEx failed\n");
+    AMF_RETURN_IF_FAILED(result, L"Initialization failed\n");
 
     if (compute1)
     {

@@ -172,16 +172,13 @@ namespace amf
             amfSampleHistory.resize(channelsCount);
         }
 
-        AMF_RESULT SetupAMFData(AMFContext * context, size_t index, size_t length)
+        AMF_RESULT SetupAMFData(AMFContext * context, AMF_MEMORY_TYPE memoryType, size_t index, size_t length)
         {
+            assert(context);
+
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-#ifndef ENABLE_METAL
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                    ,
+                    memoryType,
                     length * sizeof(float),
                     &amfFilter[index]
                     )
@@ -189,12 +186,7 @@ namespace amf
 
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-#ifndef ENABLE_METAL
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                    ,
+                    memoryType,
                     length * sizeof(float),
                     &amfTemp[index]
                     )
@@ -202,12 +194,7 @@ namespace amf
 
             AMF_RETURN_IF_FAILED(
                 context->AllocBuffer(
-#ifndef ENABLE_METAL
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                    ,
+                    memoryType,
                     length * sizeof(float),
                     &amfSampleHistory[index]
                     )

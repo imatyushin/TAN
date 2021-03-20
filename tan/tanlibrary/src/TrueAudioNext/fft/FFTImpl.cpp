@@ -109,18 +109,17 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
-#ifndef ENABLE_METAL
-
 #ifndef TAN_NO_OPENCL
     if (m_pContextTAN->GetOpenCLContext())
 #else
 	if (m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
 #endif
     {
+		//todo: integrate metal fft
+#ifndef ENABLE_METAL
         return InitGpu();
-    }
-
 #endif
+    }
 
     return InitCpu();
 }
@@ -1893,28 +1892,19 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 		float fill = 0.0;
 		status = FixedEnqueueFillBuffer(context, cmdQueue, m_pInputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes);
 		status = FixedEnqueueFillBuffer(context, cmdQueue, m_pOutputsOCL, &fill, sizeof(float), 0, requiredBufferLengthInBytes);
+
 #else
 
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-#ifdef ENABLE_METAL
-				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#else
-				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#endif
-				,
+				cmdQueue->GetMemoryType(),
                 requiredBufferLengthInBytes,
                 &mInputsAMF
                 )
             );
 		AMF_RETURN_IF_FAILED(
             context->AllocBuffer(
-#ifdef ENABLE_METAL
-				amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#else
-				amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#endif
-                ,
+				cmdQueue->GetMemoryType(),
                 requiredBufferLengthInBytes,
                 &mOutputsAMF
                 )

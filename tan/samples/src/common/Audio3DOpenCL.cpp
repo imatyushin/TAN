@@ -459,25 +459,17 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     //To Do use gpu mem responses
     for(int idx = 0; idx < mWavFiles.size(); idx++)
     {
-        if(mCmdQueue3)
-        {
-            PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, 512, 512);
-            PrintCLArray("bfr generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, 512, 512);
-        }
-
         if(mUseComputeBuffers)
         {
-            mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
+            AMF_RETURN_IF_FAILED(
+                mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50)
+                );
         }
         else
         {
-            mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50);
-        }
-
-        if(mCmdQueue3)
-        {
-            PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2], mCmdQueue3, mFFTLength * sizeof(float));
-            PrintCLArrayReduced("aft generateRoomResponse", mOCLResponses[idx * 2 + 1], mCmdQueue3, mFFTLength * sizeof(float));
+            AMF_RETURN_IF_FAILED(
+                mTrueAudioVR->generateRoomResponse(room, sources[idx], ears, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50)
+                );
         }
     }
 
@@ -1009,16 +1001,18 @@ int Audio3DOpenCL::UpdateProc()
 
             if(mUseComputeBuffers)
             {
-                mTrueAudioVR->generateRoomResponse(
-                    room,
-                    sources[idx],
-                    ears,
-                    FILTER_SAMPLE_RATE,
-                    mFFTLength,
-                    mOCLResponses[idx * 2],
-                    mOCLResponses[idx * 2 + 1],
-                    GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
-                    50
+                AMF_RETURN_IF_FAILED(
+                    mTrueAudioVR->generateRoomResponse(
+                        room,
+                        sources[idx],
+                        ears,
+                        FILTER_SAMPLE_RATE,
+                        mFFTLength,
+                        mOCLResponses[idx * 2],
+                        mOCLResponses[idx * 2 + 1],
+                        GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
+                        50
+                        )
                     );
             }
             else
@@ -1026,16 +1020,18 @@ int Audio3DOpenCL::UpdateProc()
                 memset(mResponses[idx * 2], 0, sizeof(float )* mFFTLength);
                 memset(mResponses[idx * 2 + 1], 0, sizeof(float) * mFFTLength);
 
-                mTrueAudioVR->generateRoomResponse(
-                    room,
-                    sources[idx],
-                    ears,
-                    FILTER_SAMPLE_RATE,
-                    mFFTLength,
-                    mResponses[idx * 2],
-                    mResponses[idx * 2 + 1],
-                    GENROOM_LIMIT_BOUNCES,
-                    50
+                AMF_RETURN_IF_FAILED(
+                    mTrueAudioVR->generateRoomResponse(
+                        room,
+                        sources[idx],
+                        ears,
+                        FILTER_SAMPLE_RATE,
+                        mFFTLength,
+                        mResponses[idx * 2],
+                        mResponses[idx * 2 + 1],
+                        GENROOM_LIMIT_BOUNCES,
+                        50
+                        )
                     );
             }
         }

@@ -254,25 +254,14 @@ test
 #else
         inline bool                         IsAMF() const
         {
-            return
-#ifndef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                == mChannelsType;
+            return IsComputeBuffer();
         }
 #endif
 
         inline bool                         IsComputeBuffer() const
         {
-            return
-#ifdef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#endif
-                == mChannelsType;
+            return amf::AMF_MEMORY_TYPE::AMF_MEMORY_UNKNOWN != mChannelsType
+                && amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST != mChannelsType;
         }
 
         inline float * const * const        GetHostBuffers() const
@@ -461,14 +450,9 @@ test
         {
             assert(!mChannelsAllocated);
             assert(!mChannelsCount);
+            assert(amfBuffers && amfBuffers[0]);
 
-            mChannelsType =
-#ifndef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                ;
+            mChannelsType = amfBuffers[0]->GetMemoryType();
 
             mBuffersAllocated = true; //this is a not correct for common case
             mChannels.amfBuffers = amfBuffers;

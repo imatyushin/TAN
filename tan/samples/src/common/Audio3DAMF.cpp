@@ -122,11 +122,8 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_IRGen;
             }
     #endif // RTQ_ENABLED
-            //CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
-            amf::AMFCompute *compute1(nullptr), *compute2(nullptr);
-            CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &compute1, flagsQ2, &compute2, &mContext12);
-            mCompute1 = compute1;
-            mCompute2 = compute2;
+
+            CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
 
             //CL room on GPU
             if(mComputeRoom && mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
@@ -252,12 +249,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             {
                 AMF_RETURN_IF_FAILED(
                     mContext12->AllocBuffer(
-#ifndef ENABLE_METAL
-                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                        amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                        ,
+                        mCompute1->GetMemoryType(),
                         mFFTLength * sizeof(float),
                         &mAMFResponses[i]
                         )
@@ -288,12 +280,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         // First create a big cl_mem buffer then create small sub-buffers from it
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
-#ifndef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                ,
+                mCompute1->GetMemoryType(),
                 mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
                 &mOutputMainAMFBuffer
                 ),
@@ -332,12 +319,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         {
             AMF_RETURN_IF_FAILED(
                 mContext12->AllocBuffer(
-#ifndef ENABLE_METAL
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                    ,
+                    mCompute1->GetMemoryType(),
                     mBufferSizeInBytes,
                     &mOutputMixAMFBuffers[idx]
                     ),
@@ -362,12 +344,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
-#ifndef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                ,
+                mCompute1->GetMemoryType(),
                 mBufferSizeInBytes,
                 &mOutputShortAMFBuffer
                 ),
@@ -461,38 +438,36 @@ AMF_RESULT Audio3DAMF::InitObjects()
     {
         if(mUseComputeBuffers)
         {
-            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), 512, 512);
-            PrintAMFArray("bfr generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), 512, 512);
-
-            mTrueAudioVR->generateRoomResponse(
-                room,
-                sources[idx],
-                ears,
-                FILTER_SAMPLE_RATE,
-                mFFTLength,
-                mAMFResponses[idx * 2],
-                mAMFResponses[idx * 2 + 1],
-                GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
-                50
+            AMF_RETURN_IF_FAILED(
+                mTrueAudioVR->generateRoomResponse(
+                    room,
+                    sources[idx],
+                    ears,
+                    FILTER_SAMPLE_RATE,
+                    mFFTLength,
+                    mAMFResponses[idx * 2],
+                    mAMFResponses[idx * 2 + 1],
+                    GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
+                    50
+                    )
                 );
         }
         else
         {
-            mTrueAudioVR->generateRoomResponse(
-                room,
-                sources[idx],
-                ears,
-                FILTER_SAMPLE_RATE,
-                mFFTLength,
-                mResponses[idx * 2],
-                mResponses[idx * 2 + 1],
-                GENROOM_LIMIT_BOUNCES,
-                50
+            AMF_RETURN_IF_FAILED(
+                mTrueAudioVR->generateRoomResponse(
+                    room,
+                    sources[idx],
+                    ears,
+                    FILTER_SAMPLE_RATE,
+                    mFFTLength,
+                    mResponses[idx * 2],
+                    mResponses[idx * 2 + 1],
+                    GENROOM_LIMIT_BOUNCES,
+                    50
+                    )
                 );
         }
-
-        PrintAMFArrayReduced("aft generateRoomResponse", &(*mAMFResponses[idx * 2]), &(*mCompute3), mFFTLength * sizeof(float));
-        PrintAMFArrayReduced("aft generateRoomResponse", &(*mAMFResponses[idx * 2 + 1]), &(*mCompute3), mFFTLength * sizeof(float));
     }
 
     if(mUseComputeBuffers)
@@ -988,16 +963,18 @@ int Audio3DAMF::UpdateProc()
 
             if(mUseComputeBuffers)
             {
-                mTrueAudioVR->generateRoomResponse(
-                    room,
-                    sources[idx],
-                    ears,
-                    FILTER_SAMPLE_RATE,
-                    mFFTLength,
-                    mAMFResponsesInterfaces[idx * 2],
-                    mAMFResponsesInterfaces[idx * 2 + 1],
-                    GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
-                    50
+                AMF_RETURN_IF_FAILED(
+                    mTrueAudioVR->generateRoomResponse(
+                        room,
+                        sources[idx],
+                        ears,
+                        FILTER_SAMPLE_RATE,
+                        mFFTLength,
+                        mAMFResponsesInterfaces[idx * 2],
+                        mAMFResponsesInterfaces[idx * 2 + 1],
+                        GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
+                        50
+                        )
                     );
             }
             else
@@ -1005,16 +982,18 @@ int Audio3DAMF::UpdateProc()
                 memset(mResponses[idx * 2], 0, sizeof(float )* mFFTLength);
                 memset(mResponses[idx * 2 + 1], 0, sizeof(float) * mFFTLength);
 
-                mTrueAudioVR->generateRoomResponse(
-                    room,
-                    sources[idx],
-                    ears,
-                    FILTER_SAMPLE_RATE,
-                    mFFTLength,
-                    mResponses[idx * 2],
-                    mResponses[idx * 2 + 1],
-                    GENROOM_LIMIT_BOUNCES,
-                    50
+                AMF_RETURN_IF_FAILED(
+                    mTrueAudioVR->generateRoomResponse(
+                        room,
+                        sources[idx],
+                        ears,
+                        FILTER_SAMPLE_RATE,
+                        mFFTLength,
+                        mResponses[idx * 2],
+                        mResponses[idx * 2 + 1],
+                        GENROOM_LIMIT_BOUNCES,
+                        50
+                        )
                     );
             }
         }

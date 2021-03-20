@@ -166,6 +166,8 @@ public:
 
         //mComputedOutputPipeline = useGPU_Conv && useGPU_IRGen;
         mComputedOutputPipeline = computeConvolution || computeRoom;
+        //reset, will be set later
+        mUseComputeBuffers = false;
 
         mSrc1EnableMic = useMicSource;
         mTrackHeadPos = trackHeadPos;

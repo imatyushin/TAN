@@ -254,7 +254,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitCpu(
     amf_uint32 channels
     )
 {
-
 	// Heuristic to guess best multiple:
 	if ((convolutionMethod & ~TAN_CONVOLUTION_METHOD_USE_PROCESS_TAILTHREAD) == TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM) {
 		m_2ndBufSizeMultiple = bestNUMultiple(responseLengthInSamples, bufferSizeInSamples);
@@ -262,7 +261,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitCpu(
 	else {
 		m_2ndBufSizeMultiple = 1;
 	}
-
 
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
@@ -307,7 +305,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
 		);
 #else
 	AMF_RETURN_IF_FALSE(
-        m_pContextTAN->GetAMFContext() != nullptr,
+        m_pContextTAN->GetAMFContext() && m_pProcContextAMF && m_pUpdateContextAMF,
         AMF_WRONG_STATE,
         L"Cannot initialize on GPU with a CPU context"
         );
@@ -784,15 +782,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 			amf_uint32 n_channels = 0;
 			m_accumulatedArgs.updatesCnt = 0;
 
-            if
-            (
-                pBuffer.GetType() ==
-#ifndef ENABLE_METAL
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-            )
+            if(pBuffer.IsComputeBuffer())
 			{
                 THROW_NOT_IMPLEMENTED;
 
@@ -1576,12 +1566,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
                 );
 #endif
 
-        if(!kernelLoaded)
-        {
-            printf("Failed to compile crossfade kernel ");
-
-            return AMF_FAIL;
-        }
+        AMF_RETURN_IF_FALSE(kernelLoaded, AMF_FAIL, L"Failed to compile crossfade kernel");
     }
 
     amf_int64 tmp = 0;
@@ -1795,18 +1780,15 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
 {
     PrintDebug(__FUNCTION__);
 
-    auto crossfadeQueue = m_pContextTAN->GetGeneralQueue(); //<-General becouse kernel was created with general queue
-    //auto crossfadeQueue = m_pContextTAN->GetConvQueue();
+    //auto crossfadeQueue = m_pContextTAN->GetGeneralQueue(); //todo: think about reason, kernel was created with general queue?
+    auto crossfadeQueue = m_pContextTAN->GetConvQueue();
 
     if(pBufferOutput.IsComputeBuffer())
     {
-#ifndef TAN_NO_OPENCL
-
-        PrintCLArray("bfr m_pCLXFadeMasterBuf[0]", m_pCLXFadeMasterBuf[0], crossfadeQueue, 64);
-        PrintCLArray("bfr m_pCLXFadeMasterBuf[1]", m_pCLXFadeMasterBuf[1], crossfadeQueue, 64);
-
-        int status;
 		int index = 0;
+
+#ifndef TAN_NO_OPENCL
+        int status;
         amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
         amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 1, 0 };
         AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[0]), L"Failed to set OpenCL argument");
@@ -1818,9 +1800,6 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
             printf("Failed to enqueue OCL kernel");
             return AMF_FAIL;
         }
-
-        PrintCLArray("aft m_pCLXFadeMasterBuf[0]", m_pCLXFadeMasterBuf[0], crossfadeQueue, 64);
-        PrintCLArray("aft m_pCLXFadeMasterBuf[1]", m_pCLXFadeMasterBuf[1], crossfadeQueue, 64);
 
         for (amf_uint32 c = 0; c < m_iChannels; c++)
         {
@@ -1841,10 +1820,6 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
 
 #else
 
-        PrintAMFArray("bfr mAMFCLXFadeMasterBuffers[0]", mAMFCLXFadeMasterBuffers[0], crossfadeQueue, 64);
-        PrintAMFArray("bfr mAMFCLXFadeMasterBuffers[1]", mAMFCLXFadeMasterBuffers[1], crossfadeQueue, 64);
-
-        int index = 0;
         amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
         amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 1, 0 };
 
@@ -1905,43 +1880,34 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
     auto context = m_pContextTAN->GetAMFContext();
 #endif
 
+    AMF_MEMORY_TYPE memoryType = AMF_MEMORY_UNKNOWN;
+
     // internal pointer arrays used to shuffle buffer order
     // no need to allocate actual data buffers here:
 	if (m_doProcessOnGpu)
     {
 #ifndef TAN_NO_OPENCL
-        m_internalInBufs.AllocateChannels(m_iChannels, amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL);
-        m_internalOutBufs.AllocateChannels(m_iChannels, amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL);
+        memoryType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
 #else
-        m_internalInBufs.AllocateChannels(
-            m_iChannels,
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-            );
-        m_internalOutBufs.AllocateChannels(
-            m_iChannels,
-#ifndef ENABLE_METAL
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-            );
+        auto compute = m_pProcContextAMF ? m_pProcContextAMF : m_pUpdateContextAMF;
+        assert(compute);
+
+        memoryType = compute->GetMemoryType();
 #endif
     }
     else
     {
-        m_internalInBufs.AllocateChannels(
-            m_iChannels,
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST
-            );
-        m_internalOutBufs.AllocateChannels(
-            m_iChannels,
-            amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST
-            );
+        memoryType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST;
     }
+
+    m_internalInBufs.AllocateChannels(
+        m_iChannels,
+        memoryType
+        );
+    m_internalOutBufs.AllocateChannels(
+        m_iChannels,
+        memoryType
+        );
 
     m_availableChannels = new bool[m_iChannels];
     m_flushedChannels = new bool[m_iChannels];
@@ -2018,7 +1984,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #ifndef TAN_NO_OPENCL
                     m_tdFilterState[i]->SetupCLData(context, n, m_length);
 #else
-                    m_tdFilterState[i]->SetupAMFData(context, n, m_length);
+                    m_tdFilterState[i]->SetupAMFData(context, memoryType, n, m_length);
 #endif
                 }
 
@@ -2318,7 +2284,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         // allocate crossfade buffers on GPU memory
         for (int bufIdx = 0; bufIdx < 2; bufIdx++)
         {
-            /*ivm:
+            /*ivm: unneeded?
 #ifndef TAN_NO_OPENCL
             mFadeSubbufers[bufIdx].AllocateChannels(
                 m_iChannels,
@@ -2327,17 +2293,16 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #else
             mFadeSubbufers[bufIdx].AllocateChannels(
                 m_iChannels,
-#ifndef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
+                mMemoryType
                 );
 #endif
             */
 
-            // First create a big unified cl_mem buffer
+            // First create a big unified buffer
             amf_size singleBufSize = sizeof(float)*m_iBufferSizeInSamples;
+
+            //auto crossfadeQueue = m_pContextTAN->GetGeneralQueue(); //todo: think about reason, kernel was created with general queue?
+            auto crossfadeQueue = m_pContextTAN->GetConvQueue();
 
 #ifndef TAN_NO_OPENCL
             cl_int clErr(CL_SUCCESS);
@@ -2378,12 +2343,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #else
             AMF_RETURN_IF_FAILED(
                 m_pContextTAN->GetAMFContext()->AllocBuffer(
-#ifndef ENABLE_METAL
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                    amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
-                    ,
+                    crossfadeQueue->GetMemoryType(),
                     singleBufSize * m_iChannels,
                     &mAMFCLXFadeMasterBuffers[bufIdx]
                     )
@@ -2391,11 +2351,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             mFadeSubbufers[bufIdx].AllocateChannels(
                 m_iChannels,
-#ifndef ENABLE_METAL
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL
-#else
-                amf::AMF_MEMORY_TYPE::AMF_MEMORY_METAL
-#endif
+                crossfadeQueue->GetMemoryType()
                 );
 
             //Then split the big buffer into small contiguous subbuffers
