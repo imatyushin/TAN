@@ -89,6 +89,12 @@ int main(int argc, char* argv[])
 	auto cacheFileNameWithPath(getTempFolderName());
 	cacheFileNameWithPath = joinPaths(cacheFileNameWithPath, "AMD");
 	cacheFileNameWithPath = joinPaths(cacheFileNameWithPath, "TAN");
+
+	if(!checkDirectoryExist(cacheFileNameWithPath))
+	{
+		createPath(cacheFileNameWithPath);
+	}
+
 	cacheFileNameWithPath = joinPaths(cacheFileNameWithPath, cacheFileName/*"FFTW_TAN_WISDOM.cache"*/);
 
 	std::cout << "FFTWCache: " << cacheFileNameWithPath << std::endl;
