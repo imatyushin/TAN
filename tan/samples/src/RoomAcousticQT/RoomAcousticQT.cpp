@@ -97,7 +97,7 @@ bool RoomAcousticQT::start()
 #else
 
 #ifdef ENABLE_PORTAUDIO
-        playerType == "PortAudio"
+        mPlayerName == "PortAudio"
             ? static_cast<IWavPlayer *>(new PortPlayer())
             :
 #ifdef _WIN32

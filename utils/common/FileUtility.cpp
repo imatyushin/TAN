@@ -23,6 +23,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <assert.h>
+
 std::vector<std::string> getDirectorySeparatorVariants()
 {
 	return {
@@ -494,13 +496,12 @@ std::string             getTempFolderName()
 	return tempPath ? tempPath : "/var/tmp/";
 
 #elif defined(_WIN32)
+	std::vector<std::string::value_type> tempPath(MAX_PATH + 1, 0);
 
-	std::string tempPath;
+	DWORD size = GetTempPathA(tempPath.capacity(), &tempPath.front());
+	assert(size > 0 && size < MAX_PATH);
 
-	tempPath.reserve(MAX_PATH);
-	DWORD ret_val = GetTempPathA(MAX_PATH, &tempPath.front());
-
-	return tempPath;
+	return std::string(tempPath.data());
 #endif
 
 	assert(false);
