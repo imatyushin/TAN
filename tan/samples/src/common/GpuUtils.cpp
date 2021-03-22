@@ -55,7 +55,7 @@
 *
 *******************************************************************************
 */
-int listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory)
+void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory)
 {
     AMF_RESULT res = g_AMFFactory.Init(); // initialize AMF
 
