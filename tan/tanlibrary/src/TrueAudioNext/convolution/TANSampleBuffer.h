@@ -87,8 +87,6 @@ namespace amf
 #endif
                     }
                 }
-#else
-test
 #endif
 
                 //deallocated channels itself
