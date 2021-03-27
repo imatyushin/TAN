@@ -94,9 +94,17 @@ endif()
 include(setup_amf.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
 
+#third-party optional libraries
+if(FFTW_DIR)
+  add_subdirectory(${TAN_ROOT}/thirdparty/proj/cmake/fftw cmake-fftw-bin)
+endif()
+
 #utilities
 add_subdirectory(${TAN_ROOT}/utils/proj/cmake/CLKernelPreprocessor cmake-CLKernelPreprocessor-bin)
 add_subdirectory(${TAN_ROOT}/utils/proj/cmake/FileToHeader cmake-FileToHeader-bin)
+if(FFTW_DIR)
+  add_subdirectory(${TAN_ROOT}/utils/proj/cmake/FFTWCache cmake-FFTWCache-bin)
+endif()
 
 #libraries
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/Graal cmake-Graal-bin)

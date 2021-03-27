@@ -18,7 +18,7 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 enable_language(CXX)
 
 if(NOT FFTW_DIR)
-  message(SEND_ERROR "Error: path to FFTW library not set!")
+  message(SEND_ERROR "Error: path to FFTW library is not set!")
   return()
 endif()
 
@@ -76,3 +76,10 @@ add_executable(
   )
 
 target_link_libraries(FFTWCache fftw3f)
+
+add_custom_command(
+  TARGET FFTWCache
+  POST_BUILD
+
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}" $<TARGET_FILE_DIR:FFTWCache>
+  )

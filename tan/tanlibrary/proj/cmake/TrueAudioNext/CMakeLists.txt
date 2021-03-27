@@ -17,55 +17,16 @@ set(CMAKE_SKIP_RULE_DEPENDENCY TRUE)
 
 enable_language(CXX)
 
-if(0)
-find_package(OpenMP)
-if(OpenMP_FOUND)
-  message("OpenMP package found... ${OpenMP_C} ${OpenMP_CXX}")
-endif()
-
-if(NOT OMP_INCLUDE_DIR OR NOT OpenMP_LIBRARY)
-  find_path(OMP_INCLUDE_DIR NAMES omp.h)
-  find_library(OpenMP_LIBRARY NAMES omp)
-endif()
-
-if(OMP_INCLUDE_DIR AND OpenMP_LIBRARY)
-  set(OpenMP_FOUND 1)
-  ADD_DEFINITIONS(-DOMP_ENABLED)
-  message("OMP_INCLUDE_DIR: ${OMP_INCLUDE_DIR}")
-  message("OpenMP_LIBRARY: ${OpenMP_LIBRARY}")
-
-  if(OpenMP_C OR OpenMP_CXX)
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${OpenMP_C}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C}")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${OpenMP_CXX}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX}")
-  else()
-    message("OpenMP flags not set, try to set them manually...")
-
-    if(NOT WIN32)
-      if(APPLE OR XCODE)
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Xclang -fopenmp -lomp")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fopenmp -lomp")
-        #set(CMAKE_SHARED_LINKER_FLAGS " -lomp")
-      else()
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fopenmp")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-      endif()
-    endif()
-
-    message("CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
-    message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
-  endif()
-endif()
-endif()
-
+####################################################################################
+#OpenMP integration, part 1
 ####################################################################################
 message("")
 message("Start OpenMP search...")
+
 find_package(OpenMP)
 
 if(OpenMP_FOUND AND OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
-  ADD_DEFINITIONS(-DOMP_ENABLED)
+  set(OMP_ENABLED 1)
 else()
   find_path(OMP_INCLUDE_DIR NAMES omp.h)
   find_library(OpenMP_CXX_LIBRARIES NAMES omp)
@@ -76,49 +37,31 @@ else()
     set(OMP_INCLUDE_DIR "")
   endif()
 
-  if(OpenMP_CXX_LIBRARIES)
-    set(OpenMP_FOUND 1)
+  if(OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
+    set(OMP_ENABLED 1)
   endif()
 endif()
 
-if(OpenMP_FOUND)
+if(OMP_ENABLED)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${OpenMP_CXX_FLAGS}")
+
   message("OMP_INCLUDE_DIR: ${OMP_INCLUDE_DIR}")
   message("OpenMP_CXX_LIBRARIES: ${OpenMP_CXX_LIBRARIES}")
   message("CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
   message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
   message("CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
 
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${OpenMP_CXX_FLAGS}")
-
   include_directories(${OMP_INCLUDE_DIR})
+  ADD_DEFINITIONS(-DOMP_ENABLED)
 else()
-  message(FATAL_ERROR "Error: OpenMP not found!")
+  message("NOTE: OpenMP will not be supported!")
 endif()
+###########################################################################
 
-#set(OpenMP_CXX_LIB_NAMES "omp")
-#set(CMAKE_EXE_LINKER_FLAGS "omp")
-
-#set(CMAKE_C_COMPILER clang-omp CACHE STRING "C compiler" FORCE)
-#set(CMAKE_CXX_COMPILER clang-omp++ CACHE STRING "C++ compiler" FORCE)
-
-#find_package(OpenMP REQUIRED)
-
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-
-message("CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
-message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
-message("CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
-
-#OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -lomp -I/usr/local/opt/libomp/include"
-#OpenMP_CXX_LIB_NAMES "omp"
-#OpenMP_omp_LIBRARY /usr/local/opt/libomp/lib/libomp.dylib
-####################################################################################
-#   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -Xclang -fopenmp -g -D_DEBUG -Xclang -fopenmp -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.15 -dynamiclib -Wl,-headerpad_max_install_names -o libTrueAudioNext.dylib -install_name @rpath/libTrueAudioNext.dylib CMakeFiles/TrueAudioNext.dir/Users/user/TAN/utils/common/OCLHelper.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/utils/common/StringUtility.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/utils/common/FileUtility.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/utils/common/cpucaps.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/converter/ConverterImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/convolution/ConvolutionImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/core/TANContextImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/core/TANTraceAndDebug.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/fft/FFTImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/filter/FilterImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/IIRfilter/IIRfilterImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/math/MathImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/mixer/MixerImpl.cpp.o CMakeFiles/TrueAudioNext.dir/Users/user/TAN/tan/tanlibrary/src/TrueAudioNext/core/linux/dll.cpp.o   -L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/System/Library/Frameworks/OpenCL.framework  -Wl,-rpath,/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/System/Library/Frameworks/OpenCL.framework -Wl,-rpath,/Users/user/TAN/tan/build/cmake/mac-gnumake-cl/cmake-TrueAudioNext-bin/cmake-fftw-bin -framework OpenCL ../cmake-open-amf-bin/libamfrt64.a ../cmake-Graal-bin/libGraal.a ../cmake-clFFT-bin/libclFFT-master.a cmake-fftw-bin/libfftw3f.3.dylib -lm
-if(FFTW_DIR)
+if(0)
+#if(FFTW_DIR)
   message("")
   message("FFTW_DIR: " ${FFTW_DIR})
 
@@ -383,22 +326,10 @@ generateCLKernel(
   Tan_CL_Output
   )
 
-set(CacheFileName "FFTW_TAN_WISDOM.cache")
-set(MaxFFTPower "20")
-set(ForceRebuild "0")
-
 if(FFTW_DIR)
-  set(FFTW_BIN_DIR "${TrueAudioNext_BINARY_DIR}/cmake-fftw-bin/$<CONFIGURATION>")
-  message("FFTW_BIN_DIR: " ${FFTW_BIN_DIR})
-
-  if(WIN32)
-    add_custom_command(
-      TARGET TrueAudioNext
-      POST_BUILD
-
-      COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
-      )
-  endif()
+  set(CacheFileName "FFTW_TAN_WISDOM.cache")
+  set(MaxFFTPower "20")
+  set(ForceRebuild "0")
 
   add_custom_command(
     TARGET TrueAudioNext
@@ -423,15 +354,17 @@ endif()
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
 
-if(OpenMP_FOUND)
-  #target_link_libraries(TrueAudioNext ${OpenMP_LIBRARY})
+####################################################################################
+#OpenMP integration, part 2
+####################################################################################
+if(OMP_ENABLED)
+  message("TrueAudioNext will be linked with ${OpenMP_CXX_LIBRARIES}")
+  target_link_libraries(TrueAudioNext ${OpenMP_CXX_LIBRARIES})
 endif()
 
 if(FFTW_DIR)
   target_link_libraries(TrueAudioNext fftw3f)
 endif()
-
-target_link_libraries(TrueAudioNext ${OpenMP_CXX_LIBRARIES})
 
 # Declare public API of your library.
 # This API will be installed for third-party application.
