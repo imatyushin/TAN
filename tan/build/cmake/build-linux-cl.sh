@@ -1,5 +1,5 @@
 #/bin/sh
 
-cd linux
+cd linux-cl
 make VERBOSE=1
 cd ..
