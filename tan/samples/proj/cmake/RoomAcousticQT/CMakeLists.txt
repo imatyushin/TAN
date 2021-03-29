@@ -295,6 +295,6 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
 
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}" $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}" $<TARGET_FILE_DIR:FFTWCache>
     )
 endif()
