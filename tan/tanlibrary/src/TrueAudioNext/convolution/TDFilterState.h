@@ -132,6 +132,8 @@ namespace amf
 
             m_clSampleHistory[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
             AMF_RETURN_IF_CL_FAILED(returnCode);
+
+            return AMF_OK;
         }
 
         void FreeCLData(size_t index)

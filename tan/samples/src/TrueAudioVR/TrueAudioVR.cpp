@@ -1521,7 +1521,9 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     PrintCLArrayReduced("m_pResponse 2krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
     PrintCLArrayReduced("floatResponse 2krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
 
-    AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
+    AMF_RETURN_IF_CL_FAILED(status, L"Error: generateRoomResponseGPU failed!");
+
+    return AMF_OK;
 }
 #else
 AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(

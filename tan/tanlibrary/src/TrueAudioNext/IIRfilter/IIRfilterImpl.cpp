@@ -235,6 +235,8 @@ AMF_RESULT	AMF_STD_CALL	TANIIRfilterImpl::Init(
 		m_doProcessOnGpu = true;
         return InitGpu();
     }
+
+	return AMF_OK;
 }
 
 //-------------------------------------------------------------------------------------------------
