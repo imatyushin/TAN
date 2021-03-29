@@ -134,7 +134,7 @@ namespace amf
             AMF_RETURN_IF_CL_FAILED(returnCode);
         }
 
-        AMF_RESULT FreeCLData(size_t index)
+        void FreeCLData(size_t index)
         {
             assert(m_clFilter[index] && m_clTemp[index] && m_clSampleHistory[index]);
 
