@@ -32,7 +32,7 @@
 #include "Debug.h"
 #include "Log.h"
 
-#include "public/common/AMFFactory.h"
+#include "public/common/AMFFactoryHelper.h"
 
 #ifdef ENABLE_METAL
   #include "MetalKernel_Crossfading.h"

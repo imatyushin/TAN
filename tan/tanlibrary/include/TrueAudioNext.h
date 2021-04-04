@@ -34,7 +34,7 @@
 #include "public/include/core/PropertyStorageEx.h"
 #include "public/include/core/Context.h"
 #include "public/include/core/Buffer.h"
-#include "public/common/AMFFactory.h"
+#include "public/common/AMFFactoryHelper.h"
 
 #ifdef RTQ_ENABLED
 ///This section is not related to RTQ, only listed so it can be strip away

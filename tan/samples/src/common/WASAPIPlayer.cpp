@@ -23,9 +23,29 @@
 #include "WASAPIPlayer.h"
 #include "wav.h"
 
-#define MAXFILES 100
-int muteInit = 1;
-IAudioEndpointVolume *g_pEndptVol = NULL;
+#include <strsafe.h>
+
+void WASAPIPlayer::ShowLastError()
+{
+    LPVOID lpMsgBuf = nullptr;
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        GetLastError(),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR)&lpMsgBuf,
+        0,
+        NULL
+    );
+
+    // Display the error message and exit the process
+    MessageBox(NULL, (LPCTSTR)lpMsgBuf, TEXT("Error"), MB_OK);
+
+    LocalFree(lpMsgBuf);
+}
 
 WASAPIPlayer::WASAPIPlayer()
 {
@@ -48,8 +68,6 @@ PlayerError WASAPIPlayer::Init
 	mChannelsCount = channelsCount;
 	mBitsPerSample = bitsPerSample;
 	mSamplesPerSecond = samplesPerSecond;
-
-    HRESULT hr;
 
     REFERENCE_TIME bufferDuration = (BUFFER_SIZE_8K);//(SIXTH_SEC_BUFFER_SIZE); //(MS100_BUFFER_SIZE); // (ONE_SEC_BUFFER_SIZE);
 
@@ -76,7 +94,7 @@ PlayerError WASAPIPlayer::Init
     WAVEFORMATEX* format = nullptr;
     format = (WAVEFORMATEX*) &mixFormat;
 
-    hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **) &mDevEnum);
+    HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **) &mDevEnum);
     if (FAILED(hr))
     {
         //"Failed getting MMDeviceEnumerator."
@@ -138,6 +156,8 @@ PlayerError WASAPIPlayer::Init
         //FAILONERROR(hr, "Failed to getdefaultaudioendpoint for Render.");
         if (FAILED(hr))
         {
+            ShowLastError();
+
             //"Failed getting BufferSize"
             return PlayerError::PCMError;
         }
@@ -147,21 +167,26 @@ PlayerError WASAPIPlayer::Init
             //FAILONERROR(hr, "Failed render activate.");
             if (FAILED(hr))
             {
+                ShowLastError();
+
                 //"Failed getting BufferSize"
                 return PlayerError::PCMError;
             }
         }
-        if(!muteInit)
+
+        if(!mMuteInit)
         {
-            hr = mDevRender->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void **)&g_pEndptVol);
+            hr = mDevRender->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, NULL, (void **)&mEndptVol);
             //FAILONERROR(hr, "Failed Mute Init.");
             if (FAILED(hr))
             {
+                ShowLastError();
+
                 //"Failed getting BufferSize"
                 return PlayerError::PCMError;
             }
 
-            muteInit =1;
+            mMuteInit = 1;
         }
 
        hr = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_RATEADJUST, bufferDuration, 0, format, NULL);
@@ -171,7 +196,8 @@ PlayerError WASAPIPlayer::Init
         //FAILONERROR(hr, "Failed audioClient->Initialize");
         if (FAILED(hr))
         {
-            //"Failed getting BufferSize"
+            ShowLastError();
+
             return PlayerError::PCMError;
         }
 
@@ -179,6 +205,8 @@ PlayerError WASAPIPlayer::Init
         //FAILONERROR(hr, "Failed getting renderClient");
         if (FAILED(hr))
         {
+            ShowLastError();
+
             //"Failed getting BufferSize"
             return PlayerError::PCMError;
         }
@@ -187,6 +215,8 @@ PlayerError WASAPIPlayer::Init
         //FAILONERROR(hr, "Failed getting BufferSize");
         if (FAILED(hr))
         {
+            ShowLastError();
+
             //"Failed getting BufferSize"
             return PlayerError::PCMError;
         }

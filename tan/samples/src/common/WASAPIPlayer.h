@@ -38,6 +38,9 @@ class WASAPIPlayer:
   public IWavPlayer
 {
 protected:
+    int mMuteInit = 1;
+    IAudioEndpointVolume *mEndptVol = nullptr;
+
     uint16_t mChannelsCount = 0;
     uint16_t mBitsPerSample = 0;
     uint32_t mSamplesPerSecond = 0;
@@ -55,6 +58,8 @@ protected:
     bool mStartedCapture = false;
     bool mInitializedRender = false;
     bool mInitializedCapture = false;
+
+    static void ShowLastError();
 
 public:
     WASAPIPlayer();

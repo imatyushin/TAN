@@ -23,7 +23,7 @@
 //
 #include "ConverterImpl.h"
 #include "../core/TANContextImpl.h"
-#include "public/common/AMFFactory.h"
+#include "public/common/AMFFactoryHelper.h"
 #include "OCLHelper.h"
 #include "Debug.h"
 #include "cpucaps.h"

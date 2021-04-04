@@ -34,7 +34,7 @@
 #include <malloc.h>
 #endif
 #include "public/common/Thread.h"
-#include "public/common/AMFFactory.h"           //AMF
+#include "public/common/AMFFactoryHelper.h"           //AMF
 #include "OCLHelper.h"
 #include <algorithm>
 

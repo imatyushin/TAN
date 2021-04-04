@@ -21,7 +21,7 @@
 //
 #pragma once
 
-#include "public/common/AMFFactory.h"
+#include "public/common/AMFFactoryHelper.h"
 
 #ifndef TAN_NO_OPENCL
 

@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#pragma once
+
 #ifndef TAN_NO_OPENCL
   #include <CL/cl.h>
 #endif
@@ -30,9 +32,9 @@ void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
 void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory);
 
 #ifndef TAN_NO_OPENCL
+
 bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
 bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
-
 bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount);
 
 #else
@@ -57,4 +59,5 @@ bool CreateCpuCommandQueues
 );
 
 bool CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute ** compute1, amf::AMFCompute ** compute2, int Q1CUcount, int Q2CUcount);
+
 #endif

@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
+#include "public/common/AMFFactoryHelper.h"
+
 #include "OCLHelper.h"
 #include "StringUtility.h"
 

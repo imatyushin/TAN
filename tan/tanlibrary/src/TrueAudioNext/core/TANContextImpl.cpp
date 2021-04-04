@@ -20,14 +20,12 @@
 // THE SOFTWARE.
 //
 
+#include "TrueAudioNext.h"   //TAN
 #include "TANContextImpl.h"
 #include "TANTraceAndDebug.h"
 
-
-#include "TrueAudioNext.h"   //TAN
 #include "public/common/TraceAdapter.h"         //AMF
-#include "public/common/AMFFactory.h"           //AMF
-
+#include "public/common/AMFFactoryHelper.h" 
 
 #include "clFFT.h"
 
@@ -367,16 +365,14 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     // Setting the AMFContext device type
     if(pAMFContext)
     {
-        int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU) ? AMF_CONTEXT_DEVICE_TYPE_GPU : AMF_CONTEXT_DEVICE_TYPE_CPU;
+        int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU) 
+            ? AMF_CONTEXT_DEVICE_TYPE_GPU 
+            : AMF_CONTEXT_DEVICE_TYPE_CPU;
         pAMFContext->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
 
         // Initializing the AMFContexts, and getting the AMFCompute from it
-        AMFCompute* pAMFCompute = NULL;
-        AMF_RESULT res = pAMFContext->InitOpenCL(queue);
-        AMF_RETURN_IF_FAILED(res, L"InitOpenCL() failed");
+        AMF_RETURN_IF_FAILED(pAMFContext->InitOpenCL(queue), L"InitOpenCL() failed");
         AMF_RETURN_IF_FAILED(pAMFContext->GetCompute(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL, &pCompute), L"GetCompute failed");
-        AMF_RETURN_IF_FALSE(pAMFCompute != NULL, AMF_FAIL, L"Could not get the AMFCompute.");
-        pCompute = pAMFCompute;
     }
 
     return AMF_OK;

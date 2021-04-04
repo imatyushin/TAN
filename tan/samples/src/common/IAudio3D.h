@@ -135,16 +135,16 @@ public:
 		bool                    useHPr_Conv,
         bool                    useRTQ_Conv,
         int                     cuRes_Conv,
-#endif // RTQ_ENABLED
+#endif
 
         bool                    computeRoom,
         bool                    computeOverGpuRoom,
         int                     computeDeviceIndexRoom,
 
 #ifdef RTQ_ENABLED
-		bool                    useHPr_IRGen,
-        bool                    useRTQ_IRGen,
-        int                     cuRes_IRGen,
+		bool                    useHPr_Room,
+        bool                    useRTQ_Room,
+        int                     cuRes_Room,
 #endif
 
         amf::TAN_CONVOLUTION_METHOD
@@ -179,9 +179,21 @@ public:
         mComputeOverGpuConvolution = computeOverGpuConvolution;
         mComputeDeviceIndexConvolution = computeDeviceIndexConvolution;
 
+#ifdef RTQ_ENABLED
+        mUseHPr_Conv = useHPr_Conv;
+        mUseRTQ_Conv = useRTQ_Conv;
+        mCuRes_Conv = cuRes_Conv;
+#endif
+
         mComputeRoom = computeRoom;
         mComputeOverGpuRoom = computeOverGpuRoom;
         mComputeDeviceIndexRoom = computeDeviceIndexRoom;
+
+#ifdef RTQ_ENABLED
+        mUseHPr_Room = useHPr_Room;
+        mUseRTQ_Room = useRTQ_Room;
+        mCuRes_Room = cuRes_Room;
+#endif
 
         mWavFiles.reserve(fileNames2Open.size());
 
@@ -513,9 +525,21 @@ protected:
     bool                        mComputeOverGpuConvolution = false;
     int                         mComputeDeviceIndexConvolution = -1;
 
+#if RTQ_ENABLED
+    bool                        mUseHPr_Conv = false;
+    bool                        mUseRTQ_Conv = false;
+    int                         mCuRes_Conv = 1;
+#endif
+
     bool                        mComputeRoom = false;
     bool                        mComputeOverGpuRoom = false;
     int                         mComputeDeviceIndexRoom = -1;
+
+#ifdef RTQ_ENABLED
+    bool                        mUseHPr_Room = false;
+    bool                        mUseRTQ_Room = false;
+    int                         mCuRes_Room = false;
+#endif
 
     bool                        mUseComputeBuffers = false;
     bool                        mComputedOutputPipeline = false;

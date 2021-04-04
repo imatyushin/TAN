@@ -30,7 +30,7 @@
 #include "cpucaps.h"
 
 #include "public/common/TraceAdapter.h"
-#include "public/common/AMFFactory.h"
+#include "public/common/AMFFactoryHelper.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -182,20 +182,20 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     #define QUEUE_MEDIUM_PRIORITY                   0x00010000
 
     #define QUEUE_REAL_TIME_COMPUTE_UNITS           0x00020000
-            if (useHPr_Conv){
+            if (mUseHPr_Conv){
                 flagsQ1 = QUEUE_MEDIUM_PRIORITY;
             }
 
-    else if (useRTQ_Conv){
-                flagsQ1 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_Conv;
+    else if (mUseRTQ_Conv){
+                flagsQ1 = QUEUE_REAL_TIME_COMPUTE_UNITS | mCuRes_Conv;
             }
 
-            if (useHPr_IRGen){
+            if (mUseHPr_Room){
                 flagsQ2 = QUEUE_MEDIUM_PRIORITY;
             }
 
-            else if (useRTQ_IRGen){
-                flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | cuRes_IRGen;
+            else if (mUseRTQ_Room){
+                flagsQ2 = QUEUE_REAL_TIME_COMPUTE_UNITS | mCuRes_Room;
             }
     #endif // RTQ_ENABLED
 
@@ -213,14 +213,22 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
         {
 #ifdef RTQ_ENABLED
             // For " core "reservation" on CPU" -ToDo test and enable
-            if (cuRes_Conv > 0 && cuRes_IRGen > 0)
+            if (mCuRes_Conv > 0 && mCuRes_Room > 0)
             {
-                cl_int err = CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, cuRes_Conv, cuRes_IRGen);
+                AMF_RETURN_IF_FALSE(
+                    true == CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, mCuRes_Conv, mCuRes_Room),
+                    AMF_FAIL,
+                    L"CreateCommandQueuesWithCUcount failed"
+                    );
             }
             else
             {
 #endif
-                CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCmdQueue1, 0, &mCmdQueue2);
+                AMF_RETURN_IF_FALSE(
+                    true == CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCmdQueue1, 0, &mCmdQueue2),
+                    AMF_FAIL,
+                    L"CreateCommandQueuesWithCUcount failed"
+                    );
 #ifdef RTQ_ENABLED
             }
 #endif

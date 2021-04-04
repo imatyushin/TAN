@@ -28,17 +28,17 @@
 #endif
 #include <CL/cl.h>
 
-#include "public/common/TraceAdapter.h"         //AMF
-#include "public/common/AMFFactory.h"           //AMF
-#include "public/include/core/Variant.h"        //AMF
-#include "public/include/core/ComputeFactory.h" //AMF
+#include "public/common/TraceAdapter.h"
+#include "public/common/AMFFactoryHelper.h"
+#include "public/include/core/Variant.h"
+#include "public/include/core/ComputeFactory.h"
 
 #define AMF_FACILITY amf::AMF_FACILITY
 
 #ifdef RTQ_ENABLED
-#define AMFQUEPROPERTY L"MaxRealTimeComputeUnits"
+  #define AMFQUEPROPERTY L"MaxRealTimeComputeUnits"
 #else
-#define AMFQUEPROPERTY L"None"
+  #define AMFQUEPROPERTY L"None"
 #endif
 
 #include "GpuUtilities.h"
@@ -151,6 +151,7 @@ void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
 #if defined ENABLE_METAL
     return;
 #else
+
     int foundCount = 0;
     AMF_RESULT res = g_AMFFactory.Init(); // initialize AMF
     if (AMF_OK == res)
@@ -167,17 +168,16 @@ void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
 
         if (AMF_OK == res)
         {
-            amf::AMFComputeFactoryPtr pOCLFactory = NULL;
+            amf::AMFComputeFactoryPtr factory;
+            res = pContextAMF->GetOpenCLComputeFactory(&factory);
 
-            res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
-
-            if(amf::AMFResultIsOK(res))
+            if(amf::AMFResultIsOK(res) && factory)
             {
-                amf_int32 deviceCount = pOCLFactory->GetDeviceCount();
+                amf_int32 deviceCount = factory->GetDeviceCount();
                 for (amf_int32 i = 0; i < deviceCount; i++)
                 {
                     amf::AMFComputeDevicePtr pDeviceAMF;
-                    res = pOCLFactory->GetDeviceAt(i, &pDeviceAMF);
+                    res = factory->GetDeviceAt(i, &pDeviceAMF);
                     {
                         amf::AMFVariant name;
                         res = pDeviceAMF->GetProperty(AMF_DEVICE_NAME, &name);
@@ -189,8 +189,6 @@ void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
                     }
                 }
             }
-
-            pOCLFactory.Release();
         }
 
         pContextAMF.Release();
@@ -233,13 +231,11 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
 
     if (NULL != pcmdQueue1)
     {
-        //printf("Queue release %llX\r\n", *pcmdQueue1);
         clReleaseCommandQueue(*pcmdQueue1);
         *pcmdQueue1 = NULL;
     }
     if (NULL != pcmdQueue2)
     {
-        //printf("Queue release %llX\r\n", *pcmdQueue2);
         clReleaseCommandQueue(*pcmdQueue2);
         *pcmdQueue2 = NULL;
     }
@@ -258,10 +254,10 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
 
 #if !defined ENABLE_METAL
             res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
-            AMF_RETURN_IF_FAILED(res, L"GetOpenCLComputeFactory failed\n");
+            AMF_RETURN_IF_FAILED(res, L"GetOpenCLComputeFactory failed");
 #else
             res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
-            AMF_RETURN_IF_FAILED(res, L"GetMetalComputeFactory failed\n");
+            AMF_RETURN_IF_FAILED(res, L"GetMetalComputeFactory failed");
 #endif
 
             if (AMF_OK == res)
@@ -304,11 +300,10 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                             }
                             if (NULL == tempQueue)
                             {
-                                fprintf(stdout, "createQueue failed to create cmdQueue1 \n");
+                                fprintf(stdout, "createQueue failed to create cmdQueue1 ");
                                 AllIsOK = false;
                             }
                             clRetainCommandQueue(tempQueue);
-                            //printf("Queue %llX +1\r\n", tempQueue);
 
                             *pcmdQueue1 = tempQueue;
                         }
@@ -337,11 +332,10 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                             }
                             if (NULL == tempQueue)
                             {
-                                fprintf(stdout, "createQueue failed to create cmdQueue2 \n");
+                                fprintf(stdout, "createQueue failed to create cmdQueue2 ");
                                 AllIsOK = false;
                             }
                             clRetainCommandQueue(tempQueue);
-                            //printf("Queue %llX +1\r\n", tempQueue);
 
                             *pcmdQueue2 = tempQueue;
                         }
@@ -368,7 +362,6 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         {
             if (NULL != *pcmdQueue1)
             {
-                //printf("Queue release %llX\r\n", pcmdQueue1);
                 clReleaseCommandQueue(*pcmdQueue1);
                 *pcmdQueue1 = NULL;
             }
@@ -377,7 +370,6 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
         {
             if (NULL != *pcmdQueue2)
             {
-                //printf("Queue release %llX\r\n", pcmdQueue2);
                 clReleaseCommandQueue(*pcmdQueue2);
                 *pcmdQueue2 = NULL;
             }
@@ -388,13 +380,14 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
 }
 
 AMF_RESULT CreateCommandQueuesVIAamf(
-    int deviceIndex,
-    amf_int32 flag1,
-    amf::AMFCompute **compute1,
-    amf_int32 flag2,
-    amf::AMFCompute **compute2,
+    int                         deviceIndex,
+    amf_int32                   flag1,
+    amf::AMFCompute             **compute1,
+    amf_int32                   flag2,
+    amf::AMFCompute             **compute2,
     AMF_CONTEXT_DEVICETYPE_ENUM amfDeviceType,
-    amf::AMFContext **context = nullptr)
+    amf::AMFContext             **context = nullptr
+    )
 {
     bool AllIsOK = true;
 
@@ -411,12 +404,12 @@ AMF_RESULT CreateCommandQueuesVIAamf(
     }
 
     AMF_RESULT result = g_AMFFactory.Init();
-    AMF_RETURN_IF_FAILED(result, L"Factory init failed\n");
+    AMF_RETURN_IF_FAILED(result, L"Factory init failed");
 
     // Create default CPU AMF context.
     amf::AMFContextPtr contextAMF = nullptr;
     result = g_AMFFactory.GetFactory()->CreateContext(&contextAMF);
-    AMF_RETURN_IF_FAILED(result, L"CreateContext failed\n");
+    AMF_RETURN_IF_FAILED(result, L"CreateContext failed");
 
     if (context)
     {
@@ -425,28 +418,28 @@ AMF_RESULT CreateCommandQueuesVIAamf(
     }
 
     result = contextAMF->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
-    AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+    AMF_RETURN_IF_FAILED(result, L"SetProperty failed");
 
     amf::AMFComputeFactoryPtr computeFactory = nullptr;
 
 #if !defined ENABLE_METAL
     result = contextAMF->GetOpenCLComputeFactory(&computeFactory);
-    AMF_RETURN_IF_FAILED(result, L"GetOpenCLComputeFactory failed\n");
+    AMF_RETURN_IF_FAILED(result, L"GetOpenCLComputeFactory failed");
 #else
     result = contextAMF->GetMetalComputeFactory(&computeFactory);
-    AMF_RETURN_IF_FAILED(result, L"GetMetalComputeFactory failed\n");
+    AMF_RETURN_IF_FAILED(result, L"GetMetalComputeFactory failed");
 #endif
 
     amf_int32 deviceCount = computeFactory->GetDeviceCount();
 
     if (deviceIndex >= deviceCount)
     {
-        AMF_RETURN_IF_FAILED(AMF_INVALID_ARG, L"Incorrect deviceIndex\n");
+        AMF_RETURN_IF_FAILED(AMF_INVALID_ARG, L"Incorrect deviceIndex");
     }
 
     amf::AMFComputeDevicePtr computeDevice;
     result = computeFactory->GetDeviceAt(deviceIndex, &computeDevice);
-    AMF_RETURN_IF_FAILED(result, L"GetDeviceAt failed\n");
+    AMF_RETURN_IF_FAILED(result, L"GetDeviceAt failed");
 
 #if !defined ENABLE_METAL
     result = contextAMF->InitOpenCLEx(computeDevice);
@@ -454,26 +447,26 @@ AMF_RESULT CreateCommandQueuesVIAamf(
     result = contextAMF->InitMetalEx(computeDevice);
 #endif
 
-    AMF_RETURN_IF_FAILED(result, L"Initialization failed\n");
+    AMF_RETURN_IF_FAILED(result, L"Initialization failed");
 
     if (compute1)
     {
         amf_int64 param = flag1 & 0x0FFFF;
         result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
-        AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+        AMF_RETURN_IF_FAILED(result, L"SetProperty failed");
 
         result = computeDevice->CreateCompute(nullptr, compute1);
-        AMF_RETURN_IF_FAILED(result, L"CreateCompute 1 failed\n");
+        AMF_RETURN_IF_FAILED(result, L"CreateCompute 1 failed");
     }
 
     if (compute2)
     {
         amf_int64 param = flag2 & 0x0FFFF;
         result = computeDevice->SetProperty(AMFQUEPROPERTY, param);
-        AMF_RETURN_IF_FAILED(result, L"SetProperty failed\n");
+        AMF_RETURN_IF_FAILED(result, L"SetProperty failed");
 
         result = computeDevice->CreateCompute(nullptr, compute2);
-        AMF_RETURN_IF_FAILED(result, L"CreateCompute 2 failed\n");
+        AMF_RETURN_IF_FAILED(result, L"CreateCompute 2 failed");
     }
 
     return result;
@@ -514,24 +507,29 @@ bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue *pcmdQueue
     cl_int err = 0;
     cl_device_id device = NULL;
     cl_context context = NULL;
-    cl_device_partition_property props[] = {CL_DEVICE_PARTITION_BY_COUNTS,
-                                            Q2CUcount, Q1CUcount, CL_DEVICE_PARTITION_BY_COUNTS_LIST_END, 0}; // count order seems reversed!
+
+    cl_device_partition_property props[] = {
+        CL_DEVICE_PARTITION_BY_COUNTS,
+        Q2CUcount,
+        Q1CUcount,
+        CL_DEVICE_PARTITION_BY_COUNTS_LIST_END,
+        0
+        }; // count order seems reversed!
 
     GetDeviceFromIndex(deviceIndex, &device, &context, CL_DEVICE_TYPE_CPU); // only implemented for CPU
 
     cl_device_id outdevices[2] = {NULL, NULL};
 
-    err = clCreateSubDevices(device,
-                             props,
-                             2,
-                             outdevices,
-                             NULL);
+    err = clCreateSubDevices(
+        device,
+        props,
+        2,
+        outdevices,
+        NULL
+        );
 
     *pcmdQueue1 = clCreateCommandQueue(context, outdevices[0], NULL, &err);
-    //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue1, err);
-
     *pcmdQueue2 = clCreateCommandQueue(context, outdevices[1], NULL, &err);
-    //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue2, err);
 
     return err;
 }
@@ -575,7 +573,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
         cl_command_queue tempQueue = createQueue(clContext, clDevice, 0, 0);
         if (NULL == tempQueue)
         {
-            fprintf(stdout, "createQueue failed to create cmdQueue1 \n");
+            fprintf(stdout, "createQueue failed to create cmdQueue1 ");
             AllIsOK = false;
         }
         *pcmdQueue1 = tempQueue;
@@ -586,7 +584,7 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
         cl_command_queue tempQueue = createQueue(clContext, clDevice, 0, 0);
         if (NULL == tempQueue)
         {
-            fprintf(stdout, "createQueue failed to create cmdQueue2 \n");
+            fprintf(stdout, "createQueue failed to create cmdQueue2 ");
             AllIsOK = false;
         }
         *pcmdQueue2 = tempQueue;
@@ -598,7 +596,6 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
         {
             if (NULL != *pcmdQueue1)
             {
-                //printf("Queue release %llX\r\n", pcmdQueue1);
                 clReleaseCommandQueue(*pcmdQueue1);
                 *pcmdQueue1 = NULL;
             }
@@ -607,7 +604,6 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
         {
             if (NULL != *pcmdQueue2)
             {
-                //printf("Queue release %llX\r\n", pcmdQueue2);
                 clReleaseCommandQueue(*pcmdQueue2);
                 *pcmdQueue2 = NULL;
             }
@@ -662,7 +658,8 @@ bool CreateGpuCommandQueues(
     amf::AMFCompute **compute1,
     int32_t flag2,
     amf::AMFCompute **compute2,
-    amf::AMFContext **context = nullptr)
+    amf::AMFContext **context = nullptr
+    )
 {
     return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_GPU, context);
 }
@@ -673,8 +670,17 @@ bool CreateCpuCommandQueues(
     amf::AMFCompute **compute1,
     int32_t flag2,
     amf::AMFCompute **compute2,
-    amf::AMFContext **context = nullptr)
+    amf::AMFContext **context = nullptr
+    )
 {
     return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_CPU, context);
 }
+
+bool CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute** compute1, amf::AMFCompute** compute2, int Q1CUcount, int Q2CUcount)
+{
+    //todo: implement amf version, currently skipped
+
+    return false;
+}
+
 #endif
