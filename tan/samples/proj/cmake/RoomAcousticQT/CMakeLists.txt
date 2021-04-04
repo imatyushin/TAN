@@ -226,6 +226,7 @@ add_executable(
   ${MOC_HEADERS}
   ${RCC_SOURCES}
   )
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RoomAcousticsQT)
 
 if(AMF_CORE_STATIC)
   target_link_libraries(RoomAcousticsQT ${AMF_NAME})
@@ -275,10 +276,11 @@ endif()
 #copy runtime dll to the binary dir
 if(WIN32)
   if(NOT AMF_CORE_STATIC)
+    message("Copy: ${${AMF_NAME}_BINARY_DIR}")
     add_custom_command(
       TARGET RoomAcousticsQT
       POST_BUILD
-
+    
       COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
       )
   endif()
@@ -294,7 +296,13 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
-
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}" $<TARGET_FILE_DIR:FFTWCache>
     )
+
+  if(FFTW_DIR)
+    add_custom_command(
+      TARGET RoomAcousticsQT
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}" $<TARGET_FILE_DIR:FFTWCache>
+      )
+  endif()
 endif()

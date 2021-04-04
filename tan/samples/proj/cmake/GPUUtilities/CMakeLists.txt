@@ -77,6 +77,16 @@ endif()
 
 target_link_libraries(GPUUtilities ${OpenCL_LIBRARY})
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
-  target_compile_options(GPUUtilities PUBLIC -g)
+if(NOT WIN32)
+  target_compile_options(GPUUtilities PUBLIC -mavx2)
+  target_compile_options(GPUUtilities PUBLIC -mfma)
+  target_compile_options(GPUUtilities PUBLIC -msse4.2)
+
+  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    target_compile_options(GPUUtilities PUBLIC -g)
+  endif()
+
+  if(NOT APPLE)
+    target_compile_options(GPUUtilities PUBLIC -Wpsabi)
+  endif()
 endif()
