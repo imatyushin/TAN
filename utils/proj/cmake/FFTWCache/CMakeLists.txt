@@ -82,4 +82,5 @@ add_custom_command(
   POST_BUILD
 
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}" $<TARGET_FILE_DIR:FFTWCache>
+  VERBATIM
   )

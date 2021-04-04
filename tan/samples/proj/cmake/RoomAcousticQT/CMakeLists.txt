@@ -276,12 +276,12 @@ endif()
 #copy runtime dll to the binary dir
 if(WIN32)
   if(NOT AMF_CORE_STATIC)
-    message("Copy: ${${AMF_NAME}_BINARY_DIR}")
     add_custom_command(
       TARGET RoomAcousticsQT
       POST_BUILD
-    
+
       COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+      VERBATIM
       )
   endif()
 
@@ -296,6 +296,7 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    VERBATIM
     )
 
   if(FFTW_DIR)
@@ -303,6 +304,7 @@ if(WIN32)
       TARGET RoomAcousticsQT
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}" $<TARGET_FILE_DIR:FFTWCache>
+      VERBATIM
       )
   endif()
 endif()
