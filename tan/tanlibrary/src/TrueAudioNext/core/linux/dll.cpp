@@ -1,7 +1,7 @@
 
 #include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Platform.h"       //AMF
-#include "public/common/AMFFactory.h"           //AMF
+#include "public/common/AMFFactoryHelper.h"           //AMF
 
 __attribute__((constructor))
 void InitializeLibrary()
