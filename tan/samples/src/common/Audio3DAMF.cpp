@@ -286,14 +286,17 @@ AMF_RESULT Audio3DAMF::InitObjects()
         // Initialize CL output buffers
 
         // First create a big cl_mem buffer then create small sub-buffers from it
+        AMFBufferPtr buffer;
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
                 mCompute1->GetMemoryType(),
                 mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
-                &mOutputMainAMFBuffer
+                &buffer
                 ),
                 L"Could not create OpenCL buffer"
                 );
+        mOutputMainAMFBuffer = AMFBufferExPtr(buffer);
+        AMF_RETURN_IF_FALSE(mOutputMainAMFBuffer != nullptr, AMF_NOT_SUPPORTED);
 
         /**/
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)

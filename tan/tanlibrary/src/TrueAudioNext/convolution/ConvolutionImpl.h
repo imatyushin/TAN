@@ -304,7 +304,7 @@ namespace amf
 #ifndef TAN_NO_OPENCL
         cl_mem                      m_pCLXFadeMasterBuf[2] = {nullptr};
 #else
-        amf::AMFBufferPtr           mAMFCLXFadeMasterBuffers[2];
+        amf::AMFBufferExPtr         mAMFCLXFadeMasterBuffers[2];
 #endif
 
         TANSampleBuffer             m_pXFadeSamples;                    // For cross-fading on CPU

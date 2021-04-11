@@ -57,25 +57,34 @@
 */
 void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AMFFactoryHelper & factory)
 {
+    devicesNames.clear();
+
     AMF_RESULT res = g_AMFFactory.Init(); // initialize AMF
 
     if(AMF_OK == res)
     {
         // Create default CPU AMF context.
-        amf::AMFContextPtr pContextAMF = NULL;
-        res = g_AMFFactory.GetFactory()->CreateContext(&pContextAMF);
+        amf::AMFContextPtr contextAMF;
+        res = g_AMFFactory.GetFactory()->CreateContext(&contextAMF);
 
         if (AMF_OK == res)
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
 
 #if !defined ENABLE_METAL
-            res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
+            res = contextAMF->GetOpenCLComputeFactory(&pOCLFactory);
 #else
-            res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
+            amf::AMFContext3Ptr context3(contextAMF);
+
+            if(!context3)
+            {
+                return;
+            }
+            
+            res = context3->GetMetalComputeFactory(&pOCLFactory);
 #endif
 
-            if (AMF_OK == res)
+            if (AMF_OK ==  res)
             {
                 amf_int32 deviceCount = pOCLFactory->GetDeviceCount();
 
@@ -98,7 +107,7 @@ void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
             pOCLFactory.Release();
         }
 
-        pContextAMF.Release();
+        contextAMF.Release();
         g_AMFFactory.Terminate();
     }
 
@@ -244,19 +253,22 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
     if (AMF_OK == res)
     {
         // Create default CPU AMF context.
-        amf::AMFContextPtr pContextAMF = NULL;
-        res = g_AMFFactory.GetFactory()->CreateContext(&pContextAMF);
+        amf::AMFContextPtr contextAMF = NULL;
+        res = g_AMFFactory.GetFactory()->CreateContext(&contextAMF);
 
-        pContextAMF->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
+        contextAMF->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
         if (AMF_OK == res)
         {
             amf::AMFComputeFactoryPtr pOCLFactory = NULL;
 
 #if !defined ENABLE_METAL
-            res = pContextAMF->GetOpenCLComputeFactory(&pOCLFactory);
+            res = contextAMF->GetOpenCLComputeFactory(&pOCLFactory);
             AMF_RETURN_IF_FAILED(res, L"GetOpenCLComputeFactory failed");
 #else
-            res = pContextAMF->GetMetalComputeFactory(&pOCLFactory);
+            amf::AMFContext3Ptr context3(contextAMF);
+            AMF_RETURN_IF_FALSE(context3 != nullptr, AMF_NOT_SUPPORTED);
+
+            res = context3->GetMetalComputeFactory(&pOCLFactory);
             AMF_RETURN_IF_FAILED(res, L"GetMetalComputeFactory failed");
 #endif
 
@@ -269,7 +281,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
                     res = pOCLFactory->GetDeviceAt(deviceIndex, &pDeviceAMF);
                     if (nullptr != pDeviceAMF)
                     {
-                        pContextAMF->InitOpenCLEx(pDeviceAMF);
+                        contextAMF->InitOpenCLEx(pDeviceAMF);
                         cl_context clContext = static_cast<cl_context>(pDeviceAMF->GetNativeContext());
                         cl_device_id clDevice = static_cast<cl_device_id>(pDeviceAMF->GetNativeDeviceID());
 #ifdef RTQ_ENABLED
@@ -348,7 +360,8 @@ AMF_RESULT CreateCommandQueuesVIAamf(int deviceIndex, int32_t flag1, cl_command_
             }
             pOCLFactory.Release();
         }
-        pContextAMF.Release();
+
+        contextAMF.Release();
         g_AMFFactory.Terminate();
     }
     else
@@ -426,7 +439,10 @@ AMF_RESULT CreateCommandQueuesVIAamf(
     result = contextAMF->GetOpenCLComputeFactory(&computeFactory);
     AMF_RETURN_IF_FAILED(result, L"GetOpenCLComputeFactory failed");
 #else
-    result = contextAMF->GetMetalComputeFactory(&computeFactory);
+    amf::AMFContext3Ptr context3(contextAMF);
+    AMF_RETURN_IF_FALSE(context3 != nullptr, AMF_NOT_SUPPORTED);
+
+    result = context3->GetMetalComputeFactory(&computeFactory);
     AMF_RETURN_IF_FAILED(result, L"GetMetalComputeFactory failed");
 #endif
 
@@ -444,7 +460,7 @@ AMF_RESULT CreateCommandQueuesVIAamf(
 #if !defined ENABLE_METAL
     result = contextAMF->InitOpenCLEx(computeDevice);
 #else
-    result = contextAMF->InitMetalEx(computeDevice);
+    result = context3->InitMetalEx(computeDevice);
 #endif
 
     AMF_RETURN_IF_FAILED(result, L"Initialization failed");

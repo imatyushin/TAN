@@ -42,7 +42,7 @@ protected:
     AMFBufferPtr                mAMFResponses[MAX_SOURCES * 2];
     AMFBuffer *                 mAMFResponsesInterfaces[MAX_SOURCES * 2] = {nullptr};
 
-	AMFBufferPtr                mOutputMainAMFBuffer = nullptr;
+	AMFBufferExPtr              mOutputMainAMFBuffer = nullptr;
     AMFBufferPtr                mOutputAMFBuffers[MAX_SOURCES * 2] = {nullptr};
     AMFBuffer *                 mOutputAMFBuffersInterfaces[MAX_SOURCES * 2] = {nullptr};
 

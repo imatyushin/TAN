@@ -2341,13 +2341,17 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 
             mFadeSubbufers[bufIdx].MarkBuffersAllocated();
 #else
+            amf::AMFBufferPtr buffer;
+
             AMF_RETURN_IF_FAILED(
                 m_pContextTAN->GetAMFContext()->AllocBuffer(
                     crossfadeQueue->GetMemoryType(),
                     singleBufSize * m_iChannels,
-                    &mAMFCLXFadeMasterBuffers[bufIdx]
+                    &buffer //&mAMFCLXFadeMasterBuffers[bufIdx]
                     )
                 );
+            mAMFCLXFadeMasterBuffers[bufIdx] = amf::AMFBufferExPtr(buffer);
+            AMF_RETURN_IF_FALSE(mAMFCLXFadeMasterBuffers[bufIdx].GetPtr() != nullptr, AMF_NOT_SUPPORTED);
 
             mFadeSubbufers[bufIdx].AllocateChannels(
                 m_iChannels,
