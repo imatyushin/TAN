@@ -1503,6 +1503,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nW);
     status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nH);
     status |= clSetKernelArg(m_kernel, argIdx++, sizeof(int), &nL);
+    AMF_RETURN_IF_CL_FAILED(status, L"Error: clSetKernelArg failed!");
 
     size_t localWorkSize[3] = { localX, localY, localZ };
 

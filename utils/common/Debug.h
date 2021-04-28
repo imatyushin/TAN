@@ -224,6 +224,9 @@ static void PrintShortArray(const char * hint, const int16_t * array, size_t cou
 #ifndef TAN_NO_OPENCL
 static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
 {
+    clFlush(queue);
+    clFinish(queue);
+
 #ifdef SILENT
     return;
 #endif

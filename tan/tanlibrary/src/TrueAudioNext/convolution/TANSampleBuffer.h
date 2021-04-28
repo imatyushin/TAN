@@ -41,7 +41,8 @@ namespace amf
 #ifndef TAN_NO_OPENCL
             cl_mem          *clmem;
 #else
-            amf::AMFBuffer  **amfBuffers;
+            amf::AMFBuffer  **
+                            amfBuffers;
 #endif
         }                   mChannels;
 
@@ -262,7 +263,7 @@ namespace amf
                 && amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST != mChannelsType;
         }
 
-        inline float * const * const        GetHostBuffers() const
+        inline const float * const * const        GetHostBuffers() const
         {
             assert(IsHost() && (mBuffersAllocated || mBuffersReferred));
 

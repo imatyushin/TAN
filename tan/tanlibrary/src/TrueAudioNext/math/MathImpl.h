@@ -59,7 +59,7 @@ namespace amf
         AMF_END_INTERFACE_MAP
 
         //TANMath interface
-        virtual AMF_RESULT  AMF_STD_CALL Init();
+        virtual AMF_RESULT  AMF_STD_CALL Init() override;
         virtual AMF_RESULT  AMF_STD_CALL Terminate() override;
         virtual TANContext* AMF_STD_CALL GetContext() override { return m_pContextTAN; }
 

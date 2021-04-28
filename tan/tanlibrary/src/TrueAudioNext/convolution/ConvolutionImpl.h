@@ -37,6 +37,8 @@
 #include "TANSampleBuffer.h"
 #include "TDFilterState.h"
 #include "FilterState.h"
+#include "GraalArgs.h"
+
 //#include "tanlibrary/src/Graal2/GraalWrapper.h"
 
 #include "Debug.h"
@@ -365,8 +367,6 @@ namespace amf
         size_t mNUPSize = 0;
         size_t mNUPSize2 = 0;
 
-
-#  define N_FILTER_STATES 3
         ovlAddFilterState m_FilterState[N_FILTER_STATES];
 
 		_ovlUniformPartitionFilterState *m_upFilterState[N_FILTER_STATES] = {nullptr};
@@ -496,103 +496,7 @@ namespace amf
         /****************************************************************************************
         Graal convolution library adapter interface
         *****************************************************************************************/
-        void * m_graal_conv;
-
-        struct GraalArgs
-        {
-            GraalArgs() :
-                versions(nullptr),
-                prevVersions(nullptr),
-                channels(nullptr),
-                lens(nullptr),
-                responses(nullptr),
-                negateCnt(0),
-                updatesCnt(0)
-            {
-            }
-
-            ~GraalArgs()
-            {
-                SAFE_ARR_DELETE(versions);
-                SAFE_ARR_DELETE(prevVersions);
-                SAFE_ARR_DELETE(channels);
-                SAFE_ARR_DELETE(lens);
-                SAFE_ARR_DELETE(responses);
-                SAFE_ARR_DELETE(negateCnt);
-            }
-
-            void Alloc(amf_uint32 channelCnt)
-            {
-                versions = new int[channelCnt];
-                prevVersions = new int[channelCnt];
-                channels = new int[channelCnt];
-                lens = new int[channelCnt];
-                responses = new float*[channelCnt];
-                negateCnt = new int[channelCnt];
-                std::memset(negateCnt, 0, sizeof(int) * channelCnt);
-                Clear(channelCnt);
-            }
-
-            void Clear(amf_uint32 channelCnt)
-            {
-                std::memset(versions, 0, sizeof(int) * channelCnt);
-                std::memset(prevVersions, 0, sizeof(int) * channelCnt);
-                std::memset(channels, 0, sizeof(int) * channelCnt);
-                std::memset(lens, 0, sizeof(int) * channelCnt);
-                std::memset(responses, 0, sizeof(float*) * channelCnt);
-                updatesCnt = 0;
-            }
-
-            void Pack(const GraalArgs &from, amf_uint32 channelCnt)
-            {
-                Clear(channelCnt);
-
-                for (amf_uint32 channelId = 0; channelId < channelCnt; channelId++)
-                {
-                    if (from.lens[channelId] > 0) {
-                        versions[updatesCnt] = from.versions[channelId];
-                        channels[updatesCnt] = from.channels[channelId];
-                        lens[updatesCnt] = from.lens[channelId];
-                        responses[updatesCnt] = from.responses[channelId];
-                        updatesCnt++;
-                    }
-                }
-            }
-
-            void Negate(
-                const GraalArgs &from,
-                amf_uint32 channelCnt,
-                amf_uint32 fromVersion,
-                amf_uint32 toVersion)
-            {
-                Clear(channelCnt);
-
-                amf_uint32 lastChannelId = 0;
-                for (amf_uint32 channelId = 0; channelId < channelCnt; channelId++)
-                {
-                    if (from.lens[channelId] == 0) {
-                        // We keep copying a stopped channel from curr slot to update slot up
-                        // until its propagated through out all the IR buffers (N_FILTER_STATES)
-                        if (negateCnt[channelId] >= N_FILTER_STATES-1) { continue; }
-                        versions[updatesCnt] = toVersion;
-                        prevVersions[updatesCnt] = fromVersion;
-                        channels[updatesCnt] = channelId;
-                        negateCnt[channelId]++;
-                        updatesCnt++;
-                    } else {
-                        negateCnt[channelId] = 0;// reset the counter
-                    }
-                }
-            }
-
-            int *versions;
-            int *prevVersions;
-            int *channels;
-            int *lens;
-            float **responses;
-            int *negateCnt; // Counts how many times a stopped channel has been copied from curr to update slot
-            amf_uint32 updatesCnt;
-        };
+        std::unique_ptr<graal::CGraalConv> mGraalConv;
 
         // response upload parameters (to pass to upload facilities).
         GraalArgs m_uploadArgs;
@@ -602,6 +506,7 @@ namespace amf
         GraalArgs m_copyArgs;
         // response update parmeters (to pass to update facilities).
         GraalArgs m_updateArgs;
+
         // audio stream parameters (to pass to process facilities).
         // Two buffers are used for storing the IR indices; so that back to back calls
         // to the ProcessInternal() during the crossfade will not corrupt the already stored data

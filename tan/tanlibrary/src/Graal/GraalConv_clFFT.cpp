@@ -23,7 +23,6 @@
 #include "Utilities.h"
 #include "GraalConv_clFFT.hpp"
 #include "GraalCLUtil/GraalUtil.hpp"
-#include "GraalConvOCL.hpp"
 #include "../common/OCLHelper.h"
 #include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
 
@@ -239,19 +238,17 @@ int CGraalConv_clFFT::initializeConv(
     max_conv_sz_freq_aligned_ = one << static_cast<uint>(ceil(log2((double)max_conv_sz_freq_)));
 
     int ret = setupCL(pConvolution, pUpdate);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Internal error: graal's initialization failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Internal error: graal's initialization failed");
 
     ret = setupCLFFT();
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Internal error: CLFFT's initialization failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Internal error: CLFFT's initialization failed");
 
     return 0;
 }
 
-
-int
-CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate)
+AMF_RESULT CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate)
 {
-    int ret = GRAAL_SUCCESS;
+    AMF_RESULT ret = AMF_OK;
 
 #ifndef TAN_SDK_EXPORTS
     // need to be the first call to set the device, context in CGraalConvOCL
@@ -264,13 +261,8 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     //CGraalConv::setupCL(pComputeConvolution, pComputeUpdate);
 #endif
 
-#ifndef TAN_NO_OPENCL
-    cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
-    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
-#else
-    cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
-    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
-#endif
+    auto convolutionQueue = m_pContextTAN->GetConvQueue();
+    auto generalQueue = m_pContextTAN->GetGeneralQueue();
 
     clIRInputBuf.resize(n_max_channels_);
     clIRInputPaddedBuf.resize(n_max_channels_);
@@ -302,68 +294,68 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     //allocate the giant 'base' buffers
     clIRBlocksBaseBuf = new CABuf<float>(CABufArgs);
     ret = clIRBlocksBaseBuf->create(max_conv_sz_freq_ * n_max_channels_ * n_sets_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clSignalHistBaseBuf = new CABuf<float>(CABufArgs);
     ret = clSignalHistBaseBuf->create(max_conv_sz_freq_ * n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     //This holds multiple versions of the input (n_input_blocks_ worth) as we need previous values for the convolution
     clInputBaseBuf = new CABuf<float>(CABufArgs);
     ret = clInputBaseBuf->create(block_sz_ * n_max_channels_ * n_input_blocks_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     //The input in frequency domain
     clInputBlockBaseBuf = new CABuf<float>(CABufArgs);
     ret = clInputBlockBaseBuf->create(freq_block_sz_ * n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clOutputBaseBuf = new CABuf<float>(CABufArgs);
     ret = clOutputBaseBuf->create(freq_block_sz_ * n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clOutputComplexBaseBuf = new CABuf<float>(CABufArgs);
     ret = clOutputComplexBaseBuf->create(freq_block_sz_ * n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     // the maps are used for control in the kernel
     clChannelMap = new CABuf<int>(CABufArgs);
     ret = clChannelMap->create(n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clSetMap = new CABuf<int>(CABufArgs);
     ret = clSetMap->create(n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clCurrInputMap = new CABuf<int>(CABufArgs);
     ret = clCurrInputMap->create(n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clPrevInputMap = new CABuf<int>(CABufArgs);
     ret = clPrevInputMap->create(n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     clBlockNumberMap = new CABuf<int>(CABufArgs);
     ret = clBlockNumberMap->create(n_max_channels_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
     //used to track rounds
     CABuf<float>* round_counters_buf = new CABuf<float>(CABufArgs);
     ret = round_counters_buf->create(n_max_channels_ * n_sets_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
     ret = round_counters_buf->setValue2(clientQ_, 0);
-    AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer zero-filling failed");
+    AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer zero-filling failed");
     round_counters_ = round_counters_buf;
 
     for (uint ch = 0; ch < n_max_channels_; ch++)
     {
         clIRInputBuf[ch] = new CABuf<float>(CAUpdBufArgs);
         ret = clIRInputBuf[ch]->create(max_conv_sz_, 0);
-        AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+        AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
         clIRInputPaddedBuf[ch] = new CABuf<float>(CAUpdBufArgs);
         ret = clIRInputPaddedBuf[ch]->create(num_blocks_ * double_block_sz_, 0);
-        AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+        AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
         clIRBlocksBuf[ch].resize(n_sets_);
         roundCounter_[ch].resize(n_sets_);
@@ -372,7 +364,7 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
             clIRBlocksBuf[ch][set] = new CASubBuf<float>(*clIRBlocksBaseBuf);
             ret = clIRBlocksBuf[ch][set]->create(max_conv_sz_freq_*(set + ch*n_sets_),
                                                  max_conv_sz_freq_, 0); // double the size for padding, double again for complex numbers
-            AMF_RETURN_IF_FALSE(ret == GRAAL_SUCCESS, ret, L"Buffer creation failed");
+            AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
 
             roundCounter_[ch][set] = 0;
         }
@@ -582,7 +574,7 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     CABuf<int> *chnls_map_buf = new CABuf<int>(CABufArgs);
     assert(chnls_map_buf);
 	ret = chnls_map_buf->create(n_sets_ * n_max_channels_,  CL_MEM_USE_PERSISTENT_MEM_AMD);
-	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
+	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(chnls_map_buf, graalQ_);
     channels_map_ = chnls_map_buf;
 
@@ -590,7 +582,7 @@ CGraalConv_clFFT::setupCL(amf::AMFComputePtr pComputeConvolution, amf::AMFComput
     CABuf<int> *sets_map_buf = new CABuf<int>(CABufArgs);
     assert(sets_map_buf);
 	ret = sets_map_buf->create(n_sets_ * n_max_channels_,  CL_MEM_USE_PERSISTENT_MEM_AMD);
-	AMF_RETURN_IF_FALSE(GRAAL_SUCCESS == ret, ret, L"Failed to create buffer: %d", ret);
+	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(sets_map_buf, graalQ_);
     sets_map_ = sets_map_buf;
     /////////////////
@@ -605,13 +597,8 @@ CGraalConv_clFFT::setupCLFFT()
     clfftStatus status;
     size_t double_block_sz_64 = double_block_sz_;
 
-#ifndef TAN_NO_OPENCL
-    cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
-    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
-#else
-    cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
-    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
-#endif
+    auto convolutionQueue = m_pContextTAN->GetConvQueue();
+    auto generalQueue = m_pContextTAN->GetGeneralQueue();
 
     cl_command_queue    commandqueue_Convolution = convolutionQueue;
     cl_context          context_Convolution = NULL;
@@ -799,7 +786,8 @@ int CGraalConv_clFFT::getConvBuffers(
         int set = uploadIDs[n];
         int ch = convIDs[n];
 
-        conv_ptrs[n] = clIRInputBuf[ch]->mapA(updQueue, CL_MAP_WRITE_INVALIDATE_REGION);
+        //ivm: conv_ptrs[n] = clIRInputBuf[ch]->mapA(updQueue, CL_MAP_WRITE_INVALIDATE_REGION);
+        conv_ptrs[n] = clIRInputBuf[ch]->map(updQueue, CL_MAP_WRITE_INVALIDATE_REGION);
     }
 
     clFinish(updQueue);
@@ -820,7 +808,7 @@ int CGraalConv_clFFT::getConvBuffers(
         int set = uploadIDs[n];
         int ch = convIDs[n];
 
-        ocl_bufffers[n] = clIRInputBuf[ch]->getCLMem();
+        ocl_bufffers[n] = clIRInputBuf[ch]->GetBuffersCL();
     }
     return 0;
 }
@@ -861,7 +849,7 @@ int CGraalConv_clFFT::uploadConvGpuPtrs(
 	int n_channels,
 	const int* _uploadIDs,
 	const int* _convIDs,
-	const cl_mem* _conv_ptrs,
+	const cl_mem* conv_ptrs,
 	const int* _conv_lens,
 	bool synchronous
 	)
@@ -870,7 +858,7 @@ int CGraalConv_clFFT::uploadConvGpuPtrs(
 	for (int i = 0; i < n_channels; i++)
 	{
 		int ch = _convIDs[i];
-		ret = clIRInputBuf[ch]->attach(_conv_ptrs[i], _conv_lens[i] * sizeof(float));
+		ret = clIRInputBuf[ch]->attach(conv_ptrs[i], _conv_lens[i] * sizeof(float));
 		CHECK_OPENCL_ERROR(ret, "Attach failed");
 	}
 	if (synchronous)
@@ -921,7 +909,7 @@ int CGraalConv_clFFT::updateConvHostPtrs(
     {
         int ch = convIDs[n];
         int set = uploadIDs[n];
-        ocl_mems.push_back(clIRInputBuf[ch]->getCLMem());
+        ocl_mems.push_back(clIRInputBuf[ch]->GetBuffersCL());
     }
 
     updateConv(n_channels, uploadIDs, convIDs, &ocl_mems[0], conv_lens, synchronous);
@@ -948,7 +936,7 @@ int CGraalConv_clFFT::updateConv(
     {
         int ch = convIDs[n];
         int set = uploadIDs[n];
-        ocl_mems.push_back(clIRInputBuf[ch]->getCLMem());
+        ocl_mems.push_back(clIRInputBuf[ch]->GetBuffersCL());
     }
 
     updateConv(n_channels, uploadIDs, convIDs, &ocl_mems[0], conv_lens, synchronous);
@@ -969,13 +957,7 @@ int CGraalConv_clFFT::updateConv(
 {
     processLock.lock();
 
-#ifndef TAN_NO_OPENCL
-    //cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
-    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
-#else
-    //cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
-    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
-#endif
+    auto generalQueue = m_pContextTAN->GetGeneralQueue();
 
     cl_int ret = CL_SUCCESS;
     clfftStatus fftstatus = CLFFT_SUCCESS;
@@ -1005,11 +987,11 @@ int CGraalConv_clFFT::updateConv(
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: ocl_mems[n]" )
 
         if (use_hermitian) {
-            ret = clSetKernelArg(padKernel_, n_arg++, sizeof(cl_mem), &(clIRBlocksBuf[ch][set]->getCLMem()) );
+            ret = clSetKernelArg(padKernel_, n_arg++, sizeof(cl_mem), &(clIRBlocksBuf[ch][set]->GetBuffersCL()) );
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clIRBlocksBuf[ch][set]->" )
         }
         else {
-            ret = clSetKernelArg(padKernel_, n_arg++, sizeof(cl_mem), &(clIRInputPaddedBuf[ch]->getCLMem()) );
+            ret = clSetKernelArg(padKernel_, n_arg++, sizeof(cl_mem), &(clIRInputPaddedBuf[ch]->GetBuffersCL()) );
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clIRInputPaddedBuf[ch]->" )
         }
         ret = clSetKernelArg(padKernel_, n_arg++, sizeof(int), &blockOffset); //in offset
@@ -1049,10 +1031,10 @@ int CGraalConv_clFFT::updateConv(
         if (!use_hermitian)
         {
             n_arg = 0;
-            ret = clSetKernelArg(interleaveKernel_, n_arg++, sizeof(cl_mem), &(clIRInputPaddedBuf[ch]->getCLMem()) );
+            ret = clSetKernelArg(interleaveKernel_, n_arg++, sizeof(cl_mem), &(clIRInputPaddedBuf[ch]->GetBuffersCL()) );
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clIRInputPaddedBuf[ch]->" )
 
-            ret = clSetKernelArg(interleaveKernel_, n_arg++, sizeof(cl_mem), &(clIRBlocksBuf[ch][set]->getCLMem()) );
+            ret = clSetKernelArg(interleaveKernel_, n_arg++, sizeof(cl_mem), &(clIRBlocksBuf[ch][set]->GetBuffersCL()) );
             AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: inp_buf" )
 
             g_wk[0] = num_blocks_ * double_block_sz_;
@@ -1071,7 +1053,7 @@ int CGraalConv_clFFT::updateConv(
         cl_command_queue updQueueArr[1] = {
             m_commandqueue_Update
         };
-        cl_mem inBuf = clIRBlocksBuf[ch][set]->getCLMem();
+        cl_mem inBuf = clIRBlocksBuf[ch][set]->GetBuffersCL();
         fftstatus = clfftEnqueueTransform(clfftPlanFwdIR,
             CLFFT_FORWARD,
             countOf(updQueueArr), /*num queues and out events*/
@@ -1116,13 +1098,7 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
     const bool synchronous
     )
 {
-#ifndef TAN_NO_OPENCL
-    //cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
-    cl_command_queue generalQueue = m_pContextTAN->GetOpenCLGeneralQueue();
-#else
-    //cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
-    cl_command_queue generalQueue = cl_command_queue(m_pContextTAN->GetAMFGeneralQueue()->GetNativeCommandQueue());
-#endif
+    auto generalQueue = m_pContextTAN->GetGeneralQueue();
 
     for (amf_uint32 channelId = 0; channelId < n_channels; channelId++)
     {
@@ -1141,10 +1117,10 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
 
         cl_int ret = CL_SUCCESS;
         amf_size n_arg = 0;
-        ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(cl_mem), &(clIRBlocksBaseBuf->getCLMem()) );
+        ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(cl_mem), &(clIRBlocksBaseBuf->GetBuffersCL()) );
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clIRBlocksBaseBuf->" )
 
-        ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(cl_mem), &(clIRBlocksBaseBuf->getCLMem()) );
+        ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(cl_mem), &(clIRBlocksBaseBuf->GetBuffersCL()) );
         AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clIRBlocksBaseBuf->" )
 
         ret = clSetKernelArg(m_copyWithPaddingKernel, n_arg++, sizeof(int), &inOffset); //in offset
@@ -1180,7 +1156,7 @@ int CGraalConv_clFFT::process(
     int n_channels,
     const int *uploadID,     // upload set IDs
     const int *convIDs,       // kernel IDs
-    float** inputs,
+    const float*const* inputs,
     float** outputs,
     int prev_input,
     int advance_time,
@@ -1198,11 +1174,7 @@ int CGraalConv_clFFT::process(
 
     int inspectCh = 1;
 
-#ifndef TAN_NO_OPENCL
-    cl_command_queue convolutionQueue = m_pContextTAN->GetOpenCLConvQueue();
-#else
-    cl_command_queue convolutionQueue = cl_command_queue(m_pContextTAN->GetAMFConvQueue()->GetNativeCommandQueue());
-#endif
+    auto convolutionQueue = m_pContextTAN->GetConvQueue();
 
     //setup maps used to control kernels
 #ifdef TAN_SDK_EXPORTS
@@ -1243,7 +1215,7 @@ int CGraalConv_clFFT::process(
         int input_index_curr = getRoundCounter(inputset, ch) % n_input_blocks_;
         int input_index_prev = (getRoundCounter(inputset, ch) + n_input_blocks_ - 1) % n_input_blocks_;
 
-        float *in_ptr = inputs[n];
+        const float *in_ptr = inputs[n];
         float *upload_ptr = input_buf_ptr + (ch * n_input_blocks_ + input_index_curr) * block_sz_;
         memcpy(upload_ptr, in_ptr, max_proc_buffer_sz_ * sizeof(float));
         memset(upload_ptr + max_proc_buffer_sz_, 0, align_padding_sz_ * sizeof(float));
@@ -1256,19 +1228,19 @@ int CGraalConv_clFFT::process(
     //2 Create a new block in InputBlockBase where the first half is the previous input and second half is current
     n_arg = 0;
     cl_int ret = CL_SUCCESS;
-    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clInputBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clInputBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clInputBaseBuf->" )
 
-    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clInputBlockBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clInputBlockBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clInputBlockBaseBuf->" )
 
-    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clChannelMap->getCLMem()) );
+    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clChannelMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clChannelMap->" )
 
-    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clCurrInputMap->getCLMem()) );
+    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clCurrInputMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clCurrInputMap->" )
 
-    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clPrevInputMap->getCLMem()) );
+    ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clPrevInputMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clPrevInputMap->" )
 
     ret = clSetKernelArg(interleaveMultiChanKernel_, n_arg++, sizeof(int), &freq_block_sz_);
@@ -1290,7 +1262,7 @@ int CGraalConv_clFFT::process(
 #endif
 
     //3 FFT the whole InputBlockBase
-    cl_mem inBuf = clInputBlockBaseBuf->getCLMem();
+    cl_mem inBuf = clInputBlockBaseBuf->GetBuffersCL();
     fftstatus = clfftEnqueueTransform(clfftPlanFwdAllChannels,
         CLFFT_FORWARD,
         1, /*num queues and out events*/
@@ -1309,16 +1281,16 @@ int CGraalConv_clFFT::process(
     //store new block into history block chain in increasing block number based on roundCounter
     n_arg = 0;
 
-    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clInputBlockBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clInputBlockBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clInputBlockBaseBuf->" )
 
-    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clSignalHistBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clSignalHistBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clSignalHistBaseBuf->" )
 
-    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clChannelMap->getCLMem()) );
+    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clChannelMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clChannelMap->" )
 
-    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clBlockNumberMap->getCLMem()) );
+    ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clBlockNumberMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clBlockNumberMap->" )
 
     ret = clSetKernelArg(sigHistInsertMultiChanKernel_, n_arg++, sizeof(int), &freq_block_sz_);
@@ -1339,22 +1311,22 @@ int CGraalConv_clFFT::process(
     //5 Convolve by multiplying and accumulating the the Signal History with the IR
     n_arg = 0;
 
-    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clSignalHistBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clSignalHistBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clSignalHistBaseBuf->" )
 
-    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clIRBlocksBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clIRBlocksBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clIRBlocksBaseBuf->" )
 
-    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clOutputBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clOutputBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clOutputBaseBuf->" )
 
-    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clChannelMap->getCLMem()) );
+    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clChannelMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clChannelMap->" )
 
-    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clSetMap->getCLMem()) );
+    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clSetMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clSetMap->" )
 
-    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clBlockNumberMap->getCLMem()) );
+    ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(cl_mem), &(clBlockNumberMap->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clBlockNumberMap->" )
 
     ret = clSetKernelArg(madaccMultiChanKernel_, n_arg++, sizeof(int), &freq_block_num_elements_); //blockLength
@@ -1387,8 +1359,8 @@ int CGraalConv_clFFT::process(
 #endif
 
     //6 inverse FFT the results of the convolution back to the time domain
-    inBuf = clOutputBaseBuf->getCLMem();
-    cl_mem outBuf = clOutputComplexBaseBuf->getCLMem();
+    inBuf = clOutputBaseBuf->GetBuffersCL();
+    cl_mem outBuf = clOutputComplexBaseBuf->GetBuffersCL();
     fftstatus = clfftEnqueueTransform(clfftPlanBackAllChannels,
         CLFFT_BACKWARD,
         1, /*num queues and out events*/
@@ -1405,10 +1377,10 @@ int CGraalConv_clFFT::process(
 
     //7 de-interleave the complex
     n_arg = 0;
-    ret = clSetKernelArg(deinterleaveKernel_, n_arg++, sizeof(cl_mem), &(clOutputComplexBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(deinterleaveKernel_, n_arg++, sizeof(cl_mem), &(clOutputComplexBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clOutputComplexBaseBuf->" )
 
-    ret = clSetKernelArg(deinterleaveKernel_, n_arg++, sizeof(cl_mem), &(clOutputBaseBuf->getCLMem()) );
+    ret = clSetKernelArg(deinterleaveKernel_, n_arg++, sizeof(cl_mem), &(clOutputBaseBuf->GetBuffersCL()) );
     AMF_RETURN_IF_FALSE(CL_SUCCESS == ret, AMF_UNEXPECTED, L"clSetKernelArg failed: clOutputBaseBuf->" )
 
     g_wk[0] = double_block_sz_ * n_channels;
@@ -1445,12 +1417,12 @@ int CGraalConv_clFFT::process(
     return 0;
 }
 
-int CGraalConv_clFFT::flush(amf_uint channelId, const bool synchronous)
+AMF_RESULT CGraalConv_clFFT::flush(amf_uint channelId, const bool synchronous)
 {
     AMF_RETURN_IF_FALSE(channelId < static_cast<amf_uint>(n_max_channels_), AMF_INVALID_ARG,
                         L"channelId out of range");
 
-    int ret = GRAAL_SUCCESS;
+    AMF_RESULT ret = AMF_OK;
 
     AMF_RETURN_IF_FAILED(zeroMemory(clSignalHistBaseBuf, channelId * max_conv_sz_freq_,
                                     max_conv_sz_freq_));

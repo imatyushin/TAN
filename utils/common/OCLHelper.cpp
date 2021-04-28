@@ -173,15 +173,15 @@ cl_int FixedEnqueueFillBuffer(
     size_t                      size
     )
 {
-    cl_int error = CL_SUCCESS;
-    
-    cl_event event = clCreateUserEvent(context, &error);
-    if(error != CL_SUCCESS)
+    cl_int returnCode = CL_SUCCESS;
+
+    cl_event event = clCreateUserEvent(context, &returnCode);
+    if(returnCode != CL_SUCCESS)
     {
-        return error;
+        return returnCode;
     }
 
-    error = clEnqueueFillBuffer(
+    returnCode = clEnqueueFillBuffer(
         command_queue,
         buffer,
         pattern,
@@ -192,14 +192,14 @@ cl_int FixedEnqueueFillBuffer(
         nullptr,
         &event
         );
-    if(error != CL_SUCCESS)
+    if(returnCode != CL_SUCCESS)
     {
-        return error;
+        return returnCode;
     }
-    
-    error = clWaitForEvents(1, &event);
 
-    return error;
+    returnCode = clWaitForEvents(1, &event);
+
+    return returnCode;
 }
 
 #else

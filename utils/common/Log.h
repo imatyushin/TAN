@@ -54,10 +54,5 @@ public:
     }
 };
 
-#ifndef SL(x)
 #define SL(x) ScopeLogger scopeLogger ## __LINE__(__FUNCTION__, x)
-#endif
-
-#ifndef FL
 #define FL SL(__FUNCTION__)
-#endif

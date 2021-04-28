@@ -29,7 +29,6 @@
 #include <CL/cl.h>
 #include "clFFT.h"
 #include "GraalConv.hpp"
-#include "GraalConvOCL.hpp"
 #include <string>
 #include <mutex>  // not available in VS2010
 
@@ -113,7 +112,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
      * Allocate and initialize convolution class
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
     int initializeConv(
 #ifdef TAN_SDK_EXPORTS
@@ -138,7 +137,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
      * Returns a set of gpu_friendly system pointers - any upload set and kernel ID
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
     int getConvBuffers(
         int n_channels,
@@ -150,7 +149,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
     * Returns a array of libraray-managed OCL buffers
     *
-    * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+    * @return AMF_OK on success and AMF_FAIL on failure
     */
     int getConvBuffers(
         int n_channels,				// number of channels
@@ -162,7 +161,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
     * Obtain library-managed OCL buffers.
     *
-    * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+    * @return AMF_OK on success and AMF_FAIL on failure
     */
     int getLibConvBuffers(
         int n_channels,
@@ -187,14 +186,14 @@ class CGraalConv_clFFT: public CGraalConv
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
 
 	int uploadConvGpuPtrs(
 		int n_channels,
 		const int *_uploadIDs,
 		const int *_convIDs,
-		const cl_mem * _conv_ptrs,
+		const cl_mem * conv_ptrs,
 		const int * _conv_lens,
 		bool synchronous
 		) override;
@@ -212,7 +211,7 @@ class CGraalConv_clFFT: public CGraalConv
      * Upload kernels from arbitrary system pointers.
      * Pointers become invalid after the call.
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
     int updateConvHostPtrs(
         int n_channels,
@@ -226,7 +225,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
     * Upload kernels from library-managed OCL buffers.
     *
-    * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+    * @return AMF_OK on success and AMF_FAIL on failure
     */
     virtual int updateConv(
         int _n_channels,
@@ -239,7 +238,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
      * Upload kernels from opencl mem objects
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
     int updateConv(
         int n_channels,
@@ -253,7 +252,7 @@ class CGraalConv_clFFT: public CGraalConv
     /**
      * All kernels will be ready upon the return from the call
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
     int finishUpdate(void) override;
 
@@ -277,7 +276,7 @@ class CGraalConv_clFFT: public CGraalConv
      * Upload kernels from a previously acquired gpu-friendly system pointers.
      * Pointers become invalid after the call.
      *
-     * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+     * @return AMF_OK on success and AMF_FAIL on failure
      */
     int processHostPtrs(
         int n_channels,
@@ -291,13 +290,13 @@ class CGraalConv_clFFT: public CGraalConv
     * Upload kernels from a previously acquired gpu-friendly system pointers.
     * Pointers become invalid after the call.
     *
-    * @return GRAAL_SUCCESS on success and GRAAL_FAILURE on failure
+    * @return AMF_OK on success and AMF_FAIL on failure
     */
     int process(
         int n_channels,
         const int *uploadID,     // upload set IDs
         const int *convIDs,       // kernel IDs
-        float** inputs,
+        const float*const* inputs,
         float** outputs,
         int prev_input = 0,
         int advance_time = 1,
@@ -404,12 +403,9 @@ private:
     clfftPlanHandle clfftPlanFwdAllChannels;
     clfftPlanHandle clfftPlanBackAllChannels;
 
-    //std::recursive_mutex processLock; // Not available in VS2010.
-    //RecursiveBenaphore processLock;
     std::recursive_mutex processLock;
 };
 
 };
-
 
 #endif
