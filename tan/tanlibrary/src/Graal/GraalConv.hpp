@@ -25,6 +25,8 @@
 #ifndef GRAALCONV_H_
 #define GRAALCONV_H_
 
+#include "TrueAudioNext.h"
+
 #ifndef TAN_NO_OPENCL
   #include <CL/cl.h>
 #endif
@@ -42,15 +44,9 @@
 #include <windows.h>
 #include <BaseTsd.h>
 
-//#include "public/common/thread.h"
-//#include "public/include/core/Compute.h"
-//#include "public/include/core/Context.h"
-//#  include "TrueAudioNext.h"
-
 typedef unsigned int uint;
 
-static
-double mach_absolute_time()
+static double mach_absolute_time()
 {
     double ret = 0;
     int64_t frec;
@@ -172,12 +168,12 @@ public:
         int max_proc_buffer_sz,
         int n_upload_sets = 2,         // number of shadow buffers for double buffering
         int algorithm = ALG_ANY
-#ifndef TAN_SDK_EXPORTS
-        ,
-        cl_context clientContext = 0,
-        cl_device_id clientDevice = 0,
-        cl_command_queue clientQ = 0
-#endif
+//#ifndef TAN_SDK_EXPORTS
+//        ,
+//        cl_context clientContext = 0,
+//        cl_device_id clientDevice = 0,
+//        cl_command_queue clientQ = 0
+//#endif
         );
 
     /**
@@ -288,7 +284,7 @@ public:
 #ifndef TAN_NO_OPENCL
         const cl_mem *                  clBuffers,
 #else
-        const amf::AMFBuffer **         amfBuffers,
+        /*const*/ amf::AMFBuffer **         amfBuffers,
 #endif
         const int *                     conv_lens,
         bool                            synchronous = false
@@ -353,29 +349,29 @@ public:
         return AMF_OK;
     }
 
-     /**
-      * Response copying utility function.
-      *
-      * @return AMF_OK on success.
-      */
-     virtual AMF_RESULT copyResponses(
-         uint n_channels,
-         const uint pFromUploadIds[],
-         const uint pToUploadIds[],
-         const uint pConvIds[],
-         const bool synchronous = true
-         );
+    /**
+     * Response copying utility function.
+     *
+     * @return AMF_OK on success.
+     */
+    virtual AMF_RESULT copyResponses(
+        uint n_channels,
+        const uint pFromUploadIds[],
+        const uint pToUploadIds[],
+        const uint pConvIds[],
+        const bool synchronous = true
+        );
 #endif
 
 // more efficient dma copy
 #define COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK 1
 
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
-     virtual bool checkForContiguousBuffers(
-         int count,
-         const float** conv_ptrs,
-         const int * _conv_lens
-         );
+    virtual bool checkForContiguousBuffers(
+        int count,
+        const float** conv_ptrs,
+        const int * _conv_lens
+        );
 #endif
 
     /**
@@ -524,10 +520,7 @@ protected:
      * OpenCL related initialisations.
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    AMF_RESULT setupCL( amf::AMFComputePtr pComputeConvolution,  amf::AMFComputePtr pComputeUpdate );
-
-
-
+    AMF_RESULT setupCL(const amf::AMFComputePtr & pComputeConvolution, const amf::AMFComputePtr & pComputeUpdate );
 
     /**
      * Cleanup
@@ -694,7 +687,14 @@ protected:
     AMF_RESULT syncUpload( void );
 
     template<typename T>
-    void initBuffer(CABuf<T> *buf, cl_command_queue queue)
+    void initBuffer(
+        CABuf<T> *buf,
+#ifndef TAN_NO_OPENCL
+        cl_command_queue queue
+#else
+        amf::AMFCompute * queue
+#endif
+        )
     {
         buf->setValue2(queue, 0);
     }
@@ -725,8 +725,8 @@ protected:
     int accum_stride_ = 0;  // stride of accum buffer per channel
 
 // FHT
-    void* sincos_ = nullptr;  // precomputeted sincos table
-    void* bit_reverse_ = nullptr;  // reverse bit table
+    std::unique_ptr<CABuf<float> > mSinCos;  // precomputeted sincos table
+    std::unique_ptr<CABuf<short> > mBitReverse;  // reverse bit table
 
     // single Graal OCL Q ???
 #ifndef TAN_SDK_EXPORTS
@@ -742,7 +742,9 @@ protected:
     std::vector<std::vector<void*>> kernel_staging_;
     std::vector<std::vector< std::shared_ptr< CASubBuf<float> > > >
                                             mKernelTransformed; // per channel
-    std::vector<void*> mKernelTransformedstore_; // per set
+    std::vector<std::shared_ptr<CASubBuf<float> > >
+                                            mKernelTransformedStore; // per set
+
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
     std::vector<void*> kernel_input_store_; // per set
 #endif
@@ -753,26 +755,20 @@ protected:
 // kernel length map
     void* kernel_lens_map_ = nullptr;
 // kernel input
-    void * kernel_input_union_ = nullptr;  // base union store
+    std::unique_ptr<CABuf<float> > mKernelInputUnion;  // base union store
 // kernel storage
-    void * kernel_trasformed_union_ = nullptr;  // base union store
-
-private:
-#ifndef TAN_NO_OPENCL
-    //upload in a single run
-    cl_kernel uploadKernel_ = nullptr;
-    //upload per stream
-    cl_kernel uploadKernel2_ = nullptr;
-
-    cl_kernel resetKernel_ = nullptr;
-#endif
+    std::unique_ptr<CABuf<float> > mKernelTrasformedUnion;  // base union store
 
 protected:
 #ifndef TAN_NO_OPENCL
-    cl_kernel m_copyWithPaddingKernel = nullptr;
-#endif
+    //upload in a single run
+    cl_kernel                   mUploadKernel           = nullptr;
+    //upload per stream
+    cl_kernel                   mUploadKernel2          = nullptr;
 
-#ifdef TAN_NO_OPENCL
+    cl_kernel                   mResetKernel            = nullptr;
+    cl_kernel                   mCopyWithPaddingKernel  = nullptr;
+#else
     amf::AMFComputeKernelPtr    mUploadKernel;
     amf::AMFComputeKernelPtr    mUploadKernel2;
     amf::AMFComputeKernelPtr    mResetKernel;
@@ -781,7 +777,7 @@ protected:
 
     int64_t round_counter_ = 0;
 
-    std::vector<void*> host_input_staging_;
+    std::vector<std::shared_ptr<CABuf<float> > > mHostInputStaging;
 // combined state buffer channel/version/roound counter by number of stages
     void * state_union_ = nullptr;
 
@@ -800,28 +796,25 @@ protected:
     void* process2_output_staging_ = nullptr;
 
 // cmad accumulator
-    void* cmad_accum_ = nullptr;
-    void* cmad_accum_xf_ = nullptr;// used to store data needed for crossfade
-    std::unique_ptr<CABuf<int> >     mCopyResponseInOffset;
-    void * copy_response_out_offset_ = nullptr;
+    std::unique_ptr<CABuf<float> >  mCmadAccum;
+    std::unique_ptr<CABuf<float> >  mCmadAccumXF;// used to store data needed for crossfade
+    std::unique_ptr<CABuf<int> >    mCopyResponseInOffset;
+    std::unique_ptr<CABuf<int> >    mCopyResponseOutOffset;
+
     int* host_copy_resp_in_offset = nullptr;
     int* host_copy_resp_out_offset = nullptr;
 
 #ifndef TAN_NO_OPENCL
-    cl_kernel inputKernel_ = nullptr;
-    cl_kernel inputStageKernel_ = nullptr;
-    cl_kernel directTransformKernel_ = nullptr;
-    cl_kernel inverseTransformKernel_ = nullptr;
-    std::vector<cl_kernel> CMADKernels_;
-    cl_kernel convHead1_ = nullptr;
+    cl_kernel                       mDirectTransformKernel      = nullptr;
+    cl_kernel                       mInverseTransformKernel     = nullptr;
+    std::vector<cl_kernel>          mCMADKernels;
+    cl_kernel                       mConvHead1                  = nullptr;
 #else
-    amf::AMFComputeKernelPtr    mInputKernel;
-    amf::AMFComputeKernelPtr    mInputStageKernel;
-    amf::AMFComputeKernelPtr    mDirectTransformKernel;
-    amf::AMFComputeKernelPtr    mInverseTransformKernel;
+    amf::AMFComputeKernelPtr        mDirectTransformKernel;
+    amf::AMFComputeKernelPtr        mInverseTransformKernel;
     std::vector<amf::AMFComputeKernelPtr>
-                                mCMADKernels;
-    amf::AMFComputeKernelPtr    mConvHead1;
+                                    mCMADKernels;
+    amf::AMFComputeKernelPtr        mConvHead1;
 #endif
 
 #ifndef TAN_NO_OPENCL

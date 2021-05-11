@@ -67,9 +67,8 @@ bool GetOclKernel
             if(AMF_OK == result)
             {
                 amf::AMFComputeKernel* pAMFComputeKernel = nullptr;
-                device->GetKernel(amfKernelID, &pAMFComputeKernel);
-
-                if(nullptr != pAMFComputeKernel)
+                if(AMF_OK == device->GetKernel(amfKernelID, &pAMFComputeKernel)
+                    && (nullptr != pAMFComputeKernel))
                 {
                     resultKernel = (cl_kernel)pAMFComputeKernel->GetNative();
 

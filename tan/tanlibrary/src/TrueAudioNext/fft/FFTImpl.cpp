@@ -367,7 +367,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
 
-    auto context = m_pContextTAN->GetComputeContext();
+    auto context = m_pContextTAN->GetAMFContext();
 
     m_doProcessingOnGpu = (nullptr != context);
 
@@ -686,7 +686,7 @@ size_t TANFFTImpl::GetFFTPlan(
         clfftPlanHandle plan = {0};
 
 		// Create new plan
-        auto context = m_pContextTAN->GetComputeContext();
+        auto context = m_pContextTAN->GetAMFContext();
 
 		//hack
 		auto cmdQueue = m_pContextTAN->GetGeneralQueue();
@@ -1879,7 +1879,7 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 		// create new buffers
 		m_iInternalBufferSizeInBytes = requiredChannelLengthInBytes;
 
-		auto context = m_pContextTAN->GetComputeContext();
+		auto context = m_pContextTAN->GetAMFContext();
 		auto cmdQueue = m_useConvQueue
 			? m_pContextTAN->GetConvQueue()
 			: m_pContextTAN->GetGeneralQueue();

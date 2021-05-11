@@ -114,23 +114,23 @@ class CGraalConv_clFFT: public CGraalConv
      *
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    int initializeConv(
+    AMF_RESULT initializeConv(
 #ifdef TAN_SDK_EXPORTS
-        amf::TANContextPtr &pContextTAN,
-        amf::AMFComputePtr &pConvolution,
-        amf::AMFComputePtr &pUpdate,
+        const amf::TANContextPtr &pContextTAN,
+        const amf::AMFComputePtr &pConvolution,
+        const amf::AMFComputePtr &pUpdate,
 #endif
         int n_max_channels,
         int max_conv_sz,
         int max_proc_buffer_sz,
         int n_upload_sets = 2,         // number of shadow buffers for double buffering
         int algorithm = ALG_ANY
-#ifndef TAN_SDK_EXPORTS
-        ,
-        cl_context clientContext = 0,
-        cl_device_id clientDevice = 0,
-        cl_command_queue clientQ = 0
-#endif
+//#ifndef TAN_SDK_EXPORTS
+//        ,
+//        cl_context clientContext = 0,
+//        cl_device_id clientDevice = 0,
+//        cl_command_queue clientQ = 0
+//#endif
         ) override;
 
     void cleanup();
@@ -139,7 +139,7 @@ class CGraalConv_clFFT: public CGraalConv
      *
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    int getConvBuffers(
+    AMF_RESULT getConvBuffers(
         int n_channels,
         int *uploadIDs,             // upload set IDs per kernel
         int *convIDs,               // kernel IDs
@@ -151,19 +151,26 @@ class CGraalConv_clFFT: public CGraalConv
     *
     * @return AMF_OK on success and AMF_FAIL on failure
     */
-    int getConvBuffers(
+    AMF_RESULT getConvBuffers(
         int n_channels,				// number of channels
         int *uploadIDs,             // upload set IDs per kernel
         int *convIDs,               // kernel IDs
-        cl_mem* ocl_bufffers           // library-managed OCL buffers
+
+#ifndef TAN_NO_OPENCL
+        cl_mem* clBuffers           // gpu-frendly system pointers
+#else
+        amf::AMFBuffer ** buffers   // gpu-frendly system pointers
+#endif
         ) override;
 
+    /*
+    todo ivm: seems unused
     /**
     * Obtain library-managed OCL buffers.
     *
     * @return AMF_OK on success and AMF_FAIL on failure
-    */
-    int getLibConvBuffers(
+    * /
+    AMF_RESULT getLibConvBuffers(
         int n_channels,
         int * uploadIDs,             // upload set IDs per kernel
         int * convIDs,               // kernel IDs
@@ -171,9 +178,10 @@ class CGraalConv_clFFT: public CGraalConv
         )
     {
         return getConvBuffers(n_channels, uploadIDs, convIDs, ocl_mems);
-    };
+    }
+    */
 
-    int uploadConvHostPtrs(
+    AMF_RESULT uploadConvHostPtrs(
         int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
@@ -189,16 +197,20 @@ class CGraalConv_clFFT: public CGraalConv
      * @return AMF_OK on success and AMF_FAIL on failure
      */
 
-	int uploadConvGpuPtrs(
+	AMF_RESULT uploadConvGpuPtrs(
 		int n_channels,
 		const int *_uploadIDs,
 		const int *_convIDs,
-		const cl_mem * conv_ptrs,
+#ifndef TAN_NO_OPENCL
+        const cl_mem * conv_ptrs,  // arbitrary host ptrs
+#else
+        const amf::AMFBuffer ** conv_ptrs,  // arbitrary amf buffers ptrs
+#endif
 		const int * _conv_lens,
 		bool synchronous
 		) override;
 
-    int updateConv(
+    AMF_RESULT updateConv(
         int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
@@ -213,7 +225,7 @@ class CGraalConv_clFFT: public CGraalConv
      *
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    int updateConvHostPtrs(
+    AMF_RESULT updateConvHostPtrs(
         int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
@@ -227,7 +239,7 @@ class CGraalConv_clFFT: public CGraalConv
     *
     * @return AMF_OK on success and AMF_FAIL on failure
     */
-    virtual int updateConv(
+    virtual AMF_RESULT updateConv(
         int _n_channels,
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
@@ -240,11 +252,15 @@ class CGraalConv_clFFT: public CGraalConv
      *
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    int updateConv(
+    AMF_RESULT updateConv(
         int n_channels,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
-        const cl_mem* ocl_mems,
+#ifndef TAN_NO_OPENCL
+        const cl_mem *                  clBuffers,
+#else
+        /*const*/ amf::AMFBuffer **         amfBuffers,
+#endif
         const int * conv_lens,
         bool synchronous = false   // synchronoius call
         ) override;
@@ -254,12 +270,11 @@ class CGraalConv_clFFT: public CGraalConv
      *
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    int finishUpdate(void) override;
-
+    AMF_RESULT finishUpdate(void) override;
 
 #ifdef TAN_SDK_EXPORTS
     /**
-    * Responce copying utility function.
+    * Response copying utility function.
     *
     * @return AMF_OK on success.
     */
@@ -278,7 +293,7 @@ class CGraalConv_clFFT: public CGraalConv
      *
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    int processHostPtrs(
+    AMF_RESULT processHostPtrs(
         int n_channels,
         int uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs
@@ -292,7 +307,7 @@ class CGraalConv_clFFT: public CGraalConv
     *
     * @return AMF_OK on success and AMF_FAIL on failure
     */
-    int process(
+    AMF_RESULT process(
         int n_channels,
         const int *uploadID,     // upload set IDs
         const int *convIDs,       // kernel IDs
@@ -307,12 +322,15 @@ class CGraalConv_clFFT: public CGraalConv
     /**
      * Flushes history.
      */
-    int flush(amf_uint channelId, const bool synchronous = true) override;
+    AMF_RESULT flush(amf_uint channelId, const bool synchronous = true) override;
 
 private:
-    int	setupCL( amf::AMFComputePtr pComputeConvolution, amf::AMFComputePtr pComputeUpdate );
+    AMF_RESULT setupCL(
+        const amf::AMFComputePtr & pComputeConvolution,
+        const amf::AMFComputePtr & pComputeUpdate
+        );
 
-    int	setupCLFFT();
+    AMF_RESULT setupCLFFT();
 
     //for debugging, these print portions of the buffer to stdout
     void printBlock(CABuf<float>* buf, std::string name = "", int blockLength = 1024, int offset = 0, int count = 5);

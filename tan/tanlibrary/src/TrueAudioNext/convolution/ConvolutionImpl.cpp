@@ -51,6 +51,7 @@
 using namespace amf;
 
 //-------------------------------------------------------------------------------------------------
+#pragma message("todo: refacture to use standard amf macroses")
 #define RETURN_IF_FAILED(ret) \
     if ((ret) != AMF_OK) goto ErrorHandling;
 #define RETURN_IF_FALSE(expr, retVariable, retCode) \
@@ -93,8 +94,8 @@ TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
 {
     TANContextImplPtr contextImpl(pContextTAN);
 
-    m_pUpdateContextAMF = contextImpl->GetGeneralCompute();
-    m_pProcContextAMF = contextImpl->GetConvolutionCompute();
+    m_pUpdateContextAMF.Attach(contextImpl->GetGeneralQueue());
+    m_pProcContextAMF.Attach(contextImpl->GetConvQueue());
 
     PrintDebug("99 m_xFadeStarted.SetEvent()");
     m_xFadeStarted.SetEvent();
@@ -696,8 +697,20 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
             {
                 assert(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == pBuffer.GetType());
 
-                cl_mem *clResponses = new cl_mem[m_iChannels];
-                printf("todo: remove allocation from runtime\n");
+#ifndef TAN_NO_OPENCL
+                typedef cl_mem BufferType;
+#else
+                typedef amf::AMFBuffer * BufferType;
+#endif
+
+                static std::vector<BufferType> graalResponceBuffers;
+
+                if(graalResponceBuffers.size() != m_iChannels)
+                {
+                    graalResponceBuffers.resize(m_iChannels, nullptr);
+                }
+
+                const BufferType * array = graalResponceBuffers.data();
 
                 for (amf_uint32 n = 0; n < m_iChannels; n++)
                 {
@@ -707,9 +720,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                         m_accumulatedArgs.updatesCnt++;
 
 #ifndef TAN_NO_OPENCL
-                        clResponses[n_channels] = pBuffer.GetCLBuffers()[n];
+                        graalResponceBuffers[n_channels] = pBuffer.GetCLBuffers()[n];
 #else
-                        clResponses[n_channels] = (cl_mem)pBuffer.GetAMFBuffersReadWrite()[n]->GetNative();
+                        graalResponceBuffers[n_channels] = pBuffer.GetAMFBuffersReadWrite()[n];
 #endif
 
                         m_uploadArgs.versions[n_channels] = m_idxUpdateFilter;
@@ -723,20 +736,21 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
 
-                AMF_RETURN_IF_FALSE(
+                AMF_RETURN_IF_FAILED(
                     mGraalConv->uploadConvGpuPtrs(
-                    n_channels,
-                    m_uploadArgs.versions,
-                    m_uploadArgs.channels,
-                    clResponses,
-                    m_uploadArgs.lens,
-                    true
-                    ) == GRAAL_SUCCESS,
-                    AMF_UNEXPECTED,
-                    L"Internal graal's failure"
+                        n_channels,
+                        m_uploadArgs.versions,
+                        m_uploadArgs.channels,
+#ifndef TAN_NO_OPENCL
+                        (const cl_mem *)
+#else
+                        (const amf::AMFBuffer **)
+#endif
+                            graalResponceBuffers.data(),
+                        m_uploadArgs.lens,
+                        true
+                        )
                     );
-
-                delete [] clResponses;
             }
             else
             {
@@ -759,16 +773,14 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
 
-                AMF_RETURN_IF_FALSE(
+                AMF_RETURN_IF_FAILED(
                     mGraalConv->uploadConvHostPtrs(
                         n_channels,
                         m_uploadArgs.versions,
                         m_uploadArgs.channels,
                         const_cast<const float**>(m_uploadArgs.responses),
                         m_uploadArgs.lens, true
-                        ) == GRAAL_SUCCESS,
-                    AMF_UNEXPECTED,
-                    L"Internal graal's failure"
+                        )
                     );
             }
         }
@@ -1229,7 +1241,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 		{
 			m_DelayedUpdate = false;
 			// Calculate the current output using the old IR, time advances so that current input frame is stored and is part of the history buffer.
-			// No skip stage is selected, and since the crossfade state is set to one, the crossfade specefic accum buffer (cmad_accum_xf_) is used
+			// No skip stage is selected, and since the crossfade state is set to one, the crossfade specefic accum buffer (mCmadAccumXF) is used
 			ret = ProcessInternal(m_idxPrevFilter, pBufferInput, pBufferOutput,
 				numOfSamplesToProcess, flagMasks, &samplesProcessed, 0, 1, 0, 1);
 			RETURN_IF_FAILED(ret);
@@ -1316,7 +1328,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 		m_DelayedUpdate = false;
 
 		 // Avoiding useless computation by not launching the FDL accum kernel with the old IRs during IR update (skip_stage==2)
-		 // crossfade_state == 2 means it uses the data accumulated in the cmad_accum_xf_ when the previous frame was received
+		 // crossfade_state == 2 means it uses the data accumulated in the mCmadAccumXF when the previous frame was received
 		ret = ProcessInternal(m_idxPrevFilter, pBufferInput, xFadeBuffs[1],
 			numOfSamplesToProcess, flagMasks, &samplesProcessed, 0, 0, 2, 2);
 		RETURN_IF_FAILED(ret);
@@ -1750,10 +1762,10 @@ AMF_RESULT amf::TANConvolutionImpl::Flush(amf_uint32 filterStateId, amf_uint32 c
 		AMF_RETURN_IF_FALSE(m_nonUniformGraal.flush(channelId) == 0, AMF_UNEXPECTED, L"Flushing non-uniform convolution failed")
         */
 	}
-	else {
+	else
+    {
 		// Flushing of Graal objects.
-		AMF_RETURN_IF_FALSE(mGraalConv->flush(channelId) == GRAAL_SUCCESS, AMF_UNEXPECTED,
-			L"Flushing failed");
+		AMF_RETURN_IF_FAILED(mGraalConv->flush(channelId));
 	}
 
 	// If we flush the current set, we need to synchronize with process().
@@ -2223,29 +2235,18 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED ||
             m_eConvolutionMethod == TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED;
 
-        int ret = mGraalConv->initializeConv(
-            m_pContextTAN,
-            m_pProcContextAMF,
-            m_pUpdateContextAMF,
-            m_iChannels,
-            (int)m_length,
-            (int)m_iBufferSizeInSamples,
-            N_FILTER_STATES,
-            isPartitionedMethod ? graal::ALG_UNIFORMED : graal::ALG_UNI_HEAD_TAIL
+        AMF_RETURN_IF_FAILED(
+            mGraalConv->initializeConv(
+                m_pContextTAN,
+                m_pProcContextAMF,
+                m_pUpdateContextAMF,
+                m_iChannels,
+                (int)m_length,
+                (int)m_iBufferSizeInSamples,
+                N_FILTER_STATES,
+                isPartitionedMethod ? graal::ALG_UNIFORMED : graal::ALG_UNI_HEAD_TAIL
+                )
             );
-
-        if(ret == AMF_OUT_OF_RANGE)
-        {
-            return AMF_OPENCL_FAILED;
-        }
-        else if(ret == AMF_OUT_OF_MEMORY)
-        {
-            return AMF_OUT_OF_MEMORY;
-        }
-        else if(ret != GRAAL_SUCCESS)
-        {
-            return AMF_UNEXPECTED;
-        }
 
         m_s_versions[0] = new int[m_iChannels];
         m_s_versions[1] = new int[m_iChannels];
@@ -2813,12 +2814,18 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
             {
                 AMFLock syncLock(&m_sectUpdate);
 
-                RETURN_IF_FALSE(mGraalConv->updateConv(m_updateArgs.updatesCnt,
-                                                      m_updateArgs.versions,
-                                                      m_updateArgs.channels,
-                                                      m_updateArgs.lens, true) == GRAAL_SUCCESS,
+                RETURN_IF_FALSE(
+                    mGraalConv->updateConv(
+                        m_updateArgs.updatesCnt,
+                        m_updateArgs.versions,
+                        m_updateArgs.channels,
+                        m_updateArgs.lens,
+                        true
+                        ) == AMF_OK,
 													//m_updateArgs.lens, false) == GRAAL_SUCCESS,
-					ret, AMF_UNEXPECTED);
+					ret,
+                    AMF_UNEXPECTED
+                    );
 
                 // Copy data to the new slot, as this channel can be still processed (user doesn't
                 // pass Stop flag to Process() method) and we may start doing cross-fading.
@@ -3657,7 +3664,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         return AMF_NOT_IMPLEMENTED;
     }
 
-    int ret = GRAAL_SUCCESS;
+    int ret = AMF_OK;
 
     if (pNumOfSamplesProcessed)
     {
@@ -4026,10 +4033,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 
             free(inp);
 
-            if (ret != GRAAL_SUCCESS)
-            {
-                return AMF_UNEXPECTED;
-            }
+            AMF_RETURN_IF_FAILED(ret);
 
             //todo:
             //may be set m_internalOutBufs as out for mGraalConv->process?
@@ -4069,20 +4073,21 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     ocl_crossfade_state
                     );
 #else
-                size_t channels(m_internalOutBufs.GetChannelsCount());
+                /*size_t channels(m_internalOutBufs.GetChannelsCount());
                 std::vector<cl_mem> buffers(channels);
 
                 for(size_t channel(0); channel < channels; ++channel)
                 {
                     buffers[channel] = cl_mem(m_internalOutBufs.GetAMFBuffers()[channel]->GetNative());
-                }
+                }*/
 
                 ret = mGraalConv->process(
                     n_channels,
                     m_s_versions[m_param_buf_idx],
                     m_s_channels,
                     (const float **)m_internalInBufs.GetHostBuffers(),
-                    &buffers.front(),
+                    //&buffers.front(),
+                    m_internalOutBufs.GetAMFBuffersReadWrite(),
                     ocl_prev_input,
                     ocl_advance_time,
                     ocl_skip_stage,
@@ -4091,10 +4096,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
 #endif
             }
 
-            if (ret != GRAAL_SUCCESS)
-            {
-                return AMF_UNEXPECTED;
-            }
+            AMF_RETURN_IF_FAILED(ret);
         }
         m_param_buf_idx = (m_param_buf_idx + 1) % PARAM_BUF_COUNT;
     }

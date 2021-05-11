@@ -153,7 +153,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
     TANContextImplPtr contextImpl(m_pContextTAN);
-    mAMFCompute = contextImpl->GetConvolutionCompute();
+    mAMFCompute = contextImpl->GetConvolutionQueue();
 
     m_internalBuff = clCreateBuffer(m_pContextTAN->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufferSize * m_numChannels * sizeof(float), nullptr, &ret);
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create CL buffer");
@@ -169,8 +169,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
 
-    TANContextImplPtr contextImpl(m_pContextTAN);
-    mAMFCompute = contextImpl->GetConvolutionCompute();
+    mAMFCompute.Attach(m_pContextTAN->GetConvQueue());
     AMF_RETURN_IF_FALSE(mAMFCompute != nullptr, AMF_FAIL);
 
     AMF_RETURN_IF_FAILED(

@@ -159,11 +159,11 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 
 #else
 
-    mQueueAMF = m_pContextTAN->GetAMFConvQueue();
+    mQueueAMF.Attach(m_pContextTAN->GetAMFConvQueue());
 
     // Given some command queue, retrieve the cl_context...
     TANContextImplPtr contextImpl(m_pContextTAN);
-	m_pDeviceAMF = contextImpl->GetConvolutionCompute();
+	m_pDeviceAMF.Attach(contextImpl->GetConvQueue());
 
     amf_int32 temp = 0;
     AMF_RETURN_IF_FAILED(

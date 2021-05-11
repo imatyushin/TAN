@@ -25,7 +25,7 @@
 #include "TANTraceAndDebug.h"
 
 #include "public/common/TraceAdapter.h"         //AMF
-#include "public/common/AMFFactoryHelper.h" 
+#include "public/common/AMFFactoryHelper.h"
 
 #include "clFFT.h"
 
@@ -159,8 +159,8 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     m_clfftInitialized = false;
 
     // Terminate AMF contexts.
-    mComputeGeneralAMF.Release();
-    mComputeConvolutionAMF.Release();
+    mComputeGeneralAMF = nullptr;
+    mComputeConvolutionAMF = nullptr;
 
 #ifndef TAN_NO_OPENCL
     m_oclGeneralContext = 0;
@@ -365,8 +365,8 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     // Setting the AMFContext device type
     if(pAMFContext)
     {
-        int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU) 
-            ? AMF_CONTEXT_DEVICE_TYPE_GPU 
+        int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU)
+            ? AMF_CONTEXT_DEVICE_TYPE_GPU
             : AMF_CONTEXT_DEVICE_TYPE_CPU;
         pAMFContext->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
 
@@ -475,21 +475,5 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitAMF(
     AMF_RETURN_IF_FAILED(InitClfft(), L"Cannot initialize CLFFT");
 
     return AMF_OK;
-}
-
-AMFContext * AMF_STD_CALL TANContextImpl::GetAMFContext()
-{
-    // to do: return both??
-    return mContextConvolutionAMF;
-}
-
-AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFGeneralQueue()
-{
-    return mComputeGeneralAMF;
-}
-
-AMFCompute * AMF_STD_CALL TANContextImpl::GetAMFConvQueue()
-{
-    return mComputeConvolutionAMF;
 }
 #endif

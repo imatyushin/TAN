@@ -265,7 +265,7 @@ AMF_RESULT	AMF_STD_CALL	TANIIRfilterImpl::InitGpu()
 	AMF_RETURN_IF_CL_FAILED(ret, L"Failed to retain command queue.");
 
 	TANContextImplPtr contextImpl(m_pContextTAN);
-	m_pDeviceAMF = contextImpl->GetGeneralCompute();
+	m_pDeviceAMF.Attach(contextImpl->GetGeneralQueue());
 
 	m_clTempIn = clCreateBuffer(
 		m_pContextCl, CL_MEM_READ_WRITE, m_bufSize*m_channels, nullptr, &ret);

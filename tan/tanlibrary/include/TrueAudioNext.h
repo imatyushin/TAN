@@ -800,27 +800,19 @@ namespace amf
         inline cl_command_queue AMF_STD_CALL
                                             GetConvQueue()      {return GetOpenCLConvQueue();}
 #else
-        virtual AMFContext* AMF_STD_CALL    GetAMFContext()     {return GetAMFConvContex();}
+        virtual AMFContext * AMF_STD_CALL   GetAMFContext()     {return GetAMFConvContex();}
 
-        virtual	const AMFContextPtr & AMF_STD_CALL
-                                            GetAMFGeneralContex() = 0;
-        virtual	const AMFContextPtr & AMF_STD_CALL
-                                            GetAMFConvContex() = 0;
+        virtual	AMFContext * AMF_STD_CALL   GetAMFGeneralContex() = 0;
+        virtual	AMFContext * AMF_STD_CALL   GetAMFConvContex() = 0;
 
-        virtual	const AMFComputePtr & AMF_STD_CALL
-                                            GetAMFGeneralQueue() = 0;
-        virtual	const AMFComputePtr & AMF_STD_CALL
-                                            GetAMFConvQueue() = 0;
+        virtual	AMFCompute * AMF_STD_CALL   GetAMFGeneralQueue() = 0;
+        virtual AMFCompute * AMF_STD_CALL   GetAMFConvQueue() = 0;
 
         //duplicated interfaces for more polymorphic usage in switch from CL or AMF configuration
-        inline const AMFContextPtr & AMF_STD_CALL
-                                            GetGeneralContext() {return GetAMFGeneralContex();}
-        inline const AMFContextPtr & AMF_STD_CALL
-                                            GetConvContext()    {return GetAMFConvContex();}
-        inline const AMFComputePtr & AMF_STD_CALL
-                                            GetGeneralQueue()   {return GetAMFGeneralQueue();}
-        inline const AMFComputePtr & AMF_STD_CALL
-                                            GetConvQueue()      {return GetAMFConvQueue();}
+        inline AMFContext * AMF_STD_CALL    GetGeneralContext() {return GetAMFGeneralContex();}
+        inline AMFContext * AMF_STD_CALL    GetConvContext()    {return GetAMFConvContex();}
+        inline AMFCompute * AMF_STD_CALL    GetGeneralQueue()   {return GetAMFGeneralQueue();}
+        inline AMFCompute * AMF_STD_CALL    GetConvQueue()      {return GetAMFConvQueue();}
 #endif
 
         virtual amf::AMFFactory *           GetFactory() = 0;
