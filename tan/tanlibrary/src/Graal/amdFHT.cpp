@@ -344,7 +344,8 @@ int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n
 	int err = 0;
 
 // alloc and fill sin_cos structure
-	*tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__) *n);
+	//todo: ivm: seems incorrect
+    //*tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__) *n);
 	for(int k = 0; k < n/2; k++ ) {
 		(*tsincos)[k*2] = (__FLOAT__)sin((TWOPI*k/n));
 		(*tsincos)[k*2 + 1] = (__FLOAT__)cos((TWOPI*k/n));

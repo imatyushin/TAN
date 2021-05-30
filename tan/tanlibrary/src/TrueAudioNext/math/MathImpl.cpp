@@ -138,8 +138,8 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 	TANContextImplPtr contextImpl(m_pContextTAN);
 
 	// ToDo needs to be user selectable
-	//m_pDeviceCompute.Attach(contextImpl->GetGeneralQueue());
-	m_pDeviceCompute.Attach(contextImpl->GetConvQueue());
+	//m_pDeviceCompute = contextImpl->GetAMFGeneralQueue();
+	m_pDeviceCompute = contextImpl->GetAMFConvQueue();
 
 	if (NULL == m_pDeviceCompute)
 	{
@@ -157,50 +157,47 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 #endif
 
 #ifndef TAN_NO_OPENCL
-	bool OCLKernel_Err = false;
 	// for now register source kernels
-	if (m_pKernelComplexDiv == nullptr)
+	if (m_pKernelComplexDiv == 0)
 	{
-		OCLKernel_Err = GetOclKernel(m_pKernelComplexDiv, m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexDivision", VectorComplexDivision_Str, VectorComplexDivisionCount,
+		m_pKernelComplexDiv = GetOclKernel(m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexDivision", (const amf_uint8 *)VectorComplexDivision, VectorComplexDivisionCount,
 			"VectorComplexDiv", "");
-		if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL;}
+		AMF_RETURN_IF_FALSE(m_pKernelComplexDiv != nullptr, AMF_FAIL);
 	}
+
 	if (m_pKernelComplexMul == 0)
 	{
-		OCLKernel_Err = GetOclKernel(m_pKernelComplexMul, m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexMul", VectorComplexMultiply_Str, VectorComplexMultiplyCount,
+		m_pKernelComplexMul = GetOclKernel(m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexMul", (const amf_uint8 *)VectorComplexMultiply, VectorComplexMultiplyCount,
 			"VectorComplexMul", "");
-		if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL; }
+		AMF_RETURN_IF_FALSE(m_pKernelComplexMul != nullptr, AMF_FAIL);
 	}
+
 	if (m_pKernelComplexSum == 0)
 	{
-		OCLKernel_Err = GetOclKernel(m_pKernelComplexSum, m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexSum", VectorComplexSum_Str, VectorComplexSumCount,
-			"VectorComplexSum", "");
-		if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL; }
+		m_pKernelComplexSum = GetOclKernel(m_pDeviceCompute, m_pContextTAN->GetOpenCLGeneralQueue(), "VectorComplexSum", (const amf_uint8 *)VectorComplexSum, VectorComplexSumCount,
+            "VectorComplexSum", "");
+		AMF_RETURN_IF_FALSE(m_pKernelComplexSum != nullptr, AMF_FAIL);
 	}
+
 	if (m_pKernelComplexMulAccum == 0)
     {
-        OCLKernel_Err = GetOclKernel(m_pKernelComplexMulAccum, m_pDeviceCompute, m_clQueue, "VectorComplexMulAccum", VectorComplexMultiplyAccumulate_Str, VectorComplexMultiplyAccumulateCount,
+        m_pKernelComplexMulAccum = GetOclKernel(m_pDeviceCompute, m_clQueue, "VectorComplexMulAccum", (const amf_uint8 *)VectorComplexMultiplyAccumulate, VectorComplexMultiplyAccumulateCount,
             "VectorComplexMulAccum", "");
-        if (!OCLKernel_Err){ printf("Failed to initialize Kernel\n"); return AMF_FAIL; }
-    }
+        AMF_RETURN_IF_FALSE(m_pKernelComplexMulAccum != nullptr, AMF_FAIL);
+	}
 
 #else
 
-	AMF_RETURN_IF_FALSE(
-		GetOclKernel(
-			mKernelComplexDiv,
-			m_pDeviceCompute,
-
-			"VectorComplexDivision",
-			VectorComplexDivision_Str,
-			VectorComplexDivisionCount,
-			"VectorComplexDiv",
-			"",
-
-			TANContextImplPtr(m_pContextTAN)->GetFactory()
-			),
-		AMF_FAIL
+	mKernelComplexDiv = GetOclKernel(
+		m_pDeviceCompute,
+		"VectorComplexDivision",
+		(const amf_uint8 *)VectorComplexDivision,
+		VectorComplexDivisionCount,
+		"VectorComplexDiv",
+		"",
+		TANContextImplPtr(m_pContextTAN)->GetFactory()
 		);
+	AMF_RETURN_IF_FALSE(nullptr != mKernelComplexDiv, AMF_FAIL);
 
 	/*AMF_RETURN_IF_FALSE(
 		GetOclKernel(
@@ -209,7 +206,6 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 
 			"VectorComplexMul",
 			VectorComplexMultiply_Str,
-			VectorComplexMultiplyCount,
 			"VectorComplexMul",
 			"",
 
@@ -225,7 +221,6 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 
 			"VectorComplexSum",
 			VectorComplexSum_Str,
-			VectorComplexSumCount,
 			"VectorComplexSum",
 			"",
 
@@ -241,7 +236,6 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::InitGpu()
 
 			"VectorComplexMulAccum",
 			VectorComplexMultiplyAccumulate_Str,
-			VectorComplexMultiplyAccumulateCount,
             "VectorComplexMulAccum",
 			"",
 

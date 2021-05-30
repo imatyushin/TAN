@@ -80,7 +80,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Init()
 {
     AMFLock lock(&m_sect);
 
-    AMF_RETURN_IF_FALSE(!m_pDeviceAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
+    AMF_RETURN_IF_FALSE(!mConvComputeAMF, AMF_ALREADY_INITIALIZED, L"Already initialized");
 
 #ifndef TAN_NO_OPENCL
     AMF_RETURN_IF_FALSE(!m_pQueueCl, AMF_ALREADY_INITIALIZED, L"Already initialized");
@@ -140,22 +140,35 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
     amf_int64 tmp = 0;
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
+
 	TANContextImplPtr contextImpl(m_pContextTAN);
-	m_pDeviceAMF = contextImpl->GetConvolutionCompute();
+	mConvComputeAMF = contextImpl->GetAMFConvQueue();
+
     int temp = 0;
     m_overflowBuffer = clCreateBuffer(
         m_pContextCl, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(amf_int32), &temp, &ret);
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create buffer");
-	//... Preparing OCL Kernel
-	bool OCLKenel_Err = false;
-	OCLKenel_Err = GetOclKernel(m_clkFloat2Float, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "floatToFloat", Converter, ConverterCount, "floatToFloat", "");
-	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel floatToFloat"); return AMF_FAIL; }
-	OCLKenel_Err = GetOclKernel(m_clkFloat2Short, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "floatToShort", Converter, ConverterCount, "floatToShort", "");
-	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel floatToShort"); return AMF_FAIL; }
-	OCLKenel_Err = GetOclKernel(m_clkShort2Short, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "shortToShort", Converter, ConverterCount, "shortToShort", "");
-	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToShort"); return AMF_FAIL; }
-	OCLKenel_Err = GetOclKernel(m_clkShort2Float, m_pDeviceAMF, contextImpl->GetOpenCLConvQueue(), "shortToFloat", Converter, ConverterCount, "shortToFloat", "");
-	if (!OCLKenel_Err){ printf("Failed to compile Converter Kernel shortToFloat"); return AMF_FAIL; }
+
+    //... Preparing OCL Kernel
+	{
+        m_clkFloat2Float = GetOclKernel(mConvComputeAMF, contextImpl->GetOpenCLConvQueue(), "floatToFloat", (const amf_uint8 *)Converter, ConverterCount, "floatToFloat", "");
+        AMF_RETURN_IF_FALSE(m_clkFloat2Float != nullptr, AMF_FAIL, L"Failed to compile Converter Kernel floatToFloat");
+    }
+
+    {
+        m_clkFloat2Short = GetOclKernel(mConvComputeAMF, contextImpl->GetOpenCLConvQueue(), "floatToShort", (const amf_uint8 *)Converter, ConverterCount, "floatToShort", "");
+        AMF_RETURN_IF_FALSE(m_clkFloat2Short != nullptr, AMF_FAIL, L"Failed to compile Converter Kernel floatToShort");
+    }
+
+    {
+        m_clkShort2Short = GetOclKernel(mConvComputeAMF, contextImpl->GetOpenCLConvQueue(), "shortToShort", (const amf_uint8 *)Converter, ConverterCount, "shortToShort", "");
+        AMF_RETURN_IF_FALSE(m_clkShort2Short != nullptr, AMF_FAIL, L"Failed to compile Converter Kernel shortToShort");
+    }
+
+    {
+        m_clkShort2Float = GetOclKernel(mConvComputeAMF, contextImpl->GetOpenCLConvQueue(), "shortToFloat", (const amf_uint8 *)Converter, ConverterCount, "shortToFloat", "");
+        AMF_RETURN_IF_FALSE(m_clkShort2Float != nullptr, AMF_FAIL, L"Failed to compile Converter Kernel shortToFloat");
+    }
 
 #else
 
@@ -163,7 +176,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 
     // Given some command queue, retrieve the cl_context...
     TANContextImplPtr contextImpl(m_pContextTAN);
-	m_pDeviceAMF.Attach(contextImpl->GetConvQueue());
+	mConvComputeAMF.Attach(contextImpl->GetConvQueue());
 
     amf_int32 temp = 0;
     AMF_RETURN_IF_FAILED(
@@ -181,70 +194,49 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
         );
 
     //... Preparing OCL Kernel
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mFloat2Float,
-            m_pDeviceAMF,
-
-            "floatToFloat",
-            (const char *)Converter,
-            ConverterCount,
-            "floatToFloat",
-
-            "",
-            TANContextImplPtr(m_pContextTAN)->GetFactory()
-            ),
-        AMF_FAIL
+    mFloat2Float = GetOclKernel(
+        mConvComputeAMF,
+        "floatToFloat",
+        (const amf_uint8 *)Converter,
+        ConverterCount,
+        "floatToFloat",
+        "",
+        TANContextImplPtr(m_pContextTAN)->GetFactory()
         );
+    AMF_RETURN_IF_FALSE(nullptr != mFloat2Float, AMF_FAIL);
 
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mFloat2Short,
-            m_pDeviceAMF,
-
-            "floatToShort",
-            (const char *)Converter,
-            ConverterCount,
-            "floatToShort",
-
-            "",
-            TANContextImplPtr(m_pContextTAN)->GetFactory()
-            ),
-        AMF_FAIL
+    mFloat2Short = GetOclKernel(
+        mConvComputeAMF,
+        "floatToShort",
+        (const amf_uint8 *)Converter,
+        ConverterCount,
+        "floatToShort",
+        "",
+        TANContextImplPtr(m_pContextTAN)->GetFactory()
         );
+    AMF_RETURN_IF_FALSE(nullptr != mFloat2Short, AMF_FAIL);
 
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mShort2Short,
-            m_pDeviceAMF,
-
-            "shortToShort",
-            (const char *)Converter,
-            ConverterCount,
-            "shortToShort",
-
-            "",
-            TANContextImplPtr(m_pContextTAN)->GetFactory()
-            ),
-        AMF_FAIL
+    mShort2Short = GetOclKernel(
+        mConvComputeAMF,
+        "shortToShort",
+        (const amf_uint8 *)Converter,
+        ConverterCount,
+        "shortToShort",
+        "",
+        TANContextImplPtr(m_pContextTAN)->GetFactory()
         );
+    AMF_RETURN_IF_FALSE(nullptr != mShort2Short, AMF_FAIL);
 
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mShort2Float,
-            m_pDeviceAMF,
-
-            "shortToFloat",
-            (const char *)Converter,
-            ConverterCount,
-            "shortToFloat",
-
-            "",
-            TANContextImplPtr(m_pContextTAN)->GetFactory()
-            ),
-        AMF_FAIL
+    mShort2Float = GetOclKernel(
+        mConvComputeAMF,
+        "shortToFloat",
+        (const amf_uint8 *)Converter,
+        ConverterCount,
+        "shortToFloat",
+        "",
+        TANContextImplPtr(m_pContextTAN)->GetFactory()
         );
-
+    AMF_RETURN_IF_FALSE(nullptr != mShort2Float, AMF_FAIL);
 #endif
 
 	return res;
@@ -255,7 +247,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 #ifndef TAN_NO_OPENCL
     AMFLock lock(&m_sect);
 
-    m_pDeviceAMF = NULL;
+    mConvComputeAMF = NULL;
 	if (m_pContextTAN->GetOpenCLContext() != nullptr)
 	{
 		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_clkFloat2Float), L"Failed to release cl kernel");
@@ -272,7 +264,6 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 
     if (m_pQueueCl)
     {
-        printf("Queue release %llX\r\n", m_pQueueCl);
         DBG_CLRELEASE_QUEUE(m_pQueueCl,"m_pQueueCl");
 	}
     m_pQueueCl = NULL;
@@ -290,7 +281,7 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 
     AMFLock lock(&m_sect);
 
-    m_pDeviceAMF = NULL;
+    mConvComputeAMF = NULL;
 
     mFloat2Short = nullptr;
     mShort2Short = nullptr;

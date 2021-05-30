@@ -134,8 +134,8 @@ TANContextImpl::TANContextImpl(amf::AMFFactory * factory):
     // Create default CPU AMF context.
     if(mFactory)
     {
-        AMF_ASSERT_OK(mFactory->CreateContext(&mContextGeneralAMF), L"CreateContext() failed");
-        AMF_ASSERT_OK(mFactory->CreateContext(&mContextConvolutionAMF), L"CreateContext() failed");
+        AMF_ASSERT_OK(mFactory->CreateContext(&mGeneralContextAMF), L"CreateContext() failed");
+        AMF_ASSERT_OK(mFactory->CreateContext(&mConvolutionContextAMF), L"CreateContext() failed");
     }
 }
 //-------------------------------------------------------------------------------------------------
@@ -159,8 +159,8 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     m_clfftInitialized = false;
 
     // Terminate AMF contexts.
-    mComputeGeneralAMF = nullptr;
-    mComputeConvolutionAMF = nullptr;
+    mGeneralComputeAMF = nullptr;
+    mConvolutionComputeAMF = nullptr;
 
 #ifndef TAN_NO_OPENCL
     m_oclGeneralContext = 0;
@@ -170,13 +170,11 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
 
     if (m_oclGeneralQueue)
     {
-        printf("Release TANContext general queue %llX\r\n", m_oclGeneralQueue);
         clReleaseCommandQueue(m_oclGeneralQueue);
     }
 
     if (m_oclConvQueue)
     {
-        printf("Release TANContext convolution queue %llX", m_oclConvQueue);
         clReleaseCommandQueue(m_oclConvQueue);
     }
 
@@ -215,6 +213,11 @@ AMF_RESULT amf::TANContextImpl::InitClfft()
 
 #ifndef TAN_NO_OPENCL
 
+  #ifndef _WIN32
+    #define sscanf_s sscanf
+    #define sprintf_s sprintf
+  #endif
+
 bool TANContextImpl::checkOpenCL2_XCompatibility(cl_command_queue cmdQueue)
 {
     cl_device_id device_id = 0;
@@ -249,7 +252,7 @@ bool TANContextImpl::checkOpenCL2_XCompatibility(cl_command_queue cmdQueue)
     AMF_RETURN_IF_FALSE(pClContext != nullptr, AMF_INVALID_ARG, L"pClContext == nullptr");
 
     // Remove default CPU AMF context.
-    mComputeGeneralAMF.Release();
+    mGeneralComputeAMF.Release();
 
     // Check context for correctness.
     cl_int deviceCount = 0;
@@ -337,8 +340,8 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
         return AMF_OK;
 
     AMFContextPtr& pAMFContext = (queueType == eConvQueue)
-        ? mContextConvolutionAMF
-        : mContextGeneralAMF;
+        ? mConvolutionContextAMF
+        : mGeneralContextAMF;
     cl_context& clContext = (queueType == eConvQueue)
         ? m_oclConvContext
         : m_oclGeneralContext;
@@ -350,8 +353,8 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
         : m_oclGeneralQueue;
 
     AMFComputePtr& pCompute = (queueType == eConvQueue)
-        ? mComputeConvolutionAMF
-        : mComputeGeneralAMF;
+        ? mConvolutionComputeAMF
+        : mGeneralComputeAMF;
     queue = pQueue;
 
     clGetCommandQueueInfo(queue, CL_QUEUE_DEVICE, sizeof(device), &device, NULL);
@@ -395,24 +398,24 @@ AMF_RESULT amf::TANContextImpl::InitAMFInternal(
 
     if(generalContext)
     {
-        mContextGeneralAMF = generalContext;
+        mGeneralContextAMF = generalContext;
     }
 
     if(convolutionContext)
     {
-        mContextConvolutionAMF = convolutionContext;
+        mConvolutionContextAMF = convolutionContext;
     }
 
     if(generalQueue)
     {
-        AMF_RETURN_IF_FALSE(!mComputeGeneralAMF, AMF_FAIL);
-        mComputeGeneralAMF = generalQueue;
+        AMF_RETURN_IF_FALSE(!mGeneralComputeAMF, AMF_FAIL);
+        mGeneralComputeAMF = generalQueue;
     }
 
     if(convolutionQueue)
     {
-        AMF_RETURN_IF_FALSE(!mComputeConvolutionAMF, AMF_FAIL);
-        mComputeConvolutionAMF = convolutionQueue;
+        AMF_RETURN_IF_FALSE(!mConvolutionComputeAMF, AMF_FAIL);
+        mConvolutionComputeAMF = convolutionQueue;
     }
 
     printf("TODO: investigate skipped code!\n");

@@ -185,7 +185,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         }
     }
 
-    //convolution over OpenCL
+    //convolution via compute
     if(mComputeConvolution)
     {
         AMF_RETURN_IF_FAILED(
@@ -199,7 +199,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             );
     }
 
-    //room processing over OpenCL
+    //room processing via compute
     if(mComputeRoom)
     {
         AMF_RETURN_IF_FAILED(

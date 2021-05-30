@@ -531,14 +531,14 @@ protected:
     /*
         kernel source files, kernel names, build options
     */
-    void selectOptions(std::string & _kernel_file, std::string & _comp_options);
-    AMF_RESULT selectUploadOptions( std:: string & kernel_file, std::string &kernel_src, size_t &kernel_src_size, std:: string& kernel_name, std::string & comp_options);
-    AMF_RESULT selectUpload2Options(std::string & kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& kernel_name, std::string & comp_options);
-    AMF_RESULT selectDirectFHTOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options);
-    AMF_RESULT selectFHT_CMADOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::vector<std::string> & _kernel_name, std::string & _comp_options);
-    AMF_RESULT selectInverseFHTOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options);
-    AMF_RESULT selectResetOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options);
-    AMF_RESULT selectConvHead1Options(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options);
+    void selectOptions(std::string & kernelFileName, std::string & kernelOptions);
+    AMF_RESULT selectUploadOptions      (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions);
+    AMF_RESULT selectUpload2Options     (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions);
+    AMF_RESULT selectDirectFHTOptions   (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions);
+    AMF_RESULT selectFHT_CMADOptions    (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::vector<std::string> & kernelName, std::string & kernelOptions);
+    AMF_RESULT selectInverseFHTOptions  (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions);
+    AMF_RESULT selectResetOptions       (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions);
+    AMF_RESULT selectConvHead1Options   (std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions);
 
     /*
      advance round counterd
@@ -721,7 +721,7 @@ protected:
     int aligned_proc_bufffer_sz_ = 0; // size of aligned input block
     int align_padding_sz_ = 0; // size of the padding or dif(aligned_proc_bufffer_sz_, max_proc_buffer_sz_)
     int n_aligned_proc_blocks_ = 0; // number of aligned blocks in aligned kernel buffer
-    int aligned_processing_sz_ = 0;  // size of freq domain block
+    int mAlignedProcessingSize = 0;  // size of freq domain block
     int accum_stride_ = 0;  // stride of accum buffer per channel
 
 // FHT

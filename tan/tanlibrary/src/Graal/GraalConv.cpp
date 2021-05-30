@@ -110,10 +110,10 @@ AMF_RESULT CGraalConv::initializeConv(
 
     aligned_proc_bufffer_sz_ = (1 << processing_log2_);
     align_padding_sz_ = aligned_proc_bufffer_sz_ - max_proc_buffer_sz_;
-    aligned_processing_sz_ = aligned_proc_bufffer_sz_  * 2;
+    mAlignedProcessingSize = aligned_proc_bufffer_sz_  * 2;
 
     n_aligned_proc_blocks_ = (max_conv_sz_ + aligned_proc_bufffer_sz_ - 1) / aligned_proc_bufffer_sz_;
-    aligned_conv_sz_ = (n_aligned_proc_blocks_ * aligned_processing_sz_ * n_components_);
+    aligned_conv_sz_ = (n_aligned_proc_blocks_ * mAlignedProcessingSize * n_components_);
 
     conv_log2_ = static_cast<int>(ceil(log2((double)aligned_conv_sz_)));
 
@@ -256,7 +256,7 @@ AMF_RESULT CGraalConv::updateConv(
         CABuf<float> stg_buf(context);
 
 #ifndef TAN_NO_OPENCL
-        AMF_RETURN_IF_FAILED(rstg_buf.attach(clBuffers[j], conv_lens[j]));
+        AMF_RETURN_IF_FAILED(stg_buf.attach(clBuffers[j], conv_lens[j]));
 #else
         AMF_RETURN_IF_FAILED(stg_buf.attach(amfBuffers[j], conv_lens[j]));
 #endif
@@ -413,14 +413,14 @@ AMF_RESULT CGraalConv::copyResponses(
         ret = clSetKernelArg(mCopyWithPaddingKernel, n_arg++, sizeof(cl_mem), &mCopyResponseInOffset->GetBuffer()); //in offset
         AMF_RETURN_IF_CL_FAILED(ret, L"clSetKernelArg failed: inOffset");
 
-        int in_length = mKernelTrasformedUnion->getLen();
+        int in_length = mKernelTrasformedUnion->GetCount();
         ret = clSetKernelArg(mCopyWithPaddingKernel, n_arg++, sizeof(int), &in_length); //in offset
-        AMF_RETURN_IF_CL_FAILED(ret, L"clSetKernelArg failed: mKernelTrasformedUnion->getLen()");
+        AMF_RETURN_IF_CL_FAILED(ret, L"clSetKernelArg failed: mKernelTrasformedUnion->GetCount()");
 
-        ret = clSetKernelArg(mCopyWithPaddingKernel, n_arg++, sizeof(cl_mem), &pCopyRespOutOffset->GetBuffer()); //out offset
+        ret = clSetKernelArg(mCopyWithPaddingKernel, n_arg++, sizeof(cl_mem), &mCopyResponseOutOffset->GetBuffer()); //out offset
         AMF_RETURN_IF_CL_FAILED(ret, L"clSetKernelArg failed: outOffset");
 
-        int out_length = mKernelTrasformedUnion->getLen();
+        int out_length = mKernelTrasformedUnion->GetCount();
         ret = clSetKernelArg(mCopyWithPaddingKernel, n_arg++, sizeof(int), &out_length ); //out length
         AMF_RETURN_IF_CL_FAILED(ret, L"clSetKernelArg failed: out length" );
 
@@ -445,12 +445,12 @@ AMF_RESULT CGraalConv::copyResponses(
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgBuffer(n_arg++, mCopyResponseInOffset->GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
 
         //inLength
-        int in_length = mKernelTrasformedUnion->getLen();
+        int in_length = mKernelTrasformedUnion->GetCount();
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgInt32(n_arg++, in_length));
 
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgBuffer(n_arg++, mCopyResponseOutOffset->GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
 
-        int out_length = mKernelTrasformedUnion->getLen();
+        int out_length = mKernelTrasformedUnion->GetCount();
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgInt32(n_arg++, out_length));
 
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgInt32(n_arg++, aligned_conv_sz_));
@@ -1016,7 +1016,8 @@ AMF_RESULT CGraalConv::processIntrnl(
                         0,
                         NULL,//Set the event for the first copy command only, the rest will line up since all in the same queue
                         NULL
-                        );
+                        )
+                    );
 #else
                 AMF_RETURN_IF_FAILED(
                     outQ->CopyBuffer(
@@ -1047,7 +1048,7 @@ AMF_RESULT CGraalConv::processIntrnl(
                 _prev_input,	// use previous input data
                 _advance_time, // update counters: 1, not: 0
                 (_crossfade_state == 2)
-            );
+                );
 
 
         // move data upstream
@@ -1223,7 +1224,7 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
     uint data_channel_stride = aligned_conv_sz_;
 
                                 //todo: verify meaning and sign
-    size_t l_wk[3] = { std::min(size_t(aligned_processing_sz_ >> 1), size_t(256)), (size_t)1, (size_t)1 };
+    size_t l_wk[3] = { std::min(size_t(mAlignedProcessingSize >> 1), size_t(256)), (size_t)1, (size_t)1 };
 
     size_t g_wk[3] = {1,1,1};
 
@@ -1313,7 +1314,7 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
             memset(ext_stg, 0, len * sizeof(float));
 
             // src moves every block, second half padded with 0s
-            for( int i = 0, k = 0, l = 0; i < n_test_loops; i++, l +=aligned_processing_sz_, k+=aligned_proc_bufffer_sz_)
+            for( int i = 0, k = 0, l = 0; i < n_test_loops; i++, l +=mAlignedProcessingSize, k+=aligned_proc_bufffer_sz_)
             {
                 for ( int m = 0; m < aligned_proc_bufffer_sz_ && k + m < conv_lens[j]; m++)
                 {
@@ -1323,8 +1324,8 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
 
             for (int i = 0; i < n_test_loops; i++)
             {
-                err = FHT_verify((const __FLOAT__ *)ext_buf_ptr + aligned_processing_sz_ *i, (const __FLOAT__ *)tgt_buf_ptr + aligned_processing_sz_ *i,
-                    aligned_processing_sz_, 0, aligned_processing_sz_, (__FLOAT__)1. );
+                err = FHT_verify((const __FLOAT__ *)ext_buf_ptr + mAlignedProcessingSize *i, (const __FLOAT__ *)tgt_buf_ptr + mAlignedProcessingSize *i,
+                    mAlignedProcessingSize, 0, mAlignedProcessingSize, (__FLOAT__)1. );
                 if ( err >= 0 ) {
 #ifdef _DEBUG_PRINTF
                     printf("Kernel update mismatch: at block %d\n", i);
@@ -1437,7 +1438,7 @@ AMF_RESULT CGraalConv::processHead1(
 
     CABuf<float> &inp_buf = m_process_input_staging_;
     CABuf<float> &sincos = *mSinCos.get();
-    CABuf<short> &bit_reverse = *(CABuf<short> *)mBitReverse;
+    CABuf<short> &bit_reverse = *mBitReverse.get();
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
     CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
     CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
@@ -1446,9 +1447,9 @@ AMF_RESULT CGraalConv::processHead1(
     CABuf<float> &accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
     CABuf<float> &out_buf = *(CABuf<float>*)process2_output_staging_;
 
-    uint n_in_blocks = n_input_blocks_;   // # of blocks kept in input staging
+    uint32_t n_in_blocks = n_input_blocks_;   // # of blocks kept in input staging
     uint n_conv_blocks = n_aligned_proc_blocks_;  // # of conv blocks (total)
-    float scale = (float)0.5 / (float)aligned_processing_sz_;        // inverse conv scale
+    float scale = (float)0.5 / (float)mAlignedProcessingSize;        // inverse conv scale
     uint in_version_stride = aligned_proc_bufffer_sz_ * n_max_channels_ * n_input_blocks_;
     uint in_chnl_stride = aligned_proc_bufffer_sz_* n_input_blocks_;
     uint hist_version_stride = aligned_conv_sz_ * n_max_channels_;
@@ -1464,7 +1465,7 @@ AMF_RESULT CGraalConv::processHead1(
     int n_arg = 0;
 
     // direct transform
-    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), 1, 1 };
+    size_t l_wk[3] = { size_t(std::min(mAlignedProcessingSize / 2, 256)), 1, 1 };
     size_t g_wk[3] = { 1, 1, 1 };
     g_wk[0] = l_wk[0];
     g_wk[1] = channelsCount;
@@ -1582,7 +1583,7 @@ AMF_RESULT CGraalConv::processPush(
     CABuf<float> &inp_buf = m_process_input_staging_;
     CABuf<float> &dir_fht_buf = *(CABuf<float> *)history_transformed_;
     CABuf<float> &sincos = *mSinCos.get();
-    CABuf<short> &bit_reverse = *(CABuf<short> * )mBitReverse;
+    CABuf<short> &bit_reverse = *mBitReverse.get();
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
     CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
     CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
@@ -1598,7 +1599,7 @@ AMF_RESULT CGraalConv::processPush(
     // direct FHT
 
     // direct transform
-    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), size_t(1), size_t(1) };
+    size_t l_wk[3] = { size_t(std::min(mAlignedProcessingSize / 2, 256)), size_t(1), size_t(1) };
     size_t g_wk[3] = {1,1,1};
     g_wk[0] = l_wk[0];
     g_wk[1] = channelsCount;
@@ -1659,7 +1660,7 @@ AMF_RESULT CGraalConv::processPush(
         dir_fht_buf.copyToHost(inQ);
         float * inp_buf_ptr = inp_buf.getSysMem();
         float * tgt_ptr = dir_fht_buf.getSysMem();
-        float * in_b = new float[aligned_processing_sz_];
+        float * in_b = new float[mAlignedProcessingSize];
         int in_version_stride = aligned_proc_bufffer_sz_ * n_max_channels_ * n_input_blocks_;
         int in_chnl_stride = aligned_proc_bufffer_sz_* n_input_blocks_;
         int out_version_stride = aligned_conv_sz_ * n_max_channels_;
@@ -1678,8 +1679,8 @@ AMF_RESULT CGraalConv::processPush(
             in_proc_ptr = inp_buf_ptr + uploadId * in_version_stride + convId  * in_chnl_stride + input_index_prev * aligned_proc_bufffer_sz_;
             memcpy(in_b + aligned_proc_bufffer_sz_, in_proc_ptr, aligned_proc_bufffer_sz_ * sizeof(float));
             int output_index = getRoundCounter(0, convId) % n_aligned_proc_blocks_;
-            float * tg_b = tgt_ptr + out_chnl_stride * convId + aligned_processing_sz_ * output_index;
-            err = FHT_verify((const __FLOAT__ *)in_b, (const __FLOAT__ *)tg_b, aligned_processing_sz_, 0, aligned_processing_sz_, (__FLOAT__)1. );
+            float * tg_b = tgt_ptr + out_chnl_stride * convId + mAlignedProcessingSize * output_index;
+            err = FHT_verify((const __FLOAT__ *)in_b, (const __FLOAT__ *)tg_b, mAlignedProcessingSize, 0, mAlignedProcessingSize, (__FLOAT__)1. );
             if ( err >= 0 ) {
 #ifdef _DEBUG_PRINTF
                 std::cout <<  "Process direct tarnsform mismatch: round " << (int)getRoundCounter(uploadId, convId) << " channel " << i << "\n";
@@ -1743,9 +1744,9 @@ AMF_RESULT CGraalConv::processAccum(
     uint accum_version_stride = accum_stride_ * n_max_channels_;
     int n_arg = 0;
 
-    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), size_t(1), size_t(1) };
+    size_t l_wk[3] = { size_t(std::min(mAlignedProcessingSize / 2, 256)), size_t(1), size_t(1) };
     size_t g_wk[3] = { 1, 1, 1 };
-    g_wk[0] = aligned_processing_sz_ / 2;
+    g_wk[0] = mAlignedProcessingSize / 2;
     g_wk[1] = headRun;
     g_wk[2] = channelsCount;
 
@@ -1857,10 +1858,10 @@ AMF_RESULT CGraalConv::processAccum(
             AMF_RETURN_IF_CL_FAILED(clSetKernelArg(tailAccumKernel, last_arg++, sizeof(int), &total_n_bins));
 
             tailRun = (total_n_bins + n_accum_blocks_ - 1) / n_accum_blocks_;
-            size_t l_wk[3] = {size_t(std::min(aligned_processing_sz_, 256)),1,1};
+            size_t l_wk[3] = {size_t(std::min(mAlignedProcessingSize, 256)),1,1};
             size_t g_wk[3] = {1,1,1};
 
-            g_wk[0] = aligned_processing_sz_;
+            g_wk[0] = mAlignedProcessingSize;
             g_wk[1] = tailRun;
             g_wk[2] = channelsCount;
 
@@ -1897,10 +1898,10 @@ AMF_RESULT CGraalConv::processAccum(
             AMF_RETURN_IF_FAILED(mCMADKernels[1]->SetArgInt32(last_arg++, total_n_bins));
 
             tailRun = (total_n_bins + n_accum_blocks_ - 1) / n_accum_blocks_;
-            size_t l_wk[3] = {size_t(std::min(aligned_processing_sz_, 256)),1,1};
+            size_t l_wk[3] = {size_t(std::min(mAlignedProcessingSize, 256)),1,1};
             size_t g_wk[3] = {1,1,1};
 
-            g_wk[0] = aligned_processing_sz_;
+            g_wk[0] = mAlignedProcessingSize;
             g_wk[1] = tailRun;
             g_wk[2] = channelsCount;
 
@@ -1962,14 +1963,14 @@ AMF_RESULT CGraalConv::processPull(
     int in_version_stride = accum_stride_ * n_max_channels_;
     int in_chnl_stride = accum_stride_;
     int out_chnl_stride = aligned_proc_bufffer_sz_;
-    float scale = (float)0.5 / (float)aligned_processing_sz_;
+    float scale = (float)0.5 / (float)mAlignedProcessingSize;
 
     auto outQ = m_pContextTAN->GetConvQueue();
 
     CABuf<float> & sum_buf = *mCmadAccum.get();
     CABuf<float> & out_buf = *(CABuf<float>*)process2_output_staging_;
     CABuf<float> & sincos = *mSinCos.get();
-    CABuf<short> & bit_reverse = *(CABuf<short> *)mBitReverse;
+    CABuf<short> & bit_reverse = *mBitReverse.get();
 
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
     CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
@@ -1979,7 +1980,7 @@ AMF_RESULT CGraalConv::processPull(
     int n_arg = 0;
     // inverse FHT
 
-    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), 1, 1 };
+    size_t l_wk[3] = { size_t(std::min(mAlignedProcessingSize / 2, 256)), 1, 1 };
     size_t g_wk[3] = { 1, 1, 1 };
 
     g_wk[0] = l_wk[0];
@@ -1995,19 +1996,13 @@ AMF_RESULT CGraalConv::processPull(
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(int), &out_version_stride));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(int), &out_chnl_stride));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(float), &scale));
-    //@todo: why are we passing uint as a float??
-#pragma message("why are we passing uint as a float??")
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(float), &counter_version_stride);        // inverse conv scale
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(cl_mem), &chnl_map_buf.GetBuffer());
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(cl_mem), &set_map_buf.GetBuffer());
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(cl_mem), &count_buf.GetBuffer());
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(int), &_advance_time);
-
-    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), 1, 1 };
-    size_t g_wk[3] = { 1, 1, 1 };
-
-    g_wk[0] = l_wk[0];
-    g_wk[1] = channelsCount;
+    //@todo: why are we passing uint as a float?
+    printf("todo: why are we passing uint as a float?\n");
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(float), &counter_version_stride));        // inverse conv scale
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(cl_mem), &chnl_map_buf.GetBuffer()));
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(cl_mem), &set_map_buf.GetBuffer()));
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(cl_mem), &count_buf.GetBuffer()));
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mInverseTransformKernel, n_arg++, sizeof(int), &_advance_time));
 
 	AMF_RETURN_IF_CL_FAILED(clEnqueueNDRangeKernel(outQ, mInverseTransformKernel, 2, NULL, g_wk, l_wk, 0, NULL, &m_pullKernelEvent));
 
@@ -2051,7 +2046,7 @@ AMF_RESULT CGraalConv::processPull(
         int in_version_stride = accum_stride_ * n_max_channels_;
         int in_chnl_stride = accum_stride_;
         int out_chnl_stride = aligned_proc_bufffer_sz_;
-        float scale = (float)0.5 / (float)aligned_processing_sz_;
+        float scale = (float)0.5 / (float)mAlignedProcessingSize;
 
         auto outQ = m_pContextTAN->GetConvQueue();
 
@@ -2067,7 +2062,7 @@ AMF_RESULT CGraalConv::processPull(
         {
             int convId = convIDs[i];
             int uploadId = uploadIDs[i];
-            err = FHT_verify((const __FLOAT__ *)src_ptr + uploadId * in_version_stride + convId * accum_stride_, (const __FLOAT__ *)tgt_ptr + (uploadId * n_max_channels_ + convId) * aligned_proc_bufffer_sz_, aligned_processing_sz_, 1, aligned_proc_bufffer_sz_, 0.5f);
+            err = FHT_verify((const __FLOAT__ *)src_ptr + uploadId * in_version_stride + convId * accum_stride_, (const __FLOAT__ *)tgt_ptr + (uploadId * n_max_channels_ + convId) * aligned_proc_bufffer_sz_, mAlignedProcessingSize, 1, aligned_proc_bufffer_sz_, 0.5f);
             if (err >= 0) {
 #ifdef _DEBUG_PRINTF
                 std::cout << "Process invert transform mismatch: round " << (int)getRoundCounter(uploadId, convId) << " channel " << i << "\n";
@@ -2111,9 +2106,9 @@ AMF_RESULT CGraalConv::updateConvOCL(
     CABuf<float> & stg_buf = *(CABuf<float>*)_stg_buf;
     CASubBuf<float> & transf_buf = *(CASubBuf<float> *)_transf_buf;
     CABuf<float> & sincos = *mSinCos.get();
-    CABuf<short> & bit_reverse = *(CABuf<short> * )mBitReverse;
+    CABuf<short> & bit_reverse = *mBitReverse.get();
 
-    size_t l_wk[3] = { size_t(std::min(aligned_processing_sz_ / 2, 256)), 1, 1 };
+    size_t l_wk[3] = { size_t(std::min(mAlignedProcessingSize / 2, 256)), 1, 1 };
 
     size_t g_wk[3] = {1,1,1};
 
@@ -2131,9 +2126,9 @@ AMF_RESULT CGraalConv::updateConvOCL(
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(cl_mem), &transf_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(cl_mem), &bit_reverse.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(cl_mem), &sincos.GetBuffer()));
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(int), &_conv_len)));
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(int), &in_chnl_stride)));
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(int), &out_chnl_stride)));
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(int), &_conv_len));
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(int), &in_chnl_stride));
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mUploadKernel2, n_arg++, sizeof(int), &out_chnl_stride));
 
     AMF_RETURN_IF_CL_FAILED(clEnqueueNDRangeKernel(_uploadQ, mUploadKernel2, 1, NULL, g_wk, l_wk, 0, NULL, NULL));
 #else
@@ -2152,7 +2147,7 @@ AMF_RESULT CGraalConv::updateConvOCL(
     {
         transf_buf.copyToHost(_uploadQ);
         stg_buf.copyToHost(_uploadQ);
-        size_t len = transf_buf.getLen();
+        size_t len = transf_buf.GetCount();
         float *ext_stg = new float[len];
         memset(ext_stg, 0, len * sizeof(float));
         float * src_ptr = stg_buf.getSysMem();
@@ -2166,7 +2161,7 @@ AMF_RESULT CGraalConv::updateConvOCL(
         tgt_buf_ptr = tgt_ptr;
 
             // src moves every block, second half padded with 0s
-            for( int i = 0, k = 0, l = 0; i < n_test_loops; i++, l +=aligned_processing_sz_, k+=aligned_proc_bufffer_sz_)
+            for( int i = 0, k = 0, l = 0; i < n_test_loops; i++, l +=mAlignedProcessingSize, k+=aligned_proc_bufffer_sz_)
             {
                 for ( int j = 0; j < aligned_proc_bufffer_sz_ && k + j < _conv_len; j++)
                 {
@@ -2176,8 +2171,8 @@ AMF_RESULT CGraalConv::updateConvOCL(
 
             for (int i = 0; i < n_test_loops; i++)
             {
-                err = FHT_verify((const __FLOAT__ *)ext_buf_ptr + aligned_processing_sz_ *i, (const __FLOAT__ *)tgt_buf_ptr + aligned_processing_sz_ *i,
-                    aligned_processing_sz_, 0, aligned_processing_sz_, (__FLOAT__)1. );
+                err = FHT_verify((const __FLOAT__ *)ext_buf_ptr + mAlignedProcessingSize *i, (const __FLOAT__ *)tgt_buf_ptr + mAlignedProcessingSize *i,
+                    mAlignedProcessingSize, 0, mAlignedProcessingSize, (__FLOAT__)1. );
                 if ( err >= 0 ) {
 #ifdef _DEBUG_PRINTF
                     printf("Kernel update mismatch: at block %d\n", i);
@@ -2248,101 +2243,101 @@ AMF_RESULT CGraalConv::syncUpload( void )
 }
 
 //-cl-fp32-correctly-rounded-divide-sqrt
-void CGraalConv::selectOptions(std::string & _kernel_file, std::string & _comp_options)
+void CGraalConv::selectOptions(std::string & kernelFileName, std::string & kernelOptions)
 {
-    int group_sz = std::min(aligned_processing_sz_ / 2, 256);
+    int group_sz = std::min(mAlignedProcessingSize / 2, 256);
     int log2_group_sz = static_cast<int>(ceil(log2((double)group_sz)));
 
-    _comp_options =
+    kernelOptions =
         std::string("-cl-fp32-correctly-rounded-divide-sqrt ") +
         std::string("-D _K0_GROUP_SZ=") + std::to_string((long long)group_sz) +
         std::string(" -D _K0_LOG2_GROUP_SZ=") + std::to_string((long long)log2_group_sz) +
         std::string(" -D _K0_LOG2_N=") + std::to_string((long long)(processing_log2_ + 1)) +
-        std::string(" -D _K0_N=") + std::to_string((long long)aligned_processing_sz_)
+        std::string(" -D _K0_N=") + std::to_string((long long)mAlignedProcessingSize)
         ;
 }
 
-AMF_RESULT CGraalConv::selectUploadOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectUploadOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name = "amdFHTConvIn";
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName = "amdFHTConvIn";
 
-//	_comp_options = "-x clc++ -D _K0_GROUP_SZ=256 -D _K0_N=2048 -D _K0_LOG2_N=11";
-    selectOptions(_kernel_file, _comp_options);
+//	kernelOptions = "-x clc++ -D _K0_GROUP_SZ=256 -D _K0_N=2048 -D _K0_LOG2_N=11";
+    selectOptions(kernelFileName, kernelOptions);
     return ret;
 }
 
-AMF_RESULT CGraalConv::selectUpload2Options(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectUpload2Options(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name = "amdFHTUploadConv";
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName = "amdFHTUploadConv";
 
-    selectOptions(_kernel_file, _comp_options);
+    selectOptions(kernelFileName, kernelOptions);
     return ret;
 }
 
-AMF_RESULT CGraalConv::selectResetOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectResetOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name = "amdFHTAdvanceTime";
-    selectOptions(_kernel_file, _comp_options);
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName = "amdFHTAdvanceTime";
+    selectOptions(kernelFileName, kernelOptions);
     return ret;
 }
 
-AMF_RESULT CGraalConv::selectDirectFHTOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectDirectFHTOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name = "amdFHTPushIn";
-    selectOptions(_kernel_file, _comp_options);
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName = "amdFHTPushIn";
+    selectOptions(kernelFileName, kernelOptions);
     return ret;
 }
 
-AMF_RESULT CGraalConv::selectFHT_CMADOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::vector<std::string> & _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectFHT_CMADOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::vector<std::string> & kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name.resize(2);
-    _kernel_name[0] = "FHTMultAddHead2";
-    _kernel_name[1] = "FHTMultAddTail";
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName.resize(2);
+    kernelName[0] = "FHTMultAddHead2";
+    kernelName[1] = "FHTMultAddTail";
 
-    selectOptions(_kernel_file, _comp_options);
+    selectOptions(kernelFileName, kernelOptions);
     return ret;
 }
 
-AMF_RESULT CGraalConv::selectInverseFHTOptions(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectInverseFHTOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name = "amdFHTPushOut";
-    selectOptions(_kernel_file, _comp_options);
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName = "amdFHTPushOut";
+    selectOptions(kernelFileName, kernelOptions);
 
     return ret;
 }
 
-AMF_RESULT CGraalConv::selectConvHead1Options(std::string & _kernel_file, std::string &kernel_src, size_t &kernel_src_size, std::string& _kernel_name, std::string & _comp_options)
+AMF_RESULT CGraalConv::selectConvHead1Options(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string &kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    _kernel_file = "GraalFHT.cl";
-    kernel_src = (char*)GraalFHT;
-    kernel_src_size = GraalFHTCount;
-    _kernel_name = "amdFHTConvHead1";
-    selectOptions(_kernel_file, _comp_options);
+    kernelFileName = "GraalFHT.cl";
+    kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
+    kernelSourceSize = GraalFHTCount;
+    kernelName = "amdFHTConvHead1";
+    selectOptions(kernelFileName, kernelOptions);
     return ret;
 }
 
@@ -2390,7 +2385,7 @@ AMF_RESULT CGraalConv::setupCL
     AMFTraceInfo(
         AMF_FACILITY,
         L"Kernel storage size = %6.2fMB\n",
-        (float)(mKernelTrasformedUnion->getLen() * sizeof(float)) / 1024 / 1024
+        (float)(mKernelTrasformedUnion->GetCount() * sizeof(float)) / 1024 / 1024
         );
 
 // kernel channels map
@@ -2464,121 +2459,131 @@ AMF_RESULT CGraalConv::setupCL
     mSinCos.reset(new CABuf<float>(context));
     mBitReverse.reset(new CABuf<short>(context));
 
-    FHTInit(&(mSinCos->getSysMem()), &(mBitReverse->getSysMem()), (FHT_FUNC *)&FHT_transformCPU_, aligned_processing_sz_);
-    sincos->setLen(aligned_processing_sz_);
-    mBitReverse->setLen(aligned_processing_sz_);
+    mSinCos->SetCount(mAlignedProcessingSize);
+    mBitReverse->SetCount(mAlignedProcessingSize);
+
+    FHTInit(&(mSinCos->getSysMem()), &(mBitReverse->getSysMem()), (FHT_FUNC *)&FHT_transformCPU_, mAlignedProcessingSize);
 
     mSinCos->copyToDevice(graalQueue, 0);
     mBitReverse->copyToDevice(graalQueue, 0);
 
-    std::string kernel_file, kernel_src, kernel_name, comp_options;
-    size_t kernel_src_size = 0;
+    std::string kernel_file, kernel_name, comp_options;
+    std::vector<amf_uint8> kernelSource;
+    size_t kernelSourceSize = 0;
 
-    bool goit = false;
+    ////////////////////////////////////
+    selectUploadOptions(kernel_file, kernelSource, kernelSourceSize, kernel_name, comp_options);
 
-    selectUploadOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    {
+        auto kernel = GetOclKernel(
+            pComputeUpdate,
 
-    goit = GetOclKernel(
-        mUploadKernel,
-
-        pComputeUpdate,
-
-#ifndef TAN_NO_OPENCL
-        graalQueue,
-#else
-        //graalQueue,
-#endif
-
-        kernel_file,
-        kernel_src,
-        kernel_src_size,
-        kernel_name,
-        comp_options
+            kernel_file,
+            kernelSource.data(),
+            kernelSourceSize,
+            kernel_name,
+            comp_options
 
 #ifdef TAN_NO_OPENCL
-        , mFactory
+            , mFactory
 #endif
-        );
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
-
-    selectUpload2Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-
-    goit = GetOclKernel(
-
-        mUploadKernel2,
-
-        pComputeUpdate,
+            );
 
 #ifndef TAN_NO_OPENCL
-        graalQueue,
+        if(kernel)
+        {
+            mUploadKernel = cl_kernel(kernel->GetNative());
+        }
+#else
+        mUploadKernel = kernel;
 #endif
+        AMF_RETURN_IF_FALSE(mUploadKernel != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+    }
 
-        kernel_file,
-        kernel_src,
-        kernel_src_size,
-        kernel_name,
-        comp_options
+    ////////////////////////////////////
+    selectUpload2Options(kernel_file, kernelSource, kernelSourceSize, kernel_name, comp_options);
+
+    {
+        auto kernel = GetOclKernel(
+            pComputeUpdate,
+
+            kernel_file,
+            kernelSource.data(),
+            kernelSourceSize,
+            kernel_name,
+            comp_options
+
+    #ifdef TAN_NO_OPENCL
+            , mFactory
+    #endif
+            );
+
+#ifndef TAN_NO_OPENCL
+        if(kernel)
+        {
+            mUploadKernel2 = cl_kernel(kernel->GetNative());
+        }
+#else
+        mUploadKernel2 = kernel;
+#endif
+        AMF_RETURN_IF_FALSE(mUploadKernel2 != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+    }
+
+    selectResetOptions(kernel_file, kernelSource, kernelSourceSize, kernel_name, comp_options);
+
+    ////////////////////////////////////
+    {
+        auto kernel = GetOclKernel(
+            pComputeConvolution,
+
+            kernel_file,
+            kernelSource.data(),
+            kernelSourceSize,
+            kernel_name,
+            comp_options
 
 #ifdef TAN_NO_OPENCL
-        , mFactory
+            , mFactory
 #endif
-        );
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
-
-    selectResetOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-
-    goit = GetOclKernel(
+            );
 
 #ifndef TAN_NO_OPENCL
-        mResetKernel,
+        if(kernel)
+        {
+            mResetKernel = cl_kernel(kernel->GetNative());
+        }
 #else
-        mResetKernel,
+        mResetKernel = kernel;
 #endif
+        AMF_RETURN_IF_FALSE(mResetKernel != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+    }
 
-        pComputeConvolution,
+    ////////////////////////////////////
+    {
+        auto kernel = GetOclKernel(
+            pComputeConvolution,
 
-#ifndef TAN_NO_OPENCL
-        graalQueue,
-#else
-        //graalQueue,
-#endif
-
-        kernel_file,
-        kernel_src,
-        kernel_src_size,
-        kernel_name,
-        comp_options
+            "GraalFHT.cl",
+            (amf_uint8 *)GraalFHT,
+            GraalFHTCount,
+            "amdPadFFTBlock",
+            comp_options
 
 #ifdef TAN_NO_OPENCL
-        , mFactory
+            , mFactory
 #endif
-        );
-
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
-
-    goit = GetOclKernel(
-
-        mCopyWithPaddingKernel,
-
-        pComputeUpdate,
+            );
 
 #ifndef TAN_NO_OPENCL
-        graalQueue,
+        if(kernel)
+        {
+            mCopyWithPaddingKernel = cl_kernel(kernel->GetNative());
+        }
 #else
-        //graalQueue,
+        mCopyWithPaddingKernel = kernel;
 #endif
-
-        "GraalFHT.cl",
-        (const char*)GraalFHT,
-        GraalFHTCount,
-        "amdPadFFTBlock",
-        comp_options
-
-#ifdef TAN_NO_OPENCL
-        , mFactory
-#endif
-        );
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", "amdPadFFTBlock");
+        AMF_RETURN_IF_FALSE(mCopyWithPaddingKernel != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+    }
 
     auto iniQ = graalQueue;
     // per stream counters
@@ -2633,10 +2638,10 @@ AMF_RESULT CGraalConv::setupCL
     initBuffer(history_transform_buf, graalQueue);
     history_transformed_ = history_transform_buf;
 #ifdef _DEBUG_PRINTF
-    printf("Hist storage size = %6.2fMB\n", (float)(history_transform_buf->getLen() * sizeof(float)) / (float)1000000);
+    printf("Hist storage size = %6.2fMB\n", (float)(history_transform_buf->GetCount() * sizeof(float)) / (float)1000000);
 #endif
     AMFTraceInfo(AMF_FACILITY, L"Hist storage size = %6.2fMB\n",
-                 (float)(history_transform_buf->getLen() * sizeof(float)) / 1024 / 1024);
+                 (float)(history_transform_buf->GetCount() * sizeof(float)) / 1024 / 1024);
 
 // output data
 // inverse transform output
@@ -2649,7 +2654,7 @@ AMF_RESULT CGraalConv::setupCL
 
     // accumulator
 
-    accum_stride_ = ((n_aligned_proc_blocks_ + n_accum_blocks_ - 1) / n_accum_blocks_) * aligned_processing_sz_;
+    accum_stride_ = ((n_aligned_proc_blocks_ + n_accum_blocks_ - 1) / n_accum_blocks_) * mAlignedProcessingSize;
 
     size_t accum_len = accum_stride_ * n_max_channels_ * n_sets_;
 
@@ -2691,32 +2696,37 @@ AMF_RESULT CGraalConv::setupCL
         assert(mHostInputStaging[i]);
     }
 
-    selectDirectFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    selectDirectFHTOptions(kernel_file, kernelSource, kernelSourceSize, kernel_name, comp_options);
 
-    goit = GetOclKernel(
-        mDirectTransformKernel,
+    ////////////////////////////////////
+    {
+        auto kernel = GetOclKernel(
+            pComputeConvolution,
 
-        pComputeConvolution,
-
-#ifndef TAN_NO_OPENCL
-        graalQueue,
-#endif
-
-        kernel_file,
-        kernel_src,
-        kernel_src_size,
-        kernel_name,
-        comp_options
+            kernel_file,
+            kernelSource.data(),
+            kernelSourceSize,
+            kernel_name,
+            comp_options
 
 #ifdef TAN_NO_OPENCL
-        , mFactory
+            , mFactory
 #endif
-        );
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+            );
 
-//	mCMADKernels
+#ifndef TAN_NO_OPENCL
+        if(kernel)
+        {
+            mDirectTransformKernel = cl_kernel(kernel->GetNative());
+        }
+#else
+        mDirectTransformKernel = kernel;
+#endif
+        AMF_RETURN_IF_FALSE(mDirectTransformKernel != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+    }
+
     std::vector<std::string> kernel_names;
-    selectFHT_CMADOptions(kernel_file, kernel_src, kernel_src_size, kernel_names, comp_options);
+    selectFHT_CMADOptions(kernel_file, kernelSource, kernelSourceSize, kernel_names, comp_options);
 
 #ifndef TAN_NO_OPENCL
     mCMADKernels.resize(kernel_names.size());
@@ -2726,79 +2736,91 @@ AMF_RESULT CGraalConv::setupCL
 
     for(int i = 0; i < mCMADKernels.size(); i++)
     {
-        goit = GetOclKernel(
-            mCMADKernels[i],
+        ////////////////////////////////////
+        {
+            auto kernel = GetOclKernel(
+                pComputeConvolution,
 
-            pComputeConvolution,
+                kernel_file,
+                kernelSource.data(),
+                kernelSourceSize,
+                kernel_names[i],
+                comp_options
+
+#ifdef TAN_NO_OPENCL
+                , mFactory
+#endif
+                );
 
 #ifndef TAN_NO_OPENCL
-            graalQueue,
+            if(kernel)
+            {
+                mCMADKernels[i] = cl_kernel(kernel->GetNative());
+            }
+#else
+            mCMADKernels[i] = kernel;
 #endif
+            AMF_RETURN_IF_FALSE(mCMADKernels[i] != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+        }
+    }
+
+    selectInverseFHTOptions(kernel_file, kernelSource, kernelSourceSize, kernel_name, comp_options);
+
+    ////////////////////////////////////
+    {
+        auto kernel = GetOclKernel(
+            pComputeConvolution,
 
             kernel_file,
-            kernel_src,
-            kernel_src_size,
-            kernel_names[i],
+            kernelSource.data(),
+            kernelSourceSize,
+            kernel_name,
             comp_options
 
 #ifdef TAN_NO_OPENCL
             , mFactory
 #endif
             );
-        AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_names[i].c_str());
+
+#ifndef TAN_NO_OPENCL
+        if(kernel)
+        {
+            mInverseTransformKernel = cl_kernel(kernel->GetNative());
+        }
+#else
+        mInverseTransformKernel = kernel;
+#endif
+        AMF_RETURN_IF_FALSE(mInverseTransformKernel != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
     }
 
-    selectInverseFHTOptions(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
+    selectConvHead1Options(kernel_file, kernelSource, kernelSourceSize, kernel_name, comp_options);
 
-    goit = GetOclKernel(
-        mInverseTransformKernel,
+    ////////////////////////////////////
+    {
+        auto kernel = GetOclKernel(
+            pComputeConvolution,
 
-        pComputeConvolution,
-
-#ifndef TAN_NO_OPENCL
-        graalQueue,
-#endif
-
-        kernel_file,
-        kernel_src,
-        kernel_src_size,
-        kernel_name,
-        comp_options
+            kernel_file,
+            kernelSource.data(),
+            kernelSourceSize,
+            kernel_name,
+            comp_options
 
 #ifdef TAN_NO_OPENCL
-        , mFactory
+            , mFactory
 #endif
-        );
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
-
-    selectConvHead1Options(kernel_file, kernel_src, kernel_src_size, kernel_name, comp_options);
-    goit = GetOclKernel(
+            );
 
 #ifndef TAN_NO_OPENCL
-        mConvHead1,
+        if(kernel)
+        {
+            mConvHead1 = cl_kernel(kernel->GetNative());
+        }
 #else
-        mConvHead1,
+        mConvHead1 = kernel;
 #endif
-
-        pComputeConvolution,
-
-#ifndef TAN_NO_OPENCL
-        graalQueue,
-#else
-        //graalQueue,
-#endif
-
-        kernel_file,
-        kernel_src,
-        kernel_src_size,
-        kernel_name,
-        comp_options
-
-#ifdef TAN_NO_OPENCL
-        , mFactory
-#endif
-        );
-    AMF_RETURN_IF_FALSE(true == goit, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+        AMF_RETURN_IF_FALSE(mConvHead1 != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
+    }
 
 #ifndef TAN_NO_OPENCL
     clFinish(m_pContextTAN->GetOpenCLConvQueue());
@@ -2935,15 +2957,8 @@ AMF_RESULT CGraalConv::cleanup()
     mKernelInputUnion.reset();
     mKernelTrasformedUnion.reset();
 
-    if (mSinCos) {
-        delete ((CABuf<float>*)mSinCos);
-        mSinCos = 0;  // precomputeted sincos table
-    }
-
-    if (mBitReverse) {
-        delete ((CABuf<short>*)mBitReverse);
-        mBitReverse = 0;  // reverse bit table
-    }
+    mSinCos.reset();
+    mBitReverse.reset();
 
     mCopyResponseOutOffset.reset();
 

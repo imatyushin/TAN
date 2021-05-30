@@ -23,7 +23,7 @@
 { \
 		cl_uint refcount = 0; \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d Queue %llX ref count: %d\r\n", __FILE__ , __LINE__, clqueue, refcount); \
+		printf("\nFILE:%s line:%d Queue %X ref count: %d\r\n", __FILE__ , __LINE__, (void *)clqueue, refcount); \
 }
 #endif
 
@@ -33,7 +33,7 @@
 		cl_uint refcount = 0; \
 		clReleaseCommandQueue(clqueue); \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d %s %llX ref count: %d\r\n", __FILE__ , __LINE__,qname, clqueue, refcount); \
+		printf("\nFILE:%s line:%d %s %X ref count: %d\r\n", __FILE__ , __LINE__, qname, (void *)clqueue, refcount); \
         clqueue = nullptr; \
 }
 #endif
@@ -42,7 +42,7 @@
 #define DBG_CLRELEASE_MEMORYOBJECT( clobject) \
 { \
 	clReleaseMemObject(clobject); \
-	printf("\nFILE:%s line:%d release memory object %llX\r\n", __FILE__ , __LINE__, clobject); \
+	printf("\nFILE:%s line:%d release memory object %X\r\n", __FILE__ , __LINE__, (void *)clobject); \
     clobject = nullptr; \
 }
 #endif

@@ -1306,37 +1306,27 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
 
     mResponseLength = responseLength;
 
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mKernelResponse,
-            mCompute,
-
-            "GenerateRoomResponse",
-            (const char *)GenerateRoomResponse,
-            GenerateRoomResponseCount,
-            "GenerateRoomResponse",
-
-            "",
-            mFactory
-            ),
-        AMF_FAIL
+    mKernelResponse = GetOclKernel(
+        mCompute,
+        "GenerateRoomResponse",
+        GenerateRoomResponse,
+        GenerateRoomResponseCount,
+        "GenerateRoomResponse",
+        "",
+        mFactory
         );
+    AMF_RETURN_IF_FALSE(nullptr != mKernelResponse, AMF_FAIL);
 
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mKernelFill,
-            mCompute,
-
-            "Fill",
-            (const char *)Fill,
-            FillCount,
-            "Fill",
-
-            "",
-            mFactory
-            ),
-        AMF_FAIL
+    mKernelFill = GetOclKernel(
+        mCompute,
+        "Fill",
+        Fill,
+        FillCount,
+        "Fill",
+        "",
+        mFactory
         );
+    AMF_RETURN_IF_FALSE(nullptr != mKernelFill, AMF_FAIL);
 
     AMF_RETURN_IF_FAILED(
         mContext->GetAMFContext()->AllocBuffer(

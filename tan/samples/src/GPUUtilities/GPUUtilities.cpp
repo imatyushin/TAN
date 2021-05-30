@@ -32,14 +32,14 @@
 #include <iostream>
 
 #ifdef _WIN32
-#include <io.h>
+  #include <io.h>
 #endif
 
 #include <CL/cl_ext.h>
 
 #ifndef _WIN32
-#define sscanf_s sscanf
-#define sprintf_s sprintf
+  #define sscanf_s sscanf
+  #define sprintf_s sprintf
 #endif
 
 #ifndef CL_DEVICE_TOPOLOGY_AMD

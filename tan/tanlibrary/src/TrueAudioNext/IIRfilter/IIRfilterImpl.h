@@ -100,7 +100,7 @@ namespace amf
 
         TANContextPtr               m_pContextTAN;
         AMFComputePtr               m_pDeviceCompute;
-		AMFComputePtr               m_pDeviceAMF;
+		AMFComputePtr               mGeneralQueueAMF;
 
 #ifndef TAN_NO_OPENCL
 

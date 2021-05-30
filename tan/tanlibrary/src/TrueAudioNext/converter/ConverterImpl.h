@@ -130,7 +130,7 @@ namespace amf
     protected:
         TANContextPtr               m_pContextTAN;
         AMFContextPtr               m_pContextAMF;
-        AMFComputePtr               m_pDeviceAMF;
+        AMFComputePtr               mConvComputeAMF;
 
         AMFComputeKernelPtr         m_pKernelCopy;
         AMF_MEMORY_TYPE             m_eOutputMemoryType;

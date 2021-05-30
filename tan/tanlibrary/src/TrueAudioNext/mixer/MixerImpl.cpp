@@ -152,15 +152,17 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
     amf_int64 tmp = 0;
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
+
     TANContextImplPtr contextImpl(m_pContextTAN);
-    mAMFCompute = contextImpl->GetConvolutionQueue();
+    mAMFCompute = contextImpl->GetAMFConvQueue();
 
     m_internalBuff = clCreateBuffer(m_pContextTAN->GetOpenCLContext(), CL_MEM_READ_WRITE, m_bufferSize * m_numChannels * sizeof(float), nullptr, &ret);
     AMF_RETURN_IF_CL_FAILED(ret, L"Failed to create CL buffer");
+
     //... Preparing OCL Kernel
-    bool OCLKenel_Err = false;
-    OCLKenel_Err = GetOclKernel(m_clMix, mAMFCompute, contextImpl->GetOpenCLConvQueue(), "Mixer", Mixer, MixerCount, "Mixer", "");
-    if (!OCLKenel_Err){ printf("Failed to compile Mixer Kernel"); return AMF_FAIL; }
+    m_clMix = GetOclKernel(mAMFCompute, contextImpl->GetOpenCLConvQueue(), "Mixer", (const amf_uint8 *)Mixer, MixerCount, "Mixer", "");
+    AMF_RETURN_IF_FALSE(nullptr != m_clMix, AMF_FAIL);
+
 	mInitialized = true;
     return res;
 
@@ -179,21 +181,18 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::InitGpu()
             &mInternalBufferAMF
             )
         );
-    AMF_RETURN_IF_FALSE(
-        GetOclKernel(
-            mMixKernel,
-            mAMFCompute,
 
-            "Mixer",
-            (const char *)Mixer,
-            MixerCount,
-            "Mixer",
-
-            "",
-            TANContextImplPtr(m_pContextTAN)->GetFactory()
-            ),
-        AMF_FAIL
+    mMixKernel = GetOclKernel(
+        mAMFCompute,
+        "Mixer",
+        (const amf_uint8 *)Mixer,
+        MixerCount,
+        "Mixer",
+        "",
+        TANContextImplPtr(m_pContextTAN)->GetFactory()
         );
+    AMF_RETURN_IF_FALSE(nullptr != mMixKernel, AMF_FAIL);
+
     mInitialized = true;
 
     return AMF_OK;

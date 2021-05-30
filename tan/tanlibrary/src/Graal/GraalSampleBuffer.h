@@ -63,7 +63,8 @@ struct GraalSampleBuffer
     {
         assert(!IsSet());
         assert(buffers);                                                                     //todo: think about host
-        assert(type != amf::AMF_MEMORY_UNKNOWN && type != amf::AMF_MEMORY_HOST);
+        //assert(type != amf::AMF_MEMORY_UNKNOWN && type != amf::AMF_MEMORY_HOST);
+        assert(type == amf::AMF_MEMORY_UNKNOWN);
 
         type = amf::AMF_MEMORY_OPENCL;
         buffer.clmem = buffers;

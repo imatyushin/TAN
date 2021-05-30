@@ -784,8 +784,8 @@ namespace amf
 #ifndef TAN_NO_OPENCL
         virtual cl_context  AMF_STD_CALL    GetOpenCLContext() = 0;
 
-        virtual	cl_context	AMF_STD_CALL	GetOpenCLGeneralContex() = 0;
-        virtual	cl_context	AMF_STD_CALL	GetOpenCLConvContex() = 0;
+        virtual	cl_context	AMF_STD_CALL	GetOpenCLGeneralContext() = 0;
+        virtual	cl_context	AMF_STD_CALL	GetOpenCLConvContext() = 0;
 
         virtual	cl_command_queue AMF_STD_CALL
                                             GetOpenCLGeneralQueue() = 0;
@@ -793,24 +793,24 @@ namespace amf
                                             GetOpenCLConvQueue() = 0;
 
         //duplicated interfaces for more polymorphic usage in switch from CL or OpenCL configuration
-        inline cl_context AMF_STD_CALL      GetGeneralContext() {return GetOpenCLGeneralContex();}
-        inline cl_context AMF_STD_CALL      GetConvContext()    {return GetOpenCLConvContex();}
+        inline cl_context AMF_STD_CALL      GetGeneralContext() {return GetOpenCLGeneralContext();}
+        inline cl_context AMF_STD_CALL      GetConvContext()    {return GetOpenCLConvContext();}
         inline cl_command_queue AMF_STD_CALL
                                             GetGeneralQueue()   {return GetOpenCLGeneralQueue();}
         inline cl_command_queue AMF_STD_CALL
                                             GetConvQueue()      {return GetOpenCLConvQueue();}
 #else
-        virtual AMFContext * AMF_STD_CALL   GetAMFContext()     {return GetAMFConvContex();}
+        virtual AMFContext * AMF_STD_CALL   GetAMFContext()     {return GetAMFConvContext();}
 
-        virtual	AMFContext * AMF_STD_CALL   GetAMFGeneralContex() = 0;
-        virtual	AMFContext * AMF_STD_CALL   GetAMFConvContex() = 0;
+        virtual	AMFContext * AMF_STD_CALL   GetAMFGeneralContext() = 0;
+        virtual	AMFContext * AMF_STD_CALL   GetAMFConvContext() = 0;
 
         virtual	AMFCompute * AMF_STD_CALL   GetAMFGeneralQueue() = 0;
         virtual AMFCompute * AMF_STD_CALL   GetAMFConvQueue() = 0;
 
         //duplicated interfaces for more polymorphic usage in switch from CL or AMF configuration
-        inline AMFContext * AMF_STD_CALL    GetGeneralContext() {return GetAMFGeneralContex();}
-        inline AMFContext * AMF_STD_CALL    GetConvContext()    {return GetAMFConvContex();}
+        inline AMFContext * AMF_STD_CALL    GetGeneralContext() {return GetAMFGeneralContext();}
+        inline AMFContext * AMF_STD_CALL    GetConvContext()    {return GetAMFConvContext();}
         inline AMFCompute * AMF_STD_CALL    GetGeneralQueue()   {return GetAMFGeneralQueue();}
         inline AMFCompute * AMF_STD_CALL    GetConvQueue()      {return GetAMFConvQueue();}
 #endif

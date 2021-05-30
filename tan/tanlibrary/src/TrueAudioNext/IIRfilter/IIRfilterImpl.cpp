@@ -265,7 +265,7 @@ AMF_RESULT	AMF_STD_CALL	TANIIRfilterImpl::InitGpu()
 	AMF_RETURN_IF_CL_FAILED(ret, L"Failed to retain command queue.");
 
 	TANContextImplPtr contextImpl(m_pContextTAN);
-	m_pDeviceAMF.Attach(contextImpl->GetGeneralQueue());
+	mGeneralQueueAMF = contextImpl->GetAMFGeneralQueue();
 
 	m_clTempIn = clCreateBuffer(
 		m_pContextCl, CL_MEM_READ_WRITE, m_bufSize*m_channels, nullptr, &ret);
@@ -321,8 +321,10 @@ AMF_RESULT	AMF_STD_CALL	TANIIRfilterImpl::InitGpu()
 	}
 
 	//... Preparing OCL Kernel
-	int OCLKenel_Err = GetOclKernel(m_kernel_IIRfilter, m_pDeviceAMF, contextImpl->GetOpenCLGeneralQueue(), "IIRfilter", IIRfilter, IIRfilterCount, "IIRfilter", "");
-	if (!OCLKenel_Err) { printf("Failed to compile IIRFilter Kernel IIR_Filter"); return AMF_FAIL; }
+	{
+		m_kernel_IIRfilter = GetOclKernel(mGeneralQueueAMF, contextImpl->GetOpenCLGeneralQueue(), "IIRfilter", (const amf_uint8 *)IIRfilter, IIRfilterCount, "IIRfilter", "");
+		AMF_RETURN_IF_FALSE(m_kernel_IIRfilter != nullptr, AMF_FAIL);
+	}
 
     return res;
 

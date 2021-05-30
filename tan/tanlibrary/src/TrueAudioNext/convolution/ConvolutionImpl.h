@@ -238,8 +238,8 @@ namespace amf
         bool                        ReadyForIRUpdate();
 
 		TANContextPtr               m_pContextTAN;
-        AMFComputePtr               m_pProcContextAMF;
-        AMFComputePtr               m_pUpdateContextAMF;
+        AMFComputePtr               mConvolutionQueueAMF;
+        AMFComputePtr               mUpdateQueueAMF;
 		TANMathPtr                  m_pMath;
 
         TAN_CONVOLUTION_METHOD      m_eConvolutionMethod = TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
@@ -250,7 +250,7 @@ namespace amf
                                                      // to, as opposed to m_MaxChannels.
 
 #ifndef TAN_NO_OPENCL
-		cl_kernel					m_pKernelCrossfade;
+		cl_kernel					mKernelCrossfade;
 #else
         amf::AMFComputeKernelPtr    mKernelCrossfade;
 #endif

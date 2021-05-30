@@ -208,7 +208,7 @@ AMF_RESULT CGraalConv_clFFT::initializeConv(
 
     //aligned_proc_bufffer_sz_ = (1 << processing_log2_);
     aligned_proc_bufffer_sz_ = static_cast<int>(max_proc_buffer_sz_);
-    aligned_processing_sz_ = aligned_proc_bufffer_sz_ * 2;
+    mAlignedProcessingSize = aligned_proc_bufffer_sz_ * 2;
 
     //max_conv_sz_ = ((_max_conv_sz + 1023) / 1024 ) * 1024;
     max_conv_sz_ = num_blocks_ * block_sz_;
@@ -219,7 +219,7 @@ AMF_RESULT CGraalConv_clFFT::initializeConv(
     align_padding_sz_ = static_cast<int>(block_sz_) - max_proc_buffer_sz_;
 
     n_aligned_proc_blocks_ = (max_conv_sz_ + aligned_proc_bufffer_sz_ - 1) / aligned_proc_bufffer_sz_;
-    aligned_conv_sz_ = (n_aligned_proc_blocks_ * aligned_processing_sz_ * n_components_);
+    aligned_conv_sz_ = (n_aligned_proc_blocks_ * mAlignedProcessingSize * n_components_);
 
     conv_log2_ = static_cast<int>(ceil(log2((double)aligned_conv_sz_)));
     ///////////
@@ -1010,12 +1010,12 @@ AMF_RESULT CGraalConv_clFFT::updateConv(
         uint inputBufSize = 0;
         if (use_hermitian) {
             padLength = static_cast<uint>(freq_block_sz_ - block_sz_);
-            inputBufSize = static_cast<uint>(clIRBlocksBuf[ch][set]->getLen());
+            inputBufSize = static_cast<uint>(clIRBlocksBuf[ch][set]->GetCount());
         }
         else {
             //We pad in real values
             padLength = static_cast<uint>(double_block_sz_ - block_sz_);
-            inputBufSize = static_cast<uint>(clIRInputPaddedBuf[ch]->getLen());
+            inputBufSize = static_cast<uint>(clIRInputPaddedBuf[ch]->GetCount());
         }
 
         int n_arg = 0;
@@ -1152,7 +1152,7 @@ AMF_RESULT CGraalConv_clFFT::copyResponses(
             (pConvIds[channelId] * n_sets_ + pFromUploadIds[channelId]) * max_conv_sz_freq_;
         const amf_uint32 outOffset =
             (pConvIds[channelId] * n_sets_ + pToUploadIds[channelId]) * max_conv_sz_freq_;
-        const amf_uint32 len = static_cast<amf_uint32>(clIRBlocksBaseBuf->getLen());
+        const amf_uint32 len = static_cast<amf_uint32>(clIRBlocksBaseBuf->GetCount());
 
         cl_int ret = CL_SUCCESS;
         amf_size n_arg = 0;

@@ -22,25 +22,40 @@
 #pragma once
 
 #include "public/common/AMFFactoryHelper.h"
+#include "public/include/core/Compute.h"
+
+amf::AMFComputeKernel * GetOclKernel(
+    const amf::AMFComputePtr &  compute,
+
+    const std::string &         sourceFileName,
+    const amf_uint8 *           sourceData,
+    amf_size                    sourceSize,
+
+    const std::string &         kernelName,
+
+    const std::string &         options,
+
+    amf::AMFFactory *           factory = nullptr
+    );
 
 #ifndef TAN_NO_OPENCL
 
 #include <CL/cl.h>
 
-bool GetOclKernel
-(
-    cl_kernel &                 resultKernel,
-    const amf::AMFComputePtr &  device,
-    const cl_command_queue      c_queue,
+cl_kernel GetOclKernel(
+    const amf::AMFComputePtr &  compute,
+    cl_command_queue            c_queue,
 
-    const std::string &         kernelID,
-    const std::string &         kernelSource,
-    size_t                      kernelSourceSize,
+    const std::string &         sourceFileName,
+    const amf_uint8 *           sourceData,
+    amf_size                    sourceSize,
+
     const std::string &         kernelName,
 
-    const std::string &         comp_options
-);
+    const std::string &         options,
 
+    amf::AMFFactory *           factory = nullptr
+    );
 cl_int FixedEnqueueFillBuffer(
     cl_context                  context,
     cl_command_queue            command_queue,
@@ -50,19 +65,5 @@ cl_int FixedEnqueueFillBuffer(
     size_t                      offset,
     size_t                      size
     );
-
-#else
-
-bool GetOclKernel
-(
-    amf::AMFComputeKernelPtr &  resultKernel,
-    const amf::AMFComputePtr &  compute,
-    const std::string &         kernelID,
-    const std::string &         kernelSource,
-    size_t                      kernelSourceSize,
-    const std::string &         kernelName,
-    const std::string &         comp_options,
-    amf::AMFFactory *           factory = nullptr
-);
 
 #endif

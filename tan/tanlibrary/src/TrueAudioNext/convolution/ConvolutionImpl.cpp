@@ -94,16 +94,16 @@ TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
 {
     TANContextImplPtr contextImpl(pContextTAN);
 
-    m_pUpdateContextAMF.Attach(contextImpl->GetGeneralQueue());
-    m_pProcContextAMF.Attach(contextImpl->GetConvQueue());
+    mUpdateQueueAMF = contextImpl->GetAMFGeneralQueue();
+    mConvolutionQueueAMF = contextImpl->GetAMFConvQueue();
 
     PrintDebug("99 m_xFadeStarted.SetEvent()");
     m_xFadeStarted.SetEvent();
 
     // CPU processing case.
-    if (!m_pProcContextAMF)
+    if(!mConvolutionQueueAMF)
     {
-        m_pProcContextAMF = m_pUpdateContextAMF;
+        mConvolutionQueueAMF = mUpdateQueueAMF;
     }
 
     AMFPrimitivePropertyInfoMapBegin
@@ -304,7 +304,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::InitGpu(
 		);
 #else
 	AMF_RETURN_IF_FALSE(
-        m_pContextTAN->GetAMFContext() && m_pProcContextAMF && m_pUpdateContextAMF,
+        m_pContextTAN->GetAMFContext() && mConvolutionQueueAMF && mUpdateQueueAMF,
         AMF_WRONG_STATE,
         L"Cannot initialize on GPU with a CPU context"
         );
@@ -357,15 +357,15 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 #ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext() != nullptr)
 	{
-		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_pKernelCrossfade), L"Failed to release kernel");
+		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(mKernelCrossfade), L"Failed to release kernel");
 	}
 #else
     mKernelCrossfade = nullptr;
 #endif
 
     m_pContextTAN.Release();
-    m_pProcContextAMF.Release();
-    m_pUpdateContextAMF.Release();
+    mConvolutionQueueAMF.Release();
+    mUpdateQueueAMF.Release();
 
     m_pTanFft.Release();
     m_pUpdateTanFft.Release();
@@ -1542,39 +1542,19 @@ AMF_RESULT  TANConvolutionImpl::Init(
 
     if(doProcessingOnGpu )
     {
-		bool kernelLoaded =
-
-
+		mKernelCrossfade = GetOclKernel(
+            mUpdateQueueAMF,
 #ifndef TAN_NO_OPENCL
-
-            GetOclKernel(
-                m_pKernelCrossfade,
-                m_pProcContextAMF,
-                m_pContextTAN->GetOpenCLGeneralQueue(),
-                "crossfade",
-                Crossfading_Str,
-                CrossfadingCount,
-                "crossfade",
-                ""
-
-                );
-
-#else
-		    GetOclKernel(
-                mKernelCrossfade,
-                m_pContextTAN->GetAMFGeneralQueue(),
-
-                "crossfade",
-                Crossfading_Str,
-                CrossfadingCount,
-                "crossfade",
-
-                "",
-				TANContextImplPtr(m_pContextTAN)->GetFactory()
-                );
+            m_pContextTAN->GetOpenCLGeneralQueue(),
 #endif
+            "crossfade",
+            (const amf_uint8 *)Crossfading,
+            CrossfadingCount,
+            "crossfade",
+            ""
+            );
 
-        AMF_RETURN_IF_FALSE(kernelLoaded, AMF_FAIL, L"Failed to compile crossfade kernel");
+        AMF_RETURN_IF_FALSE(mKernelCrossfade != nullptr, AMF_FAIL, L"Failed to compile crossfade kernel");
     }
 
     amf_int64 tmp = 0;
@@ -1586,7 +1566,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
     {
         AMF_RETURN_IF_FAILED(TANCreateFFT(m_pContextTAN, &m_pUpdateTanFft, false));
         AMF_RETURN_IF_FAILED(m_pUpdateTanFft->Init());
-        if (m_pProcContextAMF == m_pUpdateContextAMF)
+        if (mConvolutionQueueAMF == mUpdateQueueAMF)
         {
             m_pTanFft = m_pUpdateTanFft;
         }
@@ -1600,7 +1580,7 @@ AMF_RESULT  TANConvolutionImpl::Init(
 	{
 		AMF_RETURN_IF_FAILED(TANCreateFFT(m_pContextTAN, &m_pUpdateTanFft, false));
 		AMF_RETURN_IF_FAILED(m_pUpdateTanFft->Init());
-		if (m_pProcContextAMF == m_pUpdateContextAMF)
+		if (mConvolutionQueueAMF == mUpdateQueueAMF)
 		{
 			m_pTanFft = m_pUpdateTanFft;
 		}
@@ -1797,10 +1777,10 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
         int status;
         amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
         amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 1, 0 };
-        AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[0]), L"Failed to set OpenCL argument");
-        AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[1]), L"Failed to set OpenCL argument");
-        AMF_RETURN_IF_CL_FAILED(clSetKernelArg(m_pKernelCrossfade, index++, sizeof(int), &numOfSamplesToProcess), L"Failed to set OpenCL argument");
-		status = clEnqueueNDRangeKernel(crossfadeQueue, m_pKernelCrossfade, 2, NULL, global, local, 0, NULL, NULL);
+        AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[0]), L"Failed to set OpenCL argument");
+        AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mKernelCrossfade, index++, sizeof(cl_mem), &m_pCLXFadeMasterBuf[1]), L"Failed to set OpenCL argument");
+        AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mKernelCrossfade, index++, sizeof(int), &numOfSamplesToProcess), L"Failed to set OpenCL argument");
+		status = clEnqueueNDRangeKernel(crossfadeQueue, mKernelCrossfade, 2, NULL, global, local, 0, NULL, NULL);
 		if (status != CL_SUCCESS)
         {
             printf("Failed to enqueue OCL kernel");
@@ -1809,19 +1789,19 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
 
         for (amf_uint32 c = 0; c < m_iChannels; c++)
         {
-            int status = clEnqueueCopyBuffer(
-				crossfadeQueue,
-                m_pCLXFadeMasterBuf[1], //todo, ivm: why [1]?
-                pBufferOutput.GetCLBuffers()[c],
-                c * m_iBufferSizeInSamples * sizeof(float),
-                0,
-                numOfSamplesToProcess * sizeof(float),
-                0,
-                NULL,
-                NULL
+            AMF_RETURN_IF_CL_FAILED(
+                clEnqueueCopyBuffer(
+                    crossfadeQueue,
+                    m_pCLXFadeMasterBuf[1], //todo, ivm: why [1]?
+                    pBufferOutput.GetCLBuffers()[c],
+                    c * m_iBufferSizeInSamples * sizeof(float),
+                    0,
+                    numOfSamplesToProcess * sizeof(float),
+                    0,
+                    NULL,
+                    NULL
+                    )
                 );
-
-            CHECK_OPENCL_ERROR(status, "copy failed.");
         }
 
 #else
@@ -1880,11 +1860,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 {
     //allocate stuff:
     //...
-#ifndef TAN_NO_OPENCL
-    cl_context context = m_pContextTAN->GetOpenCLContext();
-#else
-    auto context = m_pContextTAN->GetAMFContext();
-#endif
+    auto context = m_pContextTAN->GetConvContext();
 
     AMF_MEMORY_TYPE memoryType = AMF_MEMORY_UNKNOWN;
 
@@ -1895,7 +1871,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 #ifndef TAN_NO_OPENCL
         memoryType = amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL;
 #else
-        auto compute = m_pProcContextAMF ? m_pProcContextAMF : m_pUpdateContextAMF;
+        auto compute = mConvolutionQueueAMF ? mConvolutionQueueAMF : mUpdateQueueAMF;
         assert(compute);
 
         memoryType = compute->GetMemoryType();
@@ -2238,8 +2214,8 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         AMF_RETURN_IF_FAILED(
             mGraalConv->initializeConv(
                 m_pContextTAN,
-                m_pProcContextAMF,
-                m_pUpdateContextAMF,
+                mConvolutionQueueAMF,
+                mUpdateQueueAMF,
                 m_iChannels,
                 (int)m_length,
                 (int)m_iBufferSizeInSamples,
@@ -2263,7 +2239,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
         return AMF_FAIL;
 
 		/*
-        m_nonUniformGraal.Init(m_pContextTAN, m_pProcContextAMF, m_pUpdateContextAMF, m_iChannels, m_iLengthInSamples, m_iBufferSizeInSamples, N_FILTER_STATES);
+        m_nonUniformGraal.Init(m_pContextTAN, mConvolutionQueueAMF, mUpdateQueueAMF, m_iChannels, m_iLengthInSamples, m_iBufferSizeInSamples, N_FILTER_STATES);
 		*/
         m_s_channels = new int[m_iChannels];
 	}
@@ -3492,7 +3468,7 @@ AMF_RESULT TANConvolutionImpl::ovlTimeDomain(
                 *pslash = '\0';
             }
 			bool OCLERR =
-				GetOclKernel(m_TimeDomainKernel, m_pProcContextAMF, m_pContextTAN->GetOpenCLGeneralQueue(), "TimeDomainConvolution", TimeDomainConvolution_Str, TimeDomainConvolutionCount, "TimeDomainConvolution", "");
+				GetOclKernel(m_TimeDomainKernel, mConvolutionQueueAMF, m_pContextTAN->GetOpenCLGeneralQueue(), "TimeDomainConvolution", TimeDomainConvolution_Str, "TimeDomainConvolution", "");
 			if (!OCLERR){ printf("Failed to create OCL Kernel"); return AMF_FAIL;}
         }
 
@@ -4065,8 +4041,8 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     n_channels,
                     m_s_versions[m_param_buf_idx],
                     m_s_channels,
-                    m_internalInBufs.GetHostBuffers(),
-                    m_internalOutBufs.GetCLBuffers(),
+                    (const float **)m_internalInBufs.GetHostBuffers(),
+                    m_internalOutBufs.GetCLBuffersReadWrite(),
                     ocl_prev_input,
                     ocl_advance_time,
                     ocl_skip_stage,
