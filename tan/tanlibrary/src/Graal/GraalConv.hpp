@@ -782,7 +782,7 @@ protected:
     void * state_union_ = nullptr;
 
 // round counter per channel and set
-    void * round_counters_ = nullptr;
+    std::unique_ptr<CABuf<uint>>    mRoundCounters;
 // channel map
     void* channels_map_ = nullptr;
 // set map

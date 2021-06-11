@@ -30,12 +30,12 @@ using namespace metal;
 #define EPS     0.0000000001f
 
 kernel void VectorComplexSum(
-    device float* pInputFlt,      ///< [in ] 0
-	device float* pAuxiliary,     	///< [in ] 1
-    device float* pResultFlt,		///< [out] 2
+    device float* pInputFlt,      			//[in ] 0
+	device float* pAuxiliary,     			//[in ] 1
+    device float* pResultFlt,				//[out] 2
 
-	ulong rOffsetInFloats,			///< [in ] 3
-    ulong countInQuadFloats         ///< [in ] 4
+	ulong rOffsetInFloats,					//[in ] 3
+    ulong countInQuadFloats         		//[in ] 4
 
 	uint2 				global_id 			[[thread_position_in_grid]],
 	uint2 				local_id 			[[thread_position_in_threadgroup]],
@@ -55,7 +55,6 @@ kernel void VectorComplexSum(
     int globalID = global_id.x;
 	int groupID = group_id.x;
 
-
 	if (globalID > countInQuadFloats)
 		return;
 	int localID = local_id.x;
@@ -63,20 +62,20 @@ kernel void VectorComplexSum(
 
 	pResultFlt += rOffsetInFloats;
 
-	__global float4* pInput = (__global float4*)pInputFlt;
-    __local float4* pAux = (__local float4*)pAuxiliary;
-    __global float2* pResult = (__global float2*)pResultFlt;
+	device float4* pInput = (device float4*)pInputFlt;
+    device float4* pAux = (device float4*)pAuxiliary;
+    device float2* pResult = (device float2*)pResultFlt;
 	//printf("GroupdID: %d GlobalID:%d offset:%d In: %d %2.2v4hlf", groupID, globalID, countInQuadFloats, offset,pInput[globalID]);
 	pAux[localID] = pInput[globalID];
-	barrier(CLK_LOCAL_MEM_FENCE);
+	threadgroup_barrier(metal::mem_flags::mem_none);
 
 	while(offset > 0){
-		barrier(CLK_LOCAL_MEM_FENCE);
+		threadgroup_barrier(metal::mem_flags::mem_none);
 		if (localID < offset)
 			pAux[localID] += pAux[localID + offset];
 		offset = offset >> 1;
 	}
-	barrier(CLK_LOCAL_MEM_FENCE);
+	threadgroup_barrier(metal::mem_flags::mem_none);
 	if(localID == 0){
 		pResult[groupID].xy = pAux[0].xy + pAux[0].zw;
 	}

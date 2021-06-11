@@ -27,10 +27,10 @@
 
 kernel void shortToShort(
 	device	short*		inputBuffer,		///< [in]
-	constant int32_t &	inputStep,		///< [in]
+	constant int32_t &	inputStep,			///< [in]
 	constant int32_t & 	inputOffset,		///< [in]
 	device	short*		outputBuffer,		///< [out]
-	constant int32_t & 	outputStep,		///< [in]
+	constant int32_t & 	outputStep,			///< [in]
 	constant int32_t & 	outputOffset		///< [in]
 	,
 

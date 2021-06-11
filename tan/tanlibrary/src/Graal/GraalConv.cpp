@@ -25,8 +25,11 @@
 #include "amdFHT.h"
 #include "GraalCLUtil/GraalCLUtil.hpp"
 
-//#include "OclKernels/GraalFHT.cl.h"
-#include "OclKernels/CLKernel_GraalFHT.h"
+#ifdef ENABLE_METAL
+  #include "MetalKernels/MetalKernel_GraalFHT.h"
+#else
+  #include "OclKernels/CLKernel_GraalFHT.h"
+#endif
 
 #if !defined(__APPLE__) && !defined(__MACOSX)
 #include <malloc.h>
@@ -1212,7 +1215,7 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
     CABuf<float> & transf_buf = *mKernelTrasformedUnion.get();
     CABuf<float> & sincos = *mSinCos.get();
     CABuf<short> & bit_reverse = *mBitReverse.get();
-    CABuf<int> & round_counters = *(CABuf<int>*)round_counters_;
+    CABuf<uint> & round_counters = *mRoundCounters.get();
     CABuf<float> & data_hist = *(CABuf<float>*)history_transformed_;
 
     uint in_version_stride = n_max_channels_ * max_conv_sz_;
@@ -1368,7 +1371,7 @@ AMF_RESULT CGraalConv::resetConvState(
 
 // upload channel map
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)kernel_channels_map_;
-    CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+    CABuf<uint> &count_buf = *mRoundCounters.get();
 
     uint data_version_stride = aligned_conv_sz_ * n_max_channels_;
     uint data_channel_stride = aligned_conv_sz_;
@@ -1401,7 +1404,7 @@ int CGraalConv::getRoundCounter(int _uploadId, int _chnl_id)
     int ret = (int)round_counter_;
     if ( _uploadId > -1 )
     {
-        CABuf<uint> &count_buf = *(CABuf<uint>*)round_counters_;
+        CABuf<uint> &count_buf = *mRoundCounters.get();
         ret = count_buf.getSysMem()[_uploadId * n_max_channels_ + _chnl_id];
     }
     return ret;
@@ -1411,7 +1414,7 @@ void CGraalConv::incRoundCounter(int _uploadId, int _chnl_id)
 {
     if ( _uploadId > -1 )
     {
-        CABuf<uint> &count_buf = *(CABuf<uint>*)round_counters_;
+        CABuf<uint> &count_buf = *mRoundCounters.get();
         uint curr_round = count_buf.getSysMem()[_uploadId * n_max_channels_ + _chnl_id];
         curr_round++;
         count_buf.getSysMem()[_uploadId * n_max_channels_ + _chnl_id] = curr_round;
@@ -1441,7 +1444,7 @@ AMF_RESULT CGraalConv::processHead1(
     CABuf<short> &bit_reverse = *mBitReverse.get();
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
     CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
-    CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+    CABuf<uint> &count_buf = *mRoundCounters.get();
     CABuf<float> &kern_store_buf = *mKernelTrasformedUnion.get();
     CABuf<float> &data_store_buf = *(CABuf<float> *)history_transformed_;
     CABuf<float> &accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
@@ -1586,7 +1589,7 @@ AMF_RESULT CGraalConv::processPush(
     CABuf<short> &bit_reverse = *mBitReverse.get();
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
     CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
-    CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+    CABuf<uint> &count_buf = *mRoundCounters.get();
 
     int in_version_stride = aligned_proc_bufffer_sz_ * n_max_channels_ * n_input_blocks_;
     int in_chnl_stride = aligned_proc_bufffer_sz_* n_input_blocks_;
@@ -1653,7 +1656,7 @@ AMF_RESULT CGraalConv::processPush(
 #ifndef TAN_SDK_EXPORTS
         cl_command_queue inQ =  graalQueue;
 #endif
-        CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+        CABuf<uint> &count_buf = *mRoundCounters.get();
         CABuf<float> &inp_buf = m_process_input_staging_;
         CABuf<float> &dir_fht_buf = *(CABuf<float> *)history_transformed_;
         inp_buf.copyToHost(inQ);
@@ -1738,7 +1741,7 @@ AMF_RESULT CGraalConv::processAccum(
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
    // CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
 	CABuf<int> &set_map_buf = _use_xf_buff ? *(CABuf<int> *)sets_map_xf : *(CABuf<int> *)sets_map_;
-	CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+	CABuf<uint> &count_buf = *mRoundCounters.get();
 
     uint store_version_stride = aligned_conv_sz_ * n_max_channels_;
     uint accum_version_stride = accum_stride_ * n_max_channels_;
@@ -1974,7 +1977,7 @@ AMF_RESULT CGraalConv::processPull(
 
     CABuf<int> &chnl_map_buf = *(CABuf<int> *)channels_map_;
     CABuf<int> &set_map_buf = *(CABuf<int> *)sets_map_;
-    CABuf<uint> &count_buf = *(CABuf<uint> *)round_counters_;
+    CABuf<uint> &count_buf = *mRoundCounters.get();
 
 
     int n_arg = 0;
@@ -2250,17 +2253,17 @@ void CGraalConv::selectOptions(std::string & kernelFileName, std::string & kerne
 
     kernelOptions =
         std::string("-cl-fp32-correctly-rounded-divide-sqrt ") +
-        std::string("-D _K0_GROUP_SZ=") + std::to_string((long long)group_sz) +
-        std::string(" -D _K0_LOG2_GROUP_SZ=") + std::to_string((long long)log2_group_sz) +
-        std::string(" -D _K0_LOG2_N=") + std::to_string((long long)(processing_log2_ + 1)) +
-        std::string(" -D _K0_N=") + std::to_string((long long)mAlignedProcessingSize)
+        std::string("-D _K0_GROUP_SZ=256") + std::to_string((long long)group_sz) +
+        std::string(" -D _K0_LOG2_GROUP_SZ=8") + std::to_string((long long)log2_group_sz) +
+        std::string(" -D _K0_LOG2_N=12") + std::to_string((long long)(processing_log2_ + 1)) +
+        std::string(" -D _K0_N=4096") + std::to_string((long long)mAlignedProcessingSize)
         ;
 }
 
 AMF_RESULT CGraalConv::selectUploadOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName = "amdFHTConvIn";
@@ -2273,7 +2276,7 @@ AMF_RESULT CGraalConv::selectUploadOptions(std::string & kernelFileName, std::ve
 AMF_RESULT CGraalConv::selectUpload2Options(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName = "amdFHTUploadConv";
@@ -2285,7 +2288,7 @@ AMF_RESULT CGraalConv::selectUpload2Options(std::string & kernelFileName, std::v
 AMF_RESULT CGraalConv::selectResetOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName = "amdFHTAdvanceTime";
@@ -2296,7 +2299,7 @@ AMF_RESULT CGraalConv::selectResetOptions(std::string & kernelFileName, std::vec
 AMF_RESULT CGraalConv::selectDirectFHTOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName = "amdFHTPushIn";
@@ -2307,7 +2310,7 @@ AMF_RESULT CGraalConv::selectDirectFHTOptions(std::string & kernelFileName, std:
 AMF_RESULT CGraalConv::selectFHT_CMADOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::vector<std::string> & kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName.resize(2);
@@ -2321,7 +2324,7 @@ AMF_RESULT CGraalConv::selectFHT_CMADOptions(std::string & kernelFileName, std::
 AMF_RESULT CGraalConv::selectInverseFHTOptions(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string& kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName = "amdFHTPushOut";
@@ -2333,7 +2336,7 @@ AMF_RESULT CGraalConv::selectInverseFHTOptions(std::string & kernelFileName, std
 AMF_RESULT CGraalConv::selectConvHead1Options(std::string & kernelFileName, std::vector<amf_uint8> &kernelSource, size_t &kernelSourceSize, std::string &kernelName, std::string & kernelOptions)
 {
     AMF_RESULT ret = AMF_OK;
-    kernelFileName = "GraalFHT.cl";
+    kernelFileName = "GraalFHT";
     kernelSource = std::vector<amf_uint8>(GraalFHT, GraalFHT + GraalFHTCount);
     kernelSourceSize = GraalFHTCount;
     kernelName = "amdFHTConvHead1";
@@ -2586,16 +2589,16 @@ AMF_RESULT CGraalConv::setupCL
     }
 
     auto iniQ = graalQueue;
-    // per stream counters
-    CABuf<uint> *count_buf = new CABuf<uint>(context);
-    assert(count_buf);
 
-	ret = count_buf->create(n_max_channels_ * n_sets_, 0, pComputeConvolution->GetMemoryType());
+    // per stream counters
+    mRoundCounters.reset(new CABuf<uint>(context));
+    assert(mRoundCounters);
+
+	ret = mRoundCounters->create(n_max_channels_ * n_sets_, 0, pComputeConvolution->GetMemoryType());
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
-    count_buf->setValue2(graalQueue, 0);
-    (void)count_buf->getSysMem();   // allocate backing system memory block.
-    initBuffer(count_buf, graalQueue);
-    round_counters_ = count_buf;
+    mRoundCounters->setValue2(graalQueue, 0);
+    mRoundCounters->getSysMem();   // allocate backing system memory block.
+    initBuffer(mRoundCounters.get(), graalQueue);
 
 // channels map
     CABuf<int> *chnls_map_buf = new CABuf<int>(context);
@@ -2860,11 +2863,11 @@ AMF_RESULT CGraalConv::cleanup()
     }
 #endif
 
-    if (round_counters_)
+    if (mRoundCounters)
     {
-        delete (CABuf<uint> *)round_counters_;
-        round_counters_ = 0;
+        mRoundCounters.reset();
     }
+
     if (channels_map_)
     {
         delete (CABuf<uint> *)channels_map_;

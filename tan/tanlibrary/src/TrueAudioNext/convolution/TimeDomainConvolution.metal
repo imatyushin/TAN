@@ -52,7 +52,7 @@ device    float*  pOutput        ///< [out]
      //   return;
 
     //int ldsSize = FilterLength + LocalSize;
-    //__local float localBuffer[FilterLength + LocalSize];
+    //device float localBuffer[FilterLength + LocalSize];
 
     //int readPerWorkItem = ldsSize / LocalSize;
 

@@ -40,7 +40,7 @@ void amdPadFFTBlock(__global const float * in,
 				__global const int * outOffset,
 				int outLength,
 				int blockLength,
-				int padLength, 
+				int padLength,
 				int channelCount)  {
 	int glbl_id = get_global_id(0);
 	int chnl_id = get_global_id(1);
@@ -50,13 +50,13 @@ void amdPadFFTBlock(__global const float * in,
 	int outIndex = ((glbl_id + outOffset[chnl_id]) % outLength);
 
 	bool isPad = (glbl_id % (blockLength + padLength)) >= blockLength;
-	
+
 	out[outIndex] = isPad ? 0 : in[inIndex];
 }
 
 #if 0
 void FHTIterationG(__local __FLOAT__ * data,
-	__constant __FLOAT__ * ang,	
+	__constant __FLOAT__ * ang,
 	int n,
 	int n2,
 	int k ) {
@@ -89,8 +89,8 @@ void FHTIterationG(__local __FLOAT__ * data,
 
 			C=&data[mad24((n<<1),i, n - diff)];
 			D=&data[mad24((n<<1),i, (n<<1) - diff)];
-	
-		
+
+
 			__FLOAT__ dsin=ang[ang_off];
 			__FLOAT__ dcos=ang[ang_off + 1];
 
@@ -118,7 +118,7 @@ void FHTIterationG(__local __FLOAT__ * data,
 #else
 
 void FHTIterationG(__local __FLOAT__ * data,
-	__constant __FLOAT__ * ang,	
+	__constant __FLOAT__ * ang,
 	int n,
 	int n2,
 	int k ) {
@@ -149,7 +149,7 @@ void FHTIterationG(__local __FLOAT__ * data,
 			int c_off = mad24((n<<1),i, n - diff);
 			c=data[c_off];			    // *C
 			d=data[c_off + n];          // *D
-			
+
 			__FLOAT__ dsin=ang[ang_off];
 			__FLOAT__ dcos=ang[ang_off + 1];
 
@@ -171,7 +171,7 @@ void FHTIterationG(__local __FLOAT__ * data,
 }
 
 void FHTIterationG2(__local char * data,
-	__constant char * ang,	
+	__constant char * ang,
 	int n,
 	int n2,
 	int k ) {
@@ -202,7 +202,7 @@ void FHTIterationG2(__local char * data,
 			int c_off = mad24((n<<1),i, n - diff);
 			c=*(__local float*)&data[(c_off) << 2];			    // *C
 			d=*(__local float*)&data[(c_off + n) << 2];          // *D
-			
+
 			__FLOAT__ dsin=*(__constant float*)&ang[(ang_off) << 2];
 			__FLOAT__ dcos=*(__constant float*)&ang[(ang_off + 1) << 2];
 
@@ -438,7 +438,7 @@ void amdFHTPushIn(__global const char * in,
 	uint output_index = counter % n_conv_blocks;
 
 	int index[(_N_TO_READ >> 1)];
-	
+
 	for( int i = 0; i < (_N_TO_READ >> 1); i++ )
 	{
 		index[i] = gbitreverse[lcl_id + (i << _K0_LOG2_GROUP_SZ)];
@@ -594,7 +594,7 @@ void FHTMultAddHead2(__global const float * IR,
 						uint accum_version_stride,
 						uint accum_chnl_stride,
 						uint IR_version_stride,
-						uint chnl_stride,				
+						uint chnl_stride,
 						uint IR_bin_shift,
 						uint n_bins,        // # bins in the buffer
 						uint n_loop_bins,
@@ -657,7 +657,7 @@ void FHTMultAddHead2(__global const float * IR,
 
 
 		accum_k += t_accum_k;
-		accum_N_k += t_accum_N_k;	
+		accum_N_k += t_accum_N_k;
 /*
 		if ( chnl_id == 0 && i== 0 && k < 16)
 		{
@@ -691,7 +691,7 @@ void FHTMultAddTail(__global __FLOAT__ * Accum,
 	uint chnl_id = channels_map[get_global_id(2)];
 	uint upload_id = versions_map[get_global_id(2)]; // version
 
-	
+
 	uint channel_off = accum_chnl_stride * chnl_id + accum_version_stride * upload_id;
 	uint accum_offset = chunk_id << _K0_LOG2_N;
 
@@ -771,7 +771,7 @@ void amdFHTConvHead1(__global const char * in, // pipelone input
 
 
 		int index[(_N_TO_READ >> 1)];
-	
+
 		for( int i = 0; i < (_N_TO_READ >> 1); i++ )
 		{
 			index[i] = gbitreverse[lcl_id + (i << _K0_LOG2_GROUP_SZ)];
@@ -825,7 +825,7 @@ void amdFHTConvHead1(__global const char * in, // pipelone input
 				FHTIterationG2(data, gsincos,	n, n2, k );
 
 			}
-	
+
 			barrier(CLK_LOCAL_MEM_FENCE);
 		}
 
@@ -892,7 +892,7 @@ void amdFHTConvHead1(__global const char * in, // pipelone input
 		{
 			printf("acc in: %d %f %f %f  %d %f %f %f\n", k, ir_k, fht_k, tail_k, N_k, ir_N_k, fht_N_k, tail_N_k);
 		}
-*/	
+*/
 
 	}
 

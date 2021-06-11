@@ -24,7 +24,12 @@
 #include "GraalConv_clFFT.hpp"
 #include "GraalCLUtil/GraalUtil.hpp"
 #include "../common/OCLHelper.h"
-#include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
+
+#ifdef ENABLE_METAL
+  #include "MetalKernels/MetalKernel_amdFFT_conv_kernels.h"
+#else
+  #include "OclKernels/CLKernel_amdFFT_conv_kernels.h"
+#endif
 
 #include <iostream>
 #include <fstream>
@@ -350,7 +355,7 @@ AMF_RESULT CGraalConv_clFFT::setupCL(
     AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer creation failed");
     ret = round_counters_buf->setValue2(clientQ_, 0);
     AMF_RETURN_IF_FALSE(ret == AMF_OK, ret, L"Buffer zero-filling failed");
-    round_counters_ = round_counters_buf;
+    mRoundCounters = round_counters_buf;
 
     for (uint ch = 0; ch < n_max_channels_; ch++)
     {

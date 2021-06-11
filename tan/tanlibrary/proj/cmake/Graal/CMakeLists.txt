@@ -69,22 +69,42 @@ set(
   "${TAN_ROOT}/tan/tanlibrary/src/Graal"
   "${TAN_ROOT}/tan/tanlibrary/src/Graal"
   )
-set(
-  Graal_CL_Files
-  "Converter.cl"
-  "GraalUtil.cl"
-  "GraalFHT.cl"
-  "amdFFT_conv_kernels.cl"
-  "amdFIR_kernels.cl"
+
+if(ENABLE_METAL)
+  set(
+    Graal_CL_Files
+    "Converter.metal"
+    "GraalUtil.metal"
+    "GraalFHT.metal"
+    "amdFFT_conv_kernels.metal"
+    "amdFIR_kernels.metal"
+    )
+  set(
+    Graal_CL_Output
+    "MetalKernel_Converter.h"
+    "MetalKernels/MetalKernel_GraalUtil.h"
+    "MetalKernels/MetalKernel_GraalFHT.h"
+    "MetalKernels/MetalKernel_amdFFT_conv_kernels.h"
+    "MetalKernels/MetalKernel_amdFIR_kernels.h"
   )
-set(
-  Graal_CL_Output
-  "CLKernel_Converter.h"
-  "OclKernels/CLKernel_GraalUtil.h"
-  "OclKernels/CLKernel_GraalFHT.h"
-  "OclKernels/CLKernel_amdFFT_conv_kernels.h"
-  "OclKernels/amdFIR_kernels.h"
-  )
+else()
+  set(
+    Graal_CL_Files
+    "Converter.cl"
+    "GraalUtil.cl"
+    "GraalFHT.cl"
+    "amdFFT_conv_kernels.cl"
+    "amdFIR_kernels.cl"
+    )
+  set(
+    Graal_CL_Output
+    "CLKernel_Converter.h"
+    "OclKernels/CLKernel_GraalUtil.h"
+    "OclKernels/CLKernel_GraalFHT.h"
+    "OclKernels/CLKernel_amdFFT_conv_kernels.h"
+    "OclKernels/amdFIR_kernels.h"
+    )
+endif()
 
 markGenerated(
   Graal_CL_Directories

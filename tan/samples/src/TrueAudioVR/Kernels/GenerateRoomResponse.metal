@@ -34,7 +34,7 @@ using namespace metal;
 kernel void GenerateRoomResponse(
 		volatile device atomic_int *	response,			///< [out]
 
-		constant float *  				hpF,				//__constant
+		constant float *  				hpF,				//constant
 		constant float *  				lpF, 				// can combine the two filters into one buffers
 
 		device const float & srcX,
