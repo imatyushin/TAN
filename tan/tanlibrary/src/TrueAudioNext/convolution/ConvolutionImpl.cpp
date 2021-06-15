@@ -695,8 +695,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 
             if(pBuffer.IsComputeBuffer())
             {
-                assert(amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL == pBuffer.GetType());
-
 #ifndef TAN_NO_OPENCL
                 typedef cl_mem BufferType;
 #else

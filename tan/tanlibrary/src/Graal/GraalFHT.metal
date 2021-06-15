@@ -69,7 +69,7 @@ kernel void amdPadFFTBlock(
 }
 
 void FHTIterationG(
-	device float * data,
+	threadgroup float * data,
 	constant float * ang,
 	int n,
 	int n2,
@@ -118,7 +118,8 @@ void FHTIterationG(
 //	threadgroup_barrier(metal::mem_flags::mem_none);
 }
 
-void FHTIterationG2(device char * data,
+void FHTIterationG2(
+	threadgroup char * data,
 	constant char * ang,
 	int n,
 	int n2,
@@ -144,12 +145,12 @@ void FHTIterationG2(device char * data,
 			ang_off = metal::mul24(j ,(n2 <<1));
 
 			int a_off = metal::mad24((n<<1),i, j);
-			a = *(device float*)&data[(a_off << 2)];            // *A
-			b = *(device float*)&data[(a_off + n) << 2];        // *B
+			a = *(threadgroup float*)&data[(a_off << 2)];            // *A
+			b = *(threadgroup float*)&data[(a_off + n) << 2];        // *B
 
 			int c_off = metal::mad24((n<<1),i, n - diff);
-			c=*(device float*)&data[(c_off) << 2];			    // *C
-			d=*(device float*)&data[(c_off + n) << 2];          // *D
+			c=*(threadgroup float*)&data[(c_off) << 2];			    // *C
+			d=*(threadgroup float*)&data[(c_off + n) << 2];          // *D
 
 			float dsin=*(constant float*)&ang[(ang_off) << 2];
 			float dcos=*(constant float*)&ang[(ang_off + 1) << 2];
@@ -159,10 +160,10 @@ void FHTIterationG2(device char * data,
 
 			f *= flip_sign;
 
-			*(device float*)&data[(a_off + n) << 2] = a-e;		// *B
-			*(device float*)&data[(a_off) << 2] = a+e;			// *A
-			*(device float*)&data[(c_off + n) << 2] = c-f;      // *D
-			*(device float*)&data[(c_off) << 2] = c+f;			// *C
+			*(threadgroup float*)&data[(a_off + n) << 2] = a-e;		// *B
+			*(threadgroup float*)&data[(a_off) << 2] = a+e;			// *A
+			*(threadgroup float*)&data[(c_off + n) << 2] = c-f;      // *D
+			*(threadgroup float*)&data[(c_off) << 2] = c+f;			// *C
 	}
 
 //	threadgroup_barrier(metal::mem_flags::mem_none);
@@ -199,26 +200,24 @@ void amdFHTUploadConv(
 	int grp_id = group_id.x;
 	//int chnl = group_id.y;
 
- 	//char data[_K0_N<<2];
-	metal::array<device char, _K0_N<<2 > data;
+ 	threadgroup char data[_K0_N<<2] = {0};
 
 	for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 	{
-		device char * charP = &data[i<<2];
-		device float * floatP = (device float *)charP;
+		threadgroup char * charP = &data[i<<2];
+		threadgroup float * floatP = (threadgroup float *)charP;
 
 		*floatP = 0;
 	}
 
-	/*
 	threadgroup_barrier(metal::mem_flags::mem_none);
 
 	//read data with bit reverse
 	//second half shouled be padded with 0
 	for( int i = lcl_id, k = lcl_id + grp_id * _K0_N/2; i < _K0_N/2 && k < kern_ln; i+= _K0_GROUP_SZ, k+= _K0_GROUP_SZ)
 	{
-		device char * charP = &data[gbitreverse[i]<<2];
-		device float * floatP = (device float *)charP;
+		threadgroup char * charP = &data[gbitreverse[i]<<2];
+		threadgroup float * floatP = (threadgroup float *)charP;
 		device float * inP = (device float *)&in[k<<2];
 
 		*floatP = *inP;
@@ -233,7 +232,7 @@ void amdFHTUploadConv(
 		n = (1 << log2_n);
 		n2 = (1 << log2_n2);
 
-		for ( int k = lcl_id; (k < metal::mad24(n2 , n/2, n2)); k+= _K0_GROUP_SZ)
+		for(int k = lcl_id; (k < metal::mad24(n2 , n/2, n2)); k+= _K0_GROUP_SZ)
 		{
 			FHTIterationG2(&data[0], gsincos, n, n2, k);
 		}
@@ -243,9 +242,8 @@ void amdFHTUploadConv(
 
 	for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 	{
-		out[i + grp_id * _K0_N] = *(device float*)&data[i<<2];
+		out[i + grp_id * _K0_N] = *(threadgroup float*)&data[i<<2];
 	}
-	*/
 }
 
 /////////////////////////////////////////////////////
@@ -274,7 +272,6 @@ kernel void amdFHTConvIn(
 	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
-	/*
 	uint lcl_id = local_id.x;
 	//uint glb_id = global_id.x;
 	uint grp_id = group_id.x;
@@ -283,13 +280,12 @@ kernel void amdFHTConvIn(
 	uint upload_id = versions_map[chnl];
 	uint kern_ln = lens_map[metal::mad24(version_stride,upload_id, chnl_id)];
 
-	//char data[_K0_N<<2];
-	metal::array<device char, _K0_N<<2 > data;
+	threadgroup char data[_K0_N<<2] = {0};
 
 	for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 	{
-		device char * charP = &data[i<<2];
-		device float * floatP = (device float *)charP;
+		threadgroup char * charP = &data[i<<2];
+		threadgroup float * floatP = (threadgroup float *)charP;
 
 		*floatP = 0;
 	}
@@ -307,8 +303,8 @@ kernel void amdFHTConvIn(
 		i+= _K0_GROUP_SZ, k+= _K0_GROUP_SZ
 	)
 	{
-		device char * charP = &data[gbitreverse[i]<<2];
-		device float * floatP = (device float *)charP;
+		threadgroup char * charP = &data[gbitreverse[i]<<2];
+		threadgroup float * floatP = (threadgroup float *)charP;
 		device float * inP = (device float *)&in[(in_off + k)<<2];
 
 		*floatP = *inP;
@@ -323,7 +319,7 @@ kernel void amdFHTConvIn(
 		n = (1 << log2_n);
 		n2 = (1 << log2_n2);
 
-		for ( int k = lcl_id; (k < metal::mad24(n2 , n/2, n2)); k+= _K0_GROUP_SZ)
+		for(int k = lcl_id; (k < metal::mad24(n2 , n/2, n2)); k+= _K0_GROUP_SZ)
 		{
 			FHTIterationG2(&data[0], gsincos, n, n2, k);
 		}
@@ -336,9 +332,8 @@ kernel void amdFHTConvIn(
 
 	for( uint i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 	{
-		out[i + grp_id * _K0_N  + kern_off] = *(device float*)&data[i<<2];
+		out[i + grp_id * _K0_N  + kern_off] = *(threadgroup float*)&data[i<<2];
 	}
-	*/
 }
 
 kernel
@@ -385,13 +380,11 @@ void amdFHTPushIn(
 	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
-	/*
 	int lcl_id = local_id.x;
 	//int grp_id = group_id.x;
 	int chnl_index = group_id.y;
 
-	//char data[(_K0_N) << 2];
-	metal::array<device char, _K0_N<<2 > data;
+	threadgroup char data[(_K0_N) << 2] = {0};
 
 	uint chnl = channels_map[chnl_index];
 	//uint version = versions_map[chnl_index];
@@ -418,8 +411,8 @@ void amdFHTPushIn(
 	for( int i = 0; i < (_N_TO_READ >> 1); i++ )
 	{
 		//*(device float*)&data[(index[i]<<2)] = *(float*)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index0, (uint)_K0_N/2) + in_off)<<2];
-		device char * charP = &data[(index[i]<<2)];
-		device float * floatP = (device float *)charP;
+		threadgroup char * charP = &data[(index[i]<<2)];
+		threadgroup float * floatP = (threadgroup float *)charP;
 		device float * inP = (device float *)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index0, (uint)_K0_N/2) + in_off)<<2];
 
 		*floatP = *inP;
@@ -435,8 +428,8 @@ void amdFHTPushIn(
 	for( int i = 0; i < (_N_TO_READ >> 1); i++ )
 	{
 		//*(device float*)&data[(index[i]<<2)] = *(float*)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index1, (uint)_K0_N/2) + in_off)<<2];
-		device char * charP = &data[(index[i]<<2)];
-		device float * floatP = (device float *)charP;
+		threadgroup char * charP = &data[(index[i]<<2)];
+		threadgroup float * floatP = (threadgroup float *)charP;
 		device float * inP = (device float *)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index1, (uint)_K0_N/2) + in_off)<<2];
 
 		*floatP = *inP;
@@ -464,14 +457,13 @@ void amdFHTPushIn(
 
 	for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 	{
-		out[i + out_off] = *(device float*)&data[i<<2];
+		out[i + out_off] = *(threadgroup float*)&data[i<<2];
 
 		//if ( chnl == 0 )
 		//	{
 		//		printf("in: %d %f\n", lcl_id, *(device float*)&data[i<<2]);
 		//	}
 	}
-	*/
 }
 
 kernel
@@ -498,13 +490,11 @@ void amdFHTPushOut(
 	uint2 				grid_size 			[[threads_per_grid]]
 	)
 {
-	/*
 	int lcl_id = local_id.x;
 	//int grp_id = group_id.x;
 	int chnl_index = group_id.y;
 
-	//device float data[_K0_N];
-	metal::array<device float, _K0_N > data;
+	threadgroup float data[_K0_N] = {0};
 
 	uint chnl_id = channels_map[chnl_index];  // channel
 	uint upload_id = versions_map[chnl_index]; // version
@@ -551,7 +541,6 @@ void amdFHTPushOut(
 		uint counter = round_counters[chnl_id];
 		round_counters[chnl_id] = counter + 1;
 	}
-	*/
 }
 
 /* DHT convolution
@@ -561,8 +550,8 @@ X0 == XN etc
 below the division by 2 deffered to the final scaling
 */
 void FHTmad(
-	device float * z_k,
-	device float * z_N_k,
+	threadgroup float * z_k,
+	threadgroup float * z_N_k,
 	float x_k,
 	float x_N_k,
 	float y_k,
@@ -604,7 +593,6 @@ void FHTMultAddHead2(
 	uint3 				grid_size 			[[threads_per_grid]]
 	)
 {
-	/*
 	uint k = global_id.x;
 	uint N_k = _K0_N - k;
 	uint chunk_id = global_id.y;  //  accumulator block we start from
@@ -630,7 +618,7 @@ void FHTMultAddHead2(
 
 	float ir_k, ir_N_k;
 	float fht_k, fht_N_k;
-	float t_accum_k, t_accum_N_k;
+	//float t_accum_k, t_accum_N_k;
 	float accum_k = 0, accum_N_k = 0;
 
 	N_k = (k == 0 ) ? _K0_N/2 : N_k;
@@ -652,12 +640,11 @@ void FHTMultAddHead2(
 		fht_k = FHTStore[(store_off +k)];
 		fht_N_k = FHTStore[(store_off + N_k)];
 
-		metal::array<device float, 2> temp1 = {{
-			t_accum_k,
-			t_accum_N_k}
-			};
+		threadgroup float temp1[2] = {0, 0};
 
 		FHTmad(&temp1[0], &temp1[1], ir_k, ir_N_k, fht_k, fht_N_k);
+		threadgroup float &t_accum_k = temp1[0], &t_accum_N_k = temp1[1];
+
 		t_accum_k = (k==0) ? ir_k * fht_k * (float)2. : t_accum_k;
 		t_accum_N_k = (k==0) ? ir_N_k * fht_N_k  * (float)2. : t_accum_N_k;
 
@@ -673,7 +660,6 @@ void FHTMultAddHead2(
 	uint accum_off = (accum_chnl_offset + accum_offset);
 	Accum[(accum_off + k)] = accum_k;
 	Accum[(accum_off + N_k)] = accum_N_k;
-	*/
 }
 
 kernel
@@ -693,7 +679,6 @@ void FHTMultAddTail(device float * Accum,
 	uint3 				grid_size 			[[threads_per_grid]]
 	)
 {
-	/*
 	uint k = global_id.x;
 	uint chunk_id = global_id.y;
 	uint chnl_id = channels_map[global_id.z];
@@ -716,7 +701,6 @@ void FHTMultAddTail(device float * Accum,
 	//{
 	//	printf("acc out: %d %d %f\n", k, channel_off + accum_offset + k, accum);
 	//}
-	*/
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -758,13 +742,11 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 	uint2 				grid_size 			[[threads_per_grid]]
 				)
 {
-	/*
 	int lcl_id = local_id.x;
-	int grp_id = group_id.x;
+	//int grp_id = group_id.x;
 	int chnl_index = global_id.y;
 
-	//device constant char data[(_K0_N) << 2];
-	metal::array<device char, _K0_N<<2 > data;
+	threadgroup char data[(_K0_N) << 2] = {0};
 
 	uint chnl = channels_map[chnl_index];
 	uint version = versions_map[chnl_index];
@@ -796,8 +778,8 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 		{
 			//*(device float*)&data[(index[i]<<2)] = *(float*)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index0, (uint)_K0_N/2) + in_off)<<2];
 
-			device char * charP = &data[(index[i]<<2)];
-			device float * floatP = (device float *)charP;
+			threadgroup char * charP = &data[(index[i]<<2)];
+			threadgroup float * floatP = (threadgroup float *)charP;
 			device float * inP = (device float *)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index0, (uint)_K0_N/2) + in_off)<<2];
 
 			*floatP = *inP;
@@ -818,8 +800,8 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 		for( int i = 0; i < (_N_TO_READ >> 1); i++ )
 		{
 			//*(device float*)&data[(index[i]<<2)] = *(float*)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index1, (uint)_K0_N/2) + in_off)<<2];
-			device char * charP = &data[(index[i]<<2)];
-			device float * floatP = (device float *)charP;
+			threadgroup char * charP = &data[(index[i]<<2)];
+			threadgroup float * floatP = (threadgroup float *)charP;
 			device float * inP = (device float *)&in[(lcl_id + (i << _K0_LOG2_GROUP_SZ) + metal::mul24(index1, (uint)_K0_N/2) + in_off)<<2];
 
 			*floatP = *inP;
@@ -840,7 +822,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 			n = (1 << log2_n);
 			n2 = (1 << log2_n2);
 
-			for( int k = lcl_id; (k < metal::mad24(n2 , n/2, n2)); k+= _K0_GROUP_SZ)
+			for(int k = lcl_id; (k < metal::mad24(n2 , n/2, n2)); k+= _K0_GROUP_SZ)
 			{
 				FHTIterationG2(&data[0], gsincos,	n, n2, k );
 			}
@@ -853,7 +835,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 
 		for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 		{
-			Hist[i + hist_off] = *(device float*)&data[i<<2];
+			Hist[i + hist_off] = *(threadgroup float*)&data[i<<2];
 
 			//if ( chnl == 0 && i < 8)
 			//{
@@ -867,7 +849,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 		// read previous input from the history buffer
 		for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
 		{
-			*(device float*)&data[i<<2] = Hist[i + hist_off];
+			*(threadgroup float*)&data[i<<2] = Hist[i + hist_off];
 		}
 
 		threadgroup_barrier(metal::mem_flags::mem_none);
@@ -885,26 +867,25 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 
 	for( uint i = 0, k = lcl_id; i < (_N_TO_READ>>1); i++, k+= _K0_GROUP_SZ)
 	{
-		float ir_k, ir_N_k;
-		float fht_k, fht_N_k;
-		float t_k, t_N_k;
-		float tail_k, tail_N_k;
+		float ir_k = 0, ir_N_k = 0;
+		float fht_k = 0, fht_N_k = 0;
+		//float t_k = 0, t_N_k = 0;
+		float tail_k = 0, tail_N_k = 0;
 
 		uint N_k = _K0_N - k;
 		N_k = (k == 0 ) ? _K0_N/2 : N_k;
 		ir_k = IR[(IR_off + k)];
 		ir_N_k = IR[(IR_off + N_k)];
-		fht_k = *(device float*)&data[k<<2];
-		fht_N_k = *(device float*)&data[N_k<<2];
+		fht_k = *(threadgroup float*)&data[k<<2];
+		fht_N_k = *(threadgroup float*)&data[N_k<<2];
 		tail_k = Accum[accum_offset + k];
 		tail_N_k = Accum[accum_offset + N_k];
 
-		metal::array<device float, 2> temp1 = {{
-			t_k,
-			t_N_k}
-			};
-
+		threadgroup float temp1[2]  = {0, 0};
 		FHTmad(&temp1[0], &temp1[1], ir_k, ir_N_k, fht_k, fht_N_k);
+
+		threadgroup float & t_k = temp1[0], & t_N_k = temp1[1];
+
 		cmad[i].x = (k==0) ? ir_k * fht_k * (float)2. : t_k;
 		cmad[i].y = (k==0) ? ir_N_k * fht_N_k  * (float)2. : t_N_k;
 		cmad[i].x += tail_k;
@@ -926,8 +907,8 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 	{
 		uint N_k = _K0_N - k;
 		N_k = (k == 0 ) ? _K0_N/2 : N_k;
-		*(device float*)&data[(gbitreverse[k]) <<2] = cmad[i].x;
-		*(device float*)&data[(gbitreverse[N_k]) << 2] = cmad[i].y;
+		*(threadgroup float*)&data[(gbitreverse[k]) <<2] = cmad[i].x;
+		*(threadgroup float*)&data[(gbitreverse[N_k]) << 2] = cmad[i].y;
 	}
 
 	threadgroup_barrier(metal::mem_flags::mem_none);
@@ -940,7 +921,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 			n = (1 << log2_n);
 			n2 = (1 << log2_n2);
 
-			for ( int k = lcl_id;k < metal::mad24(n2 , n/2, n2); k+= _K0_GROUP_SZ)
+			for(int k = lcl_id; k < metal::mad24(n2 , n/2, n2); k+= _K0_GROUP_SZ)
 			{
 				FHTIterationG2(&data[0], gsincos,	n, n2, k );
 			}
@@ -952,7 +933,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 	//write out into pipeline output buffer
 	for( int i = lcl_id; i < _K0_N/2; i+= _K0_GROUP_SZ)
 	{
-		out[i + metal::mul24(out_version_stride, version) + metal::mul24(out_chnl_stride, chnl)] = *(device float*)&data[i<<2] * scale;
+		out[i + metal::mul24(out_version_stride, version) + metal::mul24(out_chnl_stride, chnl)] = *(threadgroup float*)&data[i<<2] * scale;
 
 		//if ( chnl == 0 )
 		//{
@@ -967,5 +948,5 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 	{
 		uint counter = round_counters[chnl];
 		round_counters[chnl] = counter + 1;
-	}*/
+	}
 }
