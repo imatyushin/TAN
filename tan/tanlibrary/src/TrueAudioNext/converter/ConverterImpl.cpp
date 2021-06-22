@@ -558,7 +558,7 @@ AMF_RESULT  AMF_STD_CALL    TANConverterImpl::ConvertGpu(
     AMF_RESULT res = AMF_OK;
 
 #ifndef TAN_NO_OPENCL
-    PrintCLArray("ConvertGpu - input", cl_mem(inputBuffer), m_pQueueCl, 64);
+    //PrintCLArray("ConvertGpu - input", cl_mem(inputBuffer), m_pQueueCl, 64);
 
     cl_int clErr = CL_SUCCESS;
     cl_kernel clKernel = nullptr;

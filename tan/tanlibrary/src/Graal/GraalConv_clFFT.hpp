@@ -325,7 +325,7 @@ class CGraalConv_clFFT: public CGraalConv
     AMF_RESULT flush(amf_uint channelId, const bool synchronous = true) override;
 
 private:
-    AMF_RESULT setupCL(
+    AMF_RESULT Setup(
         const amf::AMFComputePtr & pComputeConvolution,
         const amf::AMFComputePtr & pComputeUpdate
         );
@@ -356,8 +356,8 @@ private:
         return ret;
     }
 
-    uint n_max_channels_;
-    int max_conv_sz_;			//the largest impulse response size
+    uint mMaxChannels;
+    int mMaxConvolutionSize;			//the largest impulse response size
     int max_conv_sz_freq_;//number of float values to represent the IR in freq domain
     size_t max_conv_sz_freq_aligned_;//number of float values to represent the IR in freq domain
     int block_sz_;			//the largest impulse response size

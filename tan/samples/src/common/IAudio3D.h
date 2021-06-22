@@ -323,24 +323,15 @@ public:
             mOutputMixFloatBufs[i] = mOutputMixFloatBufsStorage[i].AllocateClean(mFFTLength);
         }
 
-        memset(&room, 0, sizeof(room));
+        mRoom = roomDef;
 
-        room = roomDef;
-
-        for (int idx = 0; idx < mWavFiles.size(); idx++)
-        {
-            sources[idx].speakerX = 0.0;
-            sources[idx].speakerY = 0.0;
-            sources[idx].speakerZ = 0.0;
-        }
-
-        ears.earSpacing = float(0.16);
-        ears.headX = 0.0;
-        ears.headZ = 0.0;
-        ears.headY = 1.75;
-        ears.pitch = 0.0;
-        ears.roll = 0.0;
-        ears.yaw = 0.0;
+        mEars.earSpacing = float(0.16);
+        mEars.headX = 0.0;
+        mEars.headZ = 0.0;
+        mEars.headY = 1.75;
+        mEars.pitch = 0.0;
+        mEars.roll = 0.0;
+        mEars.yaw = 0.0;
 
         {
             mMaxSamplesCount = mWavFiles[0].SamplesCount;
@@ -423,69 +414,68 @@ public:
     //int64_t getCurrentPosition(int stream);
 
 	// update the head (listener) position:
-    virtual int updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
+    virtual void updateHeadPosition(float x, float y, float z, float yaw, float pitch, float roll)
     {
         // world to room coordinates transform:
         m_mtxWorldToRoomCoords.transform(x, y, z);
         yaw = m_headingOffset + (m_headingCCW ? yaw : -yaw);
 
-        if (x == ears.headX && y == ears.headY && z == ears.headZ //) {
-            && yaw == ears.yaw && pitch == ears.pitch && roll == ears.roll) {
-                return 0;
+        if(x == mEars.headX && y == mEars.headY && z == mEars.headZ &&
+            yaw == mEars.yaw && pitch == mEars.pitch && roll == mEars.roll)
+        {
+            return;
         }
 
-        ears.headX = x;
-        ears.headY = y;
-        ears.headZ = z;
+        mEars.headX = x;
+        mEars.headY = y;
+        mEars.headZ = z;
 
-        ears.yaw = yaw;
-        ears.pitch = pitch;
-        ears.roll = roll;
+        mEars.yaw = yaw;
+        mEars.pitch = pitch;
+        mEars.roll = roll;
 
         mUpdateParams = true;
-        return 0;
     }
 
 	//update a source position:
-    virtual int updateSourcePosition(int srcNumber, float x, float y, float z)
+    virtual void updateSourcePosition(int srcNumber, float x, float y, float z)
     {
-        if (srcNumber >= mWavFiles.size()){
-            return -1;
+        if(srcNumber >= mWavFiles.size())
+        {
+            assert(false);
+            return;
         }
+
         // world to room coordinates transform:
         m_mtxWorldToRoomCoords.transform(x, y, z);
 
-        sources[srcNumber].speakerX = x;// +room.width / 2.0f;
-        sources[srcNumber].speakerY = y;
-        sources[srcNumber].speakerZ = z;// +room.length / 2.0f;
+        mSources[srcNumber].speakerX = x;// +mRoom.width / 2.0f;
+        mSources[srcNumber].speakerY = y;
+        mSources[srcNumber].speakerZ = z;// +mRoom.length / 2.0f;
 
         mUpdateParams = true;
-        return 0;
     }
 	//update a room's dimension:
-	virtual int updateRoomDimension(float _width, float _height, float _length)
+	virtual void updateRoomDimension(float width, float height, float length)
     {
-        room.width = _width;
-        room.height = _height;
-        room.length = _length;
+        mRoom.width = width;
+        mRoom.height = height;
+        mRoom.length = length;
 
         mUpdateParams = true;
-
-        return 0;
     }
 
 	//update a room's damping factor
-	virtual int updateRoomDamping(float _left, float _right, float _top, float _buttom, float _front, float _back)
+	virtual void updateRoomDamping(float left, float right, float top, float buttom, float front, float back)
     {
-        room.mTop.damp = _top;
-        room.mBottom.damp = _buttom;
-        room.mLeft.damp = _left;
-        room.mRight.damp = _right;
-        room.mFront.damp = _front;
-        room.mBack.damp = _back;
+        mRoom.mTop.damp = top;
+        mRoom.mBottom.damp = buttom;
+        mRoom.mLeft.damp = left;
+        mRoom.mRight.damp = right;
+        mRoom.mFront.damp = front;
+        mRoom.mBack.damp = back;
 
         mUpdateParams = true;
-        return 0;
     }
 
     // export impulse response for source  + current listener and room:
@@ -493,8 +483,8 @@ public:
     {
         int convolutionLength = this->mFFTLength;
         mTrueAudioVR->generateSimpleHeadRelatedTransform(
-            ears.hrtf,
-            ears.earSpacing
+            mEars.hrtf,
+            mEars.earSpacing
             );
 
         float *leftResponse = mResponses[0];
@@ -583,9 +573,9 @@ protected:
     std::unique_ptr<AmdTrueAudioVR>
                                 mTrueAudioVR;
 
-    RoomDefinition room;
-    MonoSource sources[MAX_SOURCES];
-	StereoListener ears;
+    RoomDefinition              mRoom;
+    MonoSource                  mSources[MAX_SOURCES];
+	StereoListener              mEars;
 
     bool mSrc1EnableMic = false;
     bool mSrc1MuteDirectPath = false;

@@ -563,7 +563,6 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     float earSpacing
     )
 {
-
     int fftLen = 1;
     int log2len = 0;
     while ((int)fftLen < SIMPLEHRTF_FFTLEN){
@@ -572,22 +571,20 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     }
     head.filterLength = fftLen;
 
-    std::vector<float> impulseHolder(fftLen * 2);
+    std::vector<float> impulseHolder(fftLen * 2, 0.0f);
     float *impulse(impulseHolder.data());
     memset(impulse, 0, sizeof(float) * fftLen * 2);
     impulse[0] = 1.0;
-
-    // Wavelengths smaller than a head are blocked by it:
-    //float cornerFreq = 0.25 * SPEED_OF_SOUND / (1.10*earSpacing); //~ 500Hz
-    float cornerFreq = float(SPEED_OF_SOUND / (1.10 * earSpacing)); //~ 2kHz
-    memset(head.lowPass, 0, sizeof(float) * fftLen);
-    memset(head.highPass, 0, sizeof(float) * fftLen);
 
     if (mFFT->Transform(TAN_FFT_TRANSFORM_DIRECTION_FORWARD, log2len, 1, &impulse, &impulse) != AMF_OK)
     {
         return;
     }
     //m_ata->Fft(1, &impulse, &impulse, log2len, AmdTrueAudio::TA_FFT_DIR::FORWARD);
+
+    // Wavelengths smaller than a head are blocked by it:
+    //float cornerFreq = 0.25 * SPEED_OF_SOUND / (1.10*earSpacing); //~ 500Hz
+    float cornerFreq = float(SPEED_OF_SOUND / (1.10 * earSpacing)); //~ 2kHz
 
     // filter it...
     for (int j = 0; j < fftLen; j++)
@@ -616,6 +613,9 @@ void TrueAudioVRimpl::generateSimpleHeadRelatedTransform(
     for (int i = 0; i < fftLen; i++){
         head.highPass[i] -= head.lowPass[i];
     }
+
+    //PrintArrayReduced("LP, difference is made by FFT", head.lowPass, fftLen);
+    //PrintArrayReduced("HP, difference is made by FFT", head.highPass, fftLen);
 }
 
 /**************************************************************************************************
@@ -761,7 +761,6 @@ TAN_SDK_LINK float estimateReverbTime(const RoomDefinition & room, float finaldB
         *nReflections = nH*nW*nL;
 
     return float(d / S); // reverb time in seconds
-
 }
 
 /**************************************************************************************************
@@ -866,29 +865,29 @@ each of the six walls, source and microphone positions in the room.
 
 **************************************************************************************************/
 AMF_RESULT TrueAudioVRimpl::generateRoomResponse(
-    const RoomDefinition & room,
-    MonoSource sound,
-    const StereoListener & ears,
-    int inSampRate,
-    int responseLength,
-    void *responseL,
-    void *responseR,
-    int flags,
-    int maxBounces
+    const RoomDefinition &  room,
+    MonoSource              sound,
+    const StereoListener &  ears,
+    int                     inSampRate,
+    int                     responseLength,
+    void *                  responseL,
+    void *                  responseR,
+    int                     flags,
+    int                     maxBounces
     )
 {
-    PrintDebug(__FUNCTION__);
+    //PrintDebug(__FUNCTION__);
 
-    room.Debug("room");
-    sound.Debug("sound");
-    ears.Debug("ears");
+    //room.Debug("room");
+    //sound.Debug("sound");
+    //ears.Debug("ears");
 
-    PrintDebug(
-        ES + std::to_string(inSampRate)
-        + " " + std::to_string(responseLength)
-        + " " + std::to_string(flags)
-        + " " + std::to_string(maxBounces)
-        );
+    //PrintDebug(
+    //    ES + std::to_string(inSampRate)
+    //    + " " + std::to_string(responseLength)
+    //    + " " + std::to_string(flags)
+    //    + " " + std::to_string(maxBounces)
+    //    );
 
     if (sound.speakerX > room.width) sound.speakerX = room.width;
     if (sound.speakerX < 0) sound.speakerX = 0;
@@ -937,7 +936,7 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponse(
         + std::to_string(nH) + " x "
         + std::to_string(nL) + " x = "
         + std::to_string(nW * nH * nL) + " reflections";
-    PrintDebug(info);
+    //PrintDebug(info);
 
     if (m_executionMode == VRExecutionMode::GPU)
     {
@@ -1017,9 +1016,9 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponse(
             if(flags & GENROOM_USE_GPU_MEM)
             {
 #ifndef TAN_NO_OPENCL
-                PrintCLArrayReduced(!chan ? "Left" : "Right", oclResponse, m_cmdQueue, 64);
+                //PrintCLArrayReduced(!chan ? "Left" : "Right", oclResponse, m_cmdQueue, 64);
 #else
-                PrintAMFArrayReduced(!chan ? "Left" : "Right", amfResponse, mCompute, 64);
+                //PrintAMFArrayReduced(!chan ? "Left" : "Right", amfResponse, mCompute, 64);
 #endif
 
                 generateRoomResponseGPU(
@@ -1250,8 +1249,8 @@ AMF_RESULT TrueAudioVRimpl::InitializeCL(
     status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
     status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
 
-    PrintCLArrayReduced("m_pResponse init", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
-    PrintCLArrayReduced("m_pFloatResponse init", m_pFloatResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("m_pResponse init", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("m_pFloatResponse init", m_pFloatResponse, m_cmdQueue, responseLength * sizeof(float));
 
     //void *frMap = clEnqueueMapBuffer(m_cmdQueue, m_pFloatResponse, CL_TRUE, CL_MAP_READ, 0, responseLength * sizeof(float), 0, NULL, NULL, &status);
 
@@ -1366,8 +1365,10 @@ AMF_RESULT TrueAudioVRimpl::InitializeAMF(
             )
         );
 
-    PrintAMFArrayReduced("mResponse init", mResponse, mCompute, responseLength * sizeof(float));
-    PrintAMFArrayReduced("floatResponse init", mFloatResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("mResponse init", mResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("floatResponse init", mFloatResponse, mCompute, responseLength * sizeof(float));
+    //PrintArrayReduced("ears.hrtf.highPass", ears.hrtf.highPass, HeadFilterSize * sizeof(float));
+    //PrintArrayReduced("ears.hrtf.lowPass", ears.hrtf.lowPass, HeadFilterSize * sizeof(float));
 
     //TODO: combine the LPF and HPF into one chunk of memory
     //m_pHPF = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -1448,15 +1449,15 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         nL
         };
     //PrintFloatArray("floats", floats, 9, 9);
-    PrintArray("ints", ints, 7, 7);
+    //PrintArray("ints", ints, 7, 7);
 
     //PrintCLArrayReduced("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float));
     //PrintCLArrayReduced("m_pLPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float));
-    PrintCLArray("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
-    PrintCLArray("m_pHPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    //PrintCLArray("m_pHPF", m_pHPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    //PrintCLArray("m_pHPF", m_pLPF, m_cmdQueue, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
 
-    PrintCLArrayReduced("m_pResponse bfr", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
-    PrintCLArrayReduced("floatResponse bfr", floatResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("m_pResponse bfr", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("floatResponse bfr", floatResponse, m_cmdQueue, responseLength * sizeof(float));
 
     //Set kernel arguments
     //TODO: pass parameters as structures
@@ -1500,8 +1501,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     status = clEnqueueNDRangeKernel(m_cmdQueue, m_kernel, 3, nullptr, m_globalWorkSize, localWorkSize, 0, NULL, NULL);
     AMF_RETURN_IF_CL_FAILED(status);
 
-    PrintCLArrayReduced("m_pResponse 1krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
-    PrintCLArrayReduced("floatResponse 1krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("m_pResponse 1krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("floatResponse 1krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
 
     //convert the response buffer
     size_t localSize = localSizeFill;
@@ -1509,8 +1510,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     status |= clSetKernelArg(m_kernelFill, 1, sizeof(cl_mem), &floatResponse);
     status |= clEnqueueNDRangeKernel(m_cmdQueue, m_kernelFill, 1, NULL, &m_globaSizeFill, &localSize, 0, NULL, NULL);
 
-    PrintCLArrayReduced("m_pResponse 2krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
-    PrintCLArrayReduced("floatResponse 2krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("m_pResponse 2krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
+    //PrintCLArrayReduced("floatResponse 2krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
 
     AMF_RETURN_IF_CL_FAILED(status, L"Error: generateRoomResponseGPU failed!");
 
@@ -1560,13 +1561,16 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         nL
         };
     //PrintFloatArray("floats", floats, 9, 9);
-    PrintArray("ints", ints, 7, 7);
+    //PrintArray("ints", ints, 7, 7);
 
-    PrintAMFArray("mHPF", mHPF, mCompute, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
-    PrintAMFArray("mLPF", mLPF, mCompute, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    //PrintAMFArray("mHPF", mHPF, mCompute, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    //PrintAMFArrayReduced("mHPF", mHPF, mCompute, HeadFilterSize * sizeof(float));
 
-    PrintAMFArrayReduced("mResponse bfr", mResponse, mCompute, responseLength * sizeof(float));
-    PrintAMFArrayReduced("floatResponse bfr", floatResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArray("mLPF", mLPF, mCompute, HeadFilterSize * sizeof(float), HeadFilterSize * sizeof(float));
+    //PrintAMFArrayReduced("mLPF", mLPF, mCompute, HeadFilterSize * sizeof(float));
+
+    //PrintAMFArrayReduced("mResponse bfr", mResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("floatResponse bfr", floatResponse, mCompute, responseLength * sizeof(float));
 
     //Set kernel arguments
     //TODO: pass parameters as structures
@@ -1618,8 +1622,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         mKernelResponse->Enqueue(3, nullptr, m_globalWorkSize, localWorkSize)
         );
 
-    PrintAMFArrayReduced("mResponse krn1", mResponse, mCompute, responseLength * sizeof(float));
-    PrintAMFArrayReduced("floatResponse krn2", floatResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("mResponse krn1", mResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("floatResponse krn2", floatResponse, mCompute, responseLength * sizeof(float));
 
     //convert the response buffer
     size_t localSize = localSizeFill;
@@ -1631,8 +1635,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         mKernelFill->Enqueue(1, nullptr, &m_globaSizeFill, &localSize)
         );
 
-    PrintAMFArrayReduced("mResponse krn2", mResponse, mCompute, responseLength * sizeof(float));
-    PrintAMFArrayReduced("floatResponse krn2", floatResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("mResponse krn2", mResponse, mCompute, responseLength * sizeof(float));
+    //PrintAMFArrayReduced("floatResponse krn2", floatResponse, mCompute, responseLength * sizeof(float));
 
     return AMF_OK;
 }

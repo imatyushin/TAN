@@ -23,11 +23,24 @@
 //
 
 //#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-#pragma OPENCL EXTENSION cl_amd_printf : enable
-#pragma OPENCL EXTENSION cl_amd_fp64 : enable
+//#pragma OPENCL EXTENSION cl_amd_printf : enable
+//#pragma OPENCL EXTENSION cl_amd_fp64 : enable
 
 #define __FLOAT__              float
 #define __FLOAT2__             float2
+
+void FHTIterationG(__local __FLOAT__ * data,
+	__constant __FLOAT__ * ang,
+	int n,
+	int n2,
+	int k );
+void FHTIterationG2(__local char * data,
+	__constant char * ang,
+	int n,
+	int n2,
+	int k );
+void FHTmad(__FLOAT__ * z_k, __FLOAT__ * z_N_k, __FLOAT__ x_k, __FLOAT__ x_N_k, __FLOAT__ y_k, __FLOAT__ y_N_k);
+
 
 //It will copy date from the source that is blockLenth long
 //to the out, the pad it with padLegnth zeros.  Offsets and
@@ -249,7 +262,7 @@ void amdFHTUploadConv(__global const char * in,
 {
 	int lcl_id = get_local_id(0);
 	int grp_id = get_group_id(0);
-	int chnl = get_group_id(1);
+	//int chnl = get_group_id(1);
 
 
 	__local char data[_K0_N<<2];
@@ -319,7 +332,7 @@ void amdFHTConvIn(__global const char * in,
 				)
 {
 	uint lcl_id = get_local_id(0);
-	uint glb_id = get_global_id(0);
+	//uint glb_id = get_global_id(0);
 	uint grp_id = get_group_id(0);
 	uint chnl = get_group_id(1);
 	uint chnl_id = channels_map[chnl];
@@ -418,12 +431,12 @@ void amdFHTPushIn(__global const char * in,
 				)
 {
 	int lcl_id = get_local_id(0);
-	int grp_id = get_group_id(0);
+	//int grp_id = get_group_id(0);
 	int chnl_index = get_group_id(1);
 
 	__local char data[(_K0_N) << 2];
 	uint chnl = channels_map[chnl_index];
-	uint version = versions_map[chnl_index];
+	//uint version = versions_map[chnl_index];
 	uint counter = round_counters[chnl];
 
 // read data with bit reverse
@@ -517,7 +530,7 @@ void amdFHTPushOut(__global const __FLOAT__ * in,
 				)
 {
 	int lcl_id = get_local_id(0);
-	int grp_id = get_group_id(0);
+	//int grp_id = get_group_id(0);
 	int chnl_index = get_group_id(1);
 
 	__local __FLOAT__ data[_K0_N];
@@ -746,7 +759,7 @@ void amdFHTConvHead1(__global const char * in, // pipelone input
 				)
 {
 	int lcl_id = get_local_id(0);
-	int grp_id = get_group_id(0);
+	//int grp_id = get_group_id(0);
 	int chnl_index = get_global_id(1);
 
 	__local char data[(_K0_N) << 2];

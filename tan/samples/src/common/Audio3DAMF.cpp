@@ -435,13 +435,13 @@ AMF_RESULT Audio3DAMF::InitObjects()
     //mTrueAudioVR->Initialize();
 
     std::cout
-        << "Room: " << room.width<< "fm W x " << room.length << "fm L x " << room.height << "fm H"
+        << "Room: " << mRoom.width<< "fm W x " << mRoom.length << "fm L x " << mRoom.height << "fm H"
         << std::endl;
 
     // head model:
     mTrueAudioVR->generateSimpleHeadRelatedTransform(
-        ears.hrtf,
-        ears.earSpacing
+        mEars.hrtf,
+        mEars.earSpacing
         );
 
     //To Do use gpu mem responses
@@ -451,9 +451,9 @@ AMF_RESULT Audio3DAMF::InitObjects()
         {
             AMF_RETURN_IF_FAILED(
                 mTrueAudioVR->generateRoomResponse(
-                    room,
-                    sources[idx],
-                    ears,
+                    mRoom,
+                    mSources[idx],
+                    mEars,
                     FILTER_SAMPLE_RATE,
                     mFFTLength,
                     mAMFResponses[idx * 2],
@@ -467,9 +467,9 @@ AMF_RESULT Audio3DAMF::InitObjects()
         {
             AMF_RETURN_IF_FAILED(
                 mTrueAudioVR->generateRoomResponse(
-                    room,
-                    sources[idx],
-                    ears,
+                    mRoom,
+                    mSources[idx],
+                    mEars,
                     FILTER_SAMPLE_RATE,
                     mFFTLength,
                     mResponses[idx * 2],
@@ -584,8 +584,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 )
             );
 
-        PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
@@ -596,8 +596,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             outputAMFBufferRight[src] = mOutputAMFBuffers[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        PrintAMFArray("::outputBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::outputBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::outputBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::outputBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
 
         //PrintAMFArray("::Mixer->MixB[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
         //PrintAMFArray("::Mixer->MixB[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
@@ -605,8 +605,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
-        PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffers[0], mCompute1, sampleCount * sizeof(float));
-        PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffers[1], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffers[0], mCompute1, sampleCount * sizeof(float));
+        //PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffers[1], mCompute1, sampleCount * sizeof(float));
 
         auto amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[0],
@@ -619,7 +619,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute1, 64);
+        //PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute1, 64);
 
         amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[1],
@@ -632,7 +632,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        PrintAMFArrayWithOffset("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute1, 64, sampleCount * sizeof(short));
+        //PrintAMFArrayWithOffset("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute1, 64, sampleCount * sizeof(short));
 
         AMF_RETURN_IF_FAILED(
             mTANConvolutionContext->GetConvQueue()->CopyBufferToHost(
@@ -684,12 +684,17 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
         ret = mConverter->Convert(mOutputMixFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
-     }
+    }
 
     //PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
     //PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
     static int counter(0);
+
+    if(!counter)
+    {
+        mUpdateParams = true;
+    }
 
     auto info = ES + "Process " + std::to_string(counter) + " ===============================================";
 
@@ -701,6 +706,12 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         ++i;
         //assert(false);
     }
+
+    //mCompute1->FinishQueue();
+    //mCompute2->FlushQueue();
+    //mCompute2->FinishQueue();
+    //mCompute3->FlushQueue();
+    //mCompute3->FinishQueue();
 
     return AMF_OK;
 }
@@ -967,18 +978,18 @@ int Audio3DAMF::UpdateProc()
         {
             if(mTrackHeadPos[idx])
             {
-                sources[idx].speakerX = ears.headX;
-                sources[idx].speakerY = ears.headY;
-                sources[idx].speakerZ = ears.headZ;
+                mSources[idx].speakerX = mEars.headX;
+                mSources[idx].speakerY = mEars.headY;
+                mSources[idx].speakerZ = mEars.headZ;
             }
 
             if(mUseComputeBuffers)
             {
                 AMF_RETURN_IF_FAILED(
                     mTrueAudioVR->generateRoomResponse(
-                        room,
-                        sources[idx],
-                        ears,
+                        mRoom,
+                        mSources[idx],
+                        mEars,
                         FILTER_SAMPLE_RATE,
                         mFFTLength,
                         mAMFResponsesInterfaces[idx * 2],
@@ -995,9 +1006,9 @@ int Audio3DAMF::UpdateProc()
 
                 AMF_RETURN_IF_FAILED(
                     mTrueAudioVR->generateRoomResponse(
-                        room,
-                        sources[idx],
-                        ears,
+                        mRoom,
+                        mSources[idx],
+                        mEars,
                         FILTER_SAMPLE_RATE,
                         mFFTLength,
                         mResponses[idx * 2],

@@ -340,22 +340,24 @@ static void SelectRoutine2(void * dir_inv[2],  int n ) {
 
 // sin(k/N*pi), cos(k/N*pi), ... (k=0..N/2-1)
 // n is POW(2)
-int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n) {
-	int err = 0;
-
-// alloc and fill sin_cos structure
-	//todo: ivm: seems incorrect
+int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n)
+{
+	//alloc and fill sin_cos structure
+	//todo: ivm: commented, seems incorrect, already allocated from caller
     //*tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__) *n);
-	for(int k = 0; k < n/2; k++ ) {
+
+	for(int k = 0; k < n/2; k++ )
+	{
 		(*tsincos)[k*2] = (__FLOAT__)sin((TWOPI*k/n));
 		(*tsincos)[k*2 + 1] = (__FLOAT__)cos((TWOPI*k/n));
 	}
 
 	*bit_reverse = genBitreverseTable( n );
-//    *bit_reverse = SelectReversedTable( n );
+	//*bit_reverse = SelectReversedTable( n );
 
 	*routine = SelectRoutine(n);
-	return(err);
+
+	return 0;
 }
 
 

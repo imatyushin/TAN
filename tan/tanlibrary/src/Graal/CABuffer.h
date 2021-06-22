@@ -134,7 +134,6 @@ public:
         }
         assert(mCount == count);
 
-
         if(buffer)
         {
             mSystemMemory = buffer;
@@ -465,12 +464,12 @@ public:
 #else
     AMF_RESULT copyToDeviceNonBlocking(const amf::AMFComputePtr & commandQueue, uint32_t flags, const T* data = NULL, size_t size = -1, size_t offset = 0)
     {
+        //todo: implement flags for metal
+
         AMF_RESULT err = AMF_OK;
 
         if (size!=-1 && (size > mCount || !data)) {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
+
             AMF_ASSERT(false, L"copyToDeviceA: wrong data");
 
             return AMF_INVALID_ARG;

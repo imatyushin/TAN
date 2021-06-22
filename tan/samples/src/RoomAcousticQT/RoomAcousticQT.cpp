@@ -645,8 +645,10 @@ void RoomAcousticQT::UpdateSoundSourcesPositions()
 
 void RoomAcousticQT::updateListenerPosition()
 {
-	mAudioEngine->updateHeadPosition(m_Listener.headX, m_Listener.headY, m_Listener.headZ,
-		m_Listener.yaw, m_Listener.pitch, m_Listener.roll);
+	mAudioEngine->updateHeadPosition(
+		m_Listener.headX, m_Listener.headY, m_Listener.headZ,
+		m_Listener.yaw, m_Listener.pitch, m_Listener.roll
+		);
 }
 
 void RoomAcousticQT::updateRoomDimention()

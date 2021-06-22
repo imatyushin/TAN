@@ -520,7 +520,7 @@ protected:
      * OpenCL related initialisations.
      * @return AMF_OK on success and AMF_FAIL on failure
      */
-    AMF_RESULT setupCL(const amf::AMFComputePtr & pComputeConvolution, const amf::AMFComputePtr & pComputeUpdate );
+    AMF_RESULT Setup(const amf::AMFComputePtr & pComputeConvolution, const amf::AMFComputePtr & pComputeUpdate );
 
     /**
      * Cleanup
@@ -712,8 +712,8 @@ protected:
 
 // internal state
     int algorithm_ = ALG_UNI_HEAD_TAIL;
-    int n_max_channels_ = 0;
-    int max_conv_sz_ = 0;
+    int mMaxChannels = 0;
+    int mMaxConvolutionSize = 0;
     int conv_log2_ = 0;
     int aligned_conv_sz_ = 0;  // size of convolution buffer with 0 padding if neded
     int max_proc_buffer_sz_ = 0;
@@ -723,10 +723,6 @@ protected:
     int n_aligned_proc_blocks_ = 0; // number of aligned blocks in aligned kernel buffer
     int mAlignedProcessingSize = 0;  // size of freq domain block
     int accum_stride_ = 0;  // stride of accum buffer per channel
-
-// FHT
-    std::unique_ptr<CABuf<float> > mSinCos;  // precomputeted sincos table
-    std::unique_ptr<CABuf<short> > mBitReverse;  // reverse bit table
 
     // single Graal OCL Q ???
 #ifndef TAN_SDK_EXPORTS
@@ -739,96 +735,106 @@ protected:
     cl_event eoh_event_;
 #endif
 
-    std::vector<std::vector<void*>> kernel_staging_;
+    // FHT
+    std::unique_ptr<CABuf<float> >          mSinCos;  // precomputeted sincos table
+    std::unique_ptr<CABuf<short> >          mBitReverse;  // reverse bit table
+
+    std::vector<std::vector< std::shared_ptr< CASubBuf<float> > > >
+                                            mKernelStaging;
     std::vector<std::vector< std::shared_ptr< CASubBuf<float> > > >
                                             mKernelTransformed; // per channel
     std::vector<std::shared_ptr<CASubBuf<float> > >
                                             mKernelTransformedStore; // per set
 
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
-    std::vector<void*> kernel_input_store_; // per set
+    std::vector<std::shared_ptr< CASubBuf<float> > >
+                                            mKernelInputStore; // per set
 #endif
-    // kernel channel map
-    void* kernel_channels_map_ = nullptr;
-// kernel set map
-    void* kernel_sets_map_ = nullptr;
-// kernel length map
-    void* kernel_lens_map_ = nullptr;
-// kernel input
-    std::unique_ptr<CABuf<float> > mKernelInputUnion;  // base union store
-// kernel storage
-    std::unique_ptr<CABuf<float> > mKernelTrasformedUnion;  // base union store
 
-protected:
+    // kernel channel map
+    std::unique_ptr<CABuf<int> >            mKernelChannelsMap;
+    // kernel set map
+    std::unique_ptr<CABuf<int> >            mKernelSetsMap;
+    // kernel length map
+    std::unique_ptr<CABuf<int> >            mKernelLensMap;
+
+    // kernel input
+    std::unique_ptr<CABuf<float> >          mKernelInputUnion;  // base union store
+    // kernel storage
+    std::unique_ptr<CABuf<float> >          mKernelTrasformedUnion;  // base union store
+
+    std::vector<std::shared_ptr<CABuf<float> > >
+                                            mHostInputStaging;
+
+    // round counter per channel and set
+    std::unique_ptr<CABuf<uint>>            mRoundCounters;
+    // channel map
+    std::unique_ptr<CABuf<int>>             mChannelsMap;
+
+    // set map
+    std::unique_ptr<CABuf<int>>             mSetsMap;
+    std::unique_ptr<CABuf<int>>             mSetsMapXf;
+
+    // input data
+    CABuf<float>                            mProcessInputStaging;
+
+    // input transformed history
+    std::unique_ptr<CABuf<float>>           mHistoryTransformed;
+    // output data
+    std::unique_ptr<CABuf<float>>           mProcess2OutputStaging;
+
+    //cmad accumulator
+    std::unique_ptr<CABuf<float> >          mCmadAccum;
+    std::unique_ptr<CABuf<float> >          mCmadAccumXF;// used to store data needed for crossfade
+    std::unique_ptr<CABuf<int> >            mCopyResponseInOffset;
+    std::unique_ptr<CABuf<int> >            mCopyResponseOutOffset;
+
 #ifndef TAN_NO_OPENCL
     //upload in a single run
-    cl_kernel                   mUploadKernel           = nullptr;
+    cl_kernel                               mUploadKernel           = nullptr;
     //upload per stream
-    cl_kernel                   mUploadKernel2          = nullptr;
+    cl_kernel                               mUploadKernel2          = nullptr;
 
-    cl_kernel                   mResetKernel            = nullptr;
-    cl_kernel                   mCopyWithPaddingKernel  = nullptr;
+    cl_kernel                               mResetKernel            = nullptr;
+    cl_kernel                               mCopyWithPaddingKernel  = nullptr;
 #else
-    amf::AMFComputeKernelPtr    mUploadKernel;
-    amf::AMFComputeKernelPtr    mUploadKernel2;
-    amf::AMFComputeKernelPtr    mResetKernel;
-    amf::AMFComputeKernelPtr    mCopyWithPaddingKernel;
+    amf::AMFComputeKernelPtr                mUploadKernel;
+    amf::AMFComputeKernelPtr                mUploadKernel2;
+    amf::AMFComputeKernelPtr                mResetKernel;
+    amf::AMFComputeKernelPtr                mCopyWithPaddingKernel;
 #endif
 
     int64_t round_counter_ = 0;
 
-    std::vector<std::shared_ptr<CABuf<float> > > mHostInputStaging;
-// combined state buffer channel/version/roound counter by number of stages
-    void * state_union_ = nullptr;
-
-// round counter per channel and set
-    std::unique_ptr<CABuf<uint>>    mRoundCounters;
-// channel map
-    void* channels_map_ = nullptr;
-// set map
-    void* sets_map_ = nullptr;
-	void* sets_map_xf = nullptr;
-// input data
-    CABuf<float> m_process_input_staging_;
-// input transformed history
-    void* history_transformed_ = nullptr;
-// output data
-    void* process2_output_staging_ = nullptr;
-
-// cmad accumulator
-    std::unique_ptr<CABuf<float> >  mCmadAccum;
-    std::unique_ptr<CABuf<float> >  mCmadAccumXF;// used to store data needed for crossfade
-    std::unique_ptr<CABuf<int> >    mCopyResponseInOffset;
-    std::unique_ptr<CABuf<int> >    mCopyResponseOutOffset;
-
-    int* host_copy_resp_in_offset = nullptr;
-    int* host_copy_resp_out_offset = nullptr;
+    std::vector<int>                        mHostCopyRespInOffset;
+    std::vector<int>                        mHostCopyRespOutOffset;
 
 #ifndef TAN_NO_OPENCL
-    cl_kernel                       mDirectTransformKernel      = nullptr;
-    cl_kernel                       mInverseTransformKernel     = nullptr;
-    std::vector<cl_kernel>          mCMADKernels;
-    cl_kernel                       mConvHead1                  = nullptr;
+    cl_kernel                               mDirectTransformKernel      = nullptr;
+    cl_kernel                               mInverseTransformKernel     = nullptr;
+    std::vector<cl_kernel>                  mCMADKernels;
+    cl_kernel                               mConvHead1                  = nullptr;
 #else
-    amf::AMFComputeKernelPtr        mDirectTransformKernel;
-    amf::AMFComputeKernelPtr        mInverseTransformKernel;
+    amf::AMFComputeKernelPtr                mDirectTransformKernel;
+    amf::AMFComputeKernelPtr                mInverseTransformKernel;
     std::vector<amf::AMFComputeKernelPtr>
-                                    mCMADKernels;
-    amf::AMFComputeKernelPtr        mConvHead1;
+                                            mCMADKernels;
+    amf::AMFComputeKernelPtr                mConvHead1;
 #endif
 
 #ifndef TAN_NO_OPENCL
-    cl_event m_headTailKernelEvent = nullptr;
-    cl_event m_pullKernelEvent = nullptr;
+    cl_event                                m_headTailKernelEvent = nullptr;
+    cl_event                                m_pullKernelEvent = nullptr;
 #else
     //todo:
     //events seems not needed in Graal1
 #endif
 
-    void * FHT_transformCPU_ = nullptr;
-    float m_dataBuff[32] = {0};
-// verification/log
-    int verify = 0;
+    void *                                  mFHTTransformCPUFunction = nullptr;
+    float                                   m_dataBuff[32] = {0};
+
+    //verification/log
+    int                                     mVerify = 0;
 };
 
 };

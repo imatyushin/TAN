@@ -222,7 +222,7 @@ namespace amf
 
                 if(IsHost() && mBuffersAllocated)
                 {
-                    //PrintFloatArray(channelHint.c_str(), mChannels.host[0], count);
+                    //PrintArray(channelHint.c_str(), mChannels.host[0], count);
                 }
     #ifndef TAN_NO_OPENCL
                 else if(IsCL() && mBuffersAllocated)
