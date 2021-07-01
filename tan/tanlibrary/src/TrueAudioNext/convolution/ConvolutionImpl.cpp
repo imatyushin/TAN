@@ -429,7 +429,7 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    PrintAMFArrayReduced(
+    /*PrintAMFArrayReduced(
         "::UpdateResponseTD-input[0]",
         ppBuffer[0],
         m_pContextTAN->GetAMFConvQueue(),
@@ -440,7 +440,7 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
         ppBuffer[1],
         m_pContextTAN->GetAMFConvQueue(),
         numOfSamplesToProcess * sizeof(float)
-        );
+        );*/
 
     // process
     TANSampleBuffer sampleBuffer;
@@ -1804,6 +1804,9 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
 
 #else
 
+        PrintAMFArrayReduced("bfr Crossfade[0]", mAMFCLXFadeMasterBuffers[0], crossfadeQueue, mAMFCLXFadeMasterBuffers[0]->GetSize());
+        PrintAMFArrayReduced("bfr Crossfade[1]", mAMFCLXFadeMasterBuffers[1], crossfadeQueue, mAMFCLXFadeMasterBuffers[1]->GetSize());
+
         amf_size global[3] = { numOfSamplesToProcess, m_iChannels, 0 };
         amf_size local[3] = { (numOfSamplesToProcess>256) ? 256 : numOfSamplesToProcess, 1, 0 };
 
@@ -1814,9 +1817,11 @@ AMF_RESULT AMF_FAST_CALL TANConvolutionImpl::Crossfade(
         AMF_RETURN_IF_FAILED(
             mKernelCrossfade->Enqueue(2, nullptr, global, local)
             );
+        mUpdateQueueAMF->FlushQueue();
+        mUpdateQueueAMF->FinishQueue();
 
-        PrintAMFArray("aft mAMFCLXFadeMasterBuffers[0]", mAMFCLXFadeMasterBuffers[0], crossfadeQueue, 64);
-        PrintAMFArray("aft mAMFCLXFadeMasterBuffers[1]", mAMFCLXFadeMasterBuffers[1], crossfadeQueue, 64);
+        PrintAMFArrayReduced("aft Crossfade[0]", mAMFCLXFadeMasterBuffers[0], crossfadeQueue, mAMFCLXFadeMasterBuffers[0]->GetSize());
+        PrintAMFArrayReduced("aft Crossfade[1]", mAMFCLXFadeMasterBuffers[1], crossfadeQueue, mAMFCLXFadeMasterBuffers[1]->GetSize());
 
         for (amf_uint32 c = 0; c < m_iChannels; c++)
         {
@@ -2526,8 +2531,6 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
             SAFE_ARR_DELETE(m_s_versions[0]);
             SAFE_ARR_DELETE(m_s_versions[1]);
             SAFE_ARR_DELETE(m_s_channels);
-
-            mGraalConv = 0;
         }
 
     }
@@ -3734,6 +3737,16 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
                     pOutputData.GetType()
                     );
             }
+
+            //hotfix to avoid assert
+            if(m_internalOutBufs.IsComputeBuffer() && pOutputData.IsHost())
+            {
+                assert(!m_internalOutBufs.IsBuffersAllocated());
+                auto channelsCount = m_internalOutBufs.GetChannelsCount();
+                m_internalOutBufs.Release();
+                m_internalOutBufs.AllocateChannels(channelsCount, amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST);
+            }
+
             assert(m_internalOutBufs.GetType() == pOutputData.GetType());
 
             if(pOutputData.IsComputeBuffer())
