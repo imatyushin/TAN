@@ -117,7 +117,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
     {
 		//todo: integrate metal fft
 #ifndef ENABLE_METAL
-        return InitGpu();
+        //return InitGpu();
 #endif
     }
 

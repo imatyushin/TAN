@@ -803,7 +803,7 @@ public:
     }
 #endif
 
-    inline virtual T * & getSysMem()
+    inline virtual T * & GetSystemMemory()
     {
         if (!mSystemMemory)
         {
@@ -886,7 +886,7 @@ public:
         assert(CABuf<T>::GetBuffer());
     }
 
-    AMF_RESULT create(size_t offset, size_t size, uint32_t flags)
+    AMF_RESULT Create(size_t offset, size_t size, uint32_t flags)
     {
         AMF_RESULT ret = AMF_OK;
 
@@ -936,16 +936,16 @@ public:
         return ret;
     }
 
-    int create(size_t size, uint32_t flags)
+    int Create(size_t size, uint32_t flags)
     {
-        create(0, size, flags);
+        Create(0, size, flags);
     }
 
-    T * & getSysMem(void) override
+    T * & GetSystemMemory(void) override
     {
         if(!CABuf< T >::mSystemMemory)
         {
-            CABuf< T >::mSystemMemory = getSysMem();
+            CABuf< T >::mSystemMemory = GetSystemMemory();
 
                                                      //todo: investigate retcode usage
             AMF_RETURN_IF_FALSE(CABuf< T >::mSystemMemory != nullptr, CABuf< T >::mSystemMemory, L"Internal error: subbuffer's parent failed to allocate system memory");

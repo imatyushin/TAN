@@ -772,7 +772,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                 }
 
                 AMF_RETURN_IF_FAILED(
-                    mGraalConv->uploadConvHostPtrs(
+                    mGraalConv->uploadConvHostPtrs( //!!
                         n_channels,
                         m_uploadArgs.versions,
                         m_uploadArgs.channels,
@@ -2806,7 +2806,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 
                 // Copy data to the new slot, as this channel can be still processed (user doesn't
                 // pass Stop flag to Process() method) and we may start doing cross-fading.
-                ret = mGraalConv->copyResponses(
+                ret = mGraalConv->copyResponses( //!!
                     m_copyArgs.updatesCnt,
                     (uint*)m_copyArgs.prevVersions,
                     (uint*)m_copyArgs.versions,
@@ -4033,7 +4033,7 @@ AMF_RESULT TANConvolutionImpl::ProcessInternal(
         {
             if (pOutputData.IsHost())
             {
-                ret = mGraalConv->process(
+                ret = mGraalConv->process( //!!
                     n_channels,
                     m_s_versions[m_param_buf_idx],
                     m_s_channels,
