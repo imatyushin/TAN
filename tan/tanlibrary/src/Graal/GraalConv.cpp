@@ -2488,12 +2488,15 @@ AMF_RESULT CGraalConv::Setup
     mSinCos.reset(new CABuf<float>(context));
     mBitReverse.reset(new CABuf<short>(context));
 
-    mSinCos->SetCount(mAlignedProcessingSize);
-    mBitReverse->SetCount(mAlignedProcessingSize);
+    mSinCos->CreateSystemMemory(mAlignedProcessingSize);
+    mBitReverse->CreateSystemMemory(mAlignedProcessingSize);
+
+    auto sinCos(mSinCos->GetSystemMemory());
+    auto bitReverse(mBitReverse->GetSystemMemory());
 
     FHTInit(
-        &(mSinCos->GetSystemMemory()),
-        &(mBitReverse->GetSystemMemory()),
+        mSinCos->GetSystemMemory(),
+        mBitReverse->GetSystemMemory(),
         (FHT_FUNC *)&mFHTTransformCPUFunction,
         mAlignedProcessingSize
         );
@@ -2628,7 +2631,7 @@ AMF_RESULT CGraalConv::Setup
 	ret = mRoundCounters->create(mMaxChannels * n_sets_, 0, pComputeConvolution->GetMemoryType());
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     mRoundCounters->setValue2(graalQueue, 0);
-    mRoundCounters->GetSystemMemory();   // allocate backing system memory block.
+    mRoundCounters->CreateSystemMemory(mRoundCounters->GetCount());
     initBuffer(mRoundCounters.get(), graalQueue);
 
     // channels map

@@ -46,33 +46,6 @@ public:
     }
 #endif
 
-    /*// TO DO : correct copy costructor, operator =, clone()
-    CABuf(const CABuf & src)
-    {
-        assert(!mCount);
-        assert(!mComputeBufferAllocated);
-        assert(!mSystemMemoryAllocated);
-
-        mContext = src.mContext;
-        mMappingQueue = src.mMappingQueue;
-        mMemoryType = src.mMemoryType;
-        mComputeKernel = src.mComputeKernel;
-        mSystemMemory = nullptr;
-    T *                         mMappedMemory = nullptr;
-
-#ifndef TAN_NO_OPENCL
-    cl_mem                      mBufferCL = nullptr;
-#else
-    amf::AMFBuffer *            mBufferAMF = nullptr;
-#endif
-
-    size_t                      mCount = 0;
-    uint32_t                    mFlags = 0;
-    bool                        mSystemMemoryAllocated = false;
-    bool                        mComputeBufferAllocated = false;
-
-    }*/
-
     CABuf()
     {
     }
@@ -81,14 +54,6 @@ public:
     {
         release();
     }
-
-/*
-    CABuf clone(void)
-    {
-        CABuf new_buf(mContext);
-        return(new_buf);
-    }
-*/
 
     AMF_RESULT create(T *buffer, size_t count, uint32_t flags, amf::AMF_MEMORY_TYPE memoryType)
     {
@@ -136,6 +101,7 @@ public:
 
         if(buffer)
         {
+            assert(false);
             mSystemMemory = buffer;
         }
 
@@ -160,10 +126,9 @@ public:
             AMF_RETURN_IF_FAILED(create(size, flags));
         }
 
-        if ( mSystemMemoryAllocated && mSystemMemory  && old_ptr != buffer)
+        if(mSystemMemory != buffer)
         {
-            delete [] mSystemMemory;
-            mSystemMemory = 0;
+            ReleaseSystemMemory();
         }
 
         mSystemMemory = (T*)buffer;
@@ -527,7 +492,7 @@ public:
                 CL_TRUE,
                 0,
                 mCount * sizeof(T),
-                mSystemMemory,
+                GetSystemMemory(),
                 0,
                 NULL,
                 NULL
@@ -569,7 +534,7 @@ public:
                 mBufferAMF,
                 0,
                 mCount * sizeof(T),
-                mSystemMemory,
+                GetSystemMemory(),
                 true
                 )
             );
@@ -791,7 +756,7 @@ public:
     */
 
 #ifndef TAN_NO_OPENCL
-    inline const cl_mem &                   GetBuffer() const
+    inline const cl_mem &                       GetBuffer() const
     {
         assert(mBufferCL);
         return mBufferCL;
@@ -803,49 +768,43 @@ public:
     }
 #endif
 
-    inline virtual T * & GetSystemMemory()
+    AMF_RESULT CreateSystemMemory(size_t count)
     {
-        if (!mSystemMemory)
+        assert(!mSystemMemoryAllocated && !mSystemMemory);
+        assert(!mCount || mCount == count);
+        assert(!mComputeBufferAllocated || mCount == count);
+
+        mSystemMemory = new T[count];
+        AMF_RETURN_IF_FALSE(!!mSystemMemory, AMF_OUT_OF_MEMORY);
+
+        mCount = count;
+        mSystemMemoryAllocated = true;
+
+        return AMF_OK;
+    }
+
+    AMF_RESULT ReleaseSystemMemory()
+    {
+        if(mSystemMemoryAllocated)
         {
-            mSystemMemory = new T[mCount];
-            AMF_ASSERT(mSystemMemory != nullptr, L"Cannot allocate memory: %lu", mCount * sizeof(T));
-
-            //todo: ivm: seems wrong!
-            //mComputeBufferAllocated = true;
-
-            //todo: ivm: seem correct
-            mSystemMemoryAllocated = true;
+            assert(mSystemMemory);
+            delete [] mSystemMemory;
+            mSystemMemory = nullptr;
         }
+        else
+        {
+            assert(!mSystemMemory);
+        }
+    }
+
+    virtual T * & GetSystemMemory()
+    {
+        assert(mSystemMemory);
 
         return mSystemMemory;
     }
 
-    inline T * & getMappedMem(void)
-    {
-        return(mMappedMemory);
-    }
-
-    inline void setSysOwnership(bool own )
-    {
-        mSystemMemoryAllocated = own;
-    }
-
-    inline bool getSysOwnership(void)
-    {
-        return(mSystemMemoryAllocated);
-    }
-
-    // DANGEROUS
-    inline void SetCount(size_t size)
-    {
-        assert(!mCount);
-        assert(!mComputeBufferAllocated);
-        assert(!mSystemMemoryAllocated);
-
-        mCount = size;
-    }
-
-    inline size_t GetCount(void)
+    inline size_t GetCount()
     {
         return(mCount);
     }
@@ -936,23 +895,13 @@ public:
         return ret;
     }
 
-    int Create(size_t size, uint32_t flags)
+    T * & GetSystemMemory() override
     {
-        Create(0, size, flags);
-    }
+        auto &systemMemory(CABuf<T>::GetSystemMemory());
+        AMF_RETURN_IF_FALSE(!!systemMemory, systemMemory, L"Internal error: subbuffer's parent failed to allocate system memory");
 
-    T * & GetSystemMemory(void) override
-    {
-        if(!CABuf< T >::mSystemMemory)
-        {
-            CABuf< T >::mSystemMemory = GetSystemMemory();
-
-                                                     //todo: investigate retcode usage
-            AMF_RETURN_IF_FALSE(CABuf< T >::mSystemMemory != nullptr, CABuf< T >::mSystemMemory, L"Internal error: subbuffer's parent failed to allocate system memory");
-            CABuf< T >::mSystemMemory += mOffset;
-        }
-
-        return CABuf< T >::mSystemMemory;
+        systemMemory += mOffset;
+        return systemMemory;
     }
 
 protected:
