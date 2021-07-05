@@ -27,6 +27,8 @@
 #include "public/include/core/Compute.h"
 #include "public/include/core/Buffer.h"
 
+//#include <iostream>
+
 namespace graal
 {
 
@@ -46,6 +48,33 @@ public:
     }
 #endif
 
+    /*// TO DO : correct copy costructor, operator =, clone()
+    CABuf(const CABuf & src)
+    {
+        assert(!mCount);
+        assert(!mComputeBufferAllocated);
+        assert(!mSystemMemory.size());
+
+        mContext = src.mContext;
+        mMappingQueue = src.mMappingQueue;
+        mMemoryType = src.mMemoryType;
+        mComputeKernel = src.mComputeKernel;
+        mSystemMemory = nullptr;
+    T *                         mMappedMemory = nullptr;
+
+#ifndef TAN_NO_OPENCL
+    cl_mem                      mBufferCL = nullptr;
+#else
+    amf::AMFBuffer *            mBufferAMF = nullptr;
+#endif
+
+    size_t                      mCount = 0;
+    uint32_t                    mFlags = 0;
+    bool                        mSystemMemoryAllocated = false;
+    bool                        mComputeBufferAllocated = false;
+
+    }*/
+
     CABuf()
     {
     }
@@ -55,13 +84,24 @@ public:
         release();
     }
 
-    AMF_RESULT create(T *buffer, size_t count, uint32_t flags, amf::AMF_MEMORY_TYPE memoryType)
+/*
+    CABuf clone(void)
     {
-        assert(!buffer);
+        CABuf new_buf(mContext);
+        return(new_buf);
+    }
+*/
 
+    virtual AMF_RESULT create(size_t count, uint32_t flags, amf::AMF_MEMORY_TYPE memoryType)
+    {
         AMF_RETURN_IF_FALSE(count != 0, AMF_INVALID_ARG);
-        assert(!mSystemMemoryAllocated || !buffer);
-        assert(!mCount || (count == mCount));
+
+        if(!mSystemMemory.size())
+        {
+            AMF_RETURN_IF_FAILED(CreateSystemMemory(count));
+        }
+
+        assert(mCount == count);
 
         AMF_RESULT ret = AMF_OK;
 
@@ -72,7 +112,7 @@ public:
             mContext,
             flags,
             count * sizeof(T),
-            buffer,
+            nullptr, //buffer removed because not used anywhere
             &success
             );
         AMF_RETURN_IF_CL_FAILED(success);
@@ -92,32 +132,30 @@ public:
         mComputeBufferAllocated = true;
         mFlags = flags;
 
-        if(!mCount)
-        {
-            //todo: ivm
-            mCount = count;
-        }
-        assert(mCount == count);
-
-        if(buffer)
-        {
-            assert(false);
-            mSystemMemory = buffer;
-        }
-
         return ret;
     }
 
-    AMF_RESULT create(size_t size, uint32_t flags, amf::AMF_MEMORY_TYPE memoryType)
+    inline AMF_RESULT CreateSystemMemory(size_t count)
     {
-        return create(nullptr, size, flags, memoryType);
+        assert(!mCount);
+        assert(!mSystemMemory.size());
+        assert(!mComputeBufferAllocated);
+
+        mSystemMemory.resize(count);
+        AMF_RETURN_IF_FALSE(mSystemMemory.size() == count, AMF_OUT_OF_MEMORY);
+
+        mCount = count;
+
+        return AMF_OK;
     }
 
-// TO DO :: CORECT
+    /*
+    // TO DO :: CORECT
     AMF_RESULT attach(const T *buffer, size_t size)
     {
         AMF_RESULT ret = AMF_OK;
         uint32_t flags = mFlags;
+
         bool old_sys_own = mSystemMemoryAllocated;
         T * old_ptr = mSystemMemory;
 
@@ -126,9 +164,10 @@ public:
             AMF_RETURN_IF_FAILED(create(size, flags));
         }
 
-        if(mSystemMemory != buffer)
+        if( mSystemMemoryAllocated && mSystemMemory  && old_ptr != buffer)
         {
-            ReleaseSystemMemory();
+            delete [] mSystemMemory;
+            mSystemMemory = 0;
         }
 
         mSystemMemory = (T*)buffer;
@@ -136,32 +175,25 @@ public:
         mSystemMemoryAllocated = (old_ptr != buffer) ? false : old_sys_own;
 
         return ret;
-    }
+    }*/
 
 // TO DO : CORRECT
 #ifndef TAN_NO_OPENCL
-    AMF_RESULT attach(
-        cl_mem buffer,
-        size_t size
-        )
+    AMF_RESULT attach(cl_mem buffer, size_t size)
     {
-        AMF_RESULT ret = AMF_OK;
-
         if(buffer != mBufferCL || size > mCount)
         {
             AMF_RETURN_IF_FAILED(release());
+
             mBufferCL = buffer;
             mCount = size;
             mComputeBufferAllocated = false;
         }
 
-        return ret;
+        return AMF_OK;
     }
 #else
-    AMF_RESULT attach(
-        amf::AMFBuffer * buffer,
-        size_t size
-        )
+    AMF_RESULT attach(amf::AMFBuffer * buffer, size_t size)
     {
         AMF_RESULT ret = AMF_OK;
 
@@ -360,7 +392,7 @@ public:
     AMF_RESULT copyToDevice(const amf::AMFComputePtr & commandQueue, uint32_t flags)
     {
         assert(mCount);
-        assert(mSystemMemory);
+        assert(mSystemMemory.size());
 
         AMF_RESULT err = AMF_OK;
 
@@ -374,7 +406,7 @@ public:
 
         AMF_RETURN_IF_FAILED(
             commandQueue->CopyBufferFromHost(
-                mSystemMemory,
+                &mSystemMemory.front(),
                 mCount * sizeof(T),
                 mBufferAMF,
                 0, //offset
@@ -427,35 +459,43 @@ public:
         return AMF_FAIL;
     }
 #else
-    AMF_RESULT copyToDeviceNonBlocking(const amf::AMFComputePtr & commandQueue, uint32_t flags, const T* data = NULL, size_t size = -1, size_t offset = 0)
+    AMF_RESULT copyToDeviceNonBlocking(
+        const amf::AMFComputePtr &  commandQueue,
+        uint32_t                    flags,
+        const T *                   data            = NULL,
+        size_t                      count           = -1,
+        size_t                      offset          = 0
+        )
     {
         //todo: implement flags for metal
 
         AMF_RESULT err = AMF_OK;
 
-        if (size!=-1 && (size > mCount || !data)) {
-
+        if(count != -1 && (count > mCount || !data))
+        {
             AMF_ASSERT(false, L"copyToDeviceA: wrong data");
 
             return AMF_INVALID_ARG;
         }
 
-        if (!mBufferAMF)
+        if(!mBufferAMF)
         {
-            AMF_RETURN_IF_FAILED(create(mCount * sizeof(T), flags, commandQueue->GetMemoryType()));
+            AMF_RETURN_IF_FAILED(
+                create(mCount * sizeof(T), flags, commandQueue->GetMemoryType())
+                );
         }
 
-        size_t len = (size!=-1 )? size : mCount;
-        const T * sys_ptr = (size!=-1) ? data : mSystemMemory;
-        AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
-                            L"Internal error: buffer hasn't been preallocated");
+        size_t countToCopy = (count != -1) ? count : mCount;
+        auto systemMemory = data ? data : &mSystemMemory.front();
+
+        AMF_RETURN_IF_INVALID_POINTER(systemMemory, L"Internal error: buffer hasn't been preallocated");
         AMF_RETURN_IF_FAILED(
             commandQueue->CopyBufferFromHost(
-                sys_ptr,
-                len * sizeof(T),
+                systemMemory,
+                countToCopy * sizeof(T),
                 mBufferAMF,
                 offset * sizeof(T),
-                false
+                true
                 )
             );
 
@@ -469,21 +509,6 @@ public:
         AMF_RESULT err = AMF_OK;
 
         AMF_RETURN_IF_FALSE(!!mCount && !!mBufferCL, AMF_FAIL);
-
-        if ( !mSystemMemory )
-        {
-            mSystemMemory = new T[mCount];
-            if(!mSystemMemory )
-            {
-                err = AMF_FAIL;
-#ifdef _DEBUG_PRINTF
-                printf("error creating buffer: %d\n", err);
-#endif
-                AMF_ASSERT(false, L"error creating buffer: %d\n", err);
-                return err;
-            }
-            mSystemMemoryAllocated = true;
-        }
 
         AMF_RETURN_IF_CL_FAILED(
             clEnqueueReadBuffer(
@@ -506,27 +531,10 @@ public:
     {
         AMF_RESULT err = AMF_OK;
 
-        if(!mCount || !mBufferAMF) {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
+        if(!mCount || !mBufferAMF)
+        {
             AMF_ASSERT(false, L"copyToHost: wrong data");
             return AMF_INVALID_ARG;
-        }
-
-        if(!mSystemMemory)
-        {
-            mSystemMemory = new T[mCount];
-            if(!mSystemMemory )
-            {
-                err = AMF_FAIL;
-#ifdef _DEBUG_PRINTF
-                printf("error creating buffer: %d\n", err);
-#endif
-                AMF_ASSERT(false, L"error creating buffer: %d\n", err);
-                return err;
-            }
-            mSystemMemoryAllocated = true;
         }
 
         AMF_RETURN_IF_FAILED(
@@ -639,13 +647,13 @@ public:
     }*/
 
 #ifndef TAN_NO_OPENCL
-    AMF_RESULT setValue2(cl_command_queue commandQueue, T _val, size_t size = 0, size_t offset = 0)
+    AMF_RESULT setValue2(cl_command_queue commandQueue, T value, size_t count = 0, size_t offset = 0)
     {
         AMF_RESULT err = AMF_OK;
 
-        int len = (size != 0) ? size: mCount;
+        int count2Fill = (count != 0) ? count : mCount;
 
-        if (NULL != commandQueue)
+        if(commandQueue)
         {
             cl_int returnCode(CL_SUCCESS);
 
@@ -656,10 +664,10 @@ public:
                 clEnqueueFillBuffer(
                     commandQueue,
                     mBufferCL,
-                    (const void *)&_val,
-                    sizeof(_val),
+                    (const void *)&value,
+                    sizeof(value),
                     offset * sizeof(T),
-                    len * sizeof(T),
+                    count2Fill * sizeof(T),
                     0,
                     nullptr,
                     &event
@@ -670,35 +678,47 @@ public:
                 );
         }
 
-        for (int i = offset; mSystemMemory && i < len; i++)
+        for (int i = offset; mSystemMemory && i < count2Fill; i++)
         {
-            mSystemMemory[i] = _val;
+            mSystemMemory[i] = value;
         }
 
         return err;
     }
 #else
-    AMF_RESULT setValue2(amf::AMFCompute * commandQueue, T _val, size_t size = 0, size_t offset = 0)
+    AMF_RESULT setValue2(amf::AMFCompute * compute, T value, size_t count = 0, size_t offset = 0)
     {
         AMF_RESULT err = AMF_OK;
-        int len = (size != 0) ? size: mCount;
 
-        if(commandQueue)
+        size_t count2Fill = (count != 0) ? count : mCount;
+        size_t size2FillInBytes = count2Fill * sizeof(T);
+        size_t offsetInBytes = offset * sizeof(T);
+        assert(offsetInBytes + size2FillInBytes <= mBufferAMF->GetSize());
+
+        if(!value)
+        {
+            assert(!offsetInBytes && size2FillInBytes == mBufferAMF->GetSize());
+        }
+
+        if(compute)
         {
             AMF_RETURN_IF_FAILED(
-                commandQueue->FillBuffer(
+                compute->FillBuffer(
                     mBufferAMF,
                     offset * sizeof(T),
-                    len * sizeof(T),
-                    (const void *)&_val,
-                    sizeof(_val)
+                    count2Fill * sizeof(T),
+                    &value,
+                    sizeof(T)
                     )
                 );
         }
 
-        for (int i = offset; mSystemMemory && i < len; i++)
+        if(mSystemMemory.size())
         {
-            mSystemMemory[i] = _val;
+            for(int i = offset; i < count2Fill; i++)
+            {
+                mSystemMemory[i] = value;
+            }
         }
 
         return err;
@@ -708,14 +728,10 @@ public:
     AMF_RESULT release()
     {
         AMF_RESULT ret = AMF_OK;
-        if ( mSystemMemoryAllocated && mSystemMemory)
-        {
-            delete [] mSystemMemory;
-            mSystemMemory = 0;
-        }
-        mSystemMemoryAllocated  = false;
 
-        if ( mComputeBufferAllocated )
+        mSystemMemory.resize(0);
+
+        if(mComputeBufferAllocated)
         {
             unmap();
 
@@ -738,6 +754,8 @@ public:
         mComputeBufferAllocated = false;
         mCount = 0;
 
+        assert(!mMappedMemory);
+
         return ret;
     }
 
@@ -756,57 +774,28 @@ public:
     */
 
 #ifndef TAN_NO_OPENCL
-    inline const cl_mem &                       GetBuffer() const
+    inline cl_mem                           GetBuffer()
     {
         assert(mBufferCL);
         return mBufferCL;
     }
 #else
-    inline /*const*/ amf::AMFBuffer *           GetBuffer() const
+    inline amf::AMFBuffer *                 GetBuffer()
     {
         return mBufferAMF;
     }
 #endif
 
-    AMF_RESULT CreateSystemMemory(size_t count)
+    virtual T *                             GetSystemMemory()
     {
-        assert(!mSystemMemoryAllocated && !mSystemMemory);
-        assert(!mCount || mCount == count);
-        assert(!mComputeBufferAllocated || mCount == count);
+        assert(mSystemMemory.size());
 
-        mSystemMemory = new T[count];
-        AMF_RETURN_IF_FALSE(!!mSystemMemory, AMF_OUT_OF_MEMORY);
-
-        mCount = count;
-        mSystemMemoryAllocated = true;
-
-        return AMF_OK;
+        return &mSystemMemory.front();
     }
 
-    AMF_RESULT ReleaseSystemMemory()
+    inline size_t                           GetCount() const
     {
-        if(mSystemMemoryAllocated)
-        {
-            assert(mSystemMemory);
-            delete [] mSystemMemory;
-            mSystemMemory = nullptr;
-        }
-        else
-        {
-            assert(!mSystemMemory);
-        }
-    }
-
-    virtual T * & GetSystemMemory()
-    {
-        assert(mSystemMemory);
-
-        return mSystemMemory;
-    }
-
-    inline size_t GetCount()
-    {
-        return(mCount);
+        return mCount;
     }
 
 protected:
@@ -820,7 +809,7 @@ protected:
     amf::AMFComputeKernelPtr    mComputeKernel;
 #endif
 
-    T *                         mSystemMemory = nullptr;
+    std::vector<T>              mSystemMemory;
     T *                         mMappedMemory = nullptr;
 
 #ifndef TAN_NO_OPENCL
@@ -831,7 +820,7 @@ protected:
 
     size_t                      mCount = 0;
     uint32_t                    mFlags = 0;
-    bool                        mSystemMemoryAllocated = false;
+    //bool                        mSystemMemoryAllocated = false;
     bool                        mComputeBufferAllocated = false;
 };
 
@@ -844,20 +833,24 @@ public:
     {
         assert(CABuf<T>::GetBuffer());
     }
-
-    AMF_RESULT Create(size_t offset, size_t size, uint32_t flags)
+                                   //count, not a size in bytes
+    AMF_RESULT Create(size_t offset, size_t count, uint32_t flags)
     {
-        AMF_RESULT ret = AMF_OK;
+        assert(count);
+        AMF_RETURN_IF_FALSE(count > 0, AMF_FAIL);
 
-        AMF_RETURN_IF_FALSE(size > 0, AMF_OK);
+        auto offsetInBytes = offset * sizeof(T);
+        auto sizeInBytes = count * sizeof(T);
 
-        mOffset = offset;
+        assert(offsetInBytes + sizeInBytes <= CABuf<T>::GetBuffer()->GetSize());
+
+        //std::cout << sizeInBytes << offsetInBytes << std::endl;
 
 #ifndef TAN_NO_OPENCL
         cl_buffer_region region = {0};
 
-        region.origin = offset * sizeof(T);
-        region.size = size * sizeof(T);
+        region.origin = offsetInBytes;
+        region.size = sizeInBytes;
 
         cl_int returnCode(CL_SUCCESS);
         auto subBuffer = clCreateSubBuffer(
@@ -880,28 +873,33 @@ public:
         AMF_RETURN_IF_FAILED(
             bufferEx->CreateSubBuffer(
                 &subBuffer,
-                offset * sizeof(T),
-                size * sizeof(T)
+                offsetInBytes,
+                sizeInBytes
                 )
             );
 
         CABuf<T>::mBufferAMF = subBuffer;
 #endif
 
-        CABuf<T>::mCount = size;
+        CABuf<T>::mCount = count;
         CABuf<T>::mComputeBufferAllocated = true;
         CABuf<T>::mFlags = flags;
+        mOffset = offset;
 
-        return ret;
+        return AMF_OK;
     }
 
-    T * & GetSystemMemory() override
+    /*virtual AMF_RESULT create(size_t size, uint32_t flags)
     {
-        auto &systemMemory(CABuf<T>::GetSystemMemory());
-        AMF_RETURN_IF_FALSE(!!systemMemory, systemMemory, L"Internal error: subbuffer's parent failed to allocate system memory");
+        create(0, size, flags);
+    }*/
 
-        systemMemory += mOffset;
-        return systemMemory;
+    T * GetSystemMemory() override
+    {
+        auto systemMemory(CABuf<T>::GetSystemMemory());
+        AMF_RETURN_IF_FALSE(!!systemMemory, nullptr, L"Internal error: subbuffer's parent failed to allocate system memory");
+
+        return systemMemory + mOffset;
     }
 
 protected:

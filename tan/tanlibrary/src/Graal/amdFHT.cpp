@@ -285,9 +285,9 @@ static short* SelectReversedTable( int n ) {
 }
 
 // assuming POW(2)
-static short * genBitreverseTable( int n ) {
-
-	short * ret = (short*)malloc(sizeof(short)*n);
+static void genBitreverseTable(short * buffer, int n)
+{
+	//short * ret = (short*)malloc(sizeof(short)*n);
 
 	int log2n = 0;
 	for(int i = 0; i < 32; i++) {
@@ -303,10 +303,9 @@ static short * genBitreverseTable( int n ) {
 		for( int j = log2n-1; j >= 0; j--, indx >>= 1){
 			bitreversed |= ((indx & 1) << j);
 		}
-		ret[i] = bitreversed;
-		ret[bitreversed] = i;
+		buffer[i] = bitreversed;
+		buffer[bitreversed] = i;
 	}
-	return ret;
 }
 
 static FHT_FUNC SelectRoutine( int n ) {
@@ -340,7 +339,7 @@ static void SelectRoutine2(void * dir_inv[2],  int n ) {
 
 // sin(k/N*pi), cos(k/N*pi), ... (k=0..N/2-1)
 // n is POW(2)
-int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n)
+int FHTInit(float * tsincos, short * bit_reverse, FHT_FUNC * routine, int n)
 {
 	//alloc and fill sin_cos structure
 	//todo: ivm: commented, seems incorrect, already allocated from caller
@@ -348,11 +347,11 @@ int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n
 
 	for(int k = 0; k < n/2; k++ )
 	{
-		(*tsincos)[k*2] = (__FLOAT__)sin((TWOPI*k/n));
-		(*tsincos)[k*2 + 1] = (__FLOAT__)cos((TWOPI*k/n));
+		tsincos[k*2] = sin((TWOPI*k/n));
+		tsincos[k*2 + 1] = cos((TWOPI*k/n));
 	}
 
-	*bit_reverse = genBitreverseTable( n );
+	genBitreverseTable(bit_reverse, n);
 	//*bit_reverse = SelectReversedTable( n );
 
 	*routine = SelectRoutine(n);
@@ -360,8 +359,7 @@ int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n
 	return 0;
 }
 
-
-int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n) {
+/*int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n) {
 	int err = 0;
 
 // alloc and fill sin_cos structure
@@ -376,7 +374,7 @@ int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n)
 
 	SelectRoutine2(dir_inv, n);
 	return(err);
-}
+}*/
 
 
 #define N 16
@@ -1643,17 +1641,17 @@ int FHT_verify(const __FLOAT__ * data_in, const __FLOAT__ *data_totest, int n, i
 
 void FHTTest(int n ) {
 	FHT_FUNC fht_routine;
-	__FLOAT__ * tsincos;
+	__FLOAT__ * tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	__FLOAT__ * data;
 	__FLOAT__ * data_v;
 	__FLOAT__ * data_t;
-	short * bit_rvrse = 0;
+	short * bit_rvrse = (short*)malloc(sizeof(short)*n);
 	data = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	data_v = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	data_t = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	double *data_d = (double*)malloc(sizeof(double) * n );
 	double *data_vd = (double*)malloc(sizeof(double) * n );
-	FHTInit(&tsincos, &bit_rvrse, &fht_routine, n);
+	FHTInit(tsincos, bit_rvrse, &fht_routine, n);
 	for (int i = 0; i < n; i++ ) {
 #if 1
 		if ( i == 0 || i == 1 ) {

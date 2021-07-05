@@ -23,7 +23,9 @@
 //
 #include "GraalConv.hpp"
 #include "amdFHT.h"
-#include "GraalCLUtil/GraalCLUtil.hpp"
+//#include "GraalCLUtil/GraalCLUtil.hpp"
+
+#include <CL/cl.h>
 
 #ifdef ENABLE_METAL
   #include "MetalKernels/MetalKernel_GraalFHT.h"
@@ -264,6 +266,7 @@ AMF_RESULT CGraalConv::updateConv(
 #else
         AMF_RETURN_IF_FAILED(stg_buf.attach(amfBuffers[j], conv_lens[j]));
 #endif
+        PrintAMFArrayReduced("stg_buf cre", stg_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), stg_buf.GetBuffer()->GetSize());
 
 // do direct transform
         int uploadId = uploadIDs[j];
@@ -404,10 +407,10 @@ AMF_RESULT CGraalConv::copyResponses(
             );
 #endif
 
-        cl_int ret = CL_SUCCESS;
         amf_size n_arg = 0;
 
 #ifndef TAN_NO_OPENCL
+        cl_int ret = CL_SUCCESS;
         ret = clSetKernelArg(mCopyWithPaddingKernel, n_arg++, sizeof(cl_mem), &mKernelTrasformedUnion->GetBuffer() );
         AMF_RETURN_IF_CL_FAILED(ret, L"clSetKernelArg failed: mKernelTrasformedUnion->");
 
@@ -459,7 +462,7 @@ AMF_RESULT CGraalConv::copyResponses(
 
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgInt32(n_arg++, aligned_conv_sz_));
 
-        cl_int tmp = 0;
+        amf_int32 tmp = 0;
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgInt32(n_arg++, tmp));
 
         AMF_RETURN_IF_FAILED(mCopyWithPaddingKernel->SetArgInt32(n_arg++, channelsCnt));
@@ -550,11 +553,14 @@ AMF_RESULT CGraalConv::getConvBuffers(
 }
 
 #ifdef COPY_CONTIGUOUS_IRS_IN_ONE_BLOCK
-bool CGraalConv::checkForContiguousBuffers(
-    int count,
-    const float** conv_ptrs,
-    const int * conv_lens
-    ) {
+
+bool CGraalConv::checkForContiguousBuffers
+(
+    int             count,
+    const float**   conv_ptrs,
+    const int *     conv_lens
+)
+{
    if (count <= 1) //  don't need to do anything
         return false;
     bool contiguous = true;
@@ -570,6 +576,7 @@ bool CGraalConv::checkForContiguousBuffers(
     }
     return contiguous;
 }
+
 #endif
 
 AMF_RESULT CGraalConv::uploadConvHostPtrs(
@@ -594,14 +601,14 @@ AMF_RESULT CGraalConv::uploadConvHostPtrs(
         int len = conv_lens[0] * channelsCount;
 
                    //UploadIDs [index of current Set ]
-        ret = mKernelInputStore[uploadIDs[0]]->copyToDeviceNonBlocking(
-            uploadQ,
-            CL_MEM_READ_ONLY,
-            conv_ptr,
-            len
+        AMF_RETURN_IF_FAILED(
+            mKernelInputStore[uploadIDs[0]]->copyToDeviceNonBlocking(
+                uploadQ,
+                CL_MEM_READ_ONLY,
+                conv_ptr,
+                len
+                )
             );
-
-        CHECK_OPENCL_ERROR(ret, "upload failed.");
     }
     else
 #endif
@@ -609,15 +616,22 @@ AMF_RESULT CGraalConv::uploadConvHostPtrs(
         for (int j = 0; j < channelsCount; j++)
         {
             // move data into staging
-            ret = mKernelStaging[uploadIDs[j]][convIDs[j]]->copyToDeviceNonBlocking(uploadQ, CL_MEM_READ_ONLY, conv_ptrs[j],
-                conv_lens[j]);
-            CHECK_OPENCL_ERROR(ret, "upload failed.");
+            AMF_RETURN_IF_FAILED(
+                    mKernelStaging[uploadIDs[j]][convIDs[j]]->copyToDeviceNonBlocking(
+                    uploadQ,
+                    CL_MEM_READ_ONLY,
+                    conv_ptrs[j],
+                    conv_lens[j]
+                    )
+                );
         }
     }
 
+    PrintAMFArrayReduced("mKernelInputUnion", mKernelInputUnion->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mKernelInputUnion->GetBuffer()->GetSize());
+
     if ( synchronous )
     {
-        ret = syncUpload( );
+        ret = syncUpload();
     }
 
     return ret;
@@ -638,8 +652,8 @@ AMF_RESULT                      CGraalConv::uploadConvGpuPtrs(
 {
     //PrintArrayReduced("upl ids", uploadIDs, 128*1024);
     //PrintArrayReduced("conv ids", convIDs, 128*1024);
-    PrintAMFArrayReduced("conv ptrs", conv_ptrs[0], m_pContextTAN->GetGeneralQueue(), 128*1024);
-    PrintAMFArrayReduced("conv ptrs", conv_ptrs[1], m_pContextTAN->GetGeneralQueue(), 128*1024);
+    //PrintAMFArrayReduced("conv ptrs", conv_ptrs[0], m_pContextTAN->GetGeneralQueue(), 128*1024);
+    //PrintAMFArrayReduced("conv ptrs", conv_ptrs[1], m_pContextTAN->GetGeneralQueue(), 128*1024);
 
     AMF_RESULT ret = AMF_OK;
 
@@ -662,33 +676,39 @@ AMF_RESULT                      CGraalConv::uploadConvGpuPtrs(
 }
 
 AMF_RESULT CGraalConv::process(
-    int channelsCount,
-    const int *_uploadID,     // upload set IDs
-    const int *convIDs,       // kernel IDs
-    const float*const* _inputs,
-    float** _outputs,
-    int _prev_input,
-    int _advance_time,
-    int _skip_stage,
-    int _crossfade_state
+    int                 channelsCount,
+    const int *         _uploadID,     // upload set IDs
+    const int *         convIDs,       // kernel IDs
+    const float*const*  inputs,
+    float**             outputs,
+    int                 _prev_input,
+    int                 _advance_time,
+    int                 _skip_stage,
+    int                 _crossfade_state
     )
 {
     AMF_RESULT ret = AMF_OK;
 
-    GraalSampleBuffer outBuf;
-    outBuf.ReferHostBuffers(_outputs);
+    PrintArrayReduced("inputs[0]", inputs[0], 32768 * sizeof(float));
+    PrintArrayReduced("inputs[1]", inputs[1], 32768 * sizeof(float));
+
+    GraalSampleBuffer outBuf; //!!
+    outBuf.ReferHostBuffers(outputs);
 
     ret = processIntrnl(
             channelsCount,
             _uploadID,     // upload set IDs
             convIDs,       // kernel IDs
-            _inputs,
+            inputs,
             outBuf,
             _prev_input,
             _advance_time,
             _skip_stage,
             _crossfade_state
             );
+
+    PrintArrayReduced("outputs[0]", outputs[0], 32768 * sizeof(float));
+    PrintArrayReduced("outputs[1]", outputs[1], 32768 * sizeof(float));
 
     return ret;
 }
@@ -697,7 +717,7 @@ AMF_RESULT CGraalConv::process(
     int                 channelsCount,
     const int *         _uploadID,     // upload set IDs
     const int *         convIDs,       // kernel IDs
-    const float*const*  _inputs,
+    const float*const*  inputs,
 #ifndef TAN_NO_OPENCL
     cl_mem *            output,
 #else
@@ -709,8 +729,8 @@ AMF_RESULT CGraalConv::process(
     int                 _crossfade_state
     )
 {
-    PrintArrayReduced("graalIn0", _inputs[0], 8192);
-    PrintArrayReduced("graalIn1", _inputs[1], 8192);
+    //PrintArrayReduced("CGraalConv::process in[0]", inputs[0], 128 * 1024);
+    //PrintArrayReduced("CGraalConv::process in[1]", inputs[1], 128 * 1024);
 
     AMF_RESULT ret = AMF_OK;
 
@@ -725,7 +745,7 @@ AMF_RESULT CGraalConv::process(
         channelsCount,
         _uploadID,     // upload set IDs
         convIDs,       // kernel IDs
-        _inputs,
+        inputs,
         outBuf,
         _prev_input,
         _advance_time,
@@ -734,11 +754,11 @@ AMF_RESULT CGraalConv::process(
         );
 
 #ifndef TAN_NO_OPENCL
-    PrintCLArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
-    PrintCLArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
+    //PrintCLArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
+    //PrintCLArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
 #else
-    PrintAMFArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
-    PrintAMFArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
+    //PrintAMFArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
+    //PrintAMFArrayReduced("graal", output[0], m_pContextTAN->GetGeneralQueue(), 8192);
 #endif
 
     return ret;
@@ -763,6 +783,8 @@ AMF_RESULT CGraalConv::flush(amf_uint channelId, const bool synchronous)
                     aligned_conv_sz_
                     )
                 );
+            //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
+
             AMF_RETURN_IF_FAILED(
                 zeroMemory(
                     &mProcessInputStaging,
@@ -770,6 +792,7 @@ AMF_RESULT CGraalConv::flush(amf_uint channelId, const bool synchronous)
                     n_input_blocks_ * aligned_proc_bufffer_sz_
                     )
                 );
+            //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
 
             for (uint setId = 0; setId < static_cast<uint>(n_sets_); setId++)
             {
@@ -821,7 +844,7 @@ AMF_RESULT CGraalConv::getDevInputPtrs(
         int channelsCount,
         int _uploadID,     // upload set IDs
         const int *convIDs,       // kernel IDs
-        float** _inputs
+        float** inputs
         )
 {
     AMF_RESULT ret = AMF_OK;
@@ -833,7 +856,7 @@ AMF_RESULT CGraalConv::getDevInputPtrs(
     for (int c = 0; c < channelsCount; c++ )
     {
         int convId = convIDs[c];
-        _inputs[c] = inp_buf_ptr + convId * aligned_proc_bufffer_sz_;
+        inputs[c] = inp_buf_ptr + convId * aligned_proc_bufffer_sz_;
     }
 
     return ret;
@@ -850,8 +873,8 @@ AMF_RESULT CGraalConv::processDevPtrs(
         int channelsCount,
         int _uploadID,     // upload set ID
         const int *convIDs,       // kernel IDs
-        float** _inputs,
-        float** _outputs
+        float** inputs,
+        float** outputs
         )
 {
     AMF_ASSERT(AMF_NOT_IMPLEMENTED);
@@ -902,7 +925,7 @@ AMF_RESULT CGraalConv::processIntrnl(
     int                     channelsCount,
     const int *             uploadIDs,     // upload set IDs
     const int *             convIDs,       // kernel IDs
-    const float*const*      _inputs,
+    const float*const*      inputs,
     GraalSampleBuffer &     output,
     int                     _prev_input,
     int                     _advance_time,
@@ -937,6 +960,7 @@ AMF_RESULT CGraalConv::processIntrnl(
 		CABuf<int> &set_map_buf = (_crossfade_state == 1) ? *mSetsMapXf.get() : *mSetsMap.get();
         // upload input data
         CABuf<float> &inp_buf = mProcessInputStaging;
+        //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
 
         if (!_prev_input && _skip_stage != 1)
         {
@@ -946,15 +970,33 @@ AMF_RESULT CGraalConv::processIntrnl(
             {
                 int convId = convIDs[i];
                 int input_index = getRoundCounter(0, convId) % n_input_blocks_;
-                const float *in_ptr = _inputs[i];
-                inp_buf.copyToDeviceNonBlocking(inQ, 0, in_ptr, max_proc_buffer_sz_, (convId * n_input_blocks_ + input_index) * aligned_proc_bufffer_sz_);
-                if(align_padding_sz_!= 0) inp_buf.setValue2(inQ, 0, align_padding_sz_, max_proc_buffer_sz_);
+                const float *in_ptr = inputs[i];
+
+                //PrintArrayReduced("inptr", in_ptr, max_proc_buffer_sz_);
+
+                //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+                inp_buf.copyToDeviceNonBlocking(
+                    inQ,
+                    0,
+                    in_ptr,
+                    max_proc_buffer_sz_,
+                    (convId * n_input_blocks_ + input_index) * aligned_proc_bufffer_sz_
+                    );
+
+                //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+
+                if(align_padding_sz_!= 0)
+                {
+                    inp_buf.setValue2(inQ, 0, align_padding_sz_, max_proc_buffer_sz_);
+                    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+                }
             }
         }
         // Copying the IR index
         set_map_buf.copyToDeviceNonBlocking(inQ, 0, uploadIDs, channelsCount);
     }
 
+    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
 
     CABuf<float> & out_buf = *mProcess2OutputStaging.get();
 
@@ -987,12 +1029,20 @@ AMF_RESULT CGraalConv::processIntrnl(
             );
 
         // move data upstream
-        if(output.IsHost())
+        if(output.IsHost() and false)
         {
             for (int c = 0; c < channelsCount; c++)
             {
                 int uploadId = uploadIDs[c];
                 int convId = convIDs[c];
+
+                assert(
+                    (uploadId * mMaxChannels + convId) * aligned_proc_bufffer_sz_ * sizeof(float)
+                    +
+                    max_proc_buffer_sz_ * sizeof(float)
+                    <
+                    131072
+                    );
 
 #ifndef TAN_NO_OPENCL
                 int status = clEnqueueReadBuffer(
@@ -1006,7 +1056,7 @@ AMF_RESULT CGraalConv::processIntrnl(
                     NULL,
                     NULL
                     );
-                CHECK_OPENCL_ERROR(status, "copy failed.");
+                AMF_RETURN_IF_CL_FAILED(status);
 #else
                 AMF_RETURN_IF_FAILED(
                     outQ->CopyBufferToHost(
@@ -1103,7 +1153,7 @@ AMF_RESULT CGraalConv::processIntrnl(
                             (uploadId * mMaxChannels + convId) * aligned_proc_bufffer_sz_ * sizeof(float),
                             max_proc_buffer_sz_ * sizeof(float),
                             output.buffer.host[c],
-                            (c == (channelsCount-1)) ? CL_TRUE: CL_FALSE
+                            (c == (channelsCount-1)) ? true: false
                             )
                         );
 #endif
@@ -1238,6 +1288,7 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
     CABuf<short> & bit_reverse = *mBitReverse.get();
     CABuf<uint> & round_counters = *mRoundCounters.get();
     CABuf<float> & data_hist = *mHistoryTransformed.get();
+    //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
 
     uint in_version_stride = mMaxChannels * mMaxConvolutionSize;
     uint in_chnl_stride = mMaxConvolutionSize;
@@ -1287,15 +1338,25 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
 
 #else
 
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, stg_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
+    PrintAMFArrayReduced("stg_buf",         stg_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(),          stg_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("transf_buf",      transf_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(),       transf_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("bit_reverse",     bit_reverse.GetBuffer(), m_pContextTAN->GetGeneralQueue(),      bit_reverse.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("sincos",          sincos.GetBuffer(), m_pContextTAN->GetGeneralQueue(),           sincos.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("chnl_map_buf",    chnl_map_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(),     chnl_map_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("set_map_buf",     set_map_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(),      set_map_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("len_map_buf",     len_map_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(),      len_map_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("round_counters",  round_counters.GetBuffer(), m_pContextTAN->GetGeneralQueue(),   round_counters.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("data_hist",       data_hist.GetBuffer(), m_pContextTAN->GetGeneralQueue(),        data_hist.GetBuffer()->GetSize());
+
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, stg_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
     AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, transf_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, bit_reverse.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, sincos.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, chnl_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, set_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, len_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, round_counters.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, data_hist.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, bit_reverse.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, sincos.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, chnl_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, set_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, len_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, round_counters.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mUploadKernel->SetArgBuffer(n_arg++, data_hist.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
 
     AMF_RETURN_IF_FAILED(mUploadKernel->SetArgInt32(n_arg++, in_version_stride));
     AMF_RETURN_IF_FAILED(mUploadKernel->SetArgInt32(n_arg++, in_chnl_stride));
@@ -1305,18 +1366,23 @@ AMF_RESULT CGraalConv:: updateConvIntnl(
     AMF_RETURN_IF_FAILED(mUploadKernel->SetArgInt32(n_arg++, data_version_stride));
     AMF_RETURN_IF_FAILED(mUploadKernel->SetArgInt32(n_arg++, data_channel_stride));
 
+    //amdFHTConvIn
     AMF_RETURN_IF_FAILED(
-        mUploadKernel->Enqueue(2, NULL, g_wk, l_wk)
+        mUploadKernel->Enqueue(2, NULL, g_wk, l_wk) //+
         );
+    m_pContextTAN->GetConvQueue()->FlushQueue();
+    m_pContextTAN->GetConvQueue()->FinishQueue();
 
     if (synchronous)
     {
         AMF_RETURN_IF_FAILED(inQ->FinishQueue());
     }
 
+    PrintAMFArrayReduced("transf_buf", transf_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), transf_buf.GetBuffer()->GetSize());
+
 #endif
 
-    if ( mVerify  ==1 || mVerify == 3)
+    if(mVerify == 1 || mVerify == 3)
     {
         transf_buf.copyToHost(inQ);
         stg_buf.copyToHost(inQ);
@@ -1439,7 +1505,6 @@ void CGraalConv::incRoundCounter(int _uploadId, int _chnl_id)
         uint curr_round = count_buf.GetSystemMemory()[_uploadId * mMaxChannels + _chnl_id];
         curr_round++;
         count_buf.GetSystemMemory()[_uploadId * mMaxChannels + _chnl_id] = curr_round;
-
     }
     else
     {
@@ -1468,6 +1533,9 @@ AMF_RESULT CGraalConv::processHead1(
     CABuf<uint> &count_buf = *mRoundCounters.get();
     CABuf<float> &kern_store_buf = *mKernelTrasformedUnion.get();
     CABuf<float> &data_store_buf = *mHistoryTransformed.get();
+    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+    //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
+
     CABuf<float> &accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
     CABuf<float> &out_buf = *mProcess2OutputStaging.get();
 
@@ -1555,13 +1623,24 @@ AMF_RESULT CGraalConv::processHead1(
     }
     */
 #else
-    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, inp_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, kern_store_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, accum_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
+    PrintAMFArrayReduced("inp_buf", inp_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), inp_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("kern_store_buf", kern_store_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), kern_store_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("accum_buf", accum_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), accum_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("data_store_buf", data_store_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), data_store_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("out_buf", out_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), out_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("bit_reverse", bit_reverse.GetBuffer(), m_pContextTAN->GetGeneralQueue(), bit_reverse.GetBuffer()->GetSize());
+
+    PrintAMFArrayReduced("chnl_map_buf", chnl_map_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), chnl_map_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("set_map_buf", set_map_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), set_map_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("count_buf", count_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), count_buf.GetBuffer()->GetSize());
+
+    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, inp_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, kern_store_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, accum_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, data_store_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, out_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, bit_reverse.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
-    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, sincos.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
+    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, bit_reverse.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
+    AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, sincos.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READ));
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgInt32(n_arg++, n_in_blocks));
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgInt32(n_arg++, n_conv_blocks));  // # of conv blocks (total)
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgFloat(n_arg++, scale));        // inverse conv scale
@@ -1582,10 +1661,17 @@ AMF_RESULT CGraalConv::processHead1(
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, set_map_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
     AMF_RETURN_IF_FAILED(mConvHead1->SetArgBuffer(n_arg++, count_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
 
-    AMF_RETURN_IF_FAILED(mConvHead1->Enqueue(2, NULL, g_wk, l_wk));
+    //amdFHTConvHead1
+    AMF_RETURN_IF_FAILED(mConvHead1->Enqueue(2, NULL, g_wk, l_wk));//+
+    m_pContextTAN->GetConvQueue()->FlushQueue();
+    m_pContextTAN->GetConvQueue()->FinishQueue();
+
+    PrintAMFArrayReduced("data_store_buf", data_store_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), data_store_buf.GetBuffer()->GetSize());
+    PrintAMFArrayReduced("out_buf", out_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), out_buf.GetBuffer()->GetSize());
+
 #endif
 
-    return ret;
+     return ret;
 }
 
 AMF_RESULT CGraalConv::processPush(
@@ -1606,6 +1692,9 @@ AMF_RESULT CGraalConv::processPush(
 
     CABuf<float> &inp_buf = mProcessInputStaging;
     CABuf<float> &dir_fht_buf = *mHistoryTransformed.get();
+    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+    //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
+
     CABuf<float> &sincos = *mSinCos.get();
     CABuf<short> &bit_reverse = *mBitReverse.get();
     CABuf<int> &chnl_map_buf = *mChannelsMap.get();
@@ -1680,6 +1769,9 @@ AMF_RESULT CGraalConv::processPush(
         CABuf<uint> &count_buf = *mRoundCounters.get();
         CABuf<float> &inp_buf = mProcessInputStaging;
         CABuf<float> &dir_fht_buf = *mHistoryTransformed.get();
+        //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+        //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
+
         inp_buf.copyToHost(inQ);
         dir_fht_buf.copyToHost(inQ);
         float * inp_buf_ptr = inp_buf.GetSystemMemory();
@@ -1758,6 +1850,8 @@ AMF_RESULT CGraalConv::processAccum(
     //todo: ivm: CASubBuf<float> &kern_store_buf = *(CASubBuf<float> *)mKernelTrasformedUnion;
     CABuf<float> &kern_store_buf = *mKernelTrasformedUnion;
     CABuf<float> &data_store_buf = *mHistoryTransformed.get();
+    //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
+
     CABuf<float> &accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
     CABuf<int> &chnl_map_buf = *mChannelsMap.get();
    // CABuf<int> &set_map_buf = *mSetsMap.get();
@@ -1842,10 +1936,13 @@ AMF_RESULT CGraalConv::processAccum(
     AMF_RETURN_IF_FAILED(mCMADKernels[0]->SetArgBuffer(n_arg++, count_buf.GetBuffer(), amf::AMF_ARGUMENT_ACCESS_READWRITE));
     AMF_RETURN_IF_FAILED(mCMADKernels[0]->SetArgInt32(n_arg++, STR_bin_shift));
 
-    AMF_RETURN_IF_FAILED(mCMADKernels[0]->Enqueue(3, NULL, g_wk, l_wk));
+    //FHTMultAddHead2
+    AMF_RETURN_IF_FAILED(mCMADKernels[0]->Enqueue(3, NULL, g_wk, l_wk));//+
 
+    m_pContextTAN->GetConvQueue()->FlushQueue();
+    m_pContextTAN->GetConvQueue()->FinishQueue();
 
-    CHECK_OPENCL_ERROR(ret, "kernel accumulator head failed.");
+    PrintAMFArrayReduced("accum_buf", accum_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), accum_buf.GetBuffer()->GetSize());
 #endif
 
     total_n_bins = headRun;
@@ -1915,7 +2012,8 @@ AMF_RESULT CGraalConv::processAccum(
         AMF_RETURN_IF_FAILED(mCMADKernels[1]->SetArgInt32(n_arg++, accum_stride_));
         AMF_RETURN_IF_FAILED(mCMADKernels[1]->SetArgInt32(n_arg++, n_accum_blocks_));
 
-        do {
+        do
+        {
             last_arg = n_arg;
             total_n_bins = tailRun;
 
@@ -1942,8 +2040,15 @@ AMF_RESULT CGraalConv::processAccum(
             ret = clEnqueueNDRangeKernel(inQ, tailAccumKernel, 3, NULL, g_wk, l_wk, 0, NULL, p_set_event);
             */
 
-            AMF_RETURN_IF_FAILED(mCMADKernels[1]->Enqueue(3, NULL, g_wk, l_wk));
-        } while (!last_tail);
+            //FHTMultAddTail
+            AMF_RETURN_IF_FAILED(mCMADKernels[1]->Enqueue(3, NULL, g_wk, l_wk));//+
+
+            m_pContextTAN->GetConvQueue()->FlushQueue();
+            m_pContextTAN->GetConvQueue()->FinishQueue();
+
+            PrintAMFArrayReduced("accum_buf", accum_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), accum_buf.GetBuffer()->GetSize());
+        }
+        while(!last_tail);
 
         // Pushing the jobs to be flushed from command buffer and be submitted to the device in a non-blocking way
         AMF_RETURN_IF_FAILED(
@@ -2256,9 +2361,9 @@ AMF_RESULT CGraalConv::syncUpload( void )
     AMF_RESULT ret = AMF_OK;
 
 #ifndef TAN_NO_OPENCL
-    clFinish(m_pContextTAN->GetOpenCLGeneralQueue());
+    clFinish(m_pContextTAN->GetGeneralQueue());
 #else
-    m_pContextTAN->GetAMFGeneralQueue()->FinishQueue();
+    m_pContextTAN->GetGeneralQueue()->FinishQueue();
 #endif
 
     return ret;
@@ -2271,7 +2376,7 @@ void CGraalConv::selectOptions(std::string & kernelFileName, std::string & kerne
     int log2_group_sz = static_cast<int>(ceil(log2((double)group_sz)));
 
     kernelOptions =
-        std::string("-cl-fp32-correctly-rounded-divide-sqrt ") +
+        //std::string("-cl-fp32-correctly-rounded-divide-sqrt ") +
         std::string("-D _K0_GROUP_SZ=") + std::to_string((long long)group_sz) +
         std::string(" -D _K0_LOG2_GROUP_SZ=") + std::to_string((long long)log2_group_sz) +
         std::string(" -D _K0_LOG2_N=") + std::to_string((long long)(processing_log2_ + 1)) +
@@ -2404,6 +2509,7 @@ AMF_RESULT CGraalConv::Setup
     ret = mKernelInputUnion->create(n_sets_* mMaxChannels * mMaxConvolutionSize, 0, pComputeConvolution->GetMemoryType());
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(mKernelInputUnion.get(), graalQueue);
+    PrintAMFArrayReduced("mKernelInputUnion", mKernelInputUnion->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mKernelInputUnion->GetBuffer()->GetSize());
 
     mKernelTrasformedUnion.reset(new CABuf<float>(context));
     assert(mKernelTrasformedUnion);
@@ -2461,6 +2567,8 @@ AMF_RESULT CGraalConv::Setup
         initBuffer(mKernelInputStore[i].get(), graalQueue);
 #endif
 
+        PrintAMFArrayReduced("mKernelInputUnion", mKernelInputUnion->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mKernelInputUnion->GetBuffer()->GetSize());
+
         mKernelStaging[i].resize(mMaxChannels);
         mKernelTransformed[i].resize(mMaxChannels);
 
@@ -2482,17 +2590,16 @@ AMF_RESULT CGraalConv::Setup
 			AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
             initBuffer(mKernelTransformed[i][j].get(), graalQueue);
         }
+
+        PrintAMFArrayReduced("mKernelInputUnion", mKernelInputUnion->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mKernelInputUnion->GetBuffer()->GetSize());
     }
 
     // get fht lookup tables
     mSinCos.reset(new CABuf<float>(context));
     mBitReverse.reset(new CABuf<short>(context));
 
-    mSinCos->CreateSystemMemory(mAlignedProcessingSize);
-    mBitReverse->CreateSystemMemory(mAlignedProcessingSize);
-
-    auto sinCos(mSinCos->GetSystemMemory());
-    auto bitReverse(mBitReverse->GetSystemMemory());
+    AMF_RETURN_IF_FAILED(mSinCos->CreateSystemMemory(mAlignedProcessingSize));
+    AMF_RETURN_IF_FAILED(mBitReverse->CreateSystemMemory(mAlignedProcessingSize));
 
     FHTInit(
         mSinCos->GetSystemMemory(),
@@ -2622,8 +2729,6 @@ AMF_RESULT CGraalConv::Setup
         AMF_RETURN_IF_FALSE(mCopyWithPaddingKernel != nullptr, AMF_FAIL, L"failed: GetOclKernel %s", kernel_name.c_str());
     }
 
-    auto iniQ = graalQueue;
-
     // per stream counters
     mRoundCounters.reset(new CABuf<uint>(context));
     assert(mRoundCounters);
@@ -2631,7 +2736,7 @@ AMF_RESULT CGraalConv::Setup
 	ret = mRoundCounters->create(mMaxChannels * n_sets_, 0, pComputeConvolution->GetMemoryType());
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     mRoundCounters->setValue2(graalQueue, 0);
-    mRoundCounters->CreateSystemMemory(mRoundCounters->GetCount());
+    mRoundCounters->GetSystemMemory();   // allocate backing system memory block.
     initBuffer(mRoundCounters.get(), graalQueue);
 
     // channels map
@@ -2664,6 +2769,7 @@ AMF_RESULT CGraalConv::Setup
         );
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(&mProcessInputStaging, graalQueue);
+    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
 
     // history, transformed input data cyclic array
     mHistoryTransformed.reset(new CABuf<float>(context));
@@ -2671,6 +2777,7 @@ AMF_RESULT CGraalConv::Setup
 	ret = mHistoryTransformed->create(mMaxChannels *aligned_conv_sz_/* n_sets_*/,  0, pComputeConvolution->GetMemoryType());
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(mHistoryTransformed.get(), graalQueue);
+    //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
 
     AMFTraceInfo(
         AMF_FACILITY,
@@ -2872,7 +2979,6 @@ AMF_RESULT CGraalConv::Setup
 AMF_RESULT CGraalConv::cleanup()
 {
     AMF_RESULT ret = AMF_OK;
-    int status = CL_SUCCESS;
 
 #ifndef TAN_NO_OPENCL
     if (m_pContextTAN->GetOpenCLConvQueue() )
