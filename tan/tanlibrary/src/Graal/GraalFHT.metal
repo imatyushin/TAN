@@ -663,9 +663,10 @@ void FHTMultAddHead2(
 }
 
 kernel
-void FHTMultAddTail(device float * Accum,
-					constant uint * versions_map,
-					constant int * channels_map,
+void FHTMultAddTail(
+	device float * 							Accum,
+	constant uint * 						versions_map,
+	constant int * 							channels_map,
 	device const uint & 					accum_version_stride,
 	device const uint & 					accum_chnl_stride,
 	device const uint & 					n_loop_bins,
@@ -683,7 +684,6 @@ void FHTMultAddTail(device float * Accum,
 	uint chunk_id = global_id.y;
 	uint chnl_id = channels_map[global_id.z];
 	uint upload_id = versions_map[global_id.z]; // version
-
 
 	uint channel_off = accum_chnl_stride * chnl_id + accum_version_stride * upload_id;
 	uint accum_offset = chunk_id << _K0_LOG2_N;
@@ -707,18 +707,19 @@ void FHTMultAddTail(device float * Accum,
 Head-Tail algorithms
 --------------------------------------------------------------------------------------------------*/
 kernel
-void amdFHTConvHead1(device const char * in, // pipelone input
-				device const float * IR,    // filter
-				device const float * Accum, // acuumulator for the tail
-				device float * Hist,       // direct transform data history
-				device float * out,    // pipeline output
-				constant short * gbitreverse,
-				constant char * gsincos,
-	device const uint & 					n_in_blocks,     // # of blocks kept in input staging
-	device const uint & 					n_conv_blocks,  // # of conv blocks (total)
-	device const float & 					scale,         // inverse conv scale
-	device const int & 						prev_input,    // use previous input
-	device const int & 						advance_time,  // advance time counter
+void amdFHTConvHead1(
+	device const char * 					in, 					// pipelone input
+	device const float * 					IR,    					// filter
+	device const float * 					Accum, 					// acuumulator for the tail
+	device float * 							Hist,       			// direct transform data history
+	device float * 							out,    				// pipeline output
+	constant short * 						gbitreverse,
+	constant char * 						gsincos,
+	device const uint & 					n_in_blocks,     		// # of blocks kept in input staging
+	device const uint & 					n_conv_blocks,  		// # of conv blocks (total)
+	device const float & 					scale,         			// inverse conv scale
+	device const int & 						prev_input,    			// use previous input
+	device const int & 						advance_time,  			// advance time counter
 	device const uint & 					in_version_stride,
 	device const uint & 					in_chnl_stride,
 	device const uint & 					hist_version_stride,
@@ -730,9 +731,9 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 	device const uint & 					counter_version_stride,
 	device const uint & 					out_version_stride,
 	device const uint & 					out_chnl_stride,
-				constant uint * channels_map,
-				constant uint * versions_map,
-				device uint * round_counters
+	constant uint * 						channels_map,
+	constant uint * 						versions_map,
+	device uint * 							round_counters
 	,
 
 	uint2 				global_id 			[[thread_position_in_grid]],
@@ -740,7 +741,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 	uint2 				group_id 			[[threadgroup_position_in_grid]],
 	uint2 				group_size 			[[threads_per_threadgroup]],
 	uint2 				grid_size 			[[threads_per_grid]]
-				)
+	)
 {
 	int lcl_id = local_id.x;
 	//int grp_id = group_id.x;
@@ -923,7 +924,7 @@ void amdFHTConvHead1(device const char * in, // pipelone input
 
 			for(int k = lcl_id; k < metal::mad24(n2 , n/2, n2); k+= _K0_GROUP_SZ)
 			{
-				FHTIterationG2(&data[0], gsincos,	n, n2, k );
+				FHTIterationG2(&data[0], gsincos, n, n2, k);
 			}
 
 			threadgroup_barrier(metal::mem_flags::mem_none);

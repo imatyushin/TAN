@@ -69,14 +69,14 @@ namespace amf
             amf_size numOfSamplesToProcess,
             const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
             amf_size *pNumOfSamplesProcessed // Can be NULL.
-            );
+            ) override;
 
 		virtual AMF_RESULT  AMF_STD_CALL    ProcessDirect(float* ppBufferInput[],
 			float* ppBufferOutput[],
 			amf_size numOfSamplesToProcess,
 			const amf_uint32 flagMasks[],    // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
 			amf_size *pNumOfSamplesProcessed // Can be NULL.
-		);
+		) override;
 
 #ifndef TAN_NO_OPENCL
         virtual AMF_RESULT  AMF_STD_CALL    Process(

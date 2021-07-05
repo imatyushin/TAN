@@ -165,7 +165,7 @@ public:
         }
 
         //mComputedOutputPipeline = useGPU_Conv && useGPU_IRGen;
-        mComputedOutputPipeline = computeConvolution || computeRoom;
+        mComputedOutputPipeline = computeConvolution && computeRoom;
         //reset, will be set later
         mUseComputeBuffers = false;
 

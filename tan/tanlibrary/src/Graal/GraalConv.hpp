@@ -688,7 +688,7 @@ protected:
 
     template<typename T>
     void initBuffer(
-        CABuf<T> *buf,
+        CABuf<T> * buf,
 #ifndef TAN_NO_OPENCL
         cl_command_queue queue
 #else
@@ -785,18 +785,18 @@ protected:
 
     //cmad accumulator
     std::unique_ptr<CABuf<float> >          mCmadAccum;
-    std::unique_ptr<CABuf<float> >          mCmadAccumXF;// used to store data needed for crossfade
+    std::unique_ptr<CABuf<float> >          mCmadAccumXF; //used to store data needed for crossfade
     std::unique_ptr<CABuf<int> >            mCopyResponseInOffset;
     std::unique_ptr<CABuf<int> >            mCopyResponseOutOffset;
 
 #ifndef TAN_NO_OPENCL
     //upload in a single run
-    cl_kernel                               mUploadKernel           = nullptr;
+    cl_kernel                               mUploadKernel               = nullptr;
     //upload per stream
-    cl_kernel                               mUploadKernel2          = nullptr;
+    cl_kernel                               mUploadKernel2              = nullptr;
 
-    cl_kernel                               mResetKernel            = nullptr;
-    cl_kernel                               mCopyWithPaddingKernel  = nullptr;
+    cl_kernel                               mResetKernel                = nullptr;
+    cl_kernel                               mCopyWithPaddingKernel      = nullptr;
 #else
     amf::AMFComputeKernelPtr                mUploadKernel;
     amf::AMFComputeKernelPtr                mUploadKernel2;
@@ -823,14 +823,14 @@ protected:
 #endif
 
 #ifndef TAN_NO_OPENCL
-    cl_event                                m_headTailKernelEvent = nullptr;
-    cl_event                                m_pullKernelEvent = nullptr;
+    cl_event                                m_headTailKernelEvent       = nullptr;
+    cl_event                                m_pullKernelEvent           = nullptr;
 #else
     //todo:
     //events seems not needed in Graal1
 #endif
 
-    void *                                  mFHTTransformCPUFunction = nullptr;
+    void *                                  mFHTTransformCPUFunction    = nullptr;
     float                                   m_dataBuff[32] = {0};
 
     //verification/log

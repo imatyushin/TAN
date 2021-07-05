@@ -276,7 +276,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
 
                 mAMFResponsesInterfaces[i] = mAMFResponses[i];
 
-                PrintAMFArray("mOCLResponses", mAMFResponses[i], mCompute1, 64);
+                PrintAMFArrayReduced("mOCLResponses", mAMFResponses[i], mCompute1, mAMFResponses[i]->GetSize());
             }
 
             //HACK out for test
@@ -584,8 +584,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 )
             );
 
-        //PrintAMFArray("::Convolution->Process[0]", mOutputAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
-        //PrintAMFArray("::Convolution->Process[1]", mOutputAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArrayReduced("aft Prc[0]", mOutputAMFBuffersInterfaces[0], mCompute1, mOutputAMFBuffersInterfaces[0]->GetSize());
+        PrintAMFArrayReduced("aft Prc[1]", mOutputAMFBuffersInterfaces[1], mCompute1, mOutputAMFBuffersInterfaces[1]->GetSize());
 
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
@@ -700,7 +700,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     PrintDebug(info);
 
-    if(++counter == 2)
+    if(++counter == 200)
     {
         int i = 0;
         ++i;
