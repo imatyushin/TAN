@@ -48,6 +48,33 @@ public:
     }
 #endif
 
+    /*// TO DO : correct copy costructor, operator =, clone()
+    CABuf(const CABuf & src)
+    {
+        assert(!mCount);
+        assert(!mComputeBufferAllocated);
+        assert(!mSystemMemory.size());
+
+        mContext = src.mContext;
+        mMappingQueue = src.mMappingQueue;
+        mMemoryType = src.mMemoryType;
+        mComputeKernel = src.mComputeKernel;
+        mSystemMemory = nullptr;
+    T *                         mMappedMemory = nullptr;
+
+#ifndef TAN_NO_OPENCL
+    cl_mem                      mBufferCL = nullptr;
+#else
+    amf::AMFBuffer *            mBufferAMF = nullptr;
+#endif
+
+    size_t                      mCount = 0;
+    uint32_t                    mFlags = 0;
+    bool                        mSystemMemoryAllocated = false;
+    bool                        mComputeBufferAllocated = false;
+
+    }*/
+
     CABuf()
     {
     }
@@ -57,16 +84,24 @@ public:
         release();
     }
 
+/*
+    CABuf clone(void)
+    {
+        CABuf new_buf(mContext);
+        return(new_buf);
+    }
+*/
+
     virtual AMF_RESULT create(size_t count, uint32_t flags, amf::AMF_MEMORY_TYPE memoryType)
     {
         AMF_RETURN_IF_FALSE(count != 0, AMF_INVALID_ARG);
 
-        //if(!mSystemMemory.size())
-        //{
-        //    AMF_RETURN_IF_FAILED(CreateSystemMemory(count));
-        //}
+        if(!mSystemMemory.size())
+        {
+            AMF_RETURN_IF_FAILED(CreateSystemMemory(count));
+        }
 
-        assert(!mCount || (mCount == count));
+        assert(mCount == count);
 
         AMF_RESULT ret = AMF_OK;
 
@@ -96,16 +131,15 @@ public:
 
         mComputeBufferAllocated = true;
         mFlags = flags;
-        mCount = count;
 
         return ret;
     }
 
     inline AMF_RESULT CreateSystemMemory(size_t count)
     {
-        assert(!mCount || mCount == count);
+        assert(!mCount);
         assert(!mSystemMemory.size());
-        //assert(!mComputeBufferAllocated);
+        assert(!mComputeBufferAllocated);
 
         mSystemMemory.resize(count);
         AMF_RETURN_IF_FALSE(mSystemMemory.size() == count, AMF_OUT_OF_MEMORY);
@@ -114,6 +148,34 @@ public:
 
         return AMF_OK;
     }
+
+    /*
+    // TO DO :: CORECT
+    AMF_RESULT attach(const T *buffer, size_t size)
+    {
+        AMF_RESULT ret = AMF_OK;
+        uint32_t flags = mFlags;
+
+        bool old_sys_own = mSystemMemoryAllocated;
+        T * old_ptr = mSystemMemory;
+
+        if ( size > mCount ) {
+            release();
+            AMF_RETURN_IF_FAILED(create(size, flags));
+        }
+
+        if( mSystemMemoryAllocated && mSystemMemory  && old_ptr != buffer)
+        {
+            delete [] mSystemMemory;
+            mSystemMemory = 0;
+        }
+
+        mSystemMemory = (T*)buffer;
+        mCount = size;
+        mSystemMemoryAllocated = (old_ptr != buffer) ? false : old_sys_own;
+
+        return ret;
+    }*/
 
 // TO DO : CORRECT
 #ifndef TAN_NO_OPENCL
@@ -145,6 +207,141 @@ public:
         }
 
         return ret;
+    }
+#endif
+
+#ifndef TAN_NO_OPENCL
+    T*  map(cl_command_queue _mappingQ, uint32_t flags)
+    {
+        T* ret = 0;
+        int status = 0;
+
+        if ( mBufferCL && !mMappedMemory ) {
+            mMappingQueue = _mappingQ;
+
+                ret = mMappedMemory = (T *)clEnqueueMapBuffer(
+                    mMappingQueue,
+                    mBufferCL,
+                    CL_TRUE,
+                    flags, //CL_MAP_WRITE_INVALIDATE_REGION,
+                    0,
+                    mCount*sizeof(T),
+                    0,
+                    NULL,
+                    NULL,
+                    &status
+                    );
+        }
+
+        return ret;
+    }
+#else
+    T*  map(const amf::AMFComputePtr & mappingQueue, uint32_t flags)
+    {
+        throw "Not implemented";
+
+        T* ret = 0;
+        /*int status = 0;
+
+        if(mBufferAMF && !mMappedMemory)
+        {
+            mMappingQueue = mappingQueue;
+
+            ret = mMappedMemory = (T *)clEnqueueMapBuffer(mMappingQueue,
+                mBufferCL,
+                CL_TRUE,
+                flags, //CL_MAP_WRITE_INVALIDATE_REGION,
+                0,
+                mCount*sizeof(T),
+                0,
+                NULL,
+                NULL,
+                &status);
+        }*/
+
+        return ret;
+    }
+#endif
+
+    //seems unneeded
+    /*
+    T*  mapA(cl_command_queue _mappingQ, uint32_t flags, cl_event *_wait_event = NULL, cl_event *_set_event = NULL )
+    {
+        T* ret = 0;
+        int status = 0;
+        if ( mBufferCL && !mMappedMemory ) {
+
+            int n_wait_events = 0;
+            cl_event * p_set_event = _set_event;
+            cl_event * p_wait_event = _wait_event;
+            if (_wait_event != NULL)
+            {
+                n_wait_events = 1;
+            }
+
+
+            mMappingQueue = _mappingQ;
+
+            ret = mMappedMemory = (T *)clEnqueueMapBuffer (mMappingQueue,
+                                                mBufferCL,
+                                                CL_FALSE,
+                                                flags, //CL_MAP_WRITE_INVALIDATE_REGION,
+                                                0,
+                                                mCount*sizeof(T),
+                                                n_wait_events,
+                                                p_wait_event,
+                                                p_set_event,
+                                                &status);
+            if (_wait_event != NULL)
+            {
+                clReleaseEvent(*_wait_event);
+                *_wait_event = NULL;
+            }
+
+
+        }
+        return ret;
+    }*/
+
+#ifndef TAN_NO_OPENCL
+    AMF_RESULT unmap(cl_event *_wait_event = NULL, cl_event *_set_event = NULL)
+    {
+        throw "Not implemented";
+
+        /*AMF_RESULT ret = AMF_OK;
+        if ( mBufferCL && mMappedMemory && mMappingQueue) {
+
+            int n_wait_events = 0;
+            cl_event * p_set_event = _set_event;
+            cl_event * p_wait_event = _wait_event;
+            if (_wait_event != NULL)
+            {
+                n_wait_events = 1;
+            }
+
+            ret = clEnqueueUnmapMemObject(mMappingQueue,
+                mBufferCL,
+                mMappedMemory,
+                n_wait_events,
+                p_wait_event,
+                p_set_event
+                );
+
+            if (_wait_event != NULL)
+            {
+                clReleaseEvent(*_wait_event);
+                *_wait_event = NULL;
+            }
+
+            mMappedMemory = 0;
+            mMappingQueue = 0;
+        }
+        return ret;*/
+    }
+#else
+    AMF_RESULT unmap()
+    {
+        throw "Not implemented";
     }
 #endif
 
@@ -274,7 +471,12 @@ public:
 
         AMF_RESULT err = AMF_OK;
 
-        AMF_RETURN_IF_FAILED(count != -1 && (count > mCount || !data));
+        if(count != -1 && (count > mCount || !data))
+        {
+            AMF_ASSERT(false, L"copyToDeviceA: wrong data");
+
+            return AMF_INVALID_ARG;
+        }
 
         if(!mBufferAMF)
         {
@@ -531,7 +733,7 @@ public:
 
         if(mComputeBufferAllocated)
         {
-            //unmap(); --!
+            unmap();
 
 #ifndef TAN_NO_OPENCL
             if ( mBufferCL )
@@ -686,6 +888,11 @@ public:
 
         return AMF_OK;
     }
+
+    /*virtual AMF_RESULT create(size_t size, uint32_t flags)
+    {
+        create(0, size, flags);
+    }*/
 
     T * GetSystemMemory() override
     {

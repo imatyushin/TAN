@@ -25,7 +25,7 @@
 #include "amdFHT.h"
 //#include "GraalCLUtil/GraalCLUtil.hpp"
 
-#include <CL/cl.h>
+//#include <CL/cl.h>
 
 #ifdef ENABLE_METAL
   #include "MetalKernels/MetalKernel_GraalFHT.h"
@@ -159,7 +159,8 @@ AMF_RESULT CGraalConv::updateConv(
         int uploadId = uploadIDs[j];
         int convId = convIDs[j];
 
-        ret = mKernelStaging[uploadId][convId]->unmap();
+        assert(false);
+        //ret = mKernelStaging[uploadId][convId]->unmap(); --!
     }
 
     ret = uploadConvControlMaps(channelsCount,
@@ -521,7 +522,12 @@ AMF_RESULT CGraalConv:: getConvBuffers(int channelsCount, int *uploadIDs, int *c
     for( i = channelsCount - 1; i >= 0; i-- )
     {
         //ivm: conv_ptrs[i] = mKernelStaging[uploadIDs[i]][convIDs[i]]->mapA(graalQueue, CL_MAP_WRITE_INVALIDATE_REGION);
-        conv_ptrs[i] = mKernelStaging[uploadIDs[i]][convIDs[i]]->map(graalQueue, CL_MAP_WRITE_INVALIDATE_REGION);
+        assert(false);
+        //--! :
+        /*conv_ptrs[i] = mKernelStaging[uploadIDs[i]][convIDs[i]]->map(
+            graalQueue,
+            CL_MAP_WRITE_INVALIDATE_REGION
+            );*/
     }
 
     return ret;
@@ -604,7 +610,7 @@ AMF_RESULT CGraalConv::uploadConvHostPtrs(
         AMF_RETURN_IF_FAILED(
             mKernelInputStore[uploadIDs[0]]->copyToDeviceNonBlocking(
                 uploadQ,
-                CL_MEM_READ_ONLY,
+                0, //CL_MEM_READ_ONLY, --!
                 conv_ptr,
                 len
                 )
@@ -619,7 +625,7 @@ AMF_RESULT CGraalConv::uploadConvHostPtrs(
             AMF_RETURN_IF_FAILED(
                     mKernelStaging[uploadIDs[j]][convIDs[j]]->copyToDeviceNonBlocking(
                     uploadQ,
-                    CL_MEM_READ_ONLY,
+                    0, //CL_MEM_READ_ONLY, --!
                     conv_ptrs[j],
                     conv_lens[j]
                     )
@@ -851,13 +857,15 @@ AMF_RESULT CGraalConv::getDevInputPtrs(
 
     auto inQ = m_pContextTAN->GetGeneralQueue();
 
-    float * inp_buf_ptr = mHostInputStaging[_uploadID]->map(inQ, CL_MAP_WRITE_INVALIDATE_REGION);
+    assert(false);
+    // --!
+    /*float * inp_buf_ptr = mHostInputStaging[_uploadID]->map(inQ, CL_MAP_WRITE_INVALIDATE_REGION); --!
 
     for (int c = 0; c < channelsCount; c++ )
     {
         int convId = convIDs[c];
         inputs[c] = inp_buf_ptr + convId * aligned_proc_bufffer_sz_;
-    }
+    }*/
 
     return ret;
 }
@@ -1536,8 +1544,8 @@ AMF_RESULT CGraalConv::processHead1(
     //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
     //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
 
-    CABuf<float> &accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
-    CABuf<float> &out_buf = *mProcess2OutputStaging.get();
+    CABuf<float> & accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
+    CABuf<float> & out_buf = *mProcess2OutputStaging.get();
 
     uint32_t n_in_blocks = n_input_blocks_;   // # of blocks kept in input staging
     uint n_conv_blocks = n_aligned_proc_blocks_;  // # of conv blocks (total)
@@ -2183,11 +2191,14 @@ AMF_RESULT CGraalConv::processPull(
         CABuf<float> & out_buf = *mProcess2OutputStaging.get();
 
         sum_buf.copyToHost(outQ);
-        float * tgt_ptr = out_buf.map(outQ, CL_MAP_READ);
+
+        assert(false);
+        //float * tgt_ptr = out_buf.map(outQ, CL_MAP_READ); --!
         float * src_ptr = sum_buf.GetSystemMemory();
         int err = -1;
 
-        for (int i = 0; i < channelsCount; i++)
+        // --!
+        /*for (int i = 0; i < channelsCount; i++)
         {
             int convId = convIDs[i];
             int uploadId = uploadIDs[i];
@@ -2201,9 +2212,10 @@ AMF_RESULT CGraalConv::processPull(
                               (int)getRoundCounter(uploadId, convId), i);
                 break;
             }
-        }
+        }*/
 
-        out_buf.unmap();
+        assert(false);
+        //out_buf.unmap(); --!
 
 #ifdef _DEBUG_PRINTF
         if (err == -1)  {
@@ -2348,7 +2360,12 @@ AMF_RESULT CGraalConv::uploadConvHostPtrIntnl(
         // move data into staging
         //	ret = stg_buf->attach(_conv_ptr, _conv_len);
         AMF_RETURN_IF_FAILED(
-            mKernelStaging[uploadId][convId]->copyToDeviceNonBlocking(uploadQ, CL_MEM_READ_ONLY, conv_ptr, conv_len)
+            mKernelStaging[uploadId][convId]->copyToDeviceNonBlocking(
+                uploadQ,
+                0, //CL_MEM_READ_ONLY, --!
+                conv_ptr,
+                conv_len
+                )
             );
         // do direct transform
     }
@@ -2736,7 +2753,7 @@ AMF_RESULT CGraalConv::Setup
 	ret = mRoundCounters->create(mMaxChannels * n_sets_, 0, pComputeConvolution->GetMemoryType());
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     mRoundCounters->setValue2(graalQueue, 0);
-    mRoundCounters->GetSystemMemory();   // allocate backing system memory block.
+    mRoundCounters->CreateSystemMemory(mRoundCounters->GetCount());   // allocate backing system memory block.
     initBuffer(mRoundCounters.get(), graalQueue);
 
     // channels map
@@ -2789,7 +2806,11 @@ AMF_RESULT CGraalConv::Setup
     // inverse transform output
     mProcess2OutputStaging.reset(new CABuf<float>(context));
     assert(mProcess2OutputStaging);
-	ret = mProcess2OutputStaging->create(aligned_proc_bufffer_sz_ * mMaxChannels * n_sets_, CL_MEM_ALLOC_HOST_PTR, pComputeConvolution->GetMemoryType());
+	ret = mProcess2OutputStaging->create(
+        aligned_proc_bufffer_sz_ * mMaxChannels * n_sets_,
+        0, //CL_MEM_ALLOC_HOST_PTR, --!
+        pComputeConvolution->GetMemoryType()
+        );
 	AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
     initBuffer(mProcess2OutputStaging.get(), graalQueue);
 
@@ -2834,7 +2855,11 @@ AMF_RESULT CGraalConv::Setup
         //AMD_PERSISTENT
         mHostInputStaging[i].reset(new CABuf<float>(context));
         assert(mHostInputStaging[i]);
-		ret = mHostInputStaging[i]->create(aligned_proc_bufffer_sz_ * mMaxChannels, CL_MEM_ALLOC_HOST_PTR, pComputeConvolution->GetMemoryType());
+		ret = mHostInputStaging[i]->create(
+            aligned_proc_bufffer_sz_ * mMaxChannels,
+            0, //CL_MEM_ALLOC_HOST_PTR, --!
+            pComputeConvolution->GetMemoryType()
+            );
 		AMF_RETURN_IF_FALSE(AMF_OK == ret, ret, L"Failed to create buffer: %d", ret);
         initBuffer(mHostInputStaging[i].get(), graalQueue);
     }
