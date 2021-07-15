@@ -109,6 +109,7 @@ endif()
 #libraries
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/Graal cmake-Graal-bin)
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
+add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/metalFFT cmake-metalFFT-bin)
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/TrueAudioNext cmake-TrueAudioNext-bin)
 
 #examples

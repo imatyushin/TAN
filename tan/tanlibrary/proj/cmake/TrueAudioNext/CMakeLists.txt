@@ -273,6 +273,7 @@ endif()
 
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
+target_link_libraries(TrueAudioNext metal_FFT)
 
 ####################################################################################
 #OpenMP integration, part 2

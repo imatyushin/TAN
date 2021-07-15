@@ -60,6 +60,12 @@
 #ifdef USE_FFTW
   #include "api/fftw3.h"
 #endif
+//TODO: remove
+#define USE_METAL_FFT 1
+
+#ifdef USE_METAL_FFT
+    #include "metalFFT.h"//Metal_FFT
+#endif
 
 #ifndef _WIN32
   typedef uint32_t DWORD;
@@ -291,7 +297,13 @@ namespace amf
                                                         float* ppBufferInput[],
                                                         float* ppBufferOutput[]);
 #endif
-
+#ifdef USE_METAL_FFT
+        AMF_RESULT virtual AMF_STD_CALL TransformImplMetalFFTOMP(TAN_FFT_TRANSFORM_DIRECTION direction,
+                                                        amf_size log2len,
+                                                        amf_size channels,
+                                                        float* ppBufferInput[],
+                                                        float* ppBufferOutput[]);
+#endif
 #ifdef USE_IPP
 		AMF_RESULT virtual AMF_STD_CALL TransformImplIPP(TAN_FFT_TRANSFORM_DIRECTION direction,
 														amf_size log2len,
