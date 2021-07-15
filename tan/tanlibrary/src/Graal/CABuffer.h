@@ -191,37 +191,7 @@ public:
 
         return AMF_OK;
     }
-#else
-    AMF_RESULT copyToDevice(const amf::AMFComputePtr & commandQueue, uint32_t flags)
-    {
-        assert(mCount);
-        assert(mSystemMemory.size());
 
-        AMF_RESULT err = AMF_OK;
-
-        if (!mBufferAMF)
-        {
-            //todo: ivm: seems incorrect size calc
-            //AMF_RETURN_IF_FAILED(create(mCount * sizeof(T), flags, commandQueue->GetMemoryType()));
-            //todo: ivm: seems correct size calc
-            AMF_RETURN_IF_FAILED(create(mCount, flags, commandQueue->GetMemoryType()));
-        }
-
-        AMF_RETURN_IF_FAILED(
-            commandQueue->CopyBufferFromHost(
-                &mSystemMemory.front(),
-                mCount * sizeof(T),
-                mBufferAMF,
-                0, //offset
-                true //blocking
-                )
-            );
-
-        return AMF_OK;
-    }
-#endif
-
-#ifndef TAN_NO_OPENCL
     AMF_RESULT copyToDeviceNonBlocking(cl_command_queue commandQueue, uint32_t flags, const T* data = NULL, size_t size = -1, size_t offset = 0)
     {
         AMF_RESULT err = AMF_OK;
@@ -262,6 +232,32 @@ public:
         return AMF_FAIL;
     }
 #else
+    AMF_RESULT copyToDevice(const amf::AMFComputePtr & commandQueue, uint32_t flags)
+    {
+        assert(mCount);
+        assert(mSystemMemory.size() == mCount);
+
+        AMF_RESULT err = AMF_OK;
+
+        if (!mBufferAMF)
+        {
+            AMF_RETURN_IF_FAILED(create(mCount, flags, commandQueue->GetMemoryType()));
+            setValue3(commandQueue, 0);
+        }
+
+        AMF_RETURN_IF_FAILED(
+            commandQueue->CopyBufferFromHost(
+                &mSystemMemory.front(),
+                mCount * sizeof(T),
+                mBufferAMF,
+                0, //offset
+                true //blocking
+                )
+            );
+
+        return AMF_OK;
+    }
+
     AMF_RESULT copyToDeviceNonBlocking(
         const amf::AMFComputePtr &  commandQueue,
         uint32_t                    flags,
@@ -270,23 +266,25 @@ public:
         size_t                      offset          = 0
         )
     {
-        //todo: implement flags for metal
+        assert(mCount);
+        assert(mSystemMemory.size() == mCount || data);
 
         AMF_RESULT err = AMF_OK;
-
-        AMF_RETURN_IF_FAILED(count != -1 && (count > mCount || !data));
 
         if(!mBufferAMF)
         {
             AMF_RETURN_IF_FAILED(
                 create(mCount * sizeof(T), flags, commandQueue->GetMemoryType())
                 );
+            setValue3(commandQueue, 0);
         }
 
         size_t countToCopy = (count != -1) ? count : mCount;
-        auto systemMemory = data ? data : &mSystemMemory.front();
+        assert(offset + countToCopy <= mCount);
 
+        auto systemMemory = data ? data : &mSystemMemory.front();
         AMF_RETURN_IF_INVALID_POINTER(systemMemory, L"Internal error: buffer hasn't been preallocated");
+
         AMF_RETURN_IF_FAILED(
             commandQueue->CopyBufferFromHost(
                 systemMemory,
@@ -503,8 +501,8 @@ public:
             AMF_RETURN_IF_FAILED(
                 compute->FillBuffer(
                     mBufferAMF,
-                    offset * sizeof(T),
-                    count2Fill * sizeof(T),
+                    offsetInBytes,
+                    size2FillInBytes,
                     &value,
                     sizeof(T)
                     )
@@ -517,6 +515,36 @@ public:
             {
                 mSystemMemory[i] = value;
             }
+        }
+
+        return err;
+    }
+
+    AMF_RESULT setValue3(amf::AMFCompute * compute, T value, size_t count = 0, size_t offset = 0)
+    {
+        AMF_RESULT err = AMF_OK;
+
+        size_t count2Fill = (count != 0) ? count : mCount;
+        size_t size2FillInBytes = count2Fill * sizeof(T);
+        size_t offsetInBytes = offset * sizeof(T);
+        assert(offsetInBytes + size2FillInBytes <= mBufferAMF->GetSize());
+
+        if(!value)
+        {
+            assert(!offsetInBytes && size2FillInBytes == mBufferAMF->GetSize());
+        }
+
+        if(compute)
+        {
+            AMF_RETURN_IF_FAILED(
+                compute->FillBuffer(
+                    mBufferAMF,
+                    offsetInBytes,
+                    size2FillInBytes,
+                    &value,
+                    sizeof(T)
+                    )
+                );
         }
 
         return err;
@@ -580,6 +608,7 @@ public:
 #else
     inline amf::AMFBuffer *                 GetBuffer()
     {
+        assert(mBufferAMF && mBufferAMF->GetSize());
         return mBufferAMF;
     }
 #endif

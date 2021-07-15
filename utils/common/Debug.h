@@ -23,7 +23,7 @@
 { \
 		cl_uint refcount = 0; \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d Queue %X ref count: %d\r\n", __FILE__ , __LINE__, (void *)clqueue, refcount); \
+		std::cout << std::endl << "FILE: " << __FILE__ << " line: " << __LINE__ << " Queue " << (void *)clqueue << " ref count: " << refcount << std::endl; \
 }
 #endif
 

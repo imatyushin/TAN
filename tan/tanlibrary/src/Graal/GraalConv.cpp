@@ -1679,7 +1679,7 @@ AMF_RESULT CGraalConv::processHead1(
 
 #endif
 
-     return ret;
+    return ret;
 }
 
 AMF_RESULT CGraalConv::processPush(
@@ -1690,7 +1690,8 @@ AMF_RESULT CGraalConv::processPush(
     )
 {
     AMF_RESULT ret = AMF_OK;
-// if previous input is uaed do nothing
+
+    // if previous input is used do nothing
     if (_prev_input)
     {
         return ret;
@@ -1784,7 +1785,7 @@ AMF_RESULT CGraalConv::processPush(
         dir_fht_buf.copyToHost(inQ);
         float * inp_buf_ptr = inp_buf.GetSystemMemory();
         float * tgt_ptr = dir_fht_buf.GetSystemMemory();
-        float * in_b = new float[mAlignedProcessingSize];
+        std::vector<float> in_b(mAlignedProcessingSize);
         int in_version_stride = aligned_proc_bufffer_sz_ * mMaxChannels * n_input_blocks_;
         int in_chnl_stride = aligned_proc_bufffer_sz_* n_input_blocks_;
         int out_version_stride = aligned_conv_sz_ * mMaxChannels;
@@ -1799,13 +1800,14 @@ AMF_RESULT CGraalConv::processPush(
             int input_index_prev = std::abs(getRoundCounter(0, convId)-1) % n_input_blocks_;
 
             float *in_proc_ptr = inp_buf_ptr + uploadId * in_version_stride + convId  * in_chnl_stride + input_index_curr * aligned_proc_bufffer_sz_;
-            memcpy(in_b, in_proc_ptr, aligned_proc_bufffer_sz_ * sizeof(float));
+            memcpy(&in_b.front(), in_proc_ptr, aligned_proc_bufffer_sz_ * sizeof(float));
             in_proc_ptr = inp_buf_ptr + uploadId * in_version_stride + convId  * in_chnl_stride + input_index_prev * aligned_proc_bufffer_sz_;
-            memcpy(in_b + aligned_proc_bufffer_sz_, in_proc_ptr, aligned_proc_bufffer_sz_ * sizeof(float));
+            memcpy(&in_b.front() + aligned_proc_bufffer_sz_, in_proc_ptr, aligned_proc_bufffer_sz_ * sizeof(float));
             int output_index = getRoundCounter(0, convId) % n_aligned_proc_blocks_;
             float * tg_b = tgt_ptr + out_chnl_stride * convId + mAlignedProcessingSize * output_index;
-            err = FHT_verify((const __FLOAT__ *)in_b, (const __FLOAT__ *)tg_b, mAlignedProcessingSize, 0, mAlignedProcessingSize, (__FLOAT__)1. );
-            if ( err >= 0 ) {
+            err = FHT_verify(&in_b.front(), (const __FLOAT__ *)tg_b, mAlignedProcessingSize, 0, mAlignedProcessingSize, (__FLOAT__)1. );
+            if ( err >= 0 )
+            {
 #ifdef _DEBUG_PRINTF
                 std::cout <<  "Process direct tarnsform mismatch: round " << (int)getRoundCounter(uploadId, convId) << " channel " << i << "\n";
 #endif
@@ -1815,7 +1817,6 @@ AMF_RESULT CGraalConv::processPush(
                 break;
             }
         }
-        delete [] in_b;
 
 #ifdef _DEBUG_PRINTF
 #ifdef TAN_SDK_EXPORTS

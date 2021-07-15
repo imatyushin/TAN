@@ -661,7 +661,6 @@ protected:
         int prev_input
         );
 
-
     /*
         MAD. classic and the second stage of the head
         in head-tail case, the round counter is shifted 1 step since it's alread advance in the head stage
@@ -682,7 +681,6 @@ protected:
         const int *_uploadIDs,     // upload set IDs
         const int *_convIDs,       // kernel IDs
         int advance_time);
-
 
     AMF_RESULT syncUpload( void );
 
