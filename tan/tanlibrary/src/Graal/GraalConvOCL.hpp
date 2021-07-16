@@ -39,7 +39,7 @@
 
 #  include "public/include/core/Compute.h"      //AMF
 #  include "public/include/core/Context.h"      //AMF
-#  include "public/common/AMFFactoryHelper.h"         //AMF
+#  include "public/common/AMFFactory.h"         //AMF
 
 /**
  */

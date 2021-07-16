@@ -75,7 +75,6 @@ endif()
 if((APPLE OR XCODE) AND ENABLE_METAL)
   SET(ENABLE_METAL 1)
   ADD_DEFINITIONS(-DENABLE_METAL)
-  ADD_DEFINITIONS(-DENABLE_METAL)
   message("Metal support will be enabled for OpenAMF")
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
@@ -109,7 +108,11 @@ endif()
 #libraries
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/Graal cmake-Graal-bin)
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/clFFT cmake-clFFT-bin)
-add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/metalFFT cmake-metalFFT-bin)
+if((APPLE OR XCODE) AND METALFFT_DIR)
+  SET(USE_METALFFT 1)
+  ADD_DEFINITIONS(-DUSE_METALFFT)
+  add_subdirectory(${METALFFT_DIR} cmake-metalFFT-bin)
+endif()
 add_subdirectory(${TAN_ROOT}/tan/tanlibrary/proj/cmake/TrueAudioNext cmake-TrueAudioNext-bin)
 
 #examples

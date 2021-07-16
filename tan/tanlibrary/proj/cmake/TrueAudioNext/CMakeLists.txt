@@ -59,6 +59,12 @@ else()
   message("NOTE: OpenMP will not be supported!")
 endif()
 ###########################################################################
+if((APPLE OR XCODE) AND METALFFT_DIR)
+  message("TAN: use MetalFFT from ${METALFFT_DIR} folder")
+else()
+  message("TAN: no MetalFFT")
+endif()
+###########################################################################
 
 include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 include(${TAN_ROOT}/utils/cmake/test_amf.cmake)
@@ -77,6 +83,12 @@ include_directories(${TAN_ROOT}/utils/common)
 
 if(OpenMP_FOUND)
   include_directories(${OMP_INCLUDE_DIR})
+endif()
+
+if(METALFFT_DIR)
+  get_property(METALFFT_INCLUDES_DIR GLOBAL PROPERTY METALFFT_INCLUDES_DIR)
+  message("TrueAudioNext will include MetalFFT at ${METALFFT_INCLUDES_DIR}")
+  include_directories(${METALFFT_INCLUDES_DIR})
 endif()
 
 #
@@ -273,7 +285,7 @@ endif()
 
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
-target_link_libraries(TrueAudioNext metal_FFT)
+target_link_libraries(TrueAudioNext MetalFFT)
 
 ####################################################################################
 #OpenMP integration, part 2
@@ -285,6 +297,10 @@ endif()
 
 if(FFTW_DIR)
   target_link_libraries(TrueAudioNext fftw3f)
+endif()
+
+if((APPLE OR XCODE) AND METALFFT_DIR)
+  target_link_libraries(TrueAudioNext MetalFFT)
 endif()
 
 # Declare public API of your library.

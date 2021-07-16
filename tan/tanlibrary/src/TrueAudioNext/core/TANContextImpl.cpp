@@ -25,7 +25,7 @@
 #include "TANTraceAndDebug.h"
 
 #include "public/common/TraceAdapter.h"         //AMF
-#include "public/common/AMFFactoryHelper.h" 
+#include "public/common/AMFFactory.h"
 
 #include "clFFT.h"
 
@@ -365,8 +365,8 @@ AMF_RESULT amf::TANContextImpl::InitOpenCLInt(cl_command_queue pQueue, QueueType
     // Setting the AMFContext device type
     if(pAMFContext)
     {
-        int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU) 
-            ? AMF_CONTEXT_DEVICE_TYPE_GPU 
+        int amfDeviceType = (clDeviceType == CL_DEVICE_TYPE_GPU)
+            ? AMF_CONTEXT_DEVICE_TYPE_GPU
             : AMF_CONTEXT_DEVICE_TYPE_CPU;
         pAMFContext->SetProperty(AMF_CONTEXT_DEVICE_TYPE, amfDeviceType);
 

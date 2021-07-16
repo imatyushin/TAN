@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 
 #include "OCLHelper.h"
 #include "StringUtility.h"
@@ -174,7 +174,7 @@ cl_int FixedEnqueueFillBuffer(
     )
 {
     cl_int error = CL_SUCCESS;
-    
+
     cl_event event = clCreateUserEvent(context, &error);
     if(error != CL_SUCCESS)
     {
@@ -196,7 +196,7 @@ cl_int FixedEnqueueFillBuffer(
     {
         return error;
     }
-    
+
     error = clWaitForEvents(1, &event);
 
     return error;

@@ -60,11 +60,11 @@
 #ifdef USE_FFTW
   #include "api/fftw3.h"
 #endif
-//TODO: remove
-#define USE_METAL_FFT 1
 
-#ifdef USE_METAL_FFT
-    #include "metalFFT.h"//Metal_FFT
+#ifdef USE_METALFFT
+  #include "metalFFT.h"//Metal_FFT
+#else
+  forget setup metalfft in generator's sh
 #endif
 
 #ifndef _WIN32

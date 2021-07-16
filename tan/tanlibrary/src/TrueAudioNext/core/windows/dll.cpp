@@ -1,7 +1,7 @@
 
 #include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Platform.h"       //AMF
-#include "public/common/AMFFactoryHelper.h"           //AMF
+#include "public/common/AMFFactory.h"           //AMF
 
 HINSTANCE           g_hTANModule = NULL;
 
@@ -46,7 +46,7 @@ enum AMF_COMPUTE_QUEUE_TYPE
 struct AMFRealTimeQueue
 {
     AMF_COMPUTE_QUEUE_TYPE  queueType;
-    int                     CU_COUNT;   //for 
+    int                     CU_COUNT;   //for
 };
 
 */
