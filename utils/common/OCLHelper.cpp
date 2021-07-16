@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 #include "public/common/TraceAdapter.h"
 
 #include "OCLHelper.h"

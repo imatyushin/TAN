@@ -38,7 +38,7 @@
 #endif
 
 #include "public/common/Thread.h"
-#include "public/common/AMFFactoryHelper.h"           //AMF
+#include "public/common/AMFFactory.h"           //AMF
 #include "OCLHelper.h"
 #include "Debug.h"
 

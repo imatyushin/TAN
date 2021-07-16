@@ -29,7 +29,7 @@
 #include <CL/cl.h>
 
 #include "public/common/TraceAdapter.h"
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 #include "public/include/core/Variant.h"
 #include "public/include/core/ComputeFactory.h"
 
@@ -80,7 +80,7 @@ void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
             {
                 return;
             }
-            
+
             res = context3->GetMetalComputeFactory(&pOCLFactory);
 #endif
 

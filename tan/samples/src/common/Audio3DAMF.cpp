@@ -30,7 +30,7 @@
 #include "Debug.h"
 
 #include "public/common/TraceAdapter.h"
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 
 #include <time.h>
 #include <stdio.h>

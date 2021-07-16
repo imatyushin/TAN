@@ -21,7 +21,7 @@
 //
 #pragma once
 
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 #include "public/include/core/Compute.h"
 
 amf::AMFComputeKernel * GetOclKernel(

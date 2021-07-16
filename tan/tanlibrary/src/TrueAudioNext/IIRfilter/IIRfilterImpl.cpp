@@ -27,7 +27,7 @@
 
 #include "IIRfilterImpl.h"
 #include "../core/TANContextImpl.h"
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 #include "OCLHelper.h"
 #include "cpucaps.h"
 #include "Exceptions.h"

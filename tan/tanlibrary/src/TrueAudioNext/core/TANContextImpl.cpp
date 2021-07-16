@@ -25,7 +25,7 @@
 #include "TANTraceAndDebug.h"
 
 #include "public/common/TraceAdapter.h"         //AMF
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 
 #include "clFFT.h"
 
