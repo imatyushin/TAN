@@ -67,15 +67,15 @@ kernel void VectorComplexSum(
     device float2* pResult = (device float2*)pResultFlt;
 	//printf("GroupdID: %d GlobalID:%d offset:%d In: %d %2.2v4hlf", groupID, globalID, countInQuadFloats, offset,pInput[globalID]);
 	pAux[localID] = pInput[globalID];
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	while(offset > 0){
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 		if (localID < offset)
 			pAux[localID] += pAux[localID + offset];
 		offset = offset >> 1;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	if(localID == 0){
 		pResult[groupID].xy = pAux[0].xy + pAux[0].zw;
 	}

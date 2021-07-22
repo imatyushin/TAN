@@ -115,7 +115,7 @@ void FHTIterationG(
 			data[c_off] = c+f;			// *C
 	}
 
-//	threadgroup_barrier(metal::mem_flags::mem_none);
+//	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 }
 
 void FHTIterationG2(
@@ -166,7 +166,7 @@ void FHTIterationG2(
 			*(threadgroup float*)&data[(c_off) << 2] = c+f;			// *C
 	}
 
-//	threadgroup_barrier(metal::mem_flags::mem_none);
+//	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 }
 
 //#define _GROUP_SZ 256
@@ -210,7 +210,7 @@ void amdFHTUploadConv(
 		*floatP = 0;
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	//read data with bit reverse
 	//second half shouled be padded with 0
@@ -223,7 +223,7 @@ void amdFHTUploadConv(
 		*floatP = *inP;
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	int n=1;
 	int n2=_K0_N/2;
@@ -237,7 +237,7 @@ void amdFHTUploadConv(
 			FHTIterationG2(&data[0], gsincos, n, n2, k);
 		}
 
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	}
 
 	for( int i = lcl_id; i < _K0_N; i+= _K0_GROUP_SZ)
@@ -290,7 +290,7 @@ kernel void amdFHTConvIn(
 		*floatP = 0;
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	//read data with bit reverse
 	//second half shouled be padded with 0
@@ -310,7 +310,7 @@ kernel void amdFHTConvIn(
 		*floatP = *inP;
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	int n=1;
 	int n2=_K0_N/2;
@@ -324,7 +324,7 @@ kernel void amdFHTConvIn(
 			FHTIterationG2(&data[0], gsincos, n, n2, k);
 		}
 
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	}
 
 	//write out kernel
@@ -435,7 +435,7 @@ void amdFHTPushIn(
 		*floatP = *inP;
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	int n=1;
 	int n2=_K0_N/2;
@@ -450,7 +450,7 @@ void amdFHTPushIn(
 			FHTIterationG2(&data[0], gsincos, n, n2, k);
 		}
 
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	}
 
 	uint out_off = ( out_chnl_stride * chnl) + output_index *_K0_N;
@@ -506,7 +506,7 @@ void amdFHTPushOut(
 		data[gbitreverse[i]] = in[i + in_chnl_stride * chnl_id + in_version_stride *upload_id];
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	int n=1;
 	int n2=_K0_N/2;
@@ -521,7 +521,7 @@ void amdFHTPushOut(
 			FHTIterationG(&data[0], gsincos, n, n2, k);
 		}
 
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	}
 
 	for( int i = lcl_id; i < _K0_N/2; i+= _K0_GROUP_SZ)
@@ -813,7 +813,7 @@ void amdFHTConvHead1(
 			//}
 		}
 
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 		//forward FHT
 		int n=1;
@@ -828,7 +828,7 @@ void amdFHTConvHead1(
 				FHTIterationG2(&data[0], gsincos,	n, n2, k );
 			}
 
-			threadgroup_barrier(metal::mem_flags::mem_none);
+			threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 		}
 
 		// write to the history buffer
@@ -853,7 +853,7 @@ void amdFHTConvHead1(
 			*(threadgroup float*)&data[i<<2] = Hist[i + hist_off];
 		}
 
-		threadgroup_barrier(metal::mem_flags::mem_none);
+		threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	}
 
 	//------------------------------------------------------------------------------------------
@@ -898,7 +898,7 @@ void amdFHTConvHead1(
 		//}
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	//-------------------------------------------------------------------------------------------
  	//bit reverse
@@ -912,7 +912,7 @@ void amdFHTConvHead1(
 		*(threadgroup float*)&data[(gbitreverse[N_k]) << 2] = cmad[i].y;
 	}
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
 	{
 		int n=1;
@@ -927,7 +927,7 @@ void amdFHTConvHead1(
 				FHTIterationG2(&data[0], gsincos, n, n2, k);
 			}
 
-			threadgroup_barrier(metal::mem_flags::mem_none);
+			threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 		}
 	}
 

@@ -139,7 +139,7 @@ void CopyIRKernel16bitInterSum(const device uint * IR_In,
 
 	sum_buffer[lcl_id] = (__FLOAT2__)(0,0);
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 
     __FLOAT2__ IR_L = (__FLOAT2__)(0,0);
 	__FLOAT2__ IR_R = (__FLOAT2__)(0,0);
@@ -157,43 +157,43 @@ void CopyIRKernel16bitInterSum(const device uint * IR_In,
     __FLOAT2__ my_sum = (__FLOAT2__)(IR_L.s0, IR_R.s0);
 
 	sum_buffer[lcl_id] = my_sum;
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 //
     if ( lcl_id < 128 ) {
          my_sum += sum_buffer[lcl_id + 128];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 64 ) {
          my_sum += sum_buffer[lcl_id + 64];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 32 ) {
          my_sum += sum_buffer[lcl_id + 32];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 16 ) {
          my_sum += sum_buffer[lcl_id + 16];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 8 ) {
          my_sum += sum_buffer[lcl_id + 8];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 4 ) {
          my_sum += sum_buffer[lcl_id + 4];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 2 ) {
          my_sum += sum_buffer[lcl_id + 2];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id == 0 ) {
 		my_sum += sum_buffer[1];
 		sum_out[groupID] = my_sum;
@@ -239,43 +239,43 @@ void ItermPrefixSum(device __FLOAT2__ * sum_out, uint loop_limit, uint total_lim
 
 	sum_buffer[lcl_id] = my_sum;
 
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 //
     if ( lcl_id < 128 ) {
          my_sum += sum_buffer[lcl_id + 128];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 64 ) {
          my_sum += sum_buffer[lcl_id + 64];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 32 ) {
          my_sum += sum_buffer[lcl_id + 32];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 16 ) {
          my_sum += sum_buffer[lcl_id + 16];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 8 ) {
          my_sum += sum_buffer[lcl_id + 8];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 4 ) {
          my_sum += sum_buffer[lcl_id + 4];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id < 2 ) {
          my_sum += sum_buffer[lcl_id + 2];
 		 sum_buffer[lcl_id] = my_sum;
 	}
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
     if ( lcl_id == 0 ) {
 		my_sum += sum_buffer[1];
 		sum_out[groupID] = my_sum;;

@@ -1270,7 +1270,7 @@ AMF_RESULT CGraalConv:: uploadConvControlMaps(
     return ret;
 }
 
-AMF_RESULT CGraalConv:: updateConvIntnl(
+AMF_RESULT CGraalConv::updateConvIntnl(
         int channelsCount,
         const int *uploadIDs,     // upload set IDs
         const int *convIDs,       // kernel IDs

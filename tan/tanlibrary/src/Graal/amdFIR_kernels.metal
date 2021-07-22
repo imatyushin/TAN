@@ -49,7 +49,7 @@ void amdFIR(device const float * in,
 	device float stage[64 + 32];
 	stage[lcl_id] = 0;
 	stage[64 + lcl_id/2] = 0;
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	int data_chnl_off = metal::mul24(in_chnl_stride, chnl);
 	int fir_chnl_off = metal::mul24(fir_chnl_stride, chnl);
 	int fir_index, data_index;
@@ -71,11 +71,11 @@ void amdFIR(device const float * in,
 
 // REDUCTION
 	stage[lcl_id] = sum;
-	threadgroup_barrier(metal::mem_flags::mem_none);
+	threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 	for(int i = 32; i > 0; i >>= 1 ) {
 			sum += stage[lcl_id + i];
 			stage[lcl_id] = sum;
-			threadgroup_barrier(metal::mem_flags::mem_none);
+			threadgroup_barrier(metal::mem_flags::mem_threadgroup); //metal::mem_flags::mem_none //metal::mem_flags::mem_none
 #if 0
 		if ( lcl_id == 0 && grp_id == 0 ) {
 			printf("%d %f\n", lcl_id, stage[lcl_id]);
