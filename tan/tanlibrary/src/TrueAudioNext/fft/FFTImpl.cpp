@@ -58,7 +58,6 @@
 #endif
 
 #define AMF_FACILITY L"TANFFTImpl"
-
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 bool amf::TANFFTImpl::mUseIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
 
@@ -122,7 +121,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 
         metalfftSetupData fftSetup;
         err = metalfftInitSetupData(&fftSetup);
-        err = metalfftSetup(&fftSetup);
+        amf::AMFPrograms* pPrograms;//TODO: fill
+        err = metalfftSetup(&fftSetup, programs);
         
 //#endif
 #else
@@ -1971,7 +1971,8 @@ AMF_RESULT TANFFTImpl:: TransformImplMetalFFTOMP(TAN_FFT_TRANSFORM_DIRECTION dir
     err = metalfftSetResultLocation(planHandle, METALFFT_OUTOPLACE);
     err = metalfftSetPlanFFTmethod(planHandle, METALFFT_METAL);
     err = metalfftSetPlanContext(planHandle, context);
-    //err = metalfftSetPlanDevice(planHandle, );
+    amf::AMFComputeDevicePtr pComputeDevice;//TODO: fill
+    err = metalfftSetPlanDevice(planHandle, pComputeDevice);
 
     /* Bake the plan. */
     err = metalfftBakePlan(planHandle, 1, NULL);
