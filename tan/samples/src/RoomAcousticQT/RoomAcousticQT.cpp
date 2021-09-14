@@ -72,8 +72,8 @@ bool RoomAcousticQT::start()
 
 	// Since cpu's device id is 0 in this demo, we need to decrease the device id if
 	// you want to run GPU
-	int convolutionDeviceIndex = mConvolutionOverCL ? mConvolutionDeviceIndex : 0;
-	int roomDeviceIndex = mRoomOverCL ? mRoomDeviceIndex : 0;
+	int convolutionDeviceIndex = mConvolutionOverCompute ? mConvolutionDeviceIndex : 0;
+	int roomDeviceIndex = mRoomOverCompute ? mRoomDeviceIndex : 0;
 
 	std::vector<std::string> fileNames;
 	std::vector<bool> trackHead;
@@ -131,7 +131,7 @@ bool RoomAcousticQT::start()
 		m_iConvolutionLength,
 		m_iBufferSize,
 
-		mConvolutionOverCL,
+		mConvolutionOverCompute,
 		mConvolutionOverGPU,
 		convolutionDeviceIndex,
 
@@ -141,7 +141,7 @@ bool RoomAcousticQT::start()
 		mConvolutionCUCount,
 #endif
 
-		mRoomOverCL,
+		mRoomOverCompute,
 		mRoomOverGPU,
 		roomDeviceIndex,
 
@@ -361,14 +361,14 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 	m_RoomDefinition.mTop.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampTop").c_str()).toFloat());
 	m_RoomDefinition.mBottom.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampBottom").c_str()).toFloat());
 
-	mRoomOverCL = settings.value((std::string("ROOM/") + "OpenCL").c_str()).toInt() ? 1 : 0;
+	mRoomOverCompute = settings.value((std::string("ROOM/") + "OpenCL").c_str()).toInt() ? 1 : 0;
 	mRoomOverGPU = settings.value((std::string("ROOM/") + "GPU").c_str()).toInt() ? 1 : 0;
 	mRoomDeviceIndex = settings.value((std::string("ROOM/") + "Device").c_str()).toInt();
 	mRoomPriority = settings.value((std::string("ROOM/") + "Priority").c_str()).toInt();
 	mRoomCUCount = settings.value((std::string("ROOM/") + "CU").c_str()).toInt();
 
 	//settings.value((std::string("CONVOLUTION/") + "Count").c_str());
-	mConvolutionOverCL = settings.value((std::string("CONVOLUTION/") + "OpenCL").c_str()).toInt() ? 1 : 0;
+	mConvolutionOverCompute = settings.value((std::string("CONVOLUTION/") + "OpenCL").c_str()).toInt() ? 1 : 0;
 	mConvolutionOverGPU = settings.value((std::string("CONVOLUTION/") + "GPU").c_str()).toInt() ? 1 : 0;
 	mConvolutionDeviceIndex = settings.value((std::string("CONVOLUTION/") + "Device").c_str()).toInt();
 	mConvolutionPriority = settings.value((std::string("CONVOLUTION/") + "Priority").c_str()).toInt();
@@ -448,13 +448,13 @@ void RoomAcousticQT::saveConfiguration(const std::string& xmlfilename)
 	settings.setValue((std::string("ROOM/") + "DampTop").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mTop.damp)).c_str());
 	settings.setValue((std::string("ROOM/") + "DampBottom").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mBottom.damp)).c_str());
 
-	settings.setValue((std::string("ROOM/") + "OpenCL").c_str(), mRoomOverCL ? 1 : 0);
+	settings.setValue((std::string("ROOM/") + "OpenCL").c_str(), mRoomOverCompute ? 1 : 0);
 	settings.setValue((std::string("ROOM/") + "GPU").c_str(), mRoomOverGPU ? 1 : 0);
 	settings.setValue((std::string("ROOM/") + "Device").c_str(), mRoomDeviceIndex);
 	settings.setValue((std::string("ROOM/") + "Priority").c_str(), mRoomPriority);
 	settings.setValue((std::string("ROOM/") + "CU").c_str(), mRoomCUCount);
 
-	settings.setValue((std::string("CONVOLUTION/") + "OpenCL").c_str(), mConvolutionOverCL ? 1 : 0);
+	settings.setValue((std::string("CONVOLUTION/") + "OpenCL").c_str(), mConvolutionOverCompute ? 1 : 0);
 	settings.setValue((std::string("CONVOLUTION/") + "GPU").c_str(), mConvolutionOverGPU ? 1 : 0);
 	settings.setValue((std::string("CONVOLUTION/") + "Device").c_str(), mConvolutionDeviceIndex);
 	settings.setValue((std::string("CONVOLUTION/") + "Priority").c_str(), mConvolutionPriority);
@@ -566,23 +566,21 @@ float RoomAcousticQT::getBufferTime()
 }
 
 std::map<TAN_CONVOLUTION_METHOD, std::string> RoomAcousticQT::MethodNames = {
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, "FFT OVERLAP ADD"},
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL, "UNIFORM PARTITIONED_GPU"},
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED, "NONUNIFORM PARTITIONED_GPU"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, 			"FFT OVERLAP ADD"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,	"FFT PARTITIONED UNIFORM (CPU)"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,	"FFT PARTITIONED NONUNIFORM (CPU)"},
 
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, 			"FFT OVERLAP ADD"},            	// [CPU processing] FFT overlap add algorithm. Processes bufSize samples at a time.
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,	"FFT PARTITIONED UNIFORM"},  	// [CPU processing] FFT convolution using uniform partitions. Efficiently processes bufSize samples at a time.
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,	"FFT PARTITIONED NONUNIFORM"},  // [CPU processing] FFT convolution using nonuniform partitions.
-	//Graal methods
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,	"FFT PARTITIONED UNIFORM"},     // Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,	"FHT PARTITIONED UNIFORM"},     // Uniform Partitioned FHT algorithm. Processes bufSize samples at a time.
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,		"FFT UNIFORM HEAD TAIL"},       // Uniformed, convolution performed in 2 stages head and tail
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,		"FHT UNIFORM HEAD TAIL"},       // Uniformed, convolution performed in 2 stages head and tail
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,	"FFT PARTITIONED UNIFORM"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,	"FHT PARTITIONED UNIFORM"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,		"FFT UNIFORM HEAD TAIL"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL, 		"FHT UNIFORM HEAD TAIL"},
 
-	//
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_TIME_DOMAIN,				"TIME DOMAIN"},                 // pure time domain convolution. Processes from 1 to length samples at a time.
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED,	"FHT NONUNIFORM PARTITIONED"},
-	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,	"FFT NONUNIFORM PARTITIONED"},  // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_TIME_DOMAIN,				"TIME DOMAIN"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED, "FHT NONUNIFORM PARTITIONED"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,	"FFT NONUNIFORM PARTITIONED"},
+
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_USE_PROCESS_FINALIZE,		"USE_PROCESS_FINALIZE"},
+	{TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_USE_PROCESS_TAILTHREAD, 	"USE_PROCESS_TAILTHREAD"},
 	};
 
 std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesCPU = {
@@ -595,7 +593,10 @@ std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesCPU = {
 std::vector<TAN_CONVOLUTION_METHOD> RoomAcousticQT::MethodNamesGPU = {
 	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,
 	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,
+#ifndef ENABLE_METAL
+	//Need Graal2 ported to Metal
 	TAN_CONVOLUTION_METHOD::TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED
+#endif
 	};
 
 void RoomAcousticQT::updateAllSoundSourcesPosition()

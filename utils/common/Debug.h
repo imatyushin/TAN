@@ -16,7 +16,7 @@
 #include <atomic>
 #include <mutex>
 
-#define SILENT
+//#define SILENT
 
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) \
@@ -210,20 +210,6 @@ static void PrintArrayReduced(const std::string & hint, const void * array, size
     const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
     PrintArrayReducedImplementation(hint, array, sizeInBytes);
-}
-
-static void PrintShortArray(const std::string & hint, const int16_t * array, size_t count, size_t max = 64)
-{
-#ifdef SILENT
-    return;
-#endif
-
-    PrintArray(hint, array, count, max);
-}
-
-static void PrintShortArray(const char * hint, const int16_t * array, size_t count, size_t max = 64)
-{
-    PrintShortArray(std::string(hint), array, count, max);
 }
 
 #ifndef TAN_NO_OPENCL

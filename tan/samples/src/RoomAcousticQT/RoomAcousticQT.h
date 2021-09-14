@@ -98,14 +98,14 @@ public:
 	int m_iConvolutionLength = 0;
 	int m_iBufferSize = 0;
 
-	bool mConvolutionOverCL = false;
+	bool mConvolutionOverCompute = false;
 	bool mConvolutionOverGPU = false;
 	int mConvolutionDeviceIndex = 0;
 	int mConvolutionPriority = 0;
 	int mConvolutionCUCount = 0;
 
 	/*Room*/
-	bool mRoomOverCL = false;
+	bool mRoomOverCompute = false;
 	bool mRoomOverGPU = false;
 	int mRoomDeviceIndex = 0;
 	int mRoomPriority = 0;

@@ -199,7 +199,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             }
     #endif // RTQ_ENABLED
 
-            CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2);
+            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2));
 
             //CL room on GPU
             if(mComputeRoom && mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
@@ -215,18 +215,16 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             // For " core "reservation" on CPU" -ToDo test and enable
             if (mCuRes_Conv > 0 && mCuRes_Room > 0)
             {
-                AMF_RETURN_IF_FALSE(
-                    true == CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, mCuRes_Conv, mCuRes_Room),
-                    AMF_FAIL,
+                AMF_RETURN_IF_FAILED(
+                    CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, mCuRes_Conv, mCuRes_Room),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
             }
             else
             {
 #endif
-                AMF_RETURN_IF_FALSE(
-                    true == CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCmdQueue1, 0, &mCmdQueue2),
-                    AMF_FAIL,
+                AMF_RETURN_IF_FAILED(
+                    CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCmdQueue1, 0, &mCmdQueue2),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
 #ifdef RTQ_ENABLED
@@ -249,12 +247,12 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             //CL over GPU
             if(mComputeOverGpuRoom)
             {
-                CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCmdQueue3, 0, nullptr);
+                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCmdQueue3, 0, nullptr));
             }
             //CL over CPU
             else
             {
-                CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCmdQueue3, 0, nullptr);
+                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCmdQueue3, 0, nullptr));
             }
         }
     }

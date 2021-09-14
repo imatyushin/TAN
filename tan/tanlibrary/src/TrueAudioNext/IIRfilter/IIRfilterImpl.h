@@ -53,16 +53,16 @@ namespace amf
             amf_uint32 numInputTaps,
             amf_uint32 numOutputTaps,
 			amf_uint32 bufferSizeInSamples,
-            amf_uint32 channels);
+            amf_uint32 channels) override;
 
-        virtual AMF_RESULT  AMF_STD_CALL    Terminate();
-        virtual TANContext* AMF_STD_CALL    GetContext()	{ return m_pContextTAN; }
+        virtual AMF_RESULT  AMF_STD_CALL    Terminate() override;
+        virtual TANContext* AMF_STD_CALL    GetContext() override { return m_pContextTAN; }
 
         virtual AMF_RESULT AMF_STD_CALL     UpdateIIRResponses(float* ppInputResponse[], float* ppOutputResponse[],
             amf_size inResponseSz, amf_size outResponseSz,
             const amf_uint32 flagMasks[],   // Masks of flags from enum TAN_IIR_CHANNEL_FLAG, can be NULL.
             const amf_uint32 operationFlags // Mask of flags from enum TAN_IIR_OPERATION_FLAG.
-            );
+            ) override;
 
         virtual AMF_RESULT  AMF_STD_CALL    Process(float* ppBufferInput[],
             float* ppBufferOutput[],

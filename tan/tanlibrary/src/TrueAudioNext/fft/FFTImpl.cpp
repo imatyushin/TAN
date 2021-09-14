@@ -836,7 +836,7 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
     }
 
     static size_t counter(0);
-    PrintDebug(std::to_string(counter++));
+    //PrintDebug(std::to_string(counter++));
 
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
 

@@ -123,7 +123,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             }
     #endif // RTQ_ENABLED
 
-            CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12);
+            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12));
 
             //CL room on GPU
             if(mComputeRoom && mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
@@ -142,18 +142,16 @@ AMF_RESULT Audio3DAMF::InitObjects()
             // For " core "reservation" on CPU" -ToDo test and enable
             if (mCuRes_Conv > 0 && mCuRes_Room > 0)
             {
-                AMF_RETURN_IF_FALSE(
-                    true == CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCompute1, &mCompute2, mCuRes_Conv, mCuRes_Room),
-                    AMF_FAIL,
+                AMF_RETURN_IF_FAILED(
+                    CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCompute1, &mCompute2, mCuRes_Conv, mCuRes_Room),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
             }
             else
             {
 #endif
-                AMF_RETURN_IF_FALSE(
-                    true == CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCompute1, 0, &mCompute2, &mContext12),
-                    AMF_FAIL,
+                AMF_RETURN_IF_FAILED(
+                    CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCompute1, 0, &mCompute2, &mContext12),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
 
@@ -175,12 +173,12 @@ AMF_RESULT Audio3DAMF::InitObjects()
             //CL over GPU
             if(mComputeOverGpuRoom)
             {
-                CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
+                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3));
             }
             //CL over CPU
             else
             {
-                CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3);
+                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3));
             }
         }
     }
@@ -276,7 +274,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
 
                 mAMFResponsesInterfaces[i] = mAMFResponses[i];
 
-                PrintAMFArrayReduced("mOCLResponses", mAMFResponses[i], mCompute1, mAMFResponses[i]->GetSize());
+                //PrintAMFArrayReduced("mOCLResponses", mAMFResponses[i], mCompute1, mAMFResponses[i]->GetSize());
             }
 
             //HACK out for test
@@ -545,8 +543,9 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    //PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
-
+    PrintArrayReduced("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t));
+    PrintArrayReduced("::Process input[1]", pChan[1], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t));
+    
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
     {
@@ -584,8 +583,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 )
             );
 
-        PrintAMFArrayReduced("aft Prc[0]", mOutputAMFBuffersInterfaces[0], mCompute1, mOutputAMFBuffersInterfaces[0]->GetSize());
-        PrintAMFArrayReduced("aft Prc[1]", mOutputAMFBuffersInterfaces[1], mCompute1, mOutputAMFBuffersInterfaces[1]->GetSize());
+        //PrintAMFArrayReduced("aft Prc[0]", mOutputAMFBuffersInterfaces[0], mCompute1, mOutputAMFBuffersInterfaces[0]->GetSize());
+        //PrintAMFArrayReduced("aft Prc[1]", mOutputAMFBuffersInterfaces[1], mCompute1, mOutputAMFBuffersInterfaces[1]->GetSize());
 
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
@@ -659,8 +658,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 )
             );
 
-        //PrintFloatArray("::Convolution->Process[0]", mOutputFloatBufs[0], sampleCount * sizeof(float));
-        //PrintFloatArray("::Convolution->Process[1]", mOutputFloatBufs[1], sampleCount * sizeof(float));
+        PrintArrayReduced("aft Prc[0]", mOutputFloatBufs[0], mFFTLength * sizeof(float));
+        PrintArrayReduced("aft Prc[1]", mOutputFloatBufs[1], mFFTLength * sizeof(float));
 
         AMF_RETURN_IF_FAILED(ret);
 
@@ -686,8 +685,8 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
     }
 
-    //PrintShortArray("::Process, out[0]", pOut, sampleCount * sizeof(float));
-    //PrintShortArray("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
+    PrintArrayReduced("::Process, out[0]", pOut, sampleCount * sizeof(float));
+    PrintArrayReduced("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
     static int counter(0);
 
@@ -697,21 +696,16 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
     }
 
     auto info = ES + "Process " + std::to_string(counter) + " ===============================================";
-
+    
     PrintDebug(info);
-
-    if(++counter == 200)
+    ++counter;
+    
+    if(counter == 200)
     {
         int i = 0;
         ++i;
         //assert(false);
     }
-
-    //mCompute1->FinishQueue();
-    //mCompute2->FlushQueue();
-    //mCompute2->FinishQueue();
-    //mCompute3->FlushQueue();
-    //mCompute3->FinishQueue();
 
     return AMF_OK;
 }

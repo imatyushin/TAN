@@ -96,20 +96,20 @@ namespace amf
 
     enum TAN_CONVOLUTION_METHOD
     {
-        TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,             // [CPU processing] FFT overlap add algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,     // [CPU processing] FFT convolution using uniform partitions. Efficiently processes bufSize samples at a time.
-		TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,     // [CPU processing] FFT convolution using nonuniform partitions.
+        TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,                 // [CPU processing] FFT overlap add algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,         // [CPU processing] FFT convolution using uniform partitions. Efficiently processes bufSize samples at a time.
+		TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,      // [CPU processing] FFT convolution using nonuniform partitions.
         //Graal methods
-        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,     // Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,     // Uniform Partitioned FHT algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
-        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
+        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,         // Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,         // Uniform Partitioned FHT algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,           // Uniformed, convolution performed in 2 stages head and tail
+        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,           // Uniformed, convolution performed in 2 stages head and tail
 
         //
-        TAN_CONVOLUTION_METHOD_TIME_DOMAIN,                 // pure time domain convolution. Processes from 1 to length samples at a time.
+        TAN_CONVOLUTION_METHOD_TIME_DOMAIN,                     // pure time domain convolution. Processes from 1 to length samples at a time.
         TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED,
-        TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,  // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
-		TAN_CONVOLUTION_METHOD_USE_PROCESS_FINALIZE = 0x8000, // use ProcessFinalize() optimization for HEAD_TAIL mode called from external thread
+        TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,      // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
+		TAN_CONVOLUTION_METHOD_USE_PROCESS_FINALIZE = 0x8000,   // use ProcessFinalize() optimization for HEAD_TAIL mode called from external thread
 		TAN_CONVOLUTION_METHOD_USE_PROCESS_TAILTHREAD = 0xC000, // use ProcessFinalize() optimization for HEAD_TAIL mode called from internal thread
 	};
 

@@ -149,39 +149,27 @@ public:
 #endif
 
 #ifndef TAN_NO_OPENCL
-    AMF_RESULT copyToDevice(cl_command_queue commandQueue, uint32_t flags, const T* data = NULL, size_t size = -1, size_t offset = 0)
+    AMF_RESULT copyToDevice(cl_command_queue commandQueue, uint32_t flags, const T* data = NULL)
     {
+        assert(mCount);
+        assert(mSystemMemory.size() == mCount);
+
         AMF_RESULT err = AMF_OK;
 
-        if (size != -1 && (size > mCount || !data))
+        if (!mBufferCL)
         {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
-            AMF_ASSERT(false, L"copyToDevice: wrong data");
-            return AMF_INVALID_ARG;
+            AMF_RETURN_IF_FAILED(create(mCount, flags, amf::AMF_MEMORY_OPENCL));
+            setValue3(commandQueue, 0);
         }
 
-        if(!mBufferCL)
-        {
-            //todo: ivm: seems incorrect
-            //create(mCount * sizeof(T), flags, amf::AMF_MEMORY_OPENCL);
-            create(mCount, flags, amf::AMF_MEMORY_OPENCL);
-        }
-
-        size_t len = (size != -1 )? size : mCount;
-
-        const T * sys_ptr = (size != -1) ? data : mSystemMemory;
-        AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
-                            L"Internal error: buffer hasn't been preallocated");
         AMF_RETURN_IF_CL_FAILED(
             clEnqueueWriteBuffer(
                 commandQueue,
                 mBufferCL,
                 CL_TRUE,
-                offset * sizeof(T),
-                len * sizeof(T),
-                sys_ptr,
+                0, //offset * sizeof(T),
+                mCount * sizeof(T),
+                &mSystemMemory.front(),
                 0,
                 NULL,
                 NULL
@@ -194,34 +182,33 @@ public:
 
     AMF_RESULT copyToDeviceNonBlocking(cl_command_queue commandQueue, uint32_t flags, const T* data = NULL, size_t size = -1, size_t offset = 0)
     {
+        assert(mCount);
+        assert(mSystemMemory.size() == mCount || data);
+
         AMF_RESULT err = AMF_OK;
 
-        if (size!=-1 && (size > mCount || !data)) {
-#ifdef _DEBUG_PRINTF
-            printf("wrong data\n");
-#endif
-            AMF_ASSERT(false, L"copyToDeviceA: wrong data");
-
-            return AMF_INVALID_ARG;
-        }
-
-        if ( !mBufferCL )
+        if(!mBufferCL)
         {
-            AMF_RETURN_IF_FAILED(create(mCount * sizeof(T), flags, amf::AMF_MEMORY_TYPE::AMF_MEMORY_OPENCL));
+            AMF_RETURN_IF_FAILED(
+                create(mCount * sizeof(T), flags, amf::AMF_MEMORY_OPENCL)
+                );
+            setValue3(commandQueue, 0);
         }
 
-        size_t len = (size!=-1 )? size : mCount;
-        const T * sys_ptr = (size!=-1) ? data : mSystemMemory;
-        AMF_RETURN_IF_INVALID_POINTER(sys_ptr,
-                            L"Internal error: buffer hasn't been preallocated");
+        size_t countToCopy = (count != -1) ? count : mCount;
+        assert(offset + countToCopy <= mCount);
+
+        auto systemMemory = data ? data : &mSystemMemory.front();
+        AMF_RETURN_IF_INVALID_POINTER(systemMemory, L"Internal error: buffer hasn't been preallocated");
+
         AMF_RETURN_IF_CL_FAILED(
             clEnqueueWriteBuffer(
                 commandQueue,
                 mBufferCL,
                 CL_FALSE,
                 offset * sizeof(T),
-                len * sizeof(T),
-                sys_ptr,
+                countToCopy * sizeof(T),
+                systemMemory,
                 0,
                 NULL,
                 NULL
@@ -291,7 +278,7 @@ public:
                 countToCopy * sizeof(T),
                 mBufferAMF,
                 offset * sizeof(T),
-                true
+                false
                 )
             );
 
@@ -425,28 +412,33 @@ public:
     }
 #endif
 
-    /*AMF_RESULT setValue(cl_command_queue commandQueue, T _val)
-    {
-        AMF_RESULT err = AMF_OK;
-
-        T * map_ptr = map(commandQueue, CL_MAP_WRITE_INVALIDATE_REGION);
-        for( int i = 0; i < mCount; i++)
-        {
-            map_ptr[i] = _val;
-            if ( mSystemMemory )
-            {
-                mSystemMemory[i] = _val;
-            }
-        }
-        unmap();
-        return(err);
-    }*/
-
 #ifndef TAN_NO_OPENCL
     AMF_RESULT setValue2(cl_command_queue commandQueue, T value, size_t count = 0, size_t offset = 0)
     {
-        AMF_RESULT err = AMF_OK;
+        size_t count2Fill = (count != 0) ? count : mCount;
 
+        AMF_RETURN_IF_FAILED(
+            setValue3(
+                commandQueue,
+                value,
+                count2Fill,
+                offset
+                )
+            );
+
+        if(mSystemMemory.size())
+        {
+            for(int i = offset; i < count2Fill; i++)
+            {
+                mSystemMemory[i] = value;
+            }
+        }
+
+        return AMF_OK;
+    }
+
+    AMF_RESULT setValue3(cl_command_queue commandQueue, T value, size_t count = 0, size_t offset = 0)
+    {
         int count2Fill = (count != 0) ? count : mCount;
 
         if(commandQueue)
@@ -474,40 +466,24 @@ public:
                 );
         }
 
-        for (int i = offset; mSystemMemory && i < count2Fill; i++)
+        if(mSystemMemory.size())
         {
-            mSystemMemory[i] = value;
+            for(int i = offset; i < count2Fill; i++)
+            {
+                mSystemMemory[i] = value;
+            }
         }
 
-        return err;
+        return AMF_OK;
     }
 #else
     AMF_RESULT setValue2(amf::AMFCompute * compute, T value, size_t count = 0, size_t offset = 0)
     {
-        AMF_RESULT err = AMF_OK;
-
         size_t count2Fill = (count != 0) ? count : mCount;
-        size_t size2FillInBytes = count2Fill * sizeof(T);
-        size_t offsetInBytes = offset * sizeof(T);
-        assert(offsetInBytes + size2FillInBytes <= mBufferAMF->GetSize());
 
-        if(!value)
-        {
-            assert(!offsetInBytes && size2FillInBytes == mBufferAMF->GetSize());
-        }
-
-        if(compute)
-        {
-            AMF_RETURN_IF_FAILED(
-                compute->FillBuffer(
-                    mBufferAMF,
-                    offsetInBytes,
-                    size2FillInBytes,
-                    &value,
-                    sizeof(T)
-                    )
-                );
-        }
+        AMF_RETURN_IF_FAILED(
+            setValue3(compute, value, count2Fill, offset)
+            );
 
         if(mSystemMemory.size())
         {
@@ -517,13 +493,11 @@ public:
             }
         }
 
-        return err;
+        return AMF_OK;
     }
 
     AMF_RESULT setValue3(amf::AMFCompute * compute, T value, size_t count = 0, size_t offset = 0)
     {
-        AMF_RESULT err = AMF_OK;
-
         size_t count2Fill = (count != 0) ? count : mCount;
         size_t size2FillInBytes = count2Fill * sizeof(T);
         size_t offsetInBytes = offset * sizeof(T);
@@ -547,7 +521,7 @@ public:
                 );
         }
 
-        return err;
+        return AMF_OK;
     }
 #endif
 
