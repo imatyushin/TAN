@@ -329,7 +329,7 @@ namespace amf
 
         int m_currentDataPartition = 0;
 		int m_dataRowLength = 0;
-		int m_DelayedUpdate = 0;
+		bool m_DelayedUpdate = false;
         int m_curCrossFadeSample = 0;
 		float **m_FilterTD = nullptr;
 
