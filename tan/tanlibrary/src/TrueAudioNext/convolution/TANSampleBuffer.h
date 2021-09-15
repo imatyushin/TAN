@@ -41,7 +41,8 @@ namespace amf
 #ifndef TAN_NO_OPENCL
             cl_mem          *clmem;
 #else
-            amf::AMFBuffer  **amfBuffers;
+            amf::AMFBuffer  **
+                            amfBuffers;
 #endif
         }                   mChannels;
 
@@ -221,7 +222,7 @@ namespace amf
 
                 if(IsHost() && mBuffersAllocated)
                 {
-                    //PrintFloatArray(channelHint.c_str(), mChannels.host[0], count);
+                    //PrintArray(channelHint.c_str(), mChannels.host[0], count);
                 }
     #ifndef TAN_NO_OPENCL
                 else if(IsCL() && mBuffersAllocated)
@@ -262,7 +263,7 @@ namespace amf
                 && amf::AMF_MEMORY_TYPE::AMF_MEMORY_HOST != mChannelsType;
         }
 
-        inline float * const * const        GetHostBuffers() const
+        inline const float * const * const        GetHostBuffers() const
         {
             assert(IsHost() && (mBuffersAllocated || mBuffersReferred));
 

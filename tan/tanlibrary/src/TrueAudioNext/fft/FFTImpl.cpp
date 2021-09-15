@@ -116,7 +116,17 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 #endif
     {
 		//todo: integrate metal fft
-#ifndef ENABLE_METAL
+//#ifndef ENABLE_METAL
+#ifdef METAL_FFT
+        metalfftStatus err;
+
+        metalfftSetupData fftSetup;
+        err = metalfftInitSetupData(&fftSetup);
+        amf::AMFPrograms* pPrograms;//TODO: fill
+        err = metalfftSetup(&fftSetup, programs);
+
+//#endif
+#else
         return InitGpu();
 #endif
     }
@@ -367,7 +377,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitGpu()
     GetProperty(TAN_OUTPUT_MEMORY_TYPE, &tmp);
     m_eOutputMemoryType = (AMF_MEMORY_TYPE)tmp;
 
-    auto context = m_pContextTAN->GetComputeContext();
+    auto context = m_pContextTAN->GetConvContext();
 
     m_doProcessingOnGpu = (nullptr != context);
 
@@ -426,6 +436,11 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 			}
 		}
 #endif
+
+#ifdef USE_METAL_FFT
+    metalfftTeardown();
+#endif
+
     }
 
     return AMF_OK;
@@ -686,7 +701,7 @@ size_t TANFFTImpl::GetFFTPlan(
         clfftPlanHandle plan = {0};
 
 		// Create new plan
-        auto context = m_pContextTAN->GetComputeContext();
+        auto context = m_pContextTAN->GetConvContext();
 
 		//hack
 		auto cmdQueue = m_pContextTAN->GetGeneralQueue();
@@ -836,7 +851,7 @@ AMF_RESULT TANFFTImpl::TransformImplCpu(
     }
 
     static size_t counter(0);
-    PrintDebug(std::to_string(counter++));
+    //PrintDebug(std::to_string(counter++));
 
     int sign = (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) ? -1 : 1;
 
@@ -1879,7 +1894,7 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 		// create new buffers
 		m_iInternalBufferSizeInBytes = requiredChannelLengthInBytes;
 
-		auto context = m_pContextTAN->GetComputeContext();
+		auto context = m_pContextTAN->GetConvContext();
 		auto cmdQueue = m_useConvQueue
 			? m_pContextTAN->GetConvQueue()
 			: m_pContextTAN->GetGeneralQueue();
@@ -1936,3 +1951,56 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
 
     return AMF_OK;
 }
+
+#ifdef USE_METAL_FFT
+AMF_RESULT TANFFTImpl::TransformImplMetalFFTOMP(
+	TAN_FFT_TRANSFORM_DIRECTION direction,
+	amf_size log2len,
+	amf_size channels,
+	float* ppBufferInput[],
+	float* ppBufferOutput[]
+	)
+{
+    metalfftStatus err;
+    const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
+    /* FFT library realted declarations */
+    metalfftPlanHandle planHandle;
+    metalfftDim dim = METALFFT_1D;
+    size_t metalLengths[1] = {fftFrameSize};
+    /* Create a default plan for a complex FFT. */
+    err = metalfftCreateDefaultPlan(&planHandle, METALFFT_1D, metalLengths);
+
+    /* Set plan parameters. */
+    err = metalfftSetPlanPrecision(planHandle, METALFFT_SINGLE);
+    err = metalfftSetLayout(planHandle, METALFFT_REAL, METALFFT_REAL);
+    err = metalfftSetResultLocation(planHandle, METALFFT_OUTOPLACE);
+    err = metalfftSetPlanFFTmethod(planHandle, METALFFT_METAL);
+    err = metalfftSetPlanContext(planHandle, context);
+    amf::AMFComputeDevicePtr pComputeDevice;//TODO: fill
+    err = metalfftSetPlanDevice(planHandle, pComputeDevice);
+
+    /* Bake the plan. */
+    err = metalfftBakePlan(planHandle, 1, NULL);
+
+    metalfftDirection metalfftdirection;
+    if (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD)
+        metalfftdirection = METALFFT_FORWARD;
+    else
+        metalfftdirection = METALFFT_BACKWARD;
+
+    amf::AMFContextPtr context;
+    //TODO: execute parallel
+    for(amf_size i = 0; i < channels; ++i)
+    {
+        // map from host?
+        amf::AMFBufferPtr input;
+        amf::AMFBufferPtr output;
+        context->CreateBufferFromHostNative(ppBufferInput[i][0], fftFrameSize * sizeof(float), &input);
+        context->CreateBufferFromHostNative(ppBufferOutput[i][0], fftFrameSize * sizeof(float), &output);
+        err = metalfftEnqueueTransform(planHandle, metalfftdirection, &input, 1, &output, 0);
+        output->Convert(amf::AMF_MEMORY_HOST);
+        memcpy(ppBufferOutput[i], output->GetNative(), fftFrameSize * sizeof(float));
+    }
+    err = metalfftDestroyPlan(&planHandle);
+}
+#endif

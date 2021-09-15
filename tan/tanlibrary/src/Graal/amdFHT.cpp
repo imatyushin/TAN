@@ -285,9 +285,9 @@ static short* SelectReversedTable( int n ) {
 }
 
 // assuming POW(2)
-static short * genBitreverseTable( int n ) {
-
-	short * ret = (short*)malloc(sizeof(short)*n);
+static void genBitreverseTable(short * buffer, int n)
+{
+	//short * ret = (short*)malloc(sizeof(short)*n);
 
 	int log2n = 0;
 	for(int i = 0; i < 32; i++) {
@@ -303,10 +303,9 @@ static short * genBitreverseTable( int n ) {
 		for( int j = log2n-1; j >= 0; j--, indx >>= 1){
 			bitreversed |= ((indx & 1) << j);
 		}
-		ret[i] = bitreversed;
-		ret[bitreversed] = i;
+		buffer[i] = bitreversed;
+		buffer[bitreversed] = i;
 	}
-	return(ret);
 }
 
 static FHT_FUNC SelectRoutine( int n ) {
@@ -320,7 +319,7 @@ static FHT_FUNC SelectRoutine( int n ) {
 			break;
 		}
 	}
-	return(ret);
+	return ret;
 }
 
 static void SelectRoutine2(void * dir_inv[2],  int n ) {
@@ -340,25 +339,27 @@ static void SelectRoutine2(void * dir_inv[2],  int n ) {
 
 // sin(k/N*pi), cos(k/N*pi), ... (k=0..N/2-1)
 // n is POW(2)
-int FHTInit(__FLOAT__ **tsincos, short ** bit_reverse, FHT_FUNC * routine, int n) {
-	int err = 0;
+int FHTInit(float * tsincos, short * bit_reverse, FHT_FUNC * routine, int n)
+{
+	//alloc and fill sin_cos structure
+	//todo: ivm: commented, seems incorrect, already allocated from caller
+    //*tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__) *n);
 
-// alloc and fill sin_cos structure
-	*tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__) *n);
-	for(int k = 0; k < n/2; k++ ) {
-		(*tsincos)[k*2] = (__FLOAT__)sin((TWOPI*k/n));
-		(*tsincos)[k*2 + 1] = (__FLOAT__)cos((TWOPI*k/n));
+	for(int k = 0; k < n/2; k++ )
+	{
+		tsincos[k*2] = sin((TWOPI*k/n));
+		tsincos[k*2 + 1] = cos((TWOPI*k/n));
 	}
 
-	*bit_reverse = genBitreverseTable( n );
-//    *bit_reverse = SelectReversedTable( n );
+	genBitreverseTable(bit_reverse, n);
+	//*bit_reverse = SelectReversedTable( n );
 
 	*routine = SelectRoutine(n);
-	return(err);
+
+	return 0;
 }
 
-
-int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n) {
+/*int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n) {
 	int err = 0;
 
 // alloc and fill sin_cos structure
@@ -373,7 +374,7 @@ int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n)
 
 	SelectRoutine2(dir_inv, n);
 	return(err);
-}
+}*/
 
 
 #define N 16
@@ -384,11 +385,11 @@ void FHT16(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -413,7 +414,7 @@ void FHT16(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -421,10 +422,10 @@ void FHT16(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -476,8 +477,8 @@ void FHT16prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
 
     int n=1;
     int n2=N/2;
- 
-      
+
+
     for(int log2_n = 0; log2_n < LOG2_N; log2_n++)
     {
 
@@ -501,7 +502,7 @@ void FHT16prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
 
 		for( int k = 0; k < n2 * (n/2 + 1) ; k++ ){
 
-	
+
 			i = ( k / (n /2 + 1));
 			j =  k - i * (n/2 + 1);
 
@@ -516,8 +517,8 @@ void FHT16prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
 
 			C=&FHTdata[n*2*i + n - diff];
 			D=&FHTdata[n*2*i + n*2 - diff];
-	
-         
+
+
 			__FLOAT__ dsin=ang[ang_off];
 			__FLOAT__ dcos=ang[ang_off + 1];
 
@@ -535,8 +536,8 @@ void FHT16prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
             *A = a+e;
             *D = c-f;
             *C = c+f;
-			
-			
+
+
 		}
 
 
@@ -555,7 +556,7 @@ void FHT16RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_data
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -565,7 +566,7 @@ void FHTMAD16RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * F
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2;
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -583,11 +584,11 @@ void FHT32(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -606,7 +607,7 @@ void FHT32(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -614,10 +615,10 @@ void FHT32(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -666,7 +667,7 @@ void FHT32RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_data
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -676,7 +677,7 @@ void FHTMAD32RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * F
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -698,11 +699,11 @@ void FHT64(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -721,7 +722,7 @@ void FHT64(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -729,10 +730,10 @@ void FHT64(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -780,7 +781,7 @@ void FHT64RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_data
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -790,7 +791,7 @@ void FHTMAD64RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * F
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -817,11 +818,11 @@ void FHT128(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
     int n=1;
     int angf=N/2;
 
-      
+
     while(n < N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -840,7 +841,7 @@ void FHT128(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -848,10 +849,10 @@ void FHT128(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -895,8 +896,8 @@ void FHT128prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
 
     int n=1;
     int n2=N/2;
- 
-      
+
+
     for(int log2_n = 0; log2_n < LOG2_N; log2_n++)
     {
 
@@ -920,7 +921,7 @@ void FHT128prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
 
 		for( int k = 0; k < n2 * (n/2 + 1) ; k++ ){
 
-	
+
 			i = ( k / (n /2 + 1));
 			j =  k - i * (n/2 + 1);
 
@@ -935,8 +936,8 @@ void FHT128prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
 
 			C=&FHTdata[n*2*i + n - diff];
 			D=&FHTdata[n*2*i + n*2 - diff];
-	
-         
+
+
 			__FLOAT__ dsin=ang[ang_off];
 			__FLOAT__ dcos=ang[ang_off + 1];
 
@@ -954,8 +955,8 @@ void FHT128prll(__FLOAT__ *tsincos, __FLOAT__ *FHTdata)
             *A = a+e;
             *D = c-f;
             *C = c+f;
-			
-			
+
+
 		}
 
 
@@ -974,7 +975,7 @@ void FHT128RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_dat
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -984,7 +985,7 @@ void FHTMAD128RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * 
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -1005,11 +1006,11 @@ void FHT256(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -1028,7 +1029,7 @@ void FHT256(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -1036,10 +1037,10 @@ void FHT256(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -1087,7 +1088,7 @@ void FHT256RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_dat
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -1097,7 +1098,7 @@ void FHTMAD256RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * 
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -1120,11 +1121,11 @@ void FHT512(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -1143,7 +1144,7 @@ void FHT512(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -1151,10 +1152,10 @@ void FHT512(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -1202,7 +1203,7 @@ void FHT512RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_dat
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -1212,7 +1213,7 @@ void FHTMAD512RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * 
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -1233,11 +1234,11 @@ void FHT1024(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -1256,7 +1257,7 @@ void FHT1024(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -1264,10 +1265,10 @@ void FHT1024(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -1315,7 +1316,7 @@ void FHT1024RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_da
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -1325,7 +1326,7 @@ void FHTMAD1024RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ *
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -1347,11 +1348,11 @@ void FHT2048(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -1370,7 +1371,7 @@ void FHT2048(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -1378,10 +1379,10 @@ void FHT2048(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -1429,7 +1430,7 @@ void FHT2048RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_da
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -1439,7 +1440,7 @@ void FHTMAD2048RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ *
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -1461,11 +1462,11 @@ void FHT4096(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 {
     int n=1;
     int angf=N/2;
-      
+
     while(n<N)
     {
         __FLOAT__ *angle=&tsincos[0];
-        
+
         __FLOAT__ *A=&FHTwarr[0];
         __FLOAT__ *B=&FHTwarr[n];
         __FLOAT__ *C=&FHTwarr[n-1];
@@ -1484,7 +1485,7 @@ void FHT4096(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
         A-=(N-1);
         B-=(N-1);
 
-        
+
         // full butterflies
 		int ang_off = 0;
         while(n>2 && ang_off<N/2 - (angf<<1))
@@ -1492,10 +1493,10 @@ void FHT4096(__FLOAT__ *tsincos, __FLOAT__ *FHTwarr)
 
 			__FLOAT__ *ang = angle;
 			ang_off +=  (angf<<1);
-         
+
             __FLOAT__ dsin=ang[ang_off];
             __FLOAT__ dcos=ang[ang_off + 1];
-            
+
             for(int k=0;k<angf;k++)
             {
                 __FLOAT__ E=*B*dcos + *D*dsin;
@@ -1544,7 +1545,7 @@ void FHT4096RevIn2(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_da
 }
 
 /* DHT convolution
-Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2 
+Z[k] =  (X[k] *( Y[k] + Y[N-k]) + X[N-k] * ( Y[k] - Y[N-k] ) ) / 2
 Z[N-k] = (X[N-k] * ( Y[k] + Y[N-k]) - X[k] * ( Y[k] - Y[N-k] ) ) / 2
 X0 == XN etc
 below the division by 2 deffered to the final scaling
@@ -1554,7 +1555,7 @@ void FHTMAD4096RevEnd(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ *
 			FHT_window2[bitrvrs[0]] = FHT_window[0] * FHT_IR[0] *2 + ((tail == 0) ? 0 : tail[0]);
 			for( int k = 1; k < N/2; k++ ){
 				__FLOAT__ x_k = FHT_window[k];
-				__FLOAT__ x_N_k = FHT_window[N-k]; 
+				__FLOAT__ x_N_k = FHT_window[N-k];
 				__FLOAT__ y_k = FHT_IR[k];
 				__FLOAT__ y_N_k = FHT_IR[N-k];
 // write with reverse
@@ -1603,7 +1604,7 @@ void FHTWithReverse(__FLOAT__ *tsincos, short * bitrvrse, __FLOAT__ *FHTdata, in
 	FHT(tsincos, FHTdata, n);
 }
 
-// 
+//
 #define PI_D (double) 3.141592653589793238462643
 void FHT_def_D(double *FHTdata, int n) {
 	double *transform = (double*)malloc(sizeof(double) * n);
@@ -1640,23 +1641,23 @@ int FHT_verify(const __FLOAT__ * data_in, const __FLOAT__ *data_totest, int n, i
 
 void FHTTest(int n ) {
 	FHT_FUNC fht_routine;
-	__FLOAT__ * tsincos;
+	__FLOAT__ * tsincos = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	__FLOAT__ * data;
 	__FLOAT__ * data_v;
 	__FLOAT__ * data_t;
-	short * bit_rvrse = 0;
+	short * bit_rvrse = (short*)malloc(sizeof(short)*n);
 	data = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	data_v = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	data_t = (__FLOAT__*)malloc(sizeof(__FLOAT__)*n);
 	double *data_d = (double*)malloc(sizeof(double) * n );
 	double *data_vd = (double*)malloc(sizeof(double) * n );
-	FHTInit(&tsincos, &bit_rvrse, &fht_routine, n);
+	FHTInit(tsincos, bit_rvrse, &fht_routine, n);
 	for (int i = 0; i < n; i++ ) {
 #if 1
 		if ( i == 0 || i == 1 ) {
 			data_v[i] = 1.f;
 
-		} else { 
+		} else {
 			data_v[i] = 0;
 		}
 
@@ -1668,7 +1669,7 @@ void FHTTest(int n ) {
 		data_vd[i] = data_d[i];
 	}
 
-	
+
 	FHT_def_D(data_d, n);
 	FHT_def_D(data_d, n);
 	for( int i = 0; i < n; i++ ) {
@@ -1688,7 +1689,7 @@ void FHTTest(int n ) {
 	fht_routine(tsincos, data_t);
 	FHT_def_D(data_d, n);
 	for( int i = 0; i < n; i++ ) {
-	
+
 		if ( abs(data_d[i] - data_t[i]) > 0.00001) {
 #if _DEBUG_PRINTF
 			printf("dir t: %d %f %f\n", i, data_t[i], data_d[i]);
@@ -1705,7 +1706,7 @@ void FHTTest(int n ) {
 	FHT_def_D(data_d, n);
 	for( int i = 0; i < n; i++ ) {
 		double l = abs(data_d[i] - (double)data[i]);
-	
+
 		if ( l >  0.0001 ) {
 #if _DEBUG_PRINTF
 			printf("inv t:%d %f %f\n", i, data[i], data_d[i]);
@@ -1714,7 +1715,7 @@ void FHTTest(int n ) {
 	}
 	for( int i = 0; i < n; i++ ) {
 		data[i] /= (__FLOAT__)n;
-		data_d[i] /= (double)n; 
+		data_d[i] /= (double)n;
 		if ( abs(data[i] - data_v[i]) > 0.00001 ) {
 #if _DEBUG_PRINTF
 			printf("full t:%d %f %f %f\n", i, data[i], data_v[i], data_d[i]);

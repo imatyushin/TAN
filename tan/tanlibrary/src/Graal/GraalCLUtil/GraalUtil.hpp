@@ -78,13 +78,6 @@
 /******************************************************************************
 * Defined macros                                                              *
 ******************************************************************************/
-#define GRAAL_SUCCESS 0
-#define GRAAL_FAILURE 1
-#define GRAAL_EXPECTED_FAILURE 2
-#define GRAAL_NOT_IMPLEMENTED 3
-#define GRAAL_OPENCL_FAILURE 4
-#define GRAAL_NOT_ENOUGH_GPU_MEM 5
-
 #define GRAAL_VERSION_MAJOR 2
 #define GRAAL_VERSION_MINOR 9
 #define GRAAL_VERSION_SUB_MINOR 1
@@ -99,17 +92,17 @@
 #ifdef _DEBUG_PRINT
 #ifdef TAN_SDK_EXPORTS
 #  define CHECK_ALLOCATION(actual, msg) \
-    AMF_RETURN_IF_FALSE(actual != NULL, GRAAL_FAILURE, L#msg);
+    AMF_RETURN_IF_FALSE(actual != NULL, AMF_FAIL, L#msg);
 
 #  define CHECK_ERROR(actual, reference, msg) \
-    AMF_RETURN_IF_FALSE(actual == reference, GRAAL_FAILURE, L#msg);
+    AMF_RETURN_IF_FALSE(actual == reference, AMF_FAIL, L#msg);
 #else
 #  define CHECK_ALLOCATION(actual, msg) \
     if(actual == NULL) \
     { \
         error(msg); \
         std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
-        return GRAAL_FAILURE; \
+        return AMF_FAIL; \
     }
 
 #  define CHECK_ERROR(actual, reference, msg) \
@@ -117,7 +110,7 @@
     { \
         error(msg); \
         std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
-        return GRAAL_FAILURE; \
+        return AMF_FAIL; \
     }
 #endif
 #else
@@ -369,20 +362,20 @@ static int fileToString(std::string &fileName, std::string &str)
         if (!buf)
         {
             f.close();
-            return  GRAAL_FAILURE;
+            return  AMF_FAIL;
         }
         // Read file
         f.read(buf, sizeFile);
         f.close();
         str[size] = '\0';
         str = buf;
-        return GRAAL_SUCCESS;
+        return AMF_OK;
     }
     else
     {
         error("Converting file to string. Cannot open file.");
         str = "";
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
 }
 
@@ -532,7 +525,7 @@ int fillRandom(
     if(!arrayPtr)
     {
         error("Cannot fill array. NULL pointer.");
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     if(!seed)
     {
@@ -547,7 +540,7 @@ int fillRandom(
             int index = i*width + j;
             arrayPtr[index] = rangeMin + T(range*rand()/(RAND_MAX + 1.0));
         }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 /**
@@ -563,7 +556,7 @@ int fillPos(
     if(!arrayPtr)
     {
         error("Cannot fill array. NULL pointer.");
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     /* initialisation of input with positions*/
     for(T i = 0; i < height; i++)
@@ -572,7 +565,7 @@ int fillPos(
             T index = i*width + j;
             arrayPtr[index] = index;
         }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 /**
@@ -589,7 +582,7 @@ int fillConstant(
     if(!arrayPtr)
     {
         error("Cannot fill array. NULL pointer.");
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     /* initialisation of input with constant value*/
     for(int i = 0; i < height; i++)
@@ -598,7 +591,7 @@ int fillConstant(
             int index = i*width + j;
             arrayPtr[index] = val;
         }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -629,11 +622,11 @@ int isPowerOf2(T val)
     long long _val = val;
     if((_val & (-_val))-_val == 0 && _val != 0)
     {
-        return GRAAL_SUCCESS;
+        return AMF_OK;
     }
     else
     {
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
 }
 
@@ -803,7 +796,7 @@ class GraalTimer
             }
             (_timers[handle]->_start) = 0;
             (_timers[handle]->_clocks) = 0;
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
         /**
         * startTimer
@@ -813,7 +806,7 @@ class GraalTimer
             if(handle >= (int)_timers.size())
             {
                 error("Cannot reset timer. Invalid handle.");
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
 #ifdef _WIN32
             long long tmpStart;
@@ -824,7 +817,7 @@ class GraalTimer
             gettimeofday(&s, 0);
             _timers[handle]->_start = s.tv_sec * 1.0E3 + ((double)(s.tv_usec / 1.0E3));
 #endif
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
         /**
@@ -836,7 +829,7 @@ class GraalTimer
             if(handle >= (int)_timers.size())
             {
                 error("Cannot reset timer. Invalid handle.");
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
 #ifdef _WIN32
             long long n1;
@@ -850,7 +843,7 @@ class GraalTimer
             n -= _timers[handle]->_start;
             _timers[handle]->_start = 0;
             _timers[handle]->_clocks += n;
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
         /**
@@ -861,7 +854,7 @@ class GraalTimer
             if(handle >= (int)_timers.size())
             {
                 error("Cannot read timer. Invalid handle.");
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             double reading = double(_timers[handle]->_clocks);
             reading = double(reading / _timers[handle]->_freq);
@@ -930,7 +923,7 @@ class SDKCmdArgsParser
         * @param argc number of CMdLine Options
         * @param totalArgc total number of Original command line Options
         * @param inv_arg pointer to an integer
-        * @return GRAAL_SUCCESS on success, GRAAL_FAILURE otherwise
+        * @return AMF_OK on success, AMF_FAIL otherwise
         ******************************************************************/
         int match(char ** argv, int argc, int totalArgc, int *inv_arg)
         {
@@ -989,7 +982,7 @@ class SDKCmdArgsParser
                             printf("Invalid Argument for %s\n", argv[0]);
 #endif
                             *inv_arg = 1;
-                            return GRAAL_FAILURE;
+                            return AMF_FAIL;
                         }
                     }
                     else if (_options[count]._type == CA_ARG_FLOAT)
@@ -1003,7 +996,7 @@ class SDKCmdArgsParser
                                 printf("Error :: argument value for %s is not float\n", argv[0]);
 #endif
                                 *inv_arg = 1;
-                                return GRAAL_FAILURE;
+                                return AMF_FAIL;
                             }
                             if (argc > 2) {
                                 if (*(*(argv + 2)) != '-')
@@ -1012,7 +1005,7 @@ class SDKCmdArgsParser
                                     printf("Invalid argument for %s\n", argv[0]);
 #endif
                                     *inv_arg = 1;
-                                    return GRAAL_FAILURE;
+                                    return AMF_FAIL;
                                 }
                             }
                             matched++;
@@ -1021,7 +1014,7 @@ class SDKCmdArgsParser
                         {
                             std::cout << "Error. Missing argument for \"" << (*argv) << "\"\n";
                             *inv_arg = 1;
-                            return GRAAL_FAILURE;
+                            return AMF_FAIL;
                         }
                     }
                     else if (_options[count]._type == CA_ARG_DOUBLE)
@@ -1034,7 +1027,7 @@ class SDKCmdArgsParser
                                 printf("Error :: argument value for %s is not double\n", argv[0]);
 #endif
                                 *inv_arg = 1;
-                                return GRAAL_FAILURE;
+                                return AMF_FAIL;
                             }
                             if (argc > 2) {
                                 if (*(*(argv + 2)) != '-')
@@ -1043,7 +1036,7 @@ class SDKCmdArgsParser
                                     printf("Invalid argument for %s\n", argv[0]);
 #endif
                                     *inv_arg = 1;
-                                    return GRAAL_FAILURE;
+                                    return AMF_FAIL;
                                 }
                             }
                             matched++;
@@ -1052,7 +1045,7 @@ class SDKCmdArgsParser
                         {
                             std::cout << "Error. Missing argument for \"" << (*argv) << "\"\n";
                             *inv_arg = 1;
-                            return GRAAL_FAILURE;
+                            return AMF_FAIL;
                         }
                     }
                     else if (_options[count]._type == CA_ARG_INT)
@@ -1065,7 +1058,7 @@ class SDKCmdArgsParser
                                 printf("Error :: argument value for %s is not an integer\n", argv[0]);
 #endif
                                 *inv_arg = 1;
-                                return GRAAL_FAILURE;
+                                return AMF_FAIL;
                             }
                             if (argc > 2) {
                                 if (*(*(argv + 2)) != '-')
@@ -1074,7 +1067,7 @@ class SDKCmdArgsParser
                                     printf("Invalid argument for %s\n", argv[0]);
 #endif
                                     *inv_arg = 1;
-                                    return GRAAL_FAILURE;
+                                    return AMF_FAIL;
                                 }
                             }
                             matched++;
@@ -1083,7 +1076,7 @@ class SDKCmdArgsParser
                         {
                             std::cout << "Error. Missing argument for \"" << (*argv) << "\"\n";
                             *inv_arg = 1;
-                            return GRAAL_FAILURE;
+                            return AMF_FAIL;
                         }
                     }
                     else if (_options[count]._type == CA_ARG_LONG)
@@ -1096,7 +1089,7 @@ class SDKCmdArgsParser
                                 printf("Error :: argument value for %s is not of long datatype\n", argv[0]);
 #endif
                                 *inv_arg = 1;
-                                return GRAAL_FAILURE;
+                                return AMF_FAIL;
                             }
                             if (argc > 2) {
                                 if (*(*(argv + 2)) != '-')
@@ -1105,7 +1098,7 @@ class SDKCmdArgsParser
                                     printf("Invalid argument for %s\n", argv[0]);
 #endif
                                     *inv_arg = 1;
-                                    return GRAAL_FAILURE;
+                                    return AMF_FAIL;
                                 }
                             }
                             matched++;
@@ -1114,7 +1107,7 @@ class SDKCmdArgsParser
                         {
                             std::cout << "Error. Missing argument for \"" << (*argv) << "\"\n";
                             *inv_arg = 1;
-                            return GRAAL_FAILURE;
+                            return AMF_FAIL;
                         }
                     }
                     else
@@ -1130,7 +1123,7 @@ class SDKCmdArgsParser
                         {
                             std::cout << "Error. Missing argument for \"" << (*argv) << "\"\n";
                             *inv_arg = 1;
-                            return GRAAL_FAILURE;
+                            return AMF_FAIL;
                         }
                     }
                     *inv_arg = 0;
@@ -1159,7 +1152,7 @@ class SDKCmdArgsParser
         * @fn AddOption
         * @brief Function to add a new CmdLine Option
         * @param op Option object
-        * @return GRAAL_SUCCESS on success, GRAAL_FAILURE otherwise
+        * @return AMF_OK on success, AMF_FAIL otherwise
         ******************************************************************/
         int AddOption(Option* op)
         {
@@ -1180,7 +1173,7 @@ class SDKCmdArgsParser
                 {
                     std::cout<<"Error. Cannot add option ";
                     std::cout<<op->_sVersion<<". Memory allocation error\n";
-                    return GRAAL_FAILURE;
+                    return AMF_FAIL;
                 }
                 if(_options != NULL)
                 {
@@ -1193,7 +1186,7 @@ class SDKCmdArgsParser
                 _numArgs++;
                 delete []save;
             }
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
         /**
@@ -1201,7 +1194,7 @@ class SDKCmdArgsParser
         * @fn DeleteOption
         * @brief Function to a delete CmdLine Option
         * @param op Option object
-        * @return GRAAL_SUCCESS on success, GRAAL_FAILURE otherwise
+        * @return AMF_OK on success, AMF_FAIL otherwise
         ******************************************************************/
         int DeleteOption(Option* op)
         {
@@ -1209,7 +1202,7 @@ class SDKCmdArgsParser
             {
                 std::cout<<"Error. Cannot delete option."
                          <<"Null pointer or empty option list\n";
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             for(int i = 0; i < _numArgs; i++)
             {
@@ -1223,7 +1216,7 @@ class SDKCmdArgsParser
                     _numArgs--;
                 }
             }
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
         /**
@@ -1246,7 +1239,7 @@ class SDKCmdArgsParser
             argv = p_argv;
             if (argc == 1)
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             while (argc > 0)
             {

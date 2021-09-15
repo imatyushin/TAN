@@ -34,7 +34,7 @@
 #include "public/include/core/PropertyStorageEx.h"
 #include "public/include/core/Context.h"
 #include "public/include/core/Buffer.h"
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 
 #ifdef RTQ_ENABLED
 ///This section is not related to RTQ, only listed so it can be strip away
@@ -48,7 +48,7 @@
 #define TAN_VERSION_MAJOR          1
 #define TAN_VERSION_MINOR          4
 #define TAN_VERSION_RELEASE        1
-#define TAN_VERSION_BUILD          27
+#define TAN_VERSION_BUILD          36
 
 #define TAN_FULL_VERSION ( (uint64_t(TAN_VERSION_MAJOR) << 48ull) |   \
                            (uint64_t(TAN_VERSION_MINOR) << 32ull) |   \
@@ -96,20 +96,20 @@ namespace amf
 
     enum TAN_CONVOLUTION_METHOD
     {
-        TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,             // [CPU processing] FFT overlap add algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,     // [CPU processing] FFT convolution using uniform partitions. Efficiently processes bufSize samples at a time.
-		TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,     // [CPU processing] FFT convolution using nonuniform partitions.
+        TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD,                 // [CPU processing] FFT overlap add algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM,         // [CPU processing] FFT convolution using uniform partitions. Efficiently processes bufSize samples at a time.
+		TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM,      // [CPU processing] FFT convolution using nonuniform partitions.
         //Graal methods
-        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,     // Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,     // Uniform Partitioned FHT algorithm. Processes bufSize samples at a time.
-        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
-        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,       // Uniformed, convolution performed in 2 stages head and tail
+        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_PARTITIONED,         // Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED,         // Uniform Partitioned FHT algorithm. Processes bufSize samples at a time.
+        TAN_CONVOLUTION_METHOD_FFT_UNIFORM_HEAD_TAIL,           // Uniformed, convolution performed in 2 stages head and tail
+        TAN_CONVOLUTION_METHOD_FHT_UNIFORM_HEAD_TAIL,           // Uniformed, convolution performed in 2 stages head and tail
 
         //
-        TAN_CONVOLUTION_METHOD_TIME_DOMAIN,                 // pure time domain convolution. Processes from 1 to length samples at a time.
+        TAN_CONVOLUTION_METHOD_TIME_DOMAIN,                     // pure time domain convolution. Processes from 1 to length samples at a time.
         TAN_CONVOLUTION_METHOD_FHT_NONUNIFORM_PARTITIONED,
-        TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,  // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
-		TAN_CONVOLUTION_METHOD_USE_PROCESS_FINALIZE = 0x8000, // use ProcessFinalize() optimization for HEAD_TAIL mode called from external thread
+        TAN_CONVOLUTION_METHOD_FFT_NONUNIFORM_PARTITIONED,      // Non-Uniform Partitioned FFT algorithm. Processes bufSize samples at a time.
+		TAN_CONVOLUTION_METHOD_USE_PROCESS_FINALIZE = 0x8000,   // use ProcessFinalize() optimization for HEAD_TAIL mode called from external thread
 		TAN_CONVOLUTION_METHOD_USE_PROCESS_TAILTHREAD = 0xC000, // use ProcessFinalize() optimization for HEAD_TAIL mode called from internal thread
 	};
 
@@ -783,24 +783,36 @@ namespace amf
 
 #ifndef TAN_NO_OPENCL
         virtual cl_context  AMF_STD_CALL    GetOpenCLContext() = 0;
-        virtual	cl_command_queue
-                            AMF_STD_CALL    GetOpenCLGeneralQueue() = 0;
-        virtual	cl_command_queue
-                            AMF_STD_CALL    GetOpenCLConvQueue() = 0;
 
-        inline cl_context   AMF_STD_CALL    GetComputeContext() {return GetOpenCLContext();}
-        inline cl_command_queue
-                            AMF_STD_CALL    GetGeneralQueue()   {return GetOpenCLGeneralQueue();}
-        inline cl_command_queue
-                            AMF_STD_CALL    GetConvQueue()      {return GetOpenCLConvQueue();}
+        virtual	cl_context	AMF_STD_CALL	GetOpenCLGeneralContext() = 0;
+        virtual	cl_context	AMF_STD_CALL	GetOpenCLConvContext() = 0;
+
+        virtual	cl_command_queue AMF_STD_CALL
+                                            GetOpenCLGeneralQueue() = 0;
+        virtual	cl_command_queue AMF_STD_CALL
+                                            GetOpenCLConvQueue() = 0;
+
+        //duplicated interfaces for more polymorphic usage in switch from CL or OpenCL configuration
+        inline cl_context AMF_STD_CALL      GetGeneralContext() {return GetOpenCLGeneralContext();}
+        inline cl_context AMF_STD_CALL      GetConvContext()    {return GetOpenCLConvContext();}
+        inline cl_command_queue AMF_STD_CALL
+                                            GetGeneralQueue()   {return GetOpenCLGeneralQueue();}
+        inline cl_command_queue AMF_STD_CALL
+                                            GetConvQueue()      {return GetOpenCLConvQueue();}
 #else
-        virtual AMFContext* AMF_STD_CALL    GetAMFContext() = 0;
-        virtual	AMFCompute*	AMF_STD_CALL	GetAMFGeneralQueue() = 0;
-        virtual	AMFCompute*	AMF_STD_CALL	GetAMFConvQueue() = 0;
+        virtual AMFContext * AMF_STD_CALL   GetAMFContext()     {return GetAMFConvContext();}
 
-        inline AMFContext* AMF_STD_CALL     GetComputeContext() {return GetAMFContext();}
-        inline AMFCompute* AMF_STD_CALL	    GetGeneralQueue()   {return GetAMFGeneralQueue();}
-        inline AMFCompute* AMF_STD_CALL	    GetConvQueue()      {return GetAMFConvQueue();}
+        virtual	AMFContext * AMF_STD_CALL   GetAMFGeneralContext() = 0;
+        virtual	AMFContext * AMF_STD_CALL   GetAMFConvContext() = 0;
+
+        virtual	AMFCompute * AMF_STD_CALL   GetAMFGeneralQueue() = 0;
+        virtual AMFCompute * AMF_STD_CALL   GetAMFConvQueue() = 0;
+
+        //duplicated interfaces for more polymorphic usage in switch from CL or AMF configuration
+        inline AMFContext * AMF_STD_CALL    GetGeneralContext() {return GetAMFGeneralContext();}
+        inline AMFContext * AMF_STD_CALL    GetConvContext()    {return GetAMFConvContext();}
+        inline AMFCompute * AMF_STD_CALL    GetGeneralQueue()   {return GetAMFGeneralQueue();}
+        inline AMFCompute * AMF_STD_CALL    GetConvQueue()      {return GetAMFConvQueue();}
 #endif
 
         virtual amf::AMFFactory *           GetFactory() = 0;

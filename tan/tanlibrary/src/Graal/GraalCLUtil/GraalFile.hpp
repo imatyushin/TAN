@@ -106,11 +106,11 @@ class GraalFile
 
 	        if(fopen_s(&output, fileName, "wb"))
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             fwrite(binary, sizeof(char), numBytes, output);
             fclose(output);
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
 
@@ -127,7 +127,7 @@ class GraalFile
 
             if(fopen_s(&input, fileName, "rb"))
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             fseek(input, 0L, SEEK_END);
             size = ftell(input);
@@ -135,13 +135,13 @@ class GraalFile
             binary = (char*)malloc(size);
             if(binary == NULL)
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             val=fread(binary, sizeof(char), size, input);
             fclose(input);
             source_.assign(binary, size);
             free(binary);
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
 

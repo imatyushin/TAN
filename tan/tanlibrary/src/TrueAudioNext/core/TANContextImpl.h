@@ -53,10 +53,6 @@ namespace amf
             cl_command_queue pGeneralQueue,
             cl_command_queue pConvolutionQueue
             ) override;
-
-        cl_context AMF_STD_CALL         GetOpenCLContext() override;
-        cl_command_queue AMF_STD_CALL   GetOpenCLGeneralQueue() override;
-        cl_command_queue AMF_STD_CALL   GetOpenCLConvQueue() override;
 #else
         AMF_RESULT  AMF_STD_CALL InitAMF(
             AMFContext *generalContext,
@@ -64,18 +60,36 @@ namespace amf
             AMFContext *convolutionContext,
             AMFCompute *convolutionQueue
             ) override;
-
-        AMFContext * AMF_STD_CALL       GetAMFContext() override;
-        AMFCompute * AMF_STD_CALL       GetAMFGeneralQueue() override;
-        AMFCompute * AMF_STD_CALL       GetAMFConvQueue() override;
 #endif
 
-        amf::AMFFactory * GetFactory() override         { return mFactory; }
+#ifndef TAN_NO_OPENCL
+        cl_context AMF_STD_CALL         GetOpenCLContext() override;
 
-        // Internal methods.
-        ////TODO:AA AMFContextPtr GetGeneralContext() const       { return m_pContextAMF; }
-        AMFComputePtr GetGeneralCompute() const         { return mComputeGeneralAMF; }
-        AMFComputePtr GetConvolutionCompute() const     { return mComputeConvolutionAMF; }
+        cl_context AMF_STD_CALL	        GetOpenCLGeneralContext() override      {return m_oclGeneralContext;}
+        cl_context AMF_STD_CALL	        GetOpenCLConvContext() override         {return m_oclConvContext;}
+
+        cl_command_queue AMF_STD_CALL   GetOpenCLGeneralQueue() override;
+        cl_command_queue AMF_STD_CALL   GetOpenCLConvQueue() override;
+#else
+        AMFContext * AMF_STD_CALL       GetAMFContext() override                {return GetAMFConvContext();}
+
+        AMFContext * AMF_STD_CALL       GetAMFGeneralContext() override         {return mGeneralContextAMF;}
+        AMFContext * AMF_STD_CALL       GetAMFConvContext() override            {return mConvolutionContextAMF;}
+
+#endif
+
+        AMFCompute * AMF_STD_CALL       GetAMFGeneralQueue()
+#ifdef TAN_NO_OPENCL
+                                                                override
+#endif
+                                                                                {return mGeneralComputeAMF;}
+        AMFCompute * AMF_STD_CALL       GetAMFConvQueue()
+#ifdef TAN_NO_OPENCL
+                                                                override
+#endif
+                                                                                {return mConvolutionComputeAMF;}
+
+        amf::AMFFactory * GetFactory() override {return mFactory;}
 
         AMF_RESULT AMF_STD_CALL InitOpenMP(int nThreads) override { return AMF_NOT_IMPLEMENTED; }
 
@@ -115,11 +129,11 @@ namespace amf
         AMFComputeDevicePtr         mConvolutionDeviceAMF;
 #endif
 
-        AMFContextPtr               mContextGeneralAMF;
-        AMFContextPtr               mContextConvolutionAMF;
+        AMFContextPtr               mGeneralContextAMF;
+        AMFContextPtr               mConvolutionContextAMF;
 
-        AMFComputePtr               mComputeGeneralAMF;
-        AMFComputePtr               mComputeConvolutionAMF;
+        AMFComputePtr               mGeneralComputeAMF;
+        AMFComputePtr               mConvolutionComputeAMF;
 
         bool m_clfftInitialized = false;
         static amf_long m_clfftReferences; // Only one instance of the library can exist at a time.

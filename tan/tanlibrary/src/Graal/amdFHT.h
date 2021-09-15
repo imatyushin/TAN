@@ -55,7 +55,7 @@ typedef void (* FHT_FUNC )(__FLOAT__ *tsincos, __FLOAT__ *FHTdata);
 typedef void (* FHT_DIRFUNC )(__FLOAT__ *FHT_window, __FLOAT__*new_data, __FLOAT__ *prev_data,__FLOAT__ *tsincos, short *bitrvrs);
 typedef void (* FHT_INVFUNC )(__FLOAT__ *FHT_window2, __FLOAT__ *FHT_window, __FLOAT__ * FHT_IR, __FLOAT__ *tsincos, short* bitrvrs, __FLOAT__ * tail);
 
-int FHTInit(__FLOAT__ **tsincos,  short ** bit_reverse, FHT_FUNC * routine, int n);
+int FHTInit(__FLOAT__ *tsincos,  short * bit_reverse, FHT_FUNC * routine, int n);
 int FHTInit2(void *dir_inv[2], __FLOAT__ **tsincos, short ** bit_reverse, int n);
 void FHTReverseInplace(__FLOAT__ *data, short * bitrvrs, int n );
 void FHT(__FLOAT__ *tsincos, __FLOAT__ *FHTdata, int n);

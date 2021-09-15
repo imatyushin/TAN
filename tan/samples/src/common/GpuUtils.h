@@ -33,13 +33,13 @@ void listCpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
 
 #ifndef TAN_NO_OPENCL
 
-bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
-bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
-bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount);
+AMF_RESULT CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
+AMF_RESULT CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue* pcmdQueue1, int32_t flag2, cl_command_queue* pcmdQueue2);
+AMF_RESULT CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue* pcmdQueue1, cl_command_queue* pcmdQueue2, int Q1CUcount, int Q2CUcount);
 
 #else
 
-bool CreateGpuCommandQueues
+AMF_RESULT CreateGpuCommandQueues
 (
     int                         deviceIndex,
     int32_t                     flag1,
@@ -48,7 +48,7 @@ bool CreateGpuCommandQueues
     amf::AMFCompute **          compute2,
     amf::AMFContext **          context = nullptr
 );
-bool CreateCpuCommandQueues
+AMF_RESULT CreateCpuCommandQueues
 (
     int                         deviceIndex,
     int32_t                     flag1,
@@ -58,6 +58,6 @@ bool CreateCpuCommandQueues
     amf::AMFContext **          context = nullptr
 );
 
-bool CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute ** compute1, amf::AMFCompute ** compute2, int Q1CUcount, int Q2CUcount);
+AMF_RESULT CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute ** compute1, amf::AMFCompute ** compute2, int Q1CUcount, int Q2CUcount);
 
 #endif

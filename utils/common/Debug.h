@@ -16,14 +16,14 @@
 #include <atomic>
 #include <mutex>
 
-#define SILENT
+//#define SILENT
 
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) \
 { \
 		cl_uint refcount = 0; \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d Queue %llX ref count: %d\r\n", __FILE__ , __LINE__, clqueue, refcount); \
+		std::cout << std::endl << "FILE: " << __FILE__ << " line: " << __LINE__ << " Queue " << (void *)clqueue << " ref count: " << refcount << std::endl; \
 }
 #endif
 
@@ -33,7 +33,7 @@
 		cl_uint refcount = 0; \
 		clReleaseCommandQueue(clqueue); \
 		clGetCommandQueueInfo(clqueue, CL_QUEUE_REFERENCE_COUNT, sizeof(refcount), &refcount, NULL); \
-		printf("\nFILE:%s line:%d %s %llX ref count: %d\r\n", __FILE__ , __LINE__,qname, clqueue, refcount); \
+		printf("\nFILE:%s line:%d %s %X ref count: %d\r\n", __FILE__ , __LINE__, qname, (void *)clqueue, refcount); \
         clqueue = nullptr; \
 }
 #endif
@@ -42,7 +42,7 @@
 #define DBG_CLRELEASE_MEMORYOBJECT( clobject) \
 { \
 	clReleaseMemObject(clobject); \
-	printf("\nFILE:%s line:%d release memory object %llX\r\n", __FILE__ , __LINE__, clobject); \
+	printf("\nFILE:%s line:%d release memory object %X\r\n", __FILE__ , __LINE__, (void *)clobject); \
     clobject = nullptr; \
 }
 #endif
@@ -159,7 +159,7 @@ static void PrintArray(const std::string & hint, const void * array, size_t coun
     std::cout << std::resetiosflags(std::ios_base::basefield) << std::endl;
 }
 
-static void PrintFloatArray(const std::string & hint, const float * array, size_t count, size_t max = 64)
+static void PrintArray(const std::string & hint, const float * array, size_t count, size_t max = 64)
 {
 #ifdef SILENT
     return;
@@ -168,19 +168,13 @@ static void PrintFloatArray(const std::string & hint, const float * array, size_
     PrintArray(hint, array, count, max);
 }
 
-static void PrintFloatArray(const char * hint, const float * array, size_t count, size_t max = 64)
+static void PrintArray(const char * hint, const float * array, size_t count, size_t max = 64)
 {
-    PrintFloatArray(std::string(hint), array, count, max);
+    PrintArray(std::string(hint), array, count, max);
 }
 
-static void PrintReducedFloatArray(const std::string & hint, const void * array, size_t sizeInBytes)
+static void PrintArrayReducedImplementation(const std::string & hint, const void * array, size_t sizeInBytes)
 {
-#ifdef SILENT
-    return;
-#endif
-
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
-
     PrintThreadInfo() << hint << ": " << sizeInBytes << std::endl;
 
     if(!array)
@@ -207,23 +201,23 @@ static void PrintReducedFloatArray(const std::string & hint, const void * array,
     std::cout << '{' << elements << "}: " << summ << std::endl;
 }
 
-static void PrintShortArray(const std::string & hint, const int16_t * array, size_t count, size_t max = 64)
+static void PrintArrayReduced(const std::string & hint, const void * array, size_t sizeInBytes)
 {
 #ifdef SILENT
     return;
 #endif
 
-    PrintArray(hint, array, count, max);
-}
+    const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
-static void PrintShortArray(const char * hint, const int16_t * array, size_t count, size_t max = 64)
-{
-    PrintShortArray(std::string(hint), array, count, max);
+    PrintArrayReducedImplementation(hint, array, sizeInBytes);
 }
 
 #ifndef TAN_NO_OPENCL
 static void PrintCLArray(const std::string & hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
 {
+    clFlush(queue);
+    clFinish(queue);
+
 #ifdef SILENT
     return;
 #endif
@@ -263,18 +257,6 @@ static void PrintCLArrayReduced(const std::string & hint, cl_mem array, cl_comma
 
     const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
-    PrintThreadInfo() << hint << ": " << sizeInBytes << std::endl;
-
-    if(!array)
-    {
-        std::cout << "NULL" << std::endl;
-
-        return;
-    }
-
-    clFlush(queue);
-    clFinish(queue);
-
     std::vector<cl_uchar> out(sizeInBytes);
 
     auto error = clEnqueueReadBuffer(
@@ -293,21 +275,7 @@ static void PrintCLArrayReduced(const std::string & hint, cl_mem array, cl_comma
         std::cout << "CL ERROR" << std::endl;
     }
 
-    uint64_t summ(0);
-    uint64_t elements(0);
-
-    for(size_t byteIndex(0); byteIndex < sizeInBytes; ++byteIndex)
-    {
-        if(out[byteIndex])
-        {
-            ++elements;
-            summ += out[byteIndex];
-        }
-    }
-
-    std::cout << '{' << elements << "}: " << summ << std::endl;
-
-    std::cout << std::endl;
+    PrintArrayReducedImplementation(hint, &out.front(), sizeInBytes);
 }
 
 static void PrintCLArray(const char * hint, cl_mem array, cl_command_queue queue, size_t count, size_t max = 64)
@@ -391,7 +359,7 @@ static void PrintAMFArray(const std::string & hint, amf::AMFBuffer * buffer, amf
     }
 }
 
-static void PrintAMFArrayReduced(const std::string & hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t sizeInBytes)
+static void PrintAMFArrayReduced(const std::string & hint, const amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t sizeInBytes)
 {
 #ifdef SILENT
     return;
@@ -399,19 +367,10 @@ static void PrintAMFArrayReduced(const std::string & hint, amf::AMFBuffer * buff
 
     const std::lock_guard<AmfMutex> lock(GetLockMutex());
 
-    PrintThreadInfo() << hint << ": " << sizeInBytes << std::endl;
-
-    if(!buffer)
-    {
-        std::cout << "NULL" << std::endl;
-
-        return;
-    }
-
     std::vector<uint8_t> out(sizeInBytes);
 
     auto result = compute->CopyBufferToHost(
-        buffer,
+        const_cast<amf::AMFBuffer *>(buffer),
         0,
         sizeInBytes,
         out.data(),
@@ -425,21 +384,7 @@ static void PrintAMFArrayReduced(const std::string & hint, amf::AMFBuffer * buff
         return;
     }
 
-    uint64_t summ(0);
-    uint64_t elements(0);
-
-    for(size_t byteIndex(0); byteIndex < sizeInBytes; ++byteIndex)
-    {
-        if(out[byteIndex])
-        {
-            ++elements;
-            summ += out[byteIndex];
-        }
-    }
-
-    std::cout << '{' << elements << "}: " << summ << std::endl;
-
-    std::cout << std::endl;
+    PrintArrayReducedImplementation(hint, &out.front(), sizeInBytes);
 }
 
 static void PrintAMFArray(const char * hint, amf::AMFBuffer * buffer, amf::AMFCompute * compute, size_t count, size_t max = 64)

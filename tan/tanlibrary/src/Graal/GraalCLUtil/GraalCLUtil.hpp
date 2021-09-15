@@ -36,39 +36,39 @@
 #ifdef _DEBUG_PRINT
 #ifdef TAN_SDK_EXPORTS
 #  define ASSERT_CL_RETURN( actual , msg) \
-    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, GRAAL_FAILURE, L#msg);
+    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, AMF_FAIL, L#msg);
 
 #  define CHECK_OPENCL_ERROR(actual, msg) \
-    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, GRAAL_FAILURE, L#msg);
+    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, AMF_FAIL, L#msg);
 
 #  define CHECK_OPENCL_ERROR_MSG(actual, msg) \
-    AMF_ASSERT(actual == CL_SUCCESS, GRAAL_FAILURE, msg);
+    AMF_ASSERT(actual == CL_SUCCESS, AMF_FAIL, msg);
 
 
 #  define OPENCL_EXPECTED_ERROR(msg) \
-    AMF_RETURN_IF_FALSE(false, GRAAL_EXPECTED_FAILURE, L"Expected Error: "#msg);
+    AMF_RETURN_IF_FALSE(false, AMF_OUT_OF_RANGE, L"Expected Error: "#msg);
 
 #  define OPENCL_EXPECTED_ERROR_RETURN(msg) \
-    AMF_RETURN_IF_FALSE(false, GRAAL_EXPECTED_FAILURE, L"Expected Error: "#msg);
+    AMF_RETURN_IF_FALSE(false, AMF_OUT_OF_RANGE, L"Expected Error: "#msg);
 
 #  define CHECK_OPENVIDEO_ERROR(actual, msg) \
-    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, GRAAL_FAILURE, L#msg);
+    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, AMF_FAIL, L#msg);
 
 #  define OPENVIDEO_EXPECTED_ERROR(msg) \
-    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, GRAAL_EXPECTED_FAILURE, L#msg);
+    AMF_RETURN_IF_FALSE(actual == CL_SUCCESS, AMF_OUT_OF_RANGE, L#msg);
 ##else
 #  define ASSERT_CL_RETURN( actual , msg)\
    if( checkVal(actual, CL_SUCCESS, msg) )\
    {\
       std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
-      exit(GRAAL_FAILURE);\
+      exit(AMF_FAIL);\
    }
 
 #  define CHECK_OPENCL_ERROR(actual, msg) \
     if(checkVal(actual, CL_SUCCESS, msg)) \
     { \
         std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
-        return GRAAL_FAILURE; \
+        return AMF_FAIL; \
     }
 
 #  define CHECK_OPENCL_ERROR_MSG(actual, msg) \
@@ -81,42 +81,42 @@
 #  define OPENCL_EXPECTED_ERROR(msg) \
     { \
         expectedError(msg); \
-        return GRAAL_EXPECTED_FAILURE; \
+        return AMF_OUT_OF_RANGE; \
     }
 
 #  define OPENCL_EXPECTED_ERROR_RETURN(msg) \
     { \
         expectedError(msg); \
-        exit( GRAAL_EXPECTED_FAILURE ); \
+        exit( AMF_OUT_OF_RANGE ); \
     }
 
 #  define CHECK_OPENVIDEO_ERROR(actual, msg) \
     if(checkVal(actual, CL_SUCCESS, msg)) \
     { \
         std::cout << "Location : " << __FILE__ << ":" << __LINE__<< std::endl; \
-        return GRAAL_FAILURE; \
+        return AMF_FAIL; \
     }
 
 #  define OPENVIDEO_EXPECTED_ERROR(msg) \
     { \
         expectedError(msg); \
-        return GRAAL_EXPECTED_FAILURE; \
+        return AMF_OUT_OF_RANGE; \
     }
 #endif
 #else
-#  define ASSERT_CL_RETURN( actual , msg) 
+#  define ASSERT_CL_RETURN( actual , msg)
 
-#  define CHECK_OPENCL_ERROR(actual, msg) 
+#  define CHECK_OPENCL_ERROR(actual, msg)
 
-#  define CHECK_OPENCL_ERROR_MSG(actual, msg) 
+#  define CHECK_OPENCL_ERROR_MSG(actual, msg)
 
-#  define OPENCL_EXPECTED_ERROR(msg) 
+#  define OPENCL_EXPECTED_ERROR(msg)
 
-#  define OPENCL_EXPECTED_ERROR_RETURN(msg) 
+#  define OPENCL_EXPECTED_ERROR_RETURN(msg)
 
-#  define CHECK_OPENVIDEO_ERROR(actual, msg) 
+#  define CHECK_OPENVIDEO_ERROR(actual, msg)
 
-#  define OPENVIDEO_EXPECTED_ERROR(msg) 
+#  define OPENVIDEO_EXPECTED_ERROR(msg)
 
 #endif
 
@@ -189,7 +189,7 @@ struct buildProgramData
     }
     ~buildProgramData()
     {
-        if ( program ) 
+        if ( program )
         {
             clReleaseProgram(program);
             program = 0;
@@ -321,7 +321,7 @@ static const char* getOpenCLErrorCodeStr(T input)
         return "CL_DEVICE_PARTITION_FAILED_EXT";
     case CL_INVALID_PARTITION_COUNT_EXT:
         return "CL_INVALID_PARTITION_COUNT_EXT";
-    
+
     #ifdef CL_VERSION_2_0
     case CL_INVALID_DEVICE_QUEUE:
         return "CL_INVALID_DEVICE_QUEUE";
@@ -347,7 +347,7 @@ static int checkVal(
 {
     if(input==reference)
     {
-        return GRAAL_SUCCESS;
+        return AMF_OK;
     }
     else
     {
@@ -362,7 +362,7 @@ static int checkVal(
         {
             error(message);
         }
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
 }
 /**
@@ -407,7 +407,7 @@ static int displayDevices(cl_platform_id platform, cl_device_type deviceType)
 #endif
     }
     free(deviceIds);
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -443,7 +443,7 @@ static int displayPlatformAndDevices(cl_platform_id platform,
         std::cout << "Device " << i << " : " << deviceName << std::endl;
 #endif
     }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -462,9 +462,9 @@ static int validateDeviceId(int deviceId, int deviceCount)
 #ifdef _DEBUG_PRINTF
         std::cout << "DeviceId should be < " << deviceCount << std::endl;
 #endif
-        return GRAAL_EXPECTED_FAILURE;
+        return AMF_OUT_OF_RANGE;
     }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -516,7 +516,7 @@ static int generateBinaryImage(const bifData &binaryData)
 #ifdef _DEBUG_PRINTF
         std::cout << "NULL platform found so Exiting Application.";
 #endif
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     /*
      * If we could find our platform, use it. Otherwise use just available platform.
@@ -545,7 +545,7 @@ static int generateBinaryImage(const bifData &binaryData)
 #ifdef _DEBUG_PRINTF
         std::cout << "Failed to load kernel file : " << kernelPath << std::endl;
 #endif
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     const char * source = kernelFile.source().c_str();
     size_t sourceSize[] = {strlen(source)};
@@ -568,7 +568,7 @@ static int generateBinaryImage(const bifData &binaryData)
 #ifdef _DEBUG_PRINTF
             std::cout << "Failed to load flags file: " << flagsPath << std::endl;
 #endif
-            return GRAAL_FAILURE;
+            return AMF_FAIL;
         }
         flagsFile.replaceNewlineWithSpaces();
         const char * flags = flagsFile.source().c_str();
@@ -674,7 +674,7 @@ static int generateBinaryImage(const bifData &binaryData)
 #ifdef _DEBUG_PRINTF
                 std::cout << "Failed to load kernel file : " << fileName << std::endl;
 #endif
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
         }
         else
@@ -716,7 +716,7 @@ static int generateBinaryImage(const bifData &binaryData)
     CHECK_OPENCL_ERROR(status, "clReleaseProgram failed.");
     status = clReleaseContext(context);
     CHECK_OPENCL_ERROR(status, "clReleaseContext failed.");
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 /**
@@ -728,7 +728,7 @@ static int generateBinaryImage(const bifData &binaryData)
  * @param dType cl_device_type
  * @return 0 if success else nonzero
  */
-static bool getDefaultPlatform(cl_uint numPlatforms, 
+static bool getDefaultPlatform(cl_uint numPlatforms,
                         cl_platform_id* platforms,
                         cl_platform_id &platform,
                         cl_device_type dType)
@@ -747,7 +747,7 @@ static bool getDefaultPlatform(cl_uint numPlatforms,
                                     NULL);
         CHECK_OPENCL_ERROR(status, "clGetPlatformInfo failed.");
         platform = platforms[i];
-                
+
         if (!strcmp(platformName, "Advanced Micro Devices, Inc."))
         {
             cl_context_properties cps[3] =
@@ -769,11 +769,11 @@ static bool getDefaultPlatform(cl_uint numPlatforms,
             {
                 defaultPlatform = true;
                 break;
-            }	
+            }
         }
     }
 
-    //if there is no device of AMD platform, find 
+    //if there is no device of AMD platform, find
     //any first platform having this device
     if(!defaultPlatform)
     {
@@ -786,7 +786,7 @@ static bool getDefaultPlatform(cl_uint numPlatforms,
                                     NULL);
             CHECK_OPENCL_ERROR(status, "clGetPlatformInfo failed.");
             platform = platforms[i];
-                        
+
             cl_context_properties cps[3] =
             {
                     CL_CONTEXT_PLATFORM,
@@ -858,7 +858,7 @@ static int getPlatformL(cl_platform_id &platform, int platformId,
 
                 case CL_DEVICE_TYPE_CPU :
                 {
-                    //if there is no GPU found, 
+                    //if there is no GPU found,
                     //then find platform having CPU
                     if(!platformFound)
                     {
@@ -873,9 +873,9 @@ static int getPlatformL(cl_platform_id &platform, int platformId,
     if(NULL == platform)
     {
         error("NULL platform found so Exiting Application.");
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 /**
@@ -906,7 +906,7 @@ static int getDevices(cl_context &context, cl_device_id **devices, int deviceId,
 #ifdef _DEBUG_PRINTF
         std::cout << "Invalid Device Selected";
 #endif
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     /**
      * Now allocate memory for device list based on the size we got earlier
@@ -924,7 +924,7 @@ static int getDevices(cl_context &context, cl_device_id **devices, int deviceId,
                               NULL);
     CHECK_OPENCL_ERROR(status, "clGetGetContextInfo failed.");
     UNUSED(deviceIdEnabled);
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 static int getDevices(cl_context &context, std::vector<cl_device_id> & devices, int deviceId,
@@ -946,7 +946,7 @@ static int getDevices(cl_context &context, std::vector<cl_device_id> & devices, 
 #ifdef _DEBUG_PRINTF
         std::cout << "Invalid Device Selected";
 #endif
-        return GRAAL_FAILURE;
+        return AMF_FAIL;
     }
     /**
      * Now allocate memory for device list based on the size we got earlier
@@ -964,7 +964,7 @@ static int getDevices(cl_context &context, std::vector<cl_device_id> & devices, 
                               NULL);
     CHECK_OPENCL_ERROR(status, "clGetGetContextInfo failed.");
     UNUSED(deviceIdEnabled);
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -991,7 +991,7 @@ static int buildOpenCLProgram(cl_program &program, const cl_context& context,
 #ifdef _DEBUG_PRINT
             std::cout << "Failed to load kernel file : " << kernelPath << std::endl;
 #endif
-            return GRAAL_FAILURE;
+            return AMF_FAIL;
         }
         const char * binary = kernelFile.source().c_str();
         size_t binarySize = kernelFile.source().size();
@@ -1013,7 +1013,7 @@ static int buildOpenCLProgram(cl_program &program, const cl_context& context,
 #  ifdef _DEBUG_PRINT
             std::cout << "Failed to load kernel file: " << kernelPath << std::endl;
 #  endif
-            return GRAAL_FAILURE;
+            return AMF_FAIL;
         }
 
 #  ifdef _DEBUG_PRINT
@@ -1053,7 +1053,7 @@ static int buildOpenCLProgram(cl_program &program, const cl_context& context,
 #ifdef _DEBUG_PRINT
             std::cout << "Failed to load flags file: " << flagsPath << std::endl;
 #endif
-            return GRAAL_FAILURE;
+            return AMF_FAIL;
         }
         flagsFile.replaceNewlineWithSpaces();
         const char * flags = flagsFile.source().c_str();
@@ -1096,7 +1096,7 @@ static int buildOpenCLProgram(cl_program &program, const cl_context& context,
             if(checkVal(logStatus, CL_SUCCESS, "clGetProgramBuildInfo failed."))
             {
                 free(buildLog);
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
 
 #ifdef _DEBUG_PRINT
@@ -1109,7 +1109,7 @@ static int buildOpenCLProgram(cl_program &program, const cl_context& context,
         }
         CHECK_OPENCL_ERROR(status, "clBuildProgram failed.");
     }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 static cl_int spinForEventsComplete(cl_uint num_events, cl_event *event_list)
@@ -1151,11 +1151,11 @@ static int waitForEventAndRelease(cl_event *event)
 
     status = clWaitForEvents(1, event);
     CHECK_OPENCL_ERROR(status, "clWaitForEvents Failed with Error Code:");
-    
+
     status = clReleaseEvent(*event);
     CHECK_OPENCL_ERROR(status, "clReleaseEvent Failed with Error Code:");
-    
-    return GRAAL_SUCCESS;
+
+    return AMF_OK;
 }
 
 /**
@@ -1185,7 +1185,7 @@ static size_t getLocalThreads(size_t globalThreads, size_t maxWorkItemSize)
     {
         return globalThreads;
     }
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -1258,7 +1258,7 @@ static int ReadEventTime(cl_event& event, double *time)
     CHECK_OPENCL_ERROR(status, "clGetEventProfilingInfo failed.(endTime)");
 
     *time = (double)(1e-9 * (endTime - startTime));
-    return GRAAL_SUCCESS;
+    return AMF_OK;
 }
 
 
@@ -1273,7 +1273,7 @@ class CLCommandArgs : public SDKCmdArgsParser
 {
 
     protected:
-        
+
         //
         bool enableDeviceId;           /**< If deviceId used */
         bool enablePlatform;           /**< If platformId Used */
@@ -1410,14 +1410,14 @@ class CLCommandArgs : public SDKCmdArgsParser
                 usage();
                 if((isArgSet("h",true) == true) || (isArgSet("help",false) == true))
                 {
-                    exit(GRAAL_SUCCESS);
+                    exit(AMF_OK);
                 }
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             if((isArgSet("h",true) == true) || (isArgSet("help",false) == true))
             {
                 usage();
-                exit(GRAAL_SUCCESS);
+                exit(AMF_OK);
             }
             // Print the sdk version and exit the application
             if(isArgSet("v", true) || isArgSet("version", false))
@@ -1443,7 +1443,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                     std::cout << "Error. Invalid device options. "
                               << "only \"cpu\" or \"gpu\" or \"all\" supported\n";
                     usage();
-                    return GRAAL_FAILURE;
+                    return AMF_FAIL;
                 }
             }
             else
@@ -1453,27 +1453,27 @@ class CLCommandArgs : public SDKCmdArgsParser
                     std::cout << "Error. Invalid device options. "
                               << "only \"cpu\" or \"gpu\" supported\n";
                     usage();
-                    return GRAAL_FAILURE;
+                    return AMF_FAIL;
                 }
             }
             if(dumpBinary.size() != 0 && loadBinary.size() != 0)
             {
                 std::cout << "Error. --dump and --load options are mutually exclusive\n";
                 usage();
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             if (loadBinary.size() != 0 && flags.size() != 0 && enableSpir == false)
             {
                 std::cout << "Error. --flags and --load options are mutually exclusive\n";
                 usage();
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
-            if(validatePlatformAndDeviceOptions() != GRAAL_SUCCESS)
+            if(validatePlatformAndDeviceOptions() != AMF_OK)
             {
                 std::cout << "validatePlatfromAndDeviceOptions failed.\n ";
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
         /**
@@ -1491,7 +1491,7 @@ class CLCommandArgs : public SDKCmdArgsParser
             {
                 std::cout<<"Error: clGetPlatformIDs failed. Error code : ";
                 std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             if (0 < numPlatforms)
             {
@@ -1507,7 +1507,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                         std::cout << "platformId should be 0 to " << numPlatforms - 1 << std::endl;
                     }
                     usage();
-                    exit(GRAAL_EXPECTED_FAILURE);
+                    exit(AMF_OUT_OF_RANGE);
                 }
 
                 // Get selected platform
@@ -1517,7 +1517,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                 {
                     std::cout<<"Error: clGetPlatformIDs failed. Error code : ";
                     std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                    return GRAAL_FAILURE;
+                    return AMF_FAIL;
                 }
 
                 // Print all platforms
@@ -1533,7 +1533,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                     {
                         std::cout<<"Error: clGetPlatformInfo failed. Error code : ";
                         std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                        return GRAAL_FAILURE;
+                        return AMF_FAIL;
                     }
                     std::cout << "Platform " << i << " : " << pbuf << std::endl;
                 }
@@ -1551,10 +1551,10 @@ class CLCommandArgs : public SDKCmdArgsParser
                     {
                         std::cout<<"Error: clGetPlatformInfo failed. Error code : ";
                         std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                        return GRAAL_FAILURE;
+                        return AMF_FAIL;
                     }
                     platform = platforms[i];
-                    
+
                     // Check for GPU
                     cl_context_properties cps[3] =
                     {
@@ -1581,7 +1581,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                 {
                     platform = platforms[platformId];
                 }
-                
+
                 // Check for AMD platform
                 char pbuf[100];
                 status = clGetPlatformInfo(platform,
@@ -1593,7 +1593,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                 {
                     std::cout<<"Error: clGetPlatformInfo failed. Error code : ";
                     std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                    return GRAAL_FAILURE;
+                    return AMF_FAIL;
                 }
                 if (!strcmp(pbuf, "Advanced Micro Devices, Inc."))
                 {
@@ -1640,7 +1640,7 @@ class CLCommandArgs : public SDKCmdArgsParser
                 {
                     std::cout<<"Error: clGetDeviceIDs failed. Error code : ";
                     std::cout << getOpenCLErrorCodeStr(status) << std::endl;
-                    return GRAAL_FAILURE;
+                    return AMF_FAIL;
                 }
                 // Validate deviceId
                 if(deviceId >= deviceCount)
@@ -1654,11 +1654,11 @@ class CLCommandArgs : public SDKCmdArgsParser
                         std::cout << "deviceId should be 0 to " << deviceCount - 1 << std::endl;
                     }
                     usage();
-                    exit(GRAAL_EXPECTED_FAILURE);
+                    exit(AMF_OUT_OF_RANGE);
                 }
                 delete[] platforms;
             }
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
         int initialize()
         {
@@ -1744,7 +1744,7 @@ class CLCommandArgs : public SDKCmdArgsParser
             }
             _numArgs = defaultOptions;
             _options = optionList;
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
 };
@@ -1796,7 +1796,7 @@ class KernelWorkGroupInfo
             if(checkVal(status, CL_SUCCESS,
                         "clGetKernelWorkGroupInfo failed(CL_KERNEL_WORK_GROUP_SIZE)"))
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             status = clGetKernelWorkGroupInfo(kernel,
                                               deviceId,
@@ -1807,7 +1807,7 @@ class KernelWorkGroupInfo
             if(checkVal(status, CL_SUCCESS,
                         "clGetKernelWorkGroupInfo failed(CL_KERNEL_LOCAL_MEM_SIZE)"))
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
             status = clGetKernelWorkGroupInfo(kernel,
                                               deviceId,
@@ -1818,9 +1818,9 @@ class KernelWorkGroupInfo
             if(checkVal(status, CL_SUCCESS,
                         "clGetKernelWorkGroupInfo failed(CL_KERNEL_COMPILE_WORK_GROUP_SIZE)"))
             {
-                return GRAAL_FAILURE;
+                return AMF_FAIL;
             }
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
     private :
 
@@ -1940,7 +1940,7 @@ class GraalDeviceInfo
 
 #ifdef CL_VERSION_2_0
         cl_device_svm_capabilities svmcaps;	/**< SVM Capabilities of device*/
-        cl_uint maxQueueSize;				/**< MAXIMUM QUEUE SIZE*/	
+        cl_uint maxQueueSize;				/**< MAXIMUM QUEUE SIZE*/
 #endif
 
         /**
@@ -2657,13 +2657,13 @@ class GraalDeviceInfo
                 CHECK_OPENCL_ERROR(status, "clGetDeviceInfo(CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE) failed");
             }
 #endif
-            return GRAAL_SUCCESS;
+            return AMF_OK;
         }
 
 /**
  * detectSVM
  * Check if the device supports Shared virtual memory(SVM)
- * @return bool 
+ * @return bool
  */
 bool detectSVM()
 {
@@ -2681,7 +2681,7 @@ bool detectSVM()
 
 /**
  * detectOpenCL2_xCompatibility
- * Check if the device supports OpenCL 2.x 
+ * Check if the device supports OpenCL 2.x
  * @return @bool
  */
 bool checkOpenCL2_XCompatibility()
@@ -2689,7 +2689,7 @@ bool checkOpenCL2_XCompatibility()
     bool isOpenCL2_XSupported = false;
 
     int majorRev, minorRev;
-    if (sscanf_s(this->deviceVersion, "OpenCL %d.%d", &majorRev, &minorRev) == 2) 
+    if (sscanf_s(this->deviceVersion, "OpenCL %d.%d", &majorRev, &minorRev) == 2)
     {
       if (majorRev >= 2) {
         isOpenCL2_XSupported = true;

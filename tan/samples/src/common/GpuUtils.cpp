@@ -29,7 +29,7 @@
 #include <CL/cl.h>
 
 #include "public/common/TraceAdapter.h"
-#include "public/common/AMFFactoryHelper.h"
+#include "public/common/AMFFactory.h"
 #include "public/include/core/Variant.h"
 #include "public/include/core/ComputeFactory.h"
 
@@ -80,7 +80,7 @@ void listGpuDeviceNamesWrapper(std::vector<std::string> & devicesNames, const AM
             {
                 return;
             }
-            
+
             res = context3->GetMetalComputeFactory(&pOCLFactory);
 #endif
 
@@ -518,7 +518,7 @@ bool GetDeviceFromIndex(int deviceIndex, cl_device_id *device, cl_context *conte
     return true;
 }
 
-bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue *pcmdQueue1, cl_command_queue *pcmdQueue2, int Q1CUcount, int Q2CUcount)
+AMF_RESULT CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue *pcmdQueue1, cl_command_queue *pcmdQueue2, int Q1CUcount, int Q2CUcount)
 {
     cl_int err = 0;
     cl_device_id device = NULL;
@@ -543,14 +543,18 @@ bool CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue *pcmdQueue
         outdevices,
         NULL
         );
+    AMF_RETURN_IF_CL_FAILED(err);
 
     *pcmdQueue1 = clCreateCommandQueue(context, outdevices[0], NULL, &err);
-    *pcmdQueue2 = clCreateCommandQueue(context, outdevices[1], NULL, &err);
+    AMF_RETURN_IF_CL_FAILED(err);
 
-    return err;
+    *pcmdQueue2 = clCreateCommandQueue(context, outdevices[1], NULL, &err);
+    AMF_RETURN_IF_CL_FAILED(err);
+
+    return AMF_OK;
 }
 
-bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2, cl_device_type clDeviceType)
+AMF_RESULT CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2, cl_device_type clDeviceType)
 {
     bool AllIsOK = true;
 
@@ -558,19 +562,19 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
     HMODULE GPUUtilitiesDll = NULL;
     GPUUtilitiesDll = LoadLibraryA("GPUUtilities.dll");
     if (NULL == GPUUtilitiesDll)
-        return false;
+        return AMF_FAIL;
 
     typedef int(WINAPI * getDeviceAndContextType)(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType);
     getDeviceAndContextType getDeviceAndContext = nullptr;
     getDeviceAndContext = (getDeviceAndContextType)GetProcAddress(GPUUtilitiesDll, "getDeviceAndContext");
     if (NULL == getDeviceAndContext)
-        return false;
+        return AMF_FAIL;
 
     typedef cl_command_queue(WINAPI * createQueueType)(cl_context context, cl_device_id device, int, int);
     createQueueType createQueue = nullptr;
     createQueue = (createQueueType)GetProcAddress(GPUUtilitiesDll, "createQueue");
     if (NULL == createQueue)
-        return false;
+        return AMF_FAIL;
 #endif
 
     cl_context clContext = NULL;
@@ -578,9 +582,9 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
     //get context of open device via index 0,1,2,...
     getDeviceAndContext(deviceIndex, &clContext, &clDevice, clDeviceType);
     if (NULL == clContext)
-        return false;
+        return AMF_FAIL;
     if (NULL == clDevice)
-        return false;
+        return AMF_FAIL;
     clRetainDevice(clDevice);
     clRetainContext(clContext);
 
@@ -636,39 +640,44 @@ bool CreateCommandQueuesVIAocl(int deviceIndex, int32_t flag1, cl_command_queue 
         clReleaseDevice(clDevice);
         clDevice = NULL;
     }
-    return AllIsOK;
+
+    return AllIsOK ? AMF_OK : AMF_FAIL;
 }
 
 #ifndef TAN_NO_OPENCL
-bool CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2)
+AMF_RESULT CreateGpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2)
 {
-    bool bResult = false;
+    AMF_RESULT result = AMF_OK;
+
     switch (CreateCommandQueuesVIAamf(deviceIndex, flag1, pcmdQueue1, flag2, pcmdQueue2, AMF_CONTEXT_DEVICE_TYPE_GPU))
     {
     case AMF_NOT_INITIALIZED:
-        bResult = CreateCommandQueuesVIAocl(deviceIndex, 0, pcmdQueue1, 0, pcmdQueue2, CL_DEVICE_TYPE_GPU);
+        result = CreateCommandQueuesVIAocl(deviceIndex, 0, pcmdQueue1, 0, pcmdQueue2, CL_DEVICE_TYPE_GPU);
         break;
     default:;
     }
-    return bResult;
+
+    return result;
 }
 
-bool CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2)
+AMF_RESULT CreateCpuCommandQueues(int deviceIndex, int32_t flag1, cl_command_queue *pcmdQueue1, int32_t flag2, cl_command_queue *pcmdQueue2)
 {
-    bool bResult = false;
+    AMF_RESULT result = AMF_OK;
+
     switch (CreateCommandQueuesVIAamf(deviceIndex, flag1, pcmdQueue1, flag2, pcmdQueue2, AMF_CONTEXT_DEVICE_TYPE_CPU))
     {
     case AMF_NOT_INITIALIZED:
-        bResult = CreateCommandQueuesVIAocl(deviceIndex, 0, pcmdQueue1, 0, pcmdQueue2, CL_DEVICE_TYPE_CPU);
+        result = CreateCommandQueuesVIAocl(deviceIndex, 0, pcmdQueue1, 0, pcmdQueue2, CL_DEVICE_TYPE_CPU);
         break;
     default:;
     }
-    return bResult;
+
+    return result;
 }
 
 #else
 
-bool CreateGpuCommandQueues(
+AMF_RESULT CreateGpuCommandQueues(
     int deviceIndex,
     int32_t flag1,
     amf::AMFCompute **compute1,
@@ -680,7 +689,7 @@ bool CreateGpuCommandQueues(
     return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_GPU, context);
 }
 
-bool CreateCpuCommandQueues(
+AMF_RESULT CreateCpuCommandQueues(
     int deviceIndex,
     int32_t flag1,
     amf::AMFCompute **compute1,
@@ -692,11 +701,11 @@ bool CreateCpuCommandQueues(
     return CreateCommandQueuesVIAamf(deviceIndex, 0, compute1, 0, compute2, AMF_CONTEXT_DEVICE_TYPE_CPU, context);
 }
 
-bool CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute** compute1, amf::AMFCompute** compute2, int Q1CUcount, int Q2CUcount)
+AMF_RESULT CreateCommandQueuesWithCUcount(int deviceIndex, amf::AMFCompute** compute1, amf::AMFCompute** compute2, int Q1CUcount, int Q2CUcount)
 {
     //todo: implement amf version, currently skipped
-
-    return false;
+    assert(false);
+    return AMF_NOT_IMPLEMENTED;
 }
 
 #endif

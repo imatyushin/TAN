@@ -29,205 +29,195 @@
 #include "TrueAudioNext.h"   //TAN
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/core/Buffer.h"         //AMF
-#include "public/include/components/Component.h"//AMF
-#include "public/common/PropertyStorageExImpl.h"//AMF
-
-#include "GraalConv.hpp"
-#include "GraalConv_clFFT.hpp"
-//#include "tanlibrary/src/Graal2/GraalWrapper.h"
 
 #include "Debug.h"
+#include "Utilities.h"
 
-#define SAFE_ARR_DELETE(x) {if(x){ delete[] x;} (x) = nullptr; }
-
-namespace amf
+typedef struct _tdFilterState
 {
-    typedef struct _tdFilterState
+    float **m_Filter = nullptr;
+
+#ifndef TAN_NO_OPENCL
+    cl_mem *m_clFilter = nullptr;
+    cl_mem *m_clTemp = nullptr;
+#else
+    //todo: use vectors
+    amf::AMFBuffer ** amfFilter = nullptr;
+    amf::AMFBuffer ** amfTemp = nullptr;
+#endif
+
+    int *firstNz = nullptr;
+    int *lastNz = nullptr;
+    float **m_SampleHistory = nullptr;
+
+#ifndef TAN_NO_OPENCL
+    cl_mem *m_clSampleHistory = nullptr;
+#else
+    std::vector<amf::AMFBuffer *> amfSampleHistory;
+#endif
+    int *m_sampHistPos = nullptr;
+
+    void SetupHost(size_t channelsCount)
     {
-        float **m_Filter = nullptr;
+        m_Filter = new float *[channelsCount];
+        std::memset(m_Filter, 0, sizeof(float *) * channelsCount);
+
+        m_SampleHistory = new float*[channelsCount];
+        std::memset(m_SampleHistory, 0, sizeof(float *) * channelsCount);
+
+        m_sampHistPos = new int[channelsCount];
+        std::memset(m_sampHistPos, 0, sizeof(int) * channelsCount);
+
+        firstNz = new int[channelsCount];
+        std::memset(firstNz, 0, sizeof(int) * channelsCount);
+
+        lastNz = new int[channelsCount];
+        std::memset(lastNz, 0, sizeof(int) * channelsCount);
+    }
+
+    void SetupHostData(size_t index, size_t length)
+    {
+        m_Filter[index] = new float[length];
+        std::memset(m_Filter[index], 0, sizeof(float) * length);
+
+        m_SampleHistory[index] = new float[length];
+        std::memset(m_SampleHistory[index], 0, sizeof(float) * length);
+
+        m_sampHistPos[index] = 0;
+        firstNz[index] = 0;
+        lastNz[index] = 0;
+    }
+
+    void FreeHostData(size_t index)
+    {
+        SAFE_ARR_DELETE(m_Filter[index]);
+        SAFE_ARR_DELETE(m_SampleHistory[index]);
+
+        m_sampHistPos[index] = 0;
+        firstNz[index] = 0;
+        lastNz[index] = 0;
+    }
 
 #ifndef TAN_NO_OPENCL
-        cl_mem *m_clFilter = nullptr;
-        cl_mem *m_clTemp = nullptr;
+    void SetupCL(size_t channelsCount)
+    {
+        m_clFilter = new cl_mem[channelsCount];
+        std::memset(m_clFilter, 0, sizeof(cl_mem) * channelsCount);
+
+        m_clTemp = new cl_mem[channelsCount];
+        std::memset(m_clTemp, 0, sizeof(cl_mem) * channelsCount);
+
+        m_clSampleHistory = new cl_mem[channelsCount];
+        std::memset(m_clSampleHistory, 0, sizeof(cl_mem) * channelsCount);
+    }
+
+    AMF_RESULT SetupCLData(cl_context context, size_t index, size_t length)
+    {
+        cl_int returnCode(0);
+
+        m_clFilter[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
+        AMF_RETURN_IF_CL_FAILED(returnCode);
+
+        m_clTemp[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
+        AMF_RETURN_IF_CL_FAILED(returnCode);
+
+        m_clSampleHistory[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
+        AMF_RETURN_IF_CL_FAILED(returnCode);
+
+        return AMF_OK;
+    }
+
+    void FreeCLData(size_t index)
+    {
+        assert(m_clFilter[index] && m_clTemp[index] && m_clSampleHistory[index]);
+
+        DBG_CLRELEASE_MEMORYOBJECT(m_clFilter[index]);
+        DBG_CLRELEASE_MEMORYOBJECT(m_clTemp[index]);
+        DBG_CLRELEASE_MEMORYOBJECT(m_clSampleHistory[index]);
+    }
+
+    void DeallocateCL()
+    {
+        if(m_clFilter)
+        {
+            delete [] m_clFilter, m_clFilter = nullptr;
+        }
+
+        if(m_clTemp)
+        {
+            delete [] m_clTemp, m_clTemp = nullptr;
+        }
+
+        if(m_clSampleHistory)
+        {
+            delete [] m_clSampleHistory, m_clSampleHistory = nullptr;
+        }
+    }
 #else
-        //todo: use vectors
-        amf::AMFBuffer ** amfFilter = nullptr;
-        amf::AMFBuffer ** amfTemp = nullptr;
+    void SetupAMF(size_t channelsCount)
+    {
+        amfFilter = new amf::AMFBuffer *[channelsCount];
+        std::memset(amfFilter, 0, sizeof(amf::AMFBuffer *) * channelsCount);
+
+        amfTemp = new amf::AMFBuffer *[channelsCount];
+        std::memset(amfTemp, 0, sizeof(amf::AMFBuffer *) * channelsCount);
+
+        amfSampleHistory.resize(channelsCount);
+    }
+
+    AMF_RESULT SetupAMFData(amf::AMFContext * context, amf::AMF_MEMORY_TYPE memoryType, size_t index, size_t length)
+    {
+        assert(context);
+
+        AMF_RETURN_IF_FAILED(
+            context->AllocBuffer(
+                memoryType,
+                length * sizeof(float),
+                &amfFilter[index]
+                )
+            );
+
+        AMF_RETURN_IF_FAILED(
+            context->AllocBuffer(
+                memoryType,
+                length * sizeof(float),
+                &amfTemp[index]
+                )
+            );
+
+        AMF_RETURN_IF_FAILED(
+            context->AllocBuffer(
+                memoryType,
+                length * sizeof(float),
+                &amfSampleHistory[index]
+                )
+            );
+
+        return AMF_OK;
+    }
+
+    void FreeAMFData(size_t index)
+    {
+        assert(amfFilter[index] && amfTemp[index] && amfSampleHistory[index]);
+
+        amfFilter[index] = nullptr;
+        amfTemp[index] = nullptr;
+        amfSampleHistory[index] = nullptr;
+    }
+
+    void DeallocateAMF()
+    {
+        if(amfFilter)
+        {
+            delete [] amfFilter, amfFilter = nullptr;
+        }
+
+        if(amfTemp)
+        {
+            delete [] amfTemp, amfTemp = nullptr;
+        }
+
+        amfSampleHistory.resize(0);
+    }
 #endif
-
-        int *firstNz = nullptr;
-        int *lastNz = nullptr;
-        float **m_SampleHistory = nullptr;
-
-#ifndef TAN_NO_OPENCL
-        cl_mem *m_clSampleHistory = nullptr;
-#else
-        std::vector<amf::AMFBuffer *> amfSampleHistory;
-#endif
-        int *m_sampHistPos = nullptr;
-
-        void SetupHost(size_t channelsCount)
-        {
-            m_Filter = new float *[channelsCount];
-            std::memset(m_Filter, 0, sizeof(float *) * channelsCount);
-
-			m_SampleHistory = new float*[channelsCount];
-            std::memset(m_SampleHistory, 0, sizeof(float *) * channelsCount);
-
-			m_sampHistPos = new int[channelsCount];
-            std::memset(m_sampHistPos, 0, sizeof(int) * channelsCount);
-
-			firstNz = new int[channelsCount];
-            std::memset(firstNz, 0, sizeof(int) * channelsCount);
-
-			lastNz = new int[channelsCount];
-            std::memset(lastNz, 0, sizeof(int) * channelsCount);
-        }
-
-        void SetupHostData(size_t index, size_t length)
-        {
-            m_Filter[index] = new float[length];
-            std::memset(m_Filter[index], 0, sizeof(float) * length);
-
-            m_SampleHistory[index] = new float[length];
-            std::memset(m_SampleHistory[index], 0, sizeof(float) * length);
-
-			m_sampHistPos[index] = 0;
-			firstNz[index] = 0;
-			lastNz[index] = 0;
-        }
-
-        void FreeHostData(size_t index)
-        {
-            SAFE_ARR_DELETE(m_Filter[index]);
-            SAFE_ARR_DELETE(m_SampleHistory[index]);
-
-            m_sampHistPos[index] = 0;
-			firstNz[index] = 0;
-			lastNz[index] = 0;
-        }
-
-#ifndef TAN_NO_OPENCL
-        void SetupCL(size_t channelsCount)
-        {
-            m_clFilter = new cl_mem[channelsCount];
-            std::memset(m_clFilter, 0, sizeof(cl_mem) * channelsCount);
-
-            m_clTemp = new cl_mem[channelsCount];
-            std::memset(m_clTemp, 0, sizeof(cl_mem) * channelsCount);
-
-            m_clSampleHistory = new cl_mem[channelsCount];
-            std::memset(m_clSampleHistory, 0, sizeof(cl_mem) * channelsCount);
-        }
-
-        AMF_RESULT SetupCLData(cl_context context, size_t index, size_t length)
-        {
-            cl_int returnCode(0);
-
-            m_clFilter[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
-            AMF_RETURN_IF_CL_FAILED(returnCode);
-
-            m_clTemp[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
-            AMF_RETURN_IF_CL_FAILED(returnCode);
-
-            m_clSampleHistory[index] = clCreateBuffer(context, CL_MEM_READ_WRITE, length * sizeof(float), nullptr, &returnCode);
-            AMF_RETURN_IF_CL_FAILED(returnCode);
-
-            return AMF_OK;
-        }
-
-        void FreeCLData(size_t index)
-        {
-            assert(m_clFilter[index] && m_clTemp[index] && m_clSampleHistory[index]);
-
-            DBG_CLRELEASE_MEMORYOBJECT(m_clFilter[index]);
-            DBG_CLRELEASE_MEMORYOBJECT(m_clTemp[index]);
-            DBG_CLRELEASE_MEMORYOBJECT(m_clSampleHistory[index]);
-        }
-
-        void DeallocateCL()
-        {
-            if(m_clFilter)
-            {
-                delete [] m_clFilter, m_clFilter = nullptr;
-            }
-
-            if(m_clTemp)
-            {
-                delete [] m_clTemp, m_clTemp = nullptr;
-            }
-
-            if(m_clSampleHistory)
-            {
-                delete [] m_clSampleHistory, m_clSampleHistory = nullptr;
-            }
-        }
-#else
-        void SetupAMF(size_t channelsCount)
-        {
-            amfFilter = new amf::AMFBuffer *[channelsCount];
-            std::memset(amfFilter, 0, sizeof(amf::AMFBuffer *) * channelsCount);
-
-            amfTemp = new amf::AMFBuffer *[channelsCount];
-            std::memset(amfTemp, 0, sizeof(amf::AMFBuffer *) * channelsCount);
-
-            amfSampleHistory.resize(channelsCount);
-        }
-
-        AMF_RESULT SetupAMFData(AMFContext * context, AMF_MEMORY_TYPE memoryType, size_t index, size_t length)
-        {
-            assert(context);
-
-            AMF_RETURN_IF_FAILED(
-                context->AllocBuffer(
-                    memoryType,
-                    length * sizeof(float),
-                    &amfFilter[index]
-                    )
-                );
-
-            AMF_RETURN_IF_FAILED(
-                context->AllocBuffer(
-                    memoryType,
-                    length * sizeof(float),
-                    &amfTemp[index]
-                    )
-                );
-
-            AMF_RETURN_IF_FAILED(
-                context->AllocBuffer(
-                    memoryType,
-                    length * sizeof(float),
-                    &amfSampleHistory[index]
-                    )
-                );
-
-            return AMF_OK;
-        }
-
-        void FreeAMFData(size_t index)
-        {
-            assert(amfFilter[index] && amfTemp[index] && amfSampleHistory[index]);
-
-            amfFilter[index] = nullptr;
-            amfTemp[index] = nullptr;
-            amfSampleHistory[index] = nullptr;
-        }
-
-        void DeallocateAMF()
-        {
-            if(amfFilter)
-            {
-                delete [] amfFilter, amfFilter = nullptr;
-            }
-
-            if(amfTemp)
-            {
-                delete [] amfTemp, amfTemp = nullptr;
-            }
-
-            amfSampleHistory.resize(0);
-        }
-#endif
-    } tdFilterState;
-}
+} tdFilterState;
