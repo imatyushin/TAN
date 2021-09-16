@@ -548,7 +548,7 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 
 	m_RoomAcousticInstance.mConvolutionViaCompute = currentIndex > 0;
 
-	bool gpuReset = false;
+	bool resetConvolutionAlgorithm = false;
 
 	if(m_RoomAcousticInstance.mConvolutionViaCompute)
 	{
@@ -556,9 +556,9 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 
 		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesNames.size())
 		{
-			if(m_RoomAcousticInstance.mConvolutionComputeOnGPU)
+            if(m_RoomAcousticInstance.mConvolutionComputeOnGPU)
 			{
-				gpuReset = true;
+				resetConvolutionAlgorithm = true;
 			}
 
 			m_RoomAcousticInstance.mConvolutionComputeOnGPU = false;
@@ -566,6 +566,11 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 		}
 		else
 		{
+            if(!m_RoomAcousticInstance.mConvolutionComputeOnGPU)
+            {
+                resetConvolutionAlgorithm = true;
+            }
+
 			currentIndex -= m_RoomAcousticInstance.mCPUDevicesNames.size();
 
 			m_RoomAcousticInstance.mConvolutionComputeOnGPU = true;
@@ -574,17 +579,16 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 	}
 	else
 	{
-        //
         if(m_RoomAcousticInstance.mConvolutionViaCompute || m_RoomAcousticInstance.mConvolutionComputeOnGPU)
 		{
-        	gpuReset = true;
+        	resetConvolutionAlgorithm = true;
 		}
 
 		m_RoomAcousticInstance.mConvolutionComputeOnGPU = false;
 		m_RoomAcousticInstance.mConvolutionDeviceIndex = 0;
 	}
 
-	if(gpuReset)
+	if(resetConvolutionAlgorithm)
 	{
 		m_RoomAcousticInstance.m_eConvolutionMethod = TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD;
 	}
