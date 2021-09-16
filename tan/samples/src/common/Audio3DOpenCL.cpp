@@ -175,7 +175,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
         int32_t flagsQ2 = 0;
 
         //CL convolution on GPU
-        if(mComputeConvolution && mComputeOverGpuConvolution)
+        if(mConvolutionViaCompute && mConvolutionComputeOnGPU)
         {
     #ifdef RTQ_ENABLED
 
@@ -199,24 +199,24 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             }
     #endif // RTQ_ENABLED
 
-            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2));
+            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mConvolutionComputeDeviceIndex, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2));
 
             //CL room on GPU
-            if(mComputeRoom && mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
+            if(mRoomViaCompute && mRoomComputeOnGPU && (mConvolutionComputeDeviceIndex == mRoomComputeDeviceIndex))
             {
                 mCmdQueue3 = mCmdQueue2;
             }
         }
 
         //CL convolution on CPU
-        else if(mComputeConvolution && !mComputeOverGpuConvolution)
+        else if(mConvolutionViaCompute && !mConvolutionComputeOnGPU)
         {
 #ifdef RTQ_ENABLED
             // For " core "reservation" on CPU" -ToDo test and enable
             if (mCuRes_Conv > 0 && mCuRes_Room > 0)
             {
                 AMF_RETURN_IF_FAILED(
-                    CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCmdQueue1, &mCmdQueue2, mCuRes_Conv, mCuRes_Room),
+                    CreateCommandQueuesWithCUcount(mConvolutionComputeDeviceIndex, &mCmdQueue1, &mCmdQueue2, mCuRes_Conv, mCuRes_Room),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
             }
@@ -224,7 +224,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
             {
 #endif
                 AMF_RETURN_IF_FAILED(
-                    CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCmdQueue1, 0, &mCmdQueue2),
+                    CreateCpuCommandQueues(mConvolutionComputeDeviceIndex, 0, &mCmdQueue1, 0, &mCmdQueue2),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
 #ifdef RTQ_ENABLED
@@ -232,7 +232,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
 #endif
 
             //CL room on CPU
-            if(mComputeRoom && !mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
+            if(mRoomViaCompute && !mRoomComputeOnGPU && (mConvolutionComputeDeviceIndex == mRoomComputeDeviceIndex))
             {
                 mCmdQueue3 = mCmdQueue2;
             }
@@ -242,36 +242,36 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
         clRetainCommandQueue(mCmdQueue2);
 
         //room queue not yet created
-        if(!mCmdQueue3 && mComputeRoom)
+        if(!mCmdQueue3 && mRoomViaCompute)
         {
             //CL over GPU
-            if(mComputeOverGpuRoom)
+            if(mRoomComputeOnGPU)
             {
-                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCmdQueue3, 0, nullptr));
+                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCmdQueue3, 0, nullptr));
             }
             //CL over CPU
             else
             {
-                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCmdQueue3, 0, nullptr));
+                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCmdQueue3, 0, nullptr));
             }
         }
     }
 
     //convolution over OpenCL
-    if(mComputeConvolution)
+    if(mConvolutionViaCompute)
     {
         AMF_RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
     }
 
     //room processing over OpenCL
-    if(mComputeRoom)
+    if(mRoomViaCompute)
     {
         AMF_RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
     }
 
     AMF_RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution));
 
-    if(mComputeConvolution)
+    if(mConvolutionViaCompute)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitGpu(
@@ -304,7 +304,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     AMF_RETURN_IF_FAILED(mFft->Init());
 
     //CL over GPU for both Convolution and Room processing
-    if(mComputeConvolution && mComputeRoom)
+    if(mConvolutionViaCompute && mRoomViaCompute)
     {
         cl_context context_IR;
         cl_context context_Conv;
@@ -444,9 +444,9 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     AMF_RETURN_IF_FAILED(result);
     AMF_RETURN_IF_FALSE(nullptr != mTrueAudioVR.get(), AMF_FAIL, L"CreateAmdTrueAudioVR failed");
 
-    //todo: must check mComputeRoom nor mComputeOverGpuRoom?
+    //todo: must check mRoomViaCompute nor mRoomComputeOnGPU?
     std::cout << std::endl << "Check this!" << std::endl;
-    if(mComputeOverGpuRoom)
+    if(mRoomComputeOnGPU)
     {
         mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }

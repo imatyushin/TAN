@@ -80,7 +80,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         TANCreateContext(
             TAN_FULL_VERSION,
             &mTANConvolutionContext,
-            mComputeConvolution ? factory : nullptr
+            mConvolutionViaCompute ? factory : nullptr
             ),
         L"TANCreateContext mTANConvolutionContext failed"
         );
@@ -88,7 +88,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         TANCreateContext(
             TAN_FULL_VERSION,
             &mTANRoomContext,
-            mComputeRoom ? factory : nullptr
+            mRoomViaCompute ? factory : nullptr
             ),
         L"TANCreateContext mTANRoomContext failed"
         );
@@ -99,7 +99,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         int32_t flagsQ2 = 0;
 
         //CL convolution on GPU
-        if(mComputeConvolution && mComputeOverGpuConvolution)
+        if(mConvolutionViaCompute && mConvolutionComputeOnGPU)
         {
     #ifdef RTQ_ENABLED
 
@@ -123,10 +123,10 @@ AMF_RESULT Audio3DAMF::InitObjects()
             }
     #endif // RTQ_ENABLED
 
-            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexConvolution, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12));
+            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mConvolutionComputeDeviceIndex, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12));
 
             //CL room on GPU
-            if(mComputeRoom && mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
+            if(mRoomViaCompute && mRoomComputeOnGPU && (mConvolutionComputeDeviceIndex == mRoomComputeDeviceIndex))
             {
                 mContext3 = mContext12;
                 mCompute3 = mCompute2;
@@ -134,7 +134,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
         }
 
         //CL convolution on CPU
-        else if(mComputeConvolution && !mComputeOverGpuConvolution)
+        else if(mConvolutionViaCompute && !mConvolutionComputeOnGPU)
         {
 #ifdef RTQ_ENABLED
             THROW_NOT_IMPLEMENTED;
@@ -143,7 +143,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             if (mCuRes_Conv > 0 && mCuRes_Room > 0)
             {
                 AMF_RETURN_IF_FAILED(
-                    CreateCommandQueuesWithCUcount(mComputeDeviceIndexConvolution, &mCompute1, &mCompute2, mCuRes_Conv, mCuRes_Room),
+                    CreateCommandQueuesWithCUcount(mConvolutionComputeDeviceIndex, &mCompute1, &mCompute2, mCuRes_Conv, mCuRes_Room),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
             }
@@ -151,7 +151,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             {
 #endif
                 AMF_RETURN_IF_FAILED(
-                    CreateCpuCommandQueues(mComputeDeviceIndexConvolution, 0, &mCompute1, 0, &mCompute2, &mContext12),
+                    CreateCpuCommandQueues(mConvolutionComputeDeviceIndex, 0, &mCompute1, 0, &mCompute2, &mContext12),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
 
@@ -160,7 +160,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
 #endif
 
             //CL room on CPU
-            if(mComputeRoom && !mComputeOverGpuRoom && (mComputeDeviceIndexConvolution == mComputeDeviceIndexRoom))
+            if(mRoomViaCompute && !mRoomComputeOnGPU && (mConvolutionComputeDeviceIndex == mRoomComputeDeviceIndex))
             {
                 mContext3 = mContext12;
                 mCompute3 = mCompute2;
@@ -168,23 +168,23 @@ AMF_RESULT Audio3DAMF::InitObjects()
         }
 
         //room queue not yet created
-        if(!mCompute3 && mComputeRoom)
+        if(!mCompute3 && mRoomViaCompute)
         {
             //CL over GPU
-            if(mComputeOverGpuRoom)
+            if(mRoomComputeOnGPU)
             {
-                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3));
+                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCompute3, 0, nullptr, &mContext3));
             }
             //CL over CPU
             else
             {
-                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mComputeDeviceIndexRoom, 0, &mCompute3, 0, nullptr, &mContext3));
+                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCompute3, 0, nullptr, &mContext3));
             }
         }
     }
 
     //convolution via compute
-    if(mComputeConvolution)
+    if(mConvolutionViaCompute)
     {
         AMF_RETURN_IF_FAILED(
             mTANConvolutionContext->InitAMF(
@@ -198,7 +198,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
     }
 
     //room processing via compute
-    if(mComputeRoom)
+    if(mRoomViaCompute)
     {
         AMF_RETURN_IF_FAILED(
             mTANRoomContext->InitAMF(
@@ -213,7 +213,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
 
     AMF_RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution), L"TANCreateConvolution failed");
 
-    if(mComputeConvolution)
+    if(mConvolutionViaCompute)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitGpu(
@@ -225,7 +225,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
             );
     }
     //todo, ivm:, investigate
-    else //if(mComputeOverGpuConvolution)
+    else //if(mConvolutionComputeOnGPU)
     {
         AMF_RETURN_IF_FAILED(
             mConvolution->InitCpu(
@@ -247,7 +247,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
     AMF_RETURN_IF_FAILED(mFft->Init());
 
     //CL over GPU for both Convolution and Room processing
-    if(mComputeConvolution && mComputeRoom)
+    if(mConvolutionViaCompute && mRoomViaCompute)
     {
         if(mContext12 == mContext3)
         {
@@ -418,9 +418,9 @@ AMF_RESULT Audio3DAMF::InitObjects()
     AMF_RETURN_IF_FAILED(result);
     AMF_RETURN_IF_FALSE(nullptr != mTrueAudioVR.get(), AMF_FAIL, L"CreateAmdTrueAudioVR failed");
 
-    //todo: must check mComputeRoom nor mComputeOverGpuRoom?
+    //todo: must check mRoomViaCompute nor mRoomComputeOnGPU?
     std::cout << std::endl << "Check this!" << std::endl;
-    if(mComputeOverGpuRoom)
+    if(mRoomComputeOnGPU)
     {
         mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::GPU);
     }
@@ -545,7 +545,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
 
     PrintArrayReduced("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t));
     PrintArrayReduced("::Process input[1]", pChan[1], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t));
-    
+
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++)
     {
@@ -696,10 +696,10 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
     }
 
     auto info = ES + "Process " + std::to_string(counter) + " ===============================================";
-    
+
     PrintDebug(info);
     ++counter;
-    
+
     if(counter == 200)
     {
         int i = 0;

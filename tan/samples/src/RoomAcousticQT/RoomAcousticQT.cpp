@@ -72,8 +72,8 @@ bool RoomAcousticQT::start()
 
 	// Since cpu's device id is 0 in this demo, we need to decrease the device id if
 	// you want to run GPU
-	int convolutionDeviceIndex = mConvolutionOverCompute ? mConvolutionDeviceIndex : 0;
-	int roomDeviceIndex = mRoomOverCompute ? mRoomDeviceIndex : 0;
+	int convolutionDeviceIndex = mConvolutionViaCompute ? mConvolutionDeviceIndex : 0;
+	int roomDeviceIndex = mRoomViaCompute ? mRoomDeviceIndex : 0;
 
 	std::vector<std::string> fileNames;
 	std::vector<bool> trackHead;
@@ -131,8 +131,8 @@ bool RoomAcousticQT::start()
 		m_iConvolutionLength,
 		m_iBufferSize,
 
-		mConvolutionOverCompute,
-		mConvolutionOverGPU,
+		mConvolutionViaCompute,
+		mConvolutionComputeOnGPU,
 		convolutionDeviceIndex,
 
 #ifdef RTQ_ENABLED
@@ -141,8 +141,8 @@ bool RoomAcousticQT::start()
 		mConvolutionCUCount,
 #endif
 
-		mRoomOverCompute,
-		mRoomOverGPU,
+		mRoomViaCompute,
+		mRoomComputeOnGPU,
 		roomDeviceIndex,
 
 #ifdef RTQ_ENABLED
@@ -361,15 +361,15 @@ void RoomAcousticQT::loadConfiguration(const std::string& xmlfilename)
 	m_RoomDefinition.mTop.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampTop").c_str()).toFloat());
 	m_RoomDefinition.mBottom.damp = DBTODAMP(settings.value((std::string("ROOM/") + "DampBottom").c_str()).toFloat());
 
-	mRoomOverCompute = settings.value((std::string("ROOM/") + "OpenCL").c_str()).toInt() ? 1 : 0;
-	mRoomOverGPU = settings.value((std::string("ROOM/") + "GPU").c_str()).toInt() ? 1 : 0;
+	mRoomViaCompute = settings.value((std::string("ROOM/") + "OpenCL").c_str()).toInt() ? 1 : 0;
+	mRoomComputeOnGPU = settings.value((std::string("ROOM/") + "GPU").c_str()).toInt() ? 1 : 0;
 	mRoomDeviceIndex = settings.value((std::string("ROOM/") + "Device").c_str()).toInt();
 	mRoomPriority = settings.value((std::string("ROOM/") + "Priority").c_str()).toInt();
 	mRoomCUCount = settings.value((std::string("ROOM/") + "CU").c_str()).toInt();
 
 	//settings.value((std::string("CONVOLUTION/") + "Count").c_str());
-	mConvolutionOverCompute = settings.value((std::string("CONVOLUTION/") + "OpenCL").c_str()).toInt() ? 1 : 0;
-	mConvolutionOverGPU = settings.value((std::string("CONVOLUTION/") + "GPU").c_str()).toInt() ? 1 : 0;
+	mConvolutionViaCompute = settings.value((std::string("CONVOLUTION/") + "OpenCL").c_str()).toInt() ? 1 : 0;
+	mConvolutionComputeOnGPU = settings.value((std::string("CONVOLUTION/") + "GPU").c_str()).toInt() ? 1 : 0;
 	mConvolutionDeviceIndex = settings.value((std::string("CONVOLUTION/") + "Device").c_str()).toInt();
 	mConvolutionPriority = settings.value((std::string("CONVOLUTION/") + "Priority").c_str()).toInt();
 	mConvolutionCUCount = settings.value((std::string("CONVOLUTION/") + "CU").c_str()).toInt();
@@ -448,14 +448,14 @@ void RoomAcousticQT::saveConfiguration(const std::string& xmlfilename)
 	settings.setValue((std::string("ROOM/") + "DampTop").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mTop.damp)).c_str());
 	settings.setValue((std::string("ROOM/") + "DampBottom").c_str(), std::to_string(DAMPTODB(m_RoomDefinition.mBottom.damp)).c_str());
 
-	settings.setValue((std::string("ROOM/") + "OpenCL").c_str(), mRoomOverCompute ? 1 : 0);
-	settings.setValue((std::string("ROOM/") + "GPU").c_str(), mRoomOverGPU ? 1 : 0);
+	settings.setValue((std::string("ROOM/") + "OpenCL").c_str(), mRoomViaCompute ? 1 : 0);
+	settings.setValue((std::string("ROOM/") + "GPU").c_str(), mRoomComputeOnGPU ? 1 : 0);
 	settings.setValue((std::string("ROOM/") + "Device").c_str(), mRoomDeviceIndex);
 	settings.setValue((std::string("ROOM/") + "Priority").c_str(), mRoomPriority);
 	settings.setValue((std::string("ROOM/") + "CU").c_str(), mRoomCUCount);
 
-	settings.setValue((std::string("CONVOLUTION/") + "OpenCL").c_str(), mConvolutionOverCompute ? 1 : 0);
-	settings.setValue((std::string("CONVOLUTION/") + "GPU").c_str(), mConvolutionOverGPU ? 1 : 0);
+	settings.setValue((std::string("CONVOLUTION/") + "OpenCL").c_str(), mConvolutionViaCompute ? 1 : 0);
+	settings.setValue((std::string("CONVOLUTION/") + "GPU").c_str(), mConvolutionComputeOnGPU ? 1 : 0);
 	settings.setValue((std::string("CONVOLUTION/") + "Device").c_str(), mConvolutionDeviceIndex);
 	settings.setValue((std::string("CONVOLUTION/") + "Priority").c_str(), mConvolutionPriority);
 	settings.setValue((std::string("CONVOLUTION/") + "CU").c_str(), mConvolutionCUCount);

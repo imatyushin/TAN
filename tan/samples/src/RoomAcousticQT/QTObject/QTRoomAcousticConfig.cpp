@@ -305,11 +305,11 @@ void RoomAcousticQTConfig::updateRoomFields()
 	ConfigUi.SB_RoomDampBottom->setValue(DAMPTODB(m_RoomAcousticInstance.m_RoomDefinition.mBottom.damp));
 
 	ConfigUi.CB_RoomDevice->setCurrentIndex(
-		!m_RoomAcousticInstance.mRoomOverCompute
+		!m_RoomAcousticInstance.mRoomViaCompute
 		    ? 0
 			:
 			(
-				!m_RoomAcousticInstance.mRoomOverGPU
+				!m_RoomAcousticInstance.mRoomComputeOnGPU
 				    ? m_RoomAcousticInstance.mRoomDeviceIndex + 1
 					: m_RoomAcousticInstance.mRoomDeviceIndex + 1 + m_RoomAcousticInstance.mCPUDevicesNames.size()
 			)
@@ -322,7 +322,7 @@ void RoomAcousticQTConfig::updateRoomFields()
 	ConfigUi.SB_RoomCU->setValue(m_RoomAcousticInstance.mRoomCUCount);
 	ConfigUi.SB_RoomCU->setEnabled(
 #ifdef RTQ_ENABLED
-		m_RoomAcousticInstance.mRoomOverCompute && (m_RoomAcousticInstance.mRoomPriority > 0)
+		m_RoomAcousticInstance.mRoomViaCompute && (m_RoomAcousticInstance.mRoomPriority > 0)
 #else
 		false
 #endif
@@ -331,7 +331,7 @@ void RoomAcousticQTConfig::updateRoomFields()
 	ConfigUi.CULabelRoom->setEnabled(ConfigUi.SB_RoomCU->isEnabled());
 	ConfigUi.RoomQueueGroup->setEnabled(
 #ifdef RTQ_ENABLED
-		m_RoomAcousticInstance.mRoomOverCompute && m_RoomAcousticInstance.mRoomOverGPU
+		m_RoomAcousticInstance.mRoomViaCompute && m_RoomAcousticInstance.mRoomComputeOnGPU
 #else
 		false
 #endif
@@ -349,7 +349,7 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 	ConfigUi.LB_ConvolutionTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getConvolutionTime())));
 	ConfigUi.LB_BufferTime->setText(QString::fromStdString(std::to_string(m_RoomAcousticInstance.getBufferTime())));
 
-    update_convMethod(m_RoomAcousticInstance.mConvolutionOverGPU);
+    update_convMethod(m_RoomAcousticInstance.mConvolutionComputeOnGPU);
 
     bool set(false);
 
@@ -367,11 +367,11 @@ void RoomAcousticQTConfig::updateConvolutionFields()
     assert(set);
 
     ConfigUi.CB_ConvolutionDevice->setCurrentIndex(
-		!m_RoomAcousticInstance.mConvolutionOverCompute
+		!m_RoomAcousticInstance.mConvolutionViaCompute
 		    ? 0
 			:
 			(
-				!m_RoomAcousticInstance.mConvolutionOverGPU
+				!m_RoomAcousticInstance.mConvolutionComputeOnGPU
 				    ? m_RoomAcousticInstance.mConvolutionDeviceIndex + 1
 					: m_RoomAcousticInstance.mConvolutionDeviceIndex + 1 + m_RoomAcousticInstance.mCPUDevicesNames.size()
 			)
@@ -384,7 +384,7 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 	ConfigUi.SB_ConvCU->setValue(m_RoomAcousticInstance.mConvolutionCUCount);
 	ConfigUi.SB_ConvCU->setEnabled(
 #ifdef RTQ_ENABLED
-		m_RoomAcousticInstance.mConvolutionOverCompute && (m_RoomAcousticInstance.mConvolutionPriority > 0)
+		m_RoomAcousticInstance.mConvolutionViaCompute && (m_RoomAcousticInstance.mConvolutionPriority > 0)
 #else
 		false
 #endif
@@ -393,7 +393,7 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 	ConfigUi.CULabelConvolution->setEnabled(ConfigUi.SB_ConvCU->isEnabled());
 	ConfigUi.ConvQueueGroup->setEnabled(
 #ifdef RTQ_ENABLED
-		m_RoomAcousticInstance.mConvolutionOverCompute && m_RoomAcousticInstance.mConvolutionOverGPU
+		m_RoomAcousticInstance.mConvolutionViaCompute && m_RoomAcousticInstance.mConvolutionComputeOnGPU
 #else
 		false
 #endif
@@ -498,27 +498,27 @@ void RoomAcousticQTConfig::storeRoomFields()
 
 	auto currentIndex(ConfigUi.CB_RoomDevice->currentIndex());
 
-	m_RoomAcousticInstance.mRoomOverCompute = currentIndex > 0;
-	if(m_RoomAcousticInstance.mRoomOverCompute)
+	m_RoomAcousticInstance.mRoomViaCompute = currentIndex > 0;
+	if(m_RoomAcousticInstance.mRoomViaCompute)
 	{
 		--currentIndex; //exclude first software item
 
 		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesNames.size())
 		{
-			m_RoomAcousticInstance.mRoomOverGPU = false;
+			m_RoomAcousticInstance.mRoomComputeOnGPU = false;
 			m_RoomAcousticInstance.mRoomDeviceIndex = currentIndex;
 		}
 		else
 		{
 			currentIndex -= m_RoomAcousticInstance.mCPUDevicesNames.size();
 
-			m_RoomAcousticInstance.mRoomOverGPU = true;
+			m_RoomAcousticInstance.mRoomComputeOnGPU = true;
 			m_RoomAcousticInstance.mRoomDeviceIndex = currentIndex;
 		}
 	}
 	else
 	{
-		m_RoomAcousticInstance.mRoomOverGPU = false;
+		m_RoomAcousticInstance.mRoomComputeOnGPU = false;
 		m_RoomAcousticInstance.mRoomDeviceIndex = 0;
 	}
 
@@ -546,41 +546,41 @@ void RoomAcousticQTConfig::storeConvolutionFields()
 
 	auto currentIndex(ConfigUi.CB_ConvolutionDevice->currentIndex());
 
-	m_RoomAcousticInstance.mConvolutionOverCompute = currentIndex > 0;
+	m_RoomAcousticInstance.mConvolutionViaCompute = currentIndex > 0;
 
 	bool gpuReset = false;
 
-	if(m_RoomAcousticInstance.mConvolutionOverCompute)
+	if(m_RoomAcousticInstance.mConvolutionViaCompute)
 	{
 		--currentIndex; //exclude first software item
 
 		if(currentIndex < m_RoomAcousticInstance.mCPUDevicesNames.size())
 		{
-			if(m_RoomAcousticInstance.mConvolutionOverGPU)
+			if(m_RoomAcousticInstance.mConvolutionComputeOnGPU)
 			{
 				gpuReset = true;
 			}
 
-			m_RoomAcousticInstance.mConvolutionOverGPU = false;
+			m_RoomAcousticInstance.mConvolutionComputeOnGPU = false;
 			m_RoomAcousticInstance.mConvolutionDeviceIndex = currentIndex;
 		}
 		else
 		{
 			currentIndex -= m_RoomAcousticInstance.mCPUDevicesNames.size();
 
-			m_RoomAcousticInstance.mConvolutionOverGPU = true;
+			m_RoomAcousticInstance.mConvolutionComputeOnGPU = true;
 			m_RoomAcousticInstance.mConvolutionDeviceIndex = currentIndex;
 		}
 	}
 	else
 	{
         //
-        if(m_RoomAcousticInstance.mConvolutionOverCompute || m_RoomAcousticInstance.mConvolutionOverGPU)
+        if(m_RoomAcousticInstance.mConvolutionViaCompute || m_RoomAcousticInstance.mConvolutionComputeOnGPU)
 		{
         	gpuReset = true;
 		}
-		
-		m_RoomAcousticInstance.mConvolutionOverGPU = false;
+
+		m_RoomAcousticInstance.mConvolutionComputeOnGPU = false;
 		m_RoomAcousticInstance.mConvolutionDeviceIndex = 0;
 	}
 
@@ -651,16 +651,16 @@ void RoomAcousticQTConfig::printConfiguration()
 	qInfo("\nConvolution length: %d, Buffer size: %d", this->m_RoomAcousticInstance.m_iConvolutionLength, this->m_RoomAcousticInstance.m_iBufferSize);
 #ifdef RTQ_ENABLED
 	qInfo("\nConvolution using OpenCL: %c, Running On GPU: %c, Normal queue: %c, Medium Queue: %c, RTQ: %c, CUS: %d",
-		m_RoomAcousticInstance.mConvolutionOverCompute ? 'y' : 'n',
-		m_RoomAcousticInstance.mConvolutionOverGPU ? 'y' : 'n',
+		m_RoomAcousticInstance.mConvolutionViaCompute ? 'y' : 'n',
+		m_RoomAcousticInstance.mConvolutionComputeOnGPU ? 'y' : 'n',
 		m_RoomAcousticInstance.mConvolutionPriority == 0 ? 'y' : 'n',
 		m_RoomAcousticInstance.mConvolutionPriority == 1 ? 'y' : 'n',
 		m_RoomAcousticInstance.mConvolutionPriority == 2 ? 'y' : 'n',
 		m_RoomAcousticInstance.mConvolutionCUCount
 		);
 	qInfo("Room using OpenCL: %c, Running On GPU: %c, Normal queue: %c, Medium Queue: %c, RTQ: %c, CUS: %d",
-		m_RoomAcousticInstance.mRoomOverCompute ? 'y' : 'n',
-		m_RoomAcousticInstance.mRoomOverGPU ? 'y' : 'n',
+		m_RoomAcousticInstance.mRoomViaCompute ? 'y' : 'n',
+		m_RoomAcousticInstance.mRoomComputeOnGPU ? 'y' : 'n',
 		m_RoomAcousticInstance.mRoomPriority == 0 ? 'y' : 'n',
 		m_RoomAcousticInstance.mRoomPriority == 1 ? 'y' : 'n',
 		m_RoomAcousticInstance.mRoomPriority == 2 ? 'y' : 'n',

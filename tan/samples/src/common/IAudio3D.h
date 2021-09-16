@@ -128,7 +128,7 @@ public:
         int                     bufferSizeInSamples,
 
         bool                    computeConvolution,
-        bool                    computeOverGpuConvolution,
+        bool                    computeComputeOnGPUConvolution,
         int                     computeDeviceIndexConvolution,
 
 #ifdef RTQ_ENABLED
@@ -138,7 +138,7 @@ public:
 #endif
 
         bool                    computeRoom,
-        bool                    computeOverGpuRoom,
+        bool                    computeComputeOnGPURoom,
         int                     computeDeviceIndexRoom,
 
 #ifdef RTQ_ENABLED
@@ -155,7 +155,7 @@ public:
         RoomUpdateMode          roomUpdateMode = RoomUpdateMode::Blocking
         )
     {
-        if((computeOverGpuConvolution && !computeConvolution) || (computeOverGpuRoom && !computeRoom))
+        if((computeComputeOnGPUConvolution && !computeConvolution) || (computeComputeOnGPURoom && !computeRoom))
         {
             std::cerr
                 << "Error: GPU queues must be used only if OpenCL flag is set"
@@ -175,9 +175,9 @@ public:
         mBufferSizeInBytes = mBufferSizeInSamples * STEREO_CHANNELS_COUNT * sizeof(int16_t);
         mConvolutionMethod = convMethod;
 
-        mComputeConvolution = computeConvolution;
-        mComputeOverGpuConvolution = computeOverGpuConvolution;
-        mComputeDeviceIndexConvolution = computeDeviceIndexConvolution;
+        mConvolutionViaCompute = computeConvolution;
+        mConvolutionComputeOnGPU = computeComputeOnGPUConvolution;
+        mConvolutionComputeDeviceIndex = computeDeviceIndexConvolution;
 
 #ifdef RTQ_ENABLED
         mUseHPr_Conv = useHPr_Conv;
@@ -185,9 +185,9 @@ public:
         mCuRes_Conv = cuRes_Conv;
 #endif
 
-        mComputeRoom = computeRoom;
-        mComputeOverGpuRoom = computeOverGpuRoom;
-        mComputeDeviceIndexRoom = computeDeviceIndexRoom;
+        mRoomViaCompute = computeRoom;
+        mRoomComputeOnGPU = computeComputeOnGPURoom;
+        mRoomComputeDeviceIndex = computeDeviceIndexRoom;
 
 #ifdef RTQ_ENABLED
         mUseHPr_Room = useHPr_Room;
@@ -511,9 +511,9 @@ public:
     }
 
 protected:
-    bool                        mComputeConvolution = false;
-    bool                        mComputeOverGpuConvolution = false;
-    int                         mComputeDeviceIndexConvolution = -1;
+    bool                        mConvolutionViaCompute = false;
+    bool                        mConvolutionComputeOnGPU = false;
+    int                         mConvolutionComputeDeviceIndex = -1;
 
 #if RTQ_ENABLED
     bool                        mUseHPr_Conv = false;
@@ -521,9 +521,9 @@ protected:
     int                         mCuRes_Conv = 1;
 #endif
 
-    bool                        mComputeRoom = false;
-    bool                        mComputeOverGpuRoom = false;
-    int                         mComputeDeviceIndexRoom = -1;
+    bool                        mRoomViaCompute = false;
+    bool                        mRoomComputeOnGPU = false;
+    int                         mRoomComputeDeviceIndex = -1;
 
 #ifdef RTQ_ENABLED
     bool                        mUseHPr_Room = false;
