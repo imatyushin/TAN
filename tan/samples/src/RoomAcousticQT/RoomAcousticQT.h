@@ -89,8 +89,8 @@ public:
 	bool 									mSrc1EnableMic = false;
 
 	/*Device*/
-	std::vector<std::string> mCPUDevicesNames;							// Device names
-	std::vector<std::string> mGPUDevicesNames;
+	std::vector<std::string> 				mCPUDevicesNames;			// Device names
+	std::vector<std::string> 				mGPUDevicesNames;
 
 	/*Convolution*/
 	amf::TAN_CONVOLUTION_METHOD m_eConvolutionMethod =					// TAN Convolution method
@@ -111,7 +111,9 @@ public:
 	int mRoomPriority = 0;
 	int mRoomCUCount = 0;
 
-	std::string mPlayerName;
+	std::string     mPlayerName;
 
-	std::string mLastError;
+	std::wstring    mFFTType;
+
+	std::string     mLastError;
 };

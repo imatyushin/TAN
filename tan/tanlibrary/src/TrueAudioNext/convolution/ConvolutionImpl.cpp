@@ -1364,8 +1364,8 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
             &samplesProcessed
             );
 
-        PrintArrayReduced("aft ProcessInternal0", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
-        PrintArrayReduced("aft ProcessInternal1", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
+        //PrintArrayReduced("aft ProcessInternal0", pBufferOutput.GetHostBuffers()[0], samplesProcessed * sizeof(float));
+        //PrintArrayReduced("aft ProcessInternal1", pBufferOutput.GetHostBuffers()[1], samplesProcessed * sizeof(float));
 
         if (!m_bUseProcessFinalize)
 		{

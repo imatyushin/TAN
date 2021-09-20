@@ -167,6 +167,12 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
     AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANConvolutionContext, factory), L"TANCreateContext mTANConvolutionContext failed");
     AMF_RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &mTANRoomContext, factory), L"TANCreateContext mTANRoomContext failed");
 
+    if(mFFTType.length())
+    {
+        mTANConvolutionContext->SetProperty(L"TAN_FFT_TYPE", mFFTType.c_str());
+        mTANRoomContext->SetProperty(L"TAN_FFT_TYPE", mFFTType.c_str());
+    }
+
     // Allocate RT-Queues
     {
         mCmdQueue1 = mCmdQueue2 = mCmdQueue3 = nullptr;

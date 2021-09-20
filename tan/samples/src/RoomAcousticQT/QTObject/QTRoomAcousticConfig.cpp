@@ -50,6 +50,27 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 	//Initialize devices
 	mLockUpdate = true;
 
+	{
+		ConfigUi.FFTType->addItem("CPU");
+
+#ifdef USE_METALFFT
+		ConfigUi.FFTType->addItem("METALFFT");
+#else
+
+		ConfigUi.FFTType->addItem("clFFT");
+
+#ifdef USE_FFTW
+		ConfigUi.FFTType->addItem("FFTW");
+#endif
+
+#ifdef USE_IPP
+		ConfigUi.FFTType->addItem("IPP");
+#endif
+
+#endif
+
+	}
+
     {
 		ConfigUi.CB_RoomDevice->addItem("CPU");
 		ConfigUi.CB_ConvolutionDevice->addItem("CPU");
@@ -449,6 +470,7 @@ void RoomAcousticQTConfig::storeAllFieldsToInstance()
 	storeListenerPosition();
 	storeRoomFields();
 	storeConvolutionFields();
+	storeFFTFields();
 
 	m_RoomAcousticInstance.mPlayerName = ConfigUi.PlayerType->currentText().toStdString();
 }
@@ -609,6 +631,13 @@ void RoomAcousticQTConfig::storeConvolutionFields()
     m_RoomAcousticInstance.mConvolutionPriority = 0;
 	m_RoomAcousticInstance.mConvolutionCUCount = 0;
 #endif
+}
+
+void RoomAcousticQTConfig::storeFFTFields()
+{
+	auto fftType(ConfigUi.FFTType->currentText());
+
+    m_RoomAcousticInstance.mFFTType = fftType.toStdWString();
 }
 
 void RoomAcousticQTConfig::printConfiguration()
@@ -1267,6 +1296,16 @@ void RoomAcousticQTConfig::on_CB_RoomDevice_currentIndexChanged(int index)
 
 	storeRoomFields();
 	updateRoomFields();
+}
+
+void RoomAcousticQTConfig::on_FFTType_currentIndexChanged(int index)
+{
+	if(mLockUpdate)
+	{
+		return;
+	}
+
+	storeFFTFields();
 }
 
 void RoomAcousticQTConfig::on_CB_ConvolutionDevice_currentIndexChanged(int index)

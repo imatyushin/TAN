@@ -152,6 +152,8 @@ public:
 
         IWavPlayer *            player,
 
+        const std::wstring &    fftType,
+
         RoomUpdateMode          roomUpdateMode = RoomUpdateMode::Blocking
         )
     {
@@ -163,6 +165,8 @@ public:
 
             return AMF_INVALID_ARG;
         }
+
+        mFFTType = fftType;
 
         //mComputedOutputPipeline = useGPU_Conv && useGPU_IRGen;
         mComputedOutputPipeline = computeConvolution && computeRoom;
@@ -576,6 +580,8 @@ protected:
     RoomDefinition              mRoom;
     MonoSource                  mSources[MAX_SOURCES];
 	StereoListener              mEars;
+
+    std::wstring                mFFTType;
 
     bool mSrc1EnableMic = false;
     bool mSrc1MuteDirectPath = false;

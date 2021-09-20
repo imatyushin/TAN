@@ -125,7 +125,7 @@ set(
 if(WIN32)
   list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/windows/dll.cpp)
 else()
-  list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/linux/dll.cpp)
+  list(APPEND SOURCE_LIB ../../../src/TrueAudioNext/core/unix/dll.cpp)
 endif()
 
 set(
@@ -285,7 +285,6 @@ endif()
 
 target_link_libraries(TrueAudioNext Graal)
 target_link_libraries(TrueAudioNext clFFT-master)
-target_link_libraries(TrueAudioNext MetalFFT)
 
 ####################################################################################
 #OpenMP integration, part 2
@@ -299,7 +298,7 @@ if(FFTW_DIR)
   target_link_libraries(TrueAudioNext fftw3f)
 endif()
 
-if((APPLE OR XCODE) AND METALFFT_DIR)
+if((APPLE OR XCODE) AND ENABLE_METAL AND METALFFT_DIR)
   target_link_libraries(TrueAudioNext MetalFFT)
 endif()
 

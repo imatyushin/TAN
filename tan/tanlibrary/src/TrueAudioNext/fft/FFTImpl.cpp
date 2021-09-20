@@ -115,20 +115,52 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
 	if (m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
 #endif
     {
+		amf::AMFVariant fftType;
+		std::wstring fftTypeValue;
+
+        bool fftViaGPU = false;
+
+        if(amf::AMFResultIsOK(m_pContextTAN->GetProperty(L"TAN_FFT_TYPE", &fftType))
+			&& fftType.type == amf::AMF_VARIANT_TYPE::AMF_VARIANT_WSTRING)
+		{
+			fftTypeValue = amf::AMFVariantGetWString(&fftType);
+
+			//if(!fftTypeValue.length())
+			//{
+			//	return AMF_INVALID_ARG;
+			//}
+		}
+        else
+        {
+            fftViaGPU = true;
+        }
+
+#ifdef USE_METALFFT
 		//todo: integrate metal fft
-//#ifndef ENABLE_METAL
-#ifdef METAL_FFT
-        metalfftStatus err;
+        if(!fftTypeValue.length() || L"METALFFT" == fftTypeValue)
+        {
+            metalfftStatus err;
 
-        metalfftSetupData fftSetup;
-        err = metalfftInitSetupData(&fftSetup);
-        amf::AMFPrograms* pPrograms;//TODO: fill
-        err = metalfftSetup(&fftSetup, programs);
+            metalfftSetupData fftSetup;
+            err = metalfftInitSetupData(&fftSetup);
+            amf::AMFPrograms *programs(nullptr);//TODO: fill
+            err = metalfftSetup(&fftSetup, programs);
 
-//#endif
+            fftViaGPU = true;
+        }
+        else
 #else
-        return InitGpu();
+    	if(!fftTypeValue.length() || L"clFFT" == fftTypeValue)
+        {
+            fftViaGPU = true;
+        }
+		//todo: add selection from clFFT/FFTW/IPP_FFT
 #endif
+
+        if(fftViaGPU)
+        {
+            return InitGpu();
+        }
     }
 
     return InitCpu();
@@ -437,7 +469,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Terminate()
 		}
 #endif
 
-#ifdef USE_METAL_FFT
+#ifdef USE_METALFFT
     metalfftTeardown();
 #endif
 
@@ -1743,6 +1775,9 @@ AMF_RESULT TANFFTImpl::TransformImplGPUBatched(
 		transformType = FFT_TRANSFORM_C2R_BACKWARD;
 		clDir = CLFFT_BACKWARD;
 		break;
+
+    default:
+        assert(false);
 	}
 
 //HACK debug
@@ -1952,7 +1987,7 @@ AMF_RESULT TANFFTImpl::AdjustInternalBufferSize(size_t desireSizeInSampleLog2, s
     return AMF_OK;
 }
 
-#ifdef USE_METAL_FFT
+#ifdef USE_METALFFT
 AMF_RESULT TANFFTImpl::TransformImplMetalFFTOMP(
 	TAN_FFT_TRANSFORM_DIRECTION direction,
 	amf_size log2len,
@@ -1973,9 +2008,9 @@ AMF_RESULT TANFFTImpl::TransformImplMetalFFTOMP(
     /* Set plan parameters. */
     err = metalfftSetPlanPrecision(planHandle, METALFFT_SINGLE);
     err = metalfftSetLayout(planHandle, METALFFT_REAL, METALFFT_REAL);
-    err = metalfftSetResultLocation(planHandle, METALFFT_OUTOPLACE);
+    err = metalfftSetResultLocation(planHandle, METALFFT_OUTOFPLACE);
     err = metalfftSetPlanFFTmethod(planHandle, METALFFT_METAL);
-    err = metalfftSetPlanContext(planHandle, context);
+    err = metalfftSetPlanContext(planHandle, m_pContextTAN->GetAMFContext());
     amf::AMFComputeDevicePtr pComputeDevice;//TODO: fill
     err = metalfftSetPlanDevice(planHandle, pComputeDevice);
 
@@ -1995,8 +2030,8 @@ AMF_RESULT TANFFTImpl::TransformImplMetalFFTOMP(
         // map from host?
         amf::AMFBufferPtr input;
         amf::AMFBufferPtr output;
-        context->CreateBufferFromHostNative(ppBufferInput[i][0], fftFrameSize * sizeof(float), &input);
-        context->CreateBufferFromHostNative(ppBufferOutput[i][0], fftFrameSize * sizeof(float), &output);
+        context->CreateBufferFromHostNative(ppBufferInput[i], fftFrameSize * sizeof(float), &input, nullptr);
+        context->CreateBufferFromHostNative(ppBufferOutput[i], fftFrameSize * sizeof(float), &output, nullptr);
         err = metalfftEnqueueTransform(planHandle, metalfftdirection, &input, 1, &output, 0);
         output->Convert(amf::AMF_MEMORY_HOST);
         memcpy(ppBufferOutput[i], output->GetNative(), fftFrameSize * sizeof(float));

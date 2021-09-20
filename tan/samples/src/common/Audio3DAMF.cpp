@@ -93,6 +93,12 @@ AMF_RESULT Audio3DAMF::InitObjects()
         L"TANCreateContext mTANRoomContext failed"
         );
 
+    if(mFFTType.length())
+    {
+        mTANConvolutionContext->SetProperty(L"TAN_FFT_TYPE", mFFTType.c_str());
+        mTANRoomContext->SetProperty(L"TAN_FFT_TYPE", mFFTType.c_str());
+    }
+
     // Allocate computes
     {
         int32_t flagsQ1 = 0;

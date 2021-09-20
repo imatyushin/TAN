@@ -153,7 +153,9 @@ bool RoomAcousticQT::start()
 
 		m_eConvolutionMethod,
 
-		mPlayer.get()
+		mPlayer.get(),
+
+		mFFTType
 		);
 
 	if(started)

@@ -49,6 +49,8 @@ private slots:
 	void on_SB_HeadPositionZ_valueChanged(double value);
 
 	void on_CB_RoomDevice_currentIndexChanged(int index);
+	void on_FFTType_currentIndexChanged(int index);
+
 	void on_CB_ConvolutionDevice_currentIndexChanged(int index);
 	void on_CB_ConvMethod_currentIndexChanged(int index);
 	void on_RB_DEF4Room_clicked();
@@ -107,8 +109,9 @@ private:
 	void storeTrackedHeadSource();
 	void storeAllFieldsToInstance();							// Porting all configuration from UI to instance
 	void storeListenerPosition();
-	void storeRoomFields();						// Porting room definition from UI to instance
+	void storeRoomFields();										// Porting room definition from UI to instance
 	void storeConvolutionFields();
+	void storeFFTFields();
 	/************************************************************************************/
 	/*									Debug											*/
 	/************************************************************************************/

@@ -62,9 +62,7 @@
 #endif
 
 #ifdef USE_METALFFT
-  #include "metalFFT.h"//Metal_FFT
-#else
-  forget setup metalfft in generator's sh
+  #include "metalFFT.h"
 #endif
 
 #ifndef _WIN32
@@ -297,7 +295,7 @@ namespace amf
                                                         float* ppBufferInput[],
                                                         float* ppBufferOutput[]);
 #endif
-#ifdef USE_METAL_FFT
+#ifdef USE_METALFFT
         AMF_RESULT virtual AMF_STD_CALL TransformImplMetalFFTOMP(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                         amf_size log2len,
                                                         amf_size channels,

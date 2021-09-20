@@ -349,6 +349,34 @@
           </layout>
          </widget>
         </item>
+
+        <item>
+         <widget class="QGroupBox" name="groupBox_4_2">
+          <property name="title">
+           <string>FFT</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_8_2">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QLabel" name="label_17">
+               <property name="text">
+                <string>FFT implementation:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+                <item>
+                    <widget class="QComboBox" name="FFTType"/>
+                </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+
         <item>
          <widget class="QGroupBox" name="groupBox_4">
           <property name="title">
