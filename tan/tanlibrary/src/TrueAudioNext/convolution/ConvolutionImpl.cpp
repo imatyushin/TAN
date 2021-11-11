@@ -2403,7 +2403,10 @@ AMF_RESULT TANConvolutionImpl::deallocateBuffers()
     }
     m_internalInBufs.Release();
 
-    m_pXFadeSamples.DeallocateBuffers();
+    if(m_pXFadeSamples.IsBuffersAllocated())
+    {
+        m_pXFadeSamples.DeallocateBuffers();
+    }
     m_pXFadeSamples.Release();
 
     if (m_doProcessOnGpu)
