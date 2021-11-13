@@ -698,29 +698,29 @@ protected:
     }
 
     //   alg config
-    int n_sets_ = 0;             // number of kerenl sets to implement double-buffering
-    int n_components_ = 1;      // real = 1, complex = 2
-    int n_input_blocks_ = 2;  // # of block to keep in staging buffer
-    int conv_mem_alloc_flags_ = 0; // not use
-    int n_upload_qs_ = 1;   // n IR upload queues 1
-    int n_input_qs_ = 0;    // n process queues 2
-    int n_accum_blocks_ = 8; // n blocks accumulated at one CMAD invokation
-    int n_stages_ = 0;    // classic  = 1, head tail 2
+    int n_sets_ = 0;                        // number of kerenl sets to implement double-buffering
+    int n_components_ = 1;                  // real = 1, complex = 2
+    int n_input_blocks_ = 2;                // # of block to keep in staging buffer
+    int conv_mem_alloc_flags_ = 0;          // not use
+    int n_upload_qs_ = 1;                   // n IR upload queues 1
+    int n_input_qs_ = 0;                    // n process queues 2
+    int n_accum_blocks_ = 8;                // n blocks accumulated at one CMAD invokation
+    int n_stages_ = 0;                      // classic  = 1, head tail 2
 	int m_useProcessFinalize = 0;
 
-// internal state
+    // internal state
     int algorithm_ = ALG_UNI_HEAD_TAIL;
     int mMaxChannels = 0;
     int mMaxConvolutionSize = 0;
     int conv_log2_ = 0;
-    int aligned_conv_sz_ = 0;  // size of convolution buffer with 0 padding if neded
+    int aligned_conv_sz_ = 0;               // size of convolution buffer with 0 padding if neded
     int max_proc_buffer_sz_ = 0;
     int processing_log2_ = 1;
-    int aligned_proc_bufffer_sz_ = 0; // size of aligned input block
-    int align_padding_sz_ = 0; // size of the padding or dif(aligned_proc_bufffer_sz_, max_proc_buffer_sz_)
-    int n_aligned_proc_blocks_ = 0; // number of aligned blocks in aligned kernel buffer
-    int mAlignedProcessingSize = 0;  // size of freq domain block
-    int accum_stride_ = 0;  // stride of accum buffer per channel
+    int aligned_proc_bufffer_sz_ = 0;       // size of aligned input block
+    int align_padding_sz_ = 0;              // size of the padding or dif(aligned_proc_bufffer_sz_, max_proc_buffer_sz_)
+    int n_aligned_proc_blocks_ = 0;         // number of aligned blocks in aligned kernel buffer
+    int mAlignedProcessingSize = 0;         // size of freq domain block
+    int accum_stride_ = 0;                  // stride of accum buffer per channel
 
     // single Graal OCL Q ???
 #ifndef TAN_SDK_EXPORTS

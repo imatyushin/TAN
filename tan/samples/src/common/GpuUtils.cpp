@@ -548,8 +548,12 @@ AMF_RESULT CreateCommandQueuesWithCUcount(int deviceIndex, cl_command_queue *pcm
     *pcmdQueue1 = clCreateCommandQueue(context, outdevices[0], NULL, &err);
     AMF_RETURN_IF_CL_FAILED(err);
 
+    printf("\r\nUTILS: OpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue1, err);
+
     *pcmdQueue2 = clCreateCommandQueue(context, outdevices[1], NULL, &err);
     AMF_RETURN_IF_CL_FAILED(err);
+
+    printf("\r\nUTILS: OpenCL queue created: 0x%llX, error code: %d\r\n", *pcmdQueue2, err);
 
     return AMF_OK;
 }

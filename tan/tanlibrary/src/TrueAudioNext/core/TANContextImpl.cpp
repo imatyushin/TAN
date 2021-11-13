@@ -170,12 +170,16 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
 
     if (m_oclGeneralQueue)
     {
+        printf("\r\nOpenCL queue release: 0x%llX\r\n", m_oclGeneralQueue);
         clReleaseCommandQueue(m_oclGeneralQueue);
+        m_oclGeneralQueue = nullptr;
     }
 
     if (m_oclConvQueue)
     {
+        printf("\r\nOpenCL queue release: 0x%llX\r\n", m_oclConvQueue);
         clReleaseCommandQueue(m_oclConvQueue);
+        m_oclConvQueue = nullptr;
     }
 
     m_oclGeneralQueue = NULL;

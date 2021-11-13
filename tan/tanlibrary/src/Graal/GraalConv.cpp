@@ -368,7 +368,7 @@ AMF_RESULT CGraalConv::copyResponses(
                 CL_FALSE,
                 0,
                 channelsCnt*sizeof(int),
-                mHostCopyRespInOffset,
+                &mHostCopyRespInOffset.front(),
                 0,
                 NULL,
                 NULL
@@ -381,7 +381,7 @@ AMF_RESULT CGraalConv::copyResponses(
                 CL_FALSE,
                 0,
                 channelsCnt*sizeof(int),
-                mHostCopyRespOutOffset,
+                &mHostCopyRespOutOffset.front(),
                 0,
                 NULL,
                 NULL
@@ -1541,9 +1541,12 @@ AMF_RESULT CGraalConv::processHead1(
     CABuf<uint> &count_buf = *mRoundCounters.get();
     CABuf<float> &kern_store_buf = *mKernelTrasformedUnion.get();
     CABuf<float> &data_store_buf = *mHistoryTransformed.get();
-    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
     //PrintAMFArrayReduced("mHistoryTransformed", mHistoryTransformed->GetBuffer(), m_pContextTAN->GetGeneralQueue(), mHistoryTransformed->GetBuffer()->GetSize());
-
+#ifndef TAN_NO_OPENCL
+    PrintCLArrayReduced("mProcessInputStaging", inp_buf.GetBuffer(), m_pContextTAN->GetGeneralQueue(), inp_buf.GetSizeInBytes());
+#else
+    //PrintAMFArrayReduced("mProcessInputStaging", mProcessInputStaging.GetBuffer(), m_pContextTAN->GetGeneralQueue(), mProcessInputStaging.GetBuffer()->GetSize());
+#endif
     CABuf<float> & accum_buf = _use_xf_buff ? *mCmadAccumXF.get() : *mCmadAccum.get();
     CABuf<float> & out_buf = *mProcess2OutputStaging.get();
 
@@ -1571,7 +1574,14 @@ AMF_RESULT CGraalConv::processHead1(
     g_wk[1] = channelsCount;
 
 #ifndef TAN_NO_OPENCL
-    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), inp_buf.GetBuffer()));
+    const void * buf = (const void *)inp_buf.GetBuffer();
+    cl_uint arg_index(n_arg++);
+    size_t arg_size(sizeof(cl_mem));
+
+    //PrintCLArray("buf", buf, m_pContextTAN->GetGeneralQueue(), inp_buf.GetSizeInBytes(), inp_buf.GetSizeInBytes());
+
+    AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, arg_index, arg_size, buf));
+    //AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), inp_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), kern_store_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), accum_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), data_store_buf.GetBuffer()));

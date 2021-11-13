@@ -1212,25 +1212,35 @@ AMF_RESULT TrueAudioVRimpl::InitializeCL(
 
     // Compile kernel
     {
+        std::string kernelCode;
+        kernelCode.resize(GenerateRoomResponseCount);
+        std::memcpy(&kernelCode.front(), GenerateRoomResponse, GenerateRoomResponseCount);
         size_t lengths[1] = { GenerateRoomResponseCount };
-        const char *text = reinterpret_cast<const char*>(GenerateRoomResponse);
+        const char *text = &kernelCode[0]/*reinterpret_cast<const char*>(GenerateRoomResponse)*/;
         cl_program program = clCreateProgramWithSource(m_context, 1, &text, lengths, &status);
         AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 
         status = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
         AMF_RETURN_IF_CL_FAILED(status);
 
-
         m_kernel = clCreateKernel(program, "GenerateRoomResponse", &status);
         AMF_RETURN_IF_CL_FAILED(status);
     }
 
     {
-        // TODO: include the proper path
+        std::string kernelCode;
+        kernelCode.resize(FillCount);
+        std::memcpy(&kernelCode.front(), Fill, FillCount);
         size_t lengths[1] = { FillCount };
-        const char *text = reinterpret_cast<const char*>(Fill);
+        const char *text = &kernelCode[0]/*reinterpret_cast<const char*>(GenerateRoomResponse)*/;
         cl_program program = clCreateProgramWithSource(m_context, 1, &text, lengths, &status);
         AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
+        
+        //// TODO: include the proper path
+        //size_t lengths[1] = { FillCount };
+        //const char *text = reinterpret_cast<const char*>(Fill);
+        //cl_program program = clCreateProgramWithSource(m_context, 1, &text, lengths, &status);
+        //AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 
         status = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
         AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);

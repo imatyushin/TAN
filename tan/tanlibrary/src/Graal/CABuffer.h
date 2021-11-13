@@ -82,6 +82,8 @@ public:
             );
         AMF_RETURN_IF_CL_FAILED(success);
         AMF_RETURN_IF_FALSE(mBufferCL != nullptr, AMF_FAIL);
+
+        printf("\r\ncreate buffer: %x\r\n", (void *)mBufferCL);
 #else
         mMemoryType = memoryType;
 
@@ -180,7 +182,13 @@ public:
         return AMF_OK;
     }
 
-    AMF_RESULT copyToDeviceNonBlocking(cl_command_queue commandQueue, uint32_t flags, const T* data = NULL, size_t size = -1, size_t offset = 0)
+    AMF_RESULT copyToDeviceNonBlocking(
+        cl_command_queue            commandQueue,
+        uint32_t                    flags,
+        const T*                    data            = NULL,
+        size_t                      count           = -1,
+        size_t                      offset          = 0
+        )
     {
         assert(mCount);
         assert(mSystemMemory.size() == mCount || data);
@@ -216,7 +224,7 @@ public:
             L"Error: writing data to device failed"
             );
 
-        return AMF_FAIL;
+        return AMF_OK;
     }
 #else
     AMF_RESULT copyToDevice(const amf::AMFComputePtr & commandQueue, uint32_t flags)
@@ -538,6 +546,8 @@ public:
 #ifndef TAN_NO_OPENCL
             if ( mBufferCL )
             {
+                printf("Release: %x\r\n", (void *)mBufferCL);
+
                 if (clReleaseMemObject(mBufferCL) != CL_SUCCESS) {
                     ret = AMF_OPENCL_FAILED;
 #ifdef TAN_SDK_EXPORTS
@@ -590,13 +600,17 @@ public:
     virtual T *                             GetSystemMemory()
     {
         assert(mSystemMemory.size());
-
         return &mSystemMemory.front();
     }
 
     inline size_t                           GetCount() const
     {
         return mCount;
+    }
+
+    inline size_t                           GetSizeInBytes() const
+    {
+        return mCount * sizeof(T);
     }
 
 protected:
@@ -643,11 +657,11 @@ public:
         auto offsetInBytes = offset * sizeof(T);
         auto sizeInBytes = count * sizeof(T);
 
-        assert(offsetInBytes + sizeInBytes <= CABuf<T>::GetBuffer()->GetSize());
-
         //std::cout << sizeInBytes << offsetInBytes << std::endl;
 
 #ifndef TAN_NO_OPENCL
+        assert(offsetInBytes + sizeInBytes <= CABuf<T>::mCount * sizeof(T));
+
         cl_buffer_region region = {0};
 
         region.origin = offsetInBytes;
@@ -666,6 +680,8 @@ public:
 
         CABuf<T>::mBufferCL = subBuffer;
 #else
+        assert(offsetInBytes + sizeInBytes <= CABuf<T>::GetBuffer()->GetSize());
+
         amf::AMFBufferExPtr bufferEx(CABuf<T>::mBufferAMF);
         AMF_RETURN_IF_FALSE(bufferEx != nullptr, AMF_INVALID_ARG);
 

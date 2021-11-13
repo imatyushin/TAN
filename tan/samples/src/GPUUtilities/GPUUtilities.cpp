@@ -426,7 +426,7 @@ cl_command_queue createQueue(cl_context context, cl_device_id device, int flag, 
     }
 #endif
 
-    //printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", cmdQueue, error);
+    printf("\r\nOpenCL queue created: 0x%llX, error code: %d\r\n", cmdQueue, error);
 
     return cmdQueue;
 }
