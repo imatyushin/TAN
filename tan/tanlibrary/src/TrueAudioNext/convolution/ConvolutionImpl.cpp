@@ -655,6 +655,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
 		case TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_UNIFORM:
 		case TAN_CONVOLUTION_METHOD_FFT_PARTITIONED_NONUNIFORM:
 		{
+			AMFLock syncLock(&m_sectUpdate);
 			m_accumulatedArgs.updatesCnt = 0;
 
             const float* const * inputBuffers = pBuffer.GetHostBuffers();
@@ -1179,7 +1180,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 		&& m_bUseProcessFinalize) {
 		doCrossFade = false;
 
-        if (ReadyForIRUpdate() && m_DelayedUpdate == false)
+        if (ReadyForIRUpdate() && !m_DelayedUpdate)
         {
 			m_DelayedUpdate = true;
 			m_curCrossFadeSample = 0;
@@ -2060,6 +2061,8 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
 		// To Do : clGetDEviceInfo ....CL_DEVICE_MEM_BASE_ADDR_ALIGN  ...clCreateSubBuffer error if not aligned :(
 		if (m_doProcessOnGpu)
         {
+            assert(false); //cpu methods!
+
 			amf_uint32 align = 0;
 
 #ifndef TAN_NO_OPENCL
@@ -2725,6 +2728,8 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 				float **filter = ((_ovlUniformPartitionFilterState *)m_nupFilterState[m_idxUpdateFilter])->m_Filter;
 				float **overlap = ((_ovlUniformPartitionFilterState *)m_nupFilterState[m_idxUpdateFilter])->m_Overlap;
 
+                //todo: remove leak!
+                printf("todo: remove leak!\n");
 				float **filterParts = new float*[m_iChannels]; //leak
 
 				int nParts = (1 << m_log2len) / (1 << m_log2bsz);
@@ -3138,7 +3143,8 @@ amf_size TANConvolutionImpl::ovlNUPProcessCPU(
     PrintArrayReduced("ovlNU in0", inputData.GetHostBuffers()[0], nSamples * sizeof(float));
     PrintArrayReduced("ovlNU in1", inputData.GetHostBuffers()[1], nSamples * sizeof(float));
 
-    printf("todo: fix leaks!");
+    static int counter = 0;
+    printf("todo: fix leaks here! %d\n", counter++);
 
 	float **filter = state->m_internalFilter;
 	float **dataParts = new float *[n_channels]; //leak
