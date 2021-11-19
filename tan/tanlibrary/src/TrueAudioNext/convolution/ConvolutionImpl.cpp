@@ -97,7 +97,6 @@ TANConvolutionImpl::TANConvolutionImpl(TANContext *pContextTAN)
     mUpdateQueueAMF = contextImpl->GetAMFGeneralQueue();
     mConvolutionQueueAMF = contextImpl->GetAMFConvQueue();
 
-    //PrintDebug("99 m_xFadeStarted.SetEvent()");
     m_xFadeStarted.SetEvent();
 
     // CPU processing case.
@@ -166,7 +165,7 @@ bool TANConvolutionImpl::ReadyForIRUpdate()
 
     //PrintDebug(ES + "ReadyForIRUpdate: " + (empty ? "1" : "0") + " " + (locked ? "1" : "0") + " SetEvent()");
 
-	return empty && locked;
+    return empty && locked;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -324,7 +323,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 {
     //int tID = 0;
     //tID = GetThreadId((HANDLE)m_updThread.getNativeThreadHandle());
-    //PrintDebug("328 m_xFadeStarted.SetEvent()");
     m_xFadeStarted.SetEvent();
 
     AMFLock lock(&m_sect);
@@ -334,7 +332,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 	deallocateBuffers();
     m_updThread.RequestStop();
 
-    //PrintDebug("338 m_procReadyForNewResponsesEvent.SetEvent()");
     m_procReadyForNewResponsesEvent.SetEvent();
 
     // Windows specific:
@@ -346,8 +343,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Terminate()
 
 #ifdef USE_TAIL_THREAD
 		m_tailThread.RequestStop();
-        //PrintDebug("350 m_runTailEvent.SetEvent()");
-		m_runTailEvent.SetEvent();
+        m_runTailEvent.SetEvent();
 		m_tailThread.WaitForStop();
 #endif
 
@@ -1134,8 +1130,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 
     AMFLock lock(&m_sectProcess);
 
-    AMF_RESULT res = AMF_OK;
-
     AMF_RETURN_IF_FALSE(m_idxFilter >= 0, AMF_NOT_INITIALIZED,
                         L"Update() method must be called prior any calls to Process()");
 
@@ -1221,9 +1215,9 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
     m_CrossFading = doCrossFade;
 	if (doCrossFade) //IR_UPDATE_DETECTED_STATE;
 	{
-        //PrintDebug("DoCrossfade...");
-
-		AMFLock lock(&m_sectUpdate);
+        AMFLock lock(&m_sectUpdate);
+        
+        PrintDebug("Crossfade");
 
 		//m_DelayedUpdate = false;
 		// new responses available (obtained in the Update() method).
@@ -1353,7 +1347,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
         //PrintDebug("REGULAR_PROCESS_STATE...");
 
         // wakeup update thread. New IR updates are allowed after the conv process completely done with crossfade
-        //PrintDebug("1429 m_xFadeStarted.SetEvent()");
         m_xFadeStarted.SetEvent();
 
         ret = ProcessInternal(
@@ -1370,7 +1363,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::Process(
 
         if (!m_bUseProcessFinalize)
 		{
-            //PrintDebug("1442 m_procReadyForNewResponsesEvent.SetEvent()");
             m_procReadyForNewResponsesEvent.SetEvent();
         }
     }
@@ -1404,7 +1396,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::ProcessFinalize()
 
         if (!m_CrossFading)
         {
-            //PrintDebug("1129 m_procReadyForNewResponsesEvent.SetEvent()");
             m_procReadyForNewResponsesEvent.SetEvent();
         }
     }
@@ -2569,8 +2560,7 @@ void TANConvolutionImpl::TailThreadProc(AMFThread *pThread)
 
 	do {
 		// Wait for the time to start processing.
-        //PrintDebug("2730 m_TailDoneEvent.SetEvent()");
-		m_TailDoneEvent.SetEvent();
+        m_TailDoneEvent.SetEvent();
 
 		m_runTailEvent.Lock();
 		//Sleep(10); //hack
@@ -2603,11 +2593,9 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 
     do
     {
-        //PrintDebug("2766 m_procReadyForNewResponsesEvent.Lock()... .SetEvent()");
         // Wait for the time to start processing.
         m_procReadyForNewResponsesEvent.Lock();
-        //PrintDebug("2769 m_procReadyForNewResponsesEvent.Locked() .SetEvent()");
-
+        
         //hack
         if (pThread->StopRequested()) {
             break;
@@ -3095,10 +3083,10 @@ amf_size TANConvolutionImpl::ovlNUPProcess(
 	else {
 		ret = ovlNUPProcessCPU(state, inputData, outputData, nSamples, n_channels, advanceOverlap, useXFadeAccumulator);
 	}
-	if (!m_bUseProcessFinalize) {
-		// app isn't going to call finalize, so do it here:
-		ProcessFinalize();
-	}
+    if (!m_bUseProcessFinalize && ret > 0) {
+        // app isn't going to call finalize, so do it here:
+        ProcessFinalize();
+    }
 	return ret;
 }
 
@@ -3319,6 +3307,7 @@ int TANConvolutionImpl::ovlNUPProcessTail(_ovlNonUniformPartitionFilterState *st
 		return 0;
 
 	int n_channels = m_RunningChannels; // m_iChannels;
+
 	float **dataParts = new float *[n_channels];
 	float **filterParts = new float *[n_channels];
 	//_ovlUniformPartitionFilterState *state = m_upTailState; // m_upFilterState[m_idxFilter];
