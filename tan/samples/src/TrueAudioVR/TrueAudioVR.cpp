@@ -55,7 +55,7 @@
 #include <cmath>
 
 //const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
-bool AmdTrueAudioVR::mUseIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
+bool AmdTrueAudioVR::mUseIntrinsics = true;//InstructionSet::AVX() && InstructionSet::FMA();
 
 //const float AmdTrueAudioVR::S = 340.0f; //Speed of sound
 
@@ -1235,7 +1235,7 @@ AMF_RESULT TrueAudioVRimpl::InitializeCL(
         const char *text = &kernelCode[0]/*reinterpret_cast<const char*>(GenerateRoomResponse)*/;
         cl_program program = clCreateProgramWithSource(m_context, 1, &text, lengths, &status);
         AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
-        
+
         //// TODO: include the proper path
         //size_t lengths[1] = { FillCount };
         //const char *text = reinterpret_cast<const char*>(Fill);

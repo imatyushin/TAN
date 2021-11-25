@@ -47,6 +47,47 @@
 }
 #endif
 
+struct TickCounter
+{
+protected:
+    bool mReleased = false;
+
+public:
+
+    amf_pts Start = amf_high_precision_clock();
+    std::string Name;
+
+
+    TickCounter(const std::string name):
+        Name(name)
+    {
+    }
+
+    ~TickCounter()
+    {
+        Print();
+    }
+
+    inline void Print()
+    {
+        if(!mReleased)
+        {
+            mReleased = true;
+
+            auto end = amf_high_precision_clock();
+
+            std::cout << "############################### " << Name << ": " << amf_uint64(end - Start) << std::endl;
+        }
+    }
+};
+
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a ## b
+
+#define UNIQUE_NAME(base) CONCAT(base, __COUNTER__)
+
+#define TICK_COUNTER(x) TickCounter UNIQUE_NAME(tickCounter)(x)
+
 static size_t GetMessageNumber()
 {
     static std::atomic<size_t> messageNumber;

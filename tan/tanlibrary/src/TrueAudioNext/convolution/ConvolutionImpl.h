@@ -238,7 +238,7 @@ namespace amf
         bool                        ReadyForIRUpdate();
 
 		TANContextPtr               m_pContextTAN;
-        AMFComputePtr               mConvolutionQueueAMF;
+        AMFComputePtr               mProcessQueueAMF;
         AMFComputePtr               mUpdateQueueAMF;
 		TANMathPtr                  m_pMath;
 

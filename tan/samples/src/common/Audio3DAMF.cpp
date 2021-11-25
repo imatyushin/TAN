@@ -706,7 +706,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
     PrintDebug(info);
     ++counter;
 
-    if(counter == 200)
+    if(counter == 3)
     {
         int i = 0;
         ++i;

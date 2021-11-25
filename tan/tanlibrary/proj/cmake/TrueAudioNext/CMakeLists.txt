@@ -259,6 +259,7 @@ generateCLKernel(
   )
 
 if(FFTW_DIR)
+  #prepare fftw cache
   set(CacheFileName "FFTW_TAN_WISDOM.cache")
   set(MaxFFTPower "20")
   set(ForceRebuild "0")
@@ -272,6 +273,13 @@ if(FFTW_DIR)
     "Building FFTW cache file ${CacheFileName} for max ${MaxFFTPower} power..."
     VERBATIM
     )
+
+  #set fftw usage
+  ADD_DEFINITIONS(-DUSE_FFTW)
+
+  get_property(FFTW_SOURCES_PATH GLOBAL PROPERTY FFTW_SOURCES_PATH)
+  message("FFTW_DIR expanded: " ${FFTW_SOURCES_PATH})
+  include_directories(${FFTW_SOURCES_PATH})
 endif()
 
 # linking

@@ -62,7 +62,7 @@
 #include <iomanip>
 /**/
 
-bool Audio3DOpenCL::mUseIntrinsics = InstructionSet::AVX() && InstructionSet::FMA();
+bool Audio3DOpenCL::mUseIntrinsics = true;//InstructionSet::AVX() && InstructionSet::FMA();
 
 #ifndef ERROR_MESSAGE
 
