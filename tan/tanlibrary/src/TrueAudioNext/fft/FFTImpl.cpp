@@ -528,6 +528,8 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
     float* ppBufferOutput[]
 )
 {
+    //TICK_COUNTER("TANFFTImpl::Transform");
+
     AMFLock lock(&m_sect);
     AMF_RESULT res = AMF_OK;
 
@@ -626,14 +628,14 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 #ifdef USE_FFTW
     if (amf::TANFFTImpl::mUseIntrinsics)
 	{
-        TICK_COUNTER("amf::TANFFTImpl::mUseIntrinsics");
+        //TICK_COUNTER("amf::TANFFTImpl::mUseIntrinsics");
 
         res = TransformImplCpuOMP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
     else
 #endif
 	{
-        TICK_COUNTER("TransformImplCpu");
+        //TICK_COUNTER("TransformImplCpu");
 
         res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
@@ -1207,21 +1209,21 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal(TAN_FFT_TRANSFORM_DIRE
 
 	if (fftWDir == FFTW_FORWARD) {
 		if (usePlanarMode) {
-            TICK_COUNTER("fftwf_execute_split_dft_r2c");
+            //TICK_COUNTER("fftwf_execute_split_dft_r2c");
 			fftwf_execute_split_dft_r2c(fwdRealPlanarPlans[log2len], in, out, out + fftLength / 2 + 8);
 		}
 		else {
-            TICK_COUNTER("fftwf_execute_dft_r2c");
+            //TICK_COUNTER("fftwf_execute_dft_r2c");
 			fftwf_execute_dft_r2c(fwdRealPlans[log2len], in, (fftwf_complex *)out);
 		}
 	}
 	else {
 		if (usePlanarMode) {
-            TICK_COUNTER("fftwf_execute_split_dft_c2r");
+            //TICK_COUNTER("fftwf_execute_split_dft_c2r");
 			fftwf_execute_split_dft_c2r(bwdRealPlanarPlans[log2len], in, in + fftLength / 2 + 8, out);
 		}
 		else {
-            TICK_COUNTER("fftwf_execute_dft_c2r");
+            //TICK_COUNTER("fftwf_execute_dft_c2r");
 			fftwf_execute_dft_c2r(bwdRealPlans[log2len], (fftwf_complex *)in, out);
 		}
 	}
@@ -1264,7 +1266,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 
 			if (fwdRealPlans[log2len] == NULL || bwdRealPlans[log2len] == NULL) {
 
-                TICK_COUNTER("fftwf_plan_dft_r2c_1d..");
+                //TICK_COUNTER("fftwf_plan_dft_r2c_1d..");
                 fwdRealPlans[log2len] = fftwf_plan_dft_r2c_1d(fftLength, (float *)in, (fftwf_complex *)out, FFTW_MEASURE);//correct flag ??
 				bwdRealPlans[log2len] = fftwf_plan_dft_c2r_1d(fftLength, (fftwf_complex *)in, (float *)out, FFTW_MEASURE);
 				fwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_r2c(1, &iod, 0, NULL, (float *)in, (float *)(out), (float *)(out) + (8 + fftLength / 2), FFTW_MEASURE);//correct flag ??
@@ -1276,7 +1278,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 #pragma omp for private(idx) schedule(static) // schedule(guided) nowait //schedule(static)
 //__pragma(loop(hint_parallel(8))) // requires VS compiler flag /QPar       {see Enable Parallel Code Generation }
 			for (int idx = 0; idx < (int)channels; idx++) {
-                TICK_COUNTER("TransformImplFFTWReal");
+                //TICK_COUNTER("TransformImplFFTWReal");
                 TransformImplFFTWReal(direction, log2len, ppBufferInput[idx], ppBufferOutput[idx]);
 			}
 
@@ -1289,7 +1291,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 #pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput)
 #pragma omp for
 			for (idx = 0; idx < channels; idx++) {
-                TICK_COUNTER("TransformImplFFTW1Chan");
+                //TICK_COUNTER("TransformImplFFTW1Chan");
                 TransformImplFFTW1Chan(direction, log2len, idx, ppBufferInput, ppBufferOutput);
 			}
 		}
@@ -1298,7 +1300,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 #pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput)
 #pragma omp for private(idx)
 		for (idx = 0; idx < channels; idx++){
-            TICK_COUNTER("TransformImplCpu1Chan");
+            //TICK_COUNTER("TransformImplCpu1Chan");
             TransformImplCpu1Chan(direction, log2len, ppBufferInput[idx], ppBufferOutput[idx]);
         }
 //  todo try this:      res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);

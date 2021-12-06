@@ -206,7 +206,7 @@ AMF_RESULT  AMF_STD_CALL TANMixerImpl::Terminate()
     AMFLock lock(&m_sect);
 
     mAMFCompute = NULL;
-    if (m_pContextTAN->GetOpenCLContext() != nullptr)
+    if (m_clMix)
     {
         AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_clMix), L"Failed to release cl kernel");
 

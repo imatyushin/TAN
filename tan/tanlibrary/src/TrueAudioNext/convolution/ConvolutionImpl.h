@@ -406,42 +406,47 @@ namespace amf
         AMF_RESULT VectorComplexMul(float *vA, float *vB, float *out, int count);
 
         AMF_RESULT ovlAddProcess(
-            amf_size &              numberOfSamplesProcessed,
-            ovlAddFilterState *     state,
-            const TANSampleBuffer & inputData,
-            TANSampleBuffer &       outputData,
-            amf_size                length,
-            amf_uint32              n_channels,
-            bool                    advanceOverlap = true
+            amf_size &                          numberOfSamplesProcessed,
+            ovlAddFilterState *                 state,
+            const TANSampleBuffer &             inputData,
+            TANSampleBuffer &                   outputData,
+            amf_size                            length,
+            amf_uint32                          n_channels,
+            bool                                advanceOverlap = true
             );
 
-		amf_size ovlNUPProcess(
-            ovlNonUniformPartitionFilterState *
-                                            state,
-            const TANSampleBuffer &         inputData,
-            TANSampleBuffer &               outputData,
-            amf_size                        length,
-			amf_uint32                      n_channels,
-            bool                            advanceOverlap = true,
-            bool                            useXFadeAccumulator = false
+		AMF_RESULT ovlNUPProcess(
+            amf_size &                          numberOfSamplesProcessed,
+            ovlNonUniformPartitionFilterState * state,
+            const TANSampleBuffer &             inputData,
+            TANSampleBuffer &                   outputData,
+            amf_size                            length,
+			amf_uint32                          n_channels,
+            bool                                advanceOverlap = true,
+            bool                                useXFadeAccumulator = false
             );
 
-		amf_size ovlNUPProcessCPU(
-            ovlNonUniformPartitionFilterState *
-                                            state,
-            const TANSampleBuffer &         inputData,
-            TANSampleBuffer &               outputData,
-            amf_size                        length,
-			amf_uint32                      n_channels,
-            bool                            advanceOverlap = true,
-            bool                            useXFadeAccumulator = false
+		AMF_RESULT ovlNUPProcessCPU(
+            amf_size &                          numberOfSamplesProcessed,
+            ovlNonUniformPartitionFilterState * state,
+            const TANSampleBuffer &             inputData,
+            TANSampleBuffer &                   outputData,
+            amf_size                            length,
+			amf_uint32                          n_channels,
+            bool                                advanceOverlap = true,
+            bool                                useXFadeAccumulator = false
             );
 
-		int ovlNUPProcessTail(_ovlNonUniformPartitionFilterState *state = NULL, bool useXFadeAccumulator = false);
+		AMF_RESULT ovlNUPProcessTail(_ovlNonUniformPartitionFilterState *state = NULL, bool useXFadeAccumulator = false);
 
-
-        amf_size ovlTDProcess(tdFilterState *state, float **inputData, float **outputData, amf_size length,
-            amf_uint32 n_channels);
+        AMF_RESULT ovlTDProcess(
+            amf_size &                          numberOfSamplesProcessed,
+            tdFilterState *                     state,
+            float **                            inputData,
+            float **                            outputData,
+            amf_size                            length,
+            amf_uint32                          n_channels
+            );
 
         AMF_RESULT ovlTimeDomainCPU(float *resp, amf_uint32 firstNonZero, amf_uint32 lastNonZero,
             float *in, float *out, float *histBuf, amf_uint32 bufPos,

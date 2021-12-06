@@ -82,8 +82,6 @@ AMF_RESULT  AMF_STD_CALL TANFilterImpl::Init()
     AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
         L"Cannot initialize after termination");
 
-    //if (m_pContextTAN->GetOpenCLContext())
-
     AMF_RETURN_IF_FAILED(TANCreateFFT(m_pContextTAN, &m_pFft));
     AMF_RETURN_IF_FAILED(m_pFft->Init());
 

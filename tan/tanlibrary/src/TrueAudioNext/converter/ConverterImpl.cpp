@@ -244,11 +244,12 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::InitGpu()
 //-------------------------------------------------------------------------------------------------
 AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
 {
-#ifndef TAN_NO_OPENCL
     AMFLock lock(&m_sect);
 
-    mConvComputeAMF = NULL;
-	if (m_pContextTAN->GetOpenCLContext() != nullptr)
+    mConvComputeAMF = nullptr;
+
+#ifndef TAN_NO_OPENCL
+	if (m_pContextTAN->GetOpenCLContext())
 	{
 		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_clkFloat2Float), L"Failed to release cl kernel");
 		AMF_RETURN_IF_CL_FAILED(clReleaseKernel(m_clkFloat2Short), L"Failed to release cl kernel");
@@ -278,11 +279,6 @@ AMF_RESULT  AMF_STD_CALL TANConverterImpl::Terminate()
     }
 
 #else
-
-    AMFLock lock(&m_sect);
-
-    mConvComputeAMF = NULL;
-
     mFloat2Short = nullptr;
     mShort2Short = nullptr;
     mFloat2Float = nullptr;
