@@ -37,6 +37,7 @@
 #include <string.h>
 #include <vector>
 #include <map>
+#include <memory>
 
 #ifdef WIN32
 

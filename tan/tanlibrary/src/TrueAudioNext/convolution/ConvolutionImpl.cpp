@@ -732,21 +732,29 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                     }
                 }
 
+#ifndef TAN_NO_OPENCL
                 AMF_RETURN_IF_FAILED(
                     mGraalConv->uploadConvGpuPtrs(
                         n_channels,
                         m_uploadArgs.versions,
                         m_uploadArgs.channels,
-#ifndef TAN_NO_OPENCL
-                        (const cl_mem *)
-#else
-                        (const amf::AMFBuffer **)
-#endif
-                            graalResponceBuffers.data(),
+                        (const cl_mem *)graalResponceBuffers.data(),
                         m_uploadArgs.lens,
                         true
                         )
                     );
+#else
+                AMF_RETURN_IF_FAILED(
+                    mGraalConv->uploadConvGpuPtrs(
+                        n_channels,
+                        m_uploadArgs.versions,
+                        m_uploadArgs.channels,
+                        (const amf::AMFBuffer **)graalResponceBuffers.data(),
+                        m_uploadArgs.lens,
+                        true
+                    )
+                );
+#endif
             }
             else
             {
@@ -2764,7 +2772,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 				}
 
 				for (int i = 0; i < nParts; i++) {
-					for (int chan = 0; chan < m_iChannels; chan++) {
+					for (amf_uint32 chan = 0; chan < m_iChannels; chan++) {
 						filterParts[chan] = filter[chan] + i * (2 * iBuffSizeNU + pad);
 					}
 

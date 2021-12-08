@@ -129,12 +129,6 @@ AMF_RESULT CGraalConv::initializeConv(
         Setup(
             pConvolution,
             pUpdate
-
-#ifndef TAN_SDK_EXPORTS
-            _clientContext,
-            _clientDevice,
-            _clientQ
-#endif
             )
         );
 
@@ -1037,7 +1031,7 @@ AMF_RESULT CGraalConv::processIntrnl(
             );
 
         // move data upstream
-        if(output.IsHost() and false)
+        if(output.IsHost() /*&& false*/) //todo: where were an issue?
         {
             for (int c = 0; c < channelsCount; c++)
             {
@@ -1112,7 +1106,6 @@ AMF_RESULT CGraalConv::processIntrnl(
 #endif
 			}
         }
-
 
         break;
     case ALG_UNI_HEAD_TAIL:

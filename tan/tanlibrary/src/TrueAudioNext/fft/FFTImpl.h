@@ -136,7 +136,7 @@ namespace amf
 
 #ifdef USE_FFTW
 
-#ifdef WIN32
+#ifdef WIN32_
         // FFTW declarations for dynamic load:
         typedef fftwf_plan(__cdecl* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
         fftwf_plan_dft_1dType fftwf_plan_dft_1d = nullptr;

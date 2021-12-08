@@ -34,7 +34,7 @@ class               PortPlayer:
 protected:
     PaStream *      mStream;
 
-    uint8_t         mChannelsCount;
+    uint16_t        mChannelsCount;
     uint16_t        mBitsPerSample;
     uint32_t        mSamplesPerSecond;
 
