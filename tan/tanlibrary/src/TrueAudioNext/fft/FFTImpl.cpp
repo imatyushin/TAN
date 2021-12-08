@@ -328,7 +328,8 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
 	//libfftw3f-3.dll
 #ifdef _WIN32
-    FFTWDll = LoadSharedLibrary("", "libfftw3f-3", true);//LoadSharedLibrary("", "fftw3f", true);
+    FFTWDll = //LoadSharedLibrary("", "libfftw3f-3", true);
+	  LoadSharedLibrary("", "fftw3f", true);
 #else
 	FFTWDll = LoadSharedLibrary("", "libfftw3f", true);
 #endif
