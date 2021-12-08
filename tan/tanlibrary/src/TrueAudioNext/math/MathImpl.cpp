@@ -38,6 +38,7 @@
 #endif
 
 #include "cpucaps.h"
+#include "Debug.h"
 
 #include <immintrin.h>
 
@@ -93,9 +94,13 @@ AMF_RESULT  AMF_STD_CALL TANMathImpl::Init()
 	AMF_RETURN_IF_FALSE(m_pContextTAN != NULL, AMF_WRONG_STATE,
 		L"Cannot initialize after termination");
 
+    //todo: the following opencl check generaly is incorrect
+    //this check checks only convolution context and queue
+    //but math could use (potentially) update queue
 #ifndef TAN_NO_OPENCL
     if(m_pContextTAN->GetOpenCLContext())
 #else
+    //todo: what context should be checked must be set by user
     if(m_pContextTAN->GetAMFConvQueue() || m_pContextTAN->GetAMFGeneralQueue())
 #endif
     {
@@ -348,6 +353,9 @@ AMF_RESULT TANMathImpl::PlanarComplexMultiplyAccumulate(const float* const input
 	amf_size countOfComplexNumbers,
 	amf_uint riPlaneSpacing)
 {
+	//TICK_COUNTER("PlanarComplexMultiplyAccumulate");
+	//std::cout << channels << " " << countOfComplexNumbers << " " << riPlaneSpacing << std::endl;
+
 	AMF_RETURN_IF_FALSE(inputBuffers1 != NULL, AMF_INVALID_ARG, L"inputBuffers1 == NULL");
 	AMF_RETURN_IF_FALSE(inputBuffers2 != NULL, AMF_INVALID_ARG, L"inputBuffers2 == NULL");
 	AMF_RETURN_IF_FALSE(accumbuffers != NULL, AMF_INVALID_ARG, L"accumbuffers == NULL");
@@ -357,7 +365,7 @@ AMF_RESULT TANMathImpl::PlanarComplexMultiplyAccumulate(const float* const input
 #ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext())
 #else
-	if (m_pContextTAN->GetAMFContext())
+	if (m_pDeviceCompute)
 #endif
 	{
 		return AMF_NOT_IMPLEMENTED;
@@ -509,6 +517,8 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	amf_uint32 channels,
     amf_size countOfComplexNumbers)
 {
+    TICK_COUNTER("ComplexMultiplyAccumulate");
+
 	AMF_RETURN_IF_FALSE(inputBuffers1 != NULL, AMF_INVALID_ARG, L"inputBuffers1 == NULL");
 	AMF_RETURN_IF_FALSE(inputBuffers2 != NULL, AMF_INVALID_ARG, L"inputBuffers1 == NULL");
 	AMF_RETURN_IF_FALSE(accumbuffers!= NULL, AMF_INVALID_ARG, L"accumbuffers == NULL");
@@ -529,7 +539,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 #ifndef TAN_NO_OPENCL
 	if (m_pContextTAN->GetOpenCLContext())
 #else
-	if (m_pContextTAN->GetAMFContext())
+	if (m_pDeviceCompute)
 #endif
 	{
 		for (amf_size channelId = 0; channelId < channels; channelId++)

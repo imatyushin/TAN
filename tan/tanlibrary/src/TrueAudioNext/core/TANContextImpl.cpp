@@ -320,6 +320,12 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
 
     return AMF_OK;
 }
+
+AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenMP(int nThreads)
+{
+    return AMF_NOT_IMPLEMENTED;
+}
+
 //-------------------------------------------------------------------------------------------------
 cl_context AMF_STD_CALL TANContextImpl::GetOpenCLContext()
 {

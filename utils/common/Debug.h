@@ -53,10 +53,8 @@ protected:
     bool mReleased = false;
 
 public:
-
     amf_pts Start = amf_high_precision_clock();
     std::string Name;
-
 
     TickCounter(const std::string name):
         Name(name)
@@ -66,6 +64,11 @@ public:
     ~TickCounter()
     {
         Print();
+    }
+
+    inline void Restart()
+    {
+        Start = amf_high_precision_clock();
     }
 
     inline void Print()

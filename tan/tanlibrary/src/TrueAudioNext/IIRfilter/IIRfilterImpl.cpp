@@ -93,7 +93,7 @@ AMF_RESULT  AMF_STD_CALL TANIIRfilterImpl::Terminate()
     }
 
 #ifndef TAN_NO_OPENCL
-    if (m_pContextTAN->GetOpenCLContext() != nullptr)
+    if (m_pContextTAN->GetOpenCLContext())
     {
         if (m_kernel_IIRfilter)
         {
