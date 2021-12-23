@@ -51,13 +51,15 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 	mLockUpdate = true;
 
 	{
-		ConfigUi.FFTType->addItem("CPU");
+		ConfigUi.FFTType->addItem("default CPU");
 
 #ifdef USE_METALFFT
 		ConfigUi.FFTType->addItem("METALFFT");
 #else
 
+#ifndef TAN_NO_OPENCL
 		ConfigUi.FFTType->addItem("clFFT");
+#endif
 
 #ifdef USE_FFTW
 		ConfigUi.FFTType->addItem("FFTW");
