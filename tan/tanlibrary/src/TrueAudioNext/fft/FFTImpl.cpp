@@ -134,9 +134,9 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
         {
             fftViaGPU = true;
         }
-        
+
         //todo: add selection from clFFT/FFTW/IPP_FFT
-        
+
         if(!fftTypeValue.length() || L"clFFT" == fftTypeValue)
         {
             fftViaGPU = true;
@@ -157,7 +157,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
             fftViaGPU = true;
 #else
             assert(false);
-            
+
             return AMF_NOT_IMPLEMENTED;
 #endif
         }
@@ -342,7 +342,7 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
     if (FFTWDll)
     {
-		assert(fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr);
+		//assert(fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr);
 		mFFTWavailable = true;
 
         auto cacheFileName(getTempFolderName());
@@ -498,8 +498,8 @@ void TANFFTImpl::CacheFFTWPlans(const std::string & path)
 
 	fftwf_export_wisdom_to_filename(path.c_str());
 
-	delete(ppBufferInput); // _aligned_free(ppBufferInput);
-	delete(ppBufferOutput); // _aligned_free(ppBufferOutput);
+	delete [] ppBufferInput; // _aligned_free(ppBufferInput);
+	delete [] ppBufferOutput; // _aligned_free(ppBufferOutput);
 }
 
 #endif
@@ -715,9 +715,6 @@ size_t TANFFTImpl::GetFFTPlan(
 
         const size_t fftLength = (size_t)1 << log2len;
 
-        clfftStatus status = CLFFT_SUCCESS;
-        clfftPlanHandle plan = {0};
-
 		// Create new plan
         auto context = m_pContextTAN->GetConvContext();
 
@@ -732,6 +729,8 @@ size_t TANFFTImpl::GetFFTPlan(
         //}
 
 #ifndef TAN_NO_OPENCL
+		clfftStatus status = CLFFT_SUCCESS;
+        clfftPlanHandle plan = 0;
 
 		status = clfftCreateDefaultPlan(&plan, context, CLFFT_1D, &fftLength);
         assert(status == CLFFT_SUCCESS);
@@ -760,6 +759,10 @@ size_t TANFFTImpl::GetFFTPlan(
         clfftBakePlan(plan, 1, &cmdQueue, NULL, NULL);
 
 #else
+
+#ifndef USE_METALFFT
+		clfftStatus status = CLFFT_SUCCESS;
+        clfftPlanHandle plan = 0;
 
 		// Create new plan
         cl_context contextNative = cl_context(context->GetOpenCLContext());
@@ -807,6 +810,57 @@ size_t TANFFTImpl::GetFFTPlan(
 			nullptr,
 			nullptr
 			);
+
+#else
+		metalfftStatus status = METALFFT_SUCCESS;
+        metalfftPlanHandle plan = 0;
+
+		// Create new plan
+        status = metalfftCreateDefaultPlan(
+			&plan,
+			METALFFT_1D,
+			&fftLength
+			);
+		assert(status == METALFFT_SUCCESS);
+
+		if (transformType == FFT_TRANSFORM_R2C_FORWARD)
+		{
+			// To Do, try:
+			status = metalfftSetLayout(plan, METALFFT_REAL, METALFFT_HERMITIAN_INTERLEAVED);// CLFFT_COMPLEX_INTERLEAVED);
+			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
+		}
+		else if (transformType == FFT_TRANSFORM_C2R_BACKWARD)
+		{
+			// To Do, try:
+			status = metalfftSetLayout(plan, METALFFT_HERMITIAN_INTERLEAVED, METALFFT_REAL);// CLFFT_COMPLEX_INTERLEAVED);
+			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
+		}
+		else if(transformType == FFT_TRANSFORM_COMPLEX)
+		{
+			status = metalfftSetLayout(plan, METALFFT_COMPLEX_INTERLEAVED, METALFFT_COMPLEX_INTERLEAVED);
+		}
+		assert(status == METALFFT_SUCCESS);
+
+        status = metalfftSetResultLocation(plan, METALFFT_OUTOFPLACE);
+		assert(status == METALFFT_SUCCESS);
+
+        //status = metalfftSetPlanBatchSize(plan, numOfChannels);
+		assert(status == METALFFT_SUCCESS);
+
+		if (interBlockDistance > 0)
+		{
+			//metalfftSetPlanDistance(plan, interBlockDistance, interBlockDistance);
+		}
+
+    	status = metalfftBakePlan(
+			plan,
+			1,
+			nullptr
+			);
+		assert(status == METALFFT_SUCCESS);
+
+#endif
+
 #endif
 
         m_pCLFFTHandleMap.insert(std::make_pair(key, plan));
