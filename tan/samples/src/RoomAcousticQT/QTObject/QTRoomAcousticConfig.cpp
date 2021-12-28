@@ -1622,7 +1622,8 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 
 	for(int fileNameIndex = 0; fileNameIndex < fileNames.size(); ++fileNameIndex)
 	{
-		int insertedIndex = m_RoomAcousticInstance.addSoundSource(fileNames[fileNameIndex].toStdString());
+		int insertedIndex = m_RoomAcousticInstance.addSoundSource(
+			getRelativePath(fileNames[fileNameIndex].toStdString(), m_RoomAcousticInstance.mTANDLLPath));
 
 		if(insertedIndex >= 0)
 		{

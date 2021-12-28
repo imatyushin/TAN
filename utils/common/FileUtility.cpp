@@ -508,6 +508,70 @@ std::string             getTempFolderName()
 	return "";
 }
 
+// Return vector with string elements, using delimiter.
+std::vector<std::string> splitString(const std::string& str, const char& delimiter)
+{
+	std::vector<std::string> result;
+	size_t last = 0;
+	size_t next = 0;
+
+	while ((next = str.find(delimiter, last)) != std::string::npos)
+	{
+		result.push_back(str.substr(last, next - last));
+		last = next + 1;
+	}
+	result.push_back(str.substr(last));
+
+	return result;
+}
+
+// Search for a delimiter in a string.
+char findDelimiter(const std::string& str)
+{
+	char delimiter('/');
+	size_t delimiterIdx(0);
+	size_t startIdx(0);
+
+	if ((delimiterIdx = str.find(delimiter, startIdx)) == std::string::npos)
+	{
+		delimiter = '\\';
+	}
+
+	return delimiter;
+}
+
+std::string getRelativePath(const std::string& absolutePath, const std::string& base)
+{
+	std::string relativePath("");
+	std::vector<std::string> absoluteElements(splitString(absolutePath, findDelimiter(absolutePath)));
+	std::vector<std::string> baseElements(splitString(base, findDelimiter(base)));
+	size_t needle = 0;
+
+	// find same element in base and absolutePath
+	for (; needle < baseElements.size() && needle < absoluteElements.size() &&
+		baseElements.at(needle).compare(absoluteElements.at(needle)) == 0; ++needle){}
+
+	for (size_t depth = 0; depth < baseElements.size() - needle; ++depth)
+	{
+		relativePath += "../";
+	}
+
+	for (size_t depth = needle; depth < absoluteElements.size(); ++depth)
+	{
+		relativePath += absoluteElements.at(depth);
+		if (depth < absoluteElements.size() - 1)
+		{
+			relativePath += '/';
+		}
+	}
+
+	if (relativePath.empty())
+	{
+		relativePath = ".";
+	}
+	return relativePath;
+}
+
 #ifndef _WIN32
 
 // Linux equivalent function of fopen_s

@@ -57,6 +57,10 @@ std::string             getModuleFileName();
 
 std::string             getTempFolderName();
 
+std::vector<std::string> splitString(const std::string& str, const char& delimiter);
+char					findDelimiter(const std::string& str);
+std::string				getRelativePath(const std::string& absolutePath, const std::string& base);
+
 #ifndef _WIN32
   errno_t fopen_s(FILE **f, const char *name, const char *mode);
 #endif
