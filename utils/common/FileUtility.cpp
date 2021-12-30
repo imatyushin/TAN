@@ -22,7 +22,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <iostream>
 #include <assert.h>
 
 std::vector<std::string> getDirectorySeparatorVariants()
@@ -508,48 +508,62 @@ std::string             getTempFolderName()
 	return "";
 }
 
-// Return vector with string elements, using delimiter.
-std::vector<std::string> splitString(const std::string& str, const char& delimiter)
+bool isElementValid(const std::string& element)
 {
-	std::vector<std::string> result;
-	size_t last = 0;
-	size_t next = 0;
+	bool result(true);
 
-	while ((next = str.find(delimiter, last)) != std::string::npos)
+	if (element.compare("") == 0 || element.compare(".") == 0)
 	{
-		result.push_back(str.substr(last, next - last));
-		last = next + 1;
+		result = false;
 	}
-	result.push_back(str.substr(last));
 
 	return result;
 }
 
-// Search for a delimiter in a string.
-char findDelimiter(const std::string& str)
+// Return vector with string elements, using delimiter.
+std::vector<std::string> splitByElements(const std::string& str)
 {
+	std::vector<std::string> result;
+	std::string oneElement;
+	size_t lastElementIdx(0);
+	size_t nextElementIdx(0);
 	char delimiter('/');
-	size_t delimiterIdx(0);
-	size_t startIdx(0);
 
-	if ((delimiterIdx = str.find(delimiter, startIdx)) == std::string::npos)
+	if (str.find(delimiter) == std::string::npos)
 	{
 		delimiter = '\\';
 	}
 
-	return delimiter;
+	while ((nextElementIdx = str.find(delimiter, lastElementIdx)) != std::string::npos)
+	{
+		oneElement = str.substr(lastElementIdx, nextElementIdx - lastElementIdx);
+		if (isElementValid(oneElement))
+		{
+			result.push_back(oneElement);
+		}
+		lastElementIdx = nextElementIdx + 1;
+	}
+	oneElement = str.substr(lastElementIdx);
+	if (isElementValid(oneElement))
+	{
+		result.push_back(oneElement);
+	}
+
+	return result;
 }
 
 std::string getRelativePath(const std::string& absolutePath, const std::string& base)
 {
 	std::string relativePath("");
-	std::vector<std::string> absoluteElements(splitString(absolutePath, findDelimiter(absolutePath)));
-	std::vector<std::string> baseElements(splitString(base, findDelimiter(base)));
+	std::vector<std::string> absoluteElements(splitByElements(absolutePath));
+	std::vector<std::string> baseElements(splitByElements(base));
 	size_t needle = 0;
 
 	// find same element in base and absolutePath
 	for (; needle < baseElements.size() && needle < absoluteElements.size() &&
-		baseElements.at(needle).compare(absoluteElements.at(needle)) == 0; ++needle){}
+		baseElements.at(needle).compare(absoluteElements.at(needle)) == 0; ++needle)
+	{
+	}
 
 	for (size_t depth = 0; depth < baseElements.size() - needle; ++depth)
 	{
