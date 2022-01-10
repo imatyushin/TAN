@@ -30,9 +30,11 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 #set(CMAKE_AUTOUIC ON)
 
 # Find the QtWidgets library
-find_package(Qt5Widgets CONFIG REQUIRED)
-if(NOT Qt5Widgets_FOUND)
-  message(SEND_ERROR "Failed to find Qt5Widgets")
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+if(NOT Qt${QT_VERSION_MAJOR}Widgets_FOUND)
+  message(SEND_ERROR "Failed to find Qt${QT_VERSION_MAJOR}Widgets")
   return()
 endif()
 
@@ -103,8 +105,8 @@ if(PortAudio_DIR)
   include_directories(${Path_To_PortAudio}/include)
 endif()
 
-include_directories(${Qt5Widgets_INCLUDE_DIRS})
-link_directories(${Qt5Widgets_LIBRARY})
+include_directories(${Qt${QT_VERSION_MAJOR}Widgets_INCLUDE_DIRS})
+link_directories(${Qt${QT_VERSION_MAJOR}Widgets_LIBRARY})
 
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
@@ -213,9 +215,17 @@ set(
   )
 
 # preprocess QT files
-qt5_wrap_ui(UI_HEADERS ${UI_FILES})
-qt5_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
-qt5_add_resources(RCC_SOURCES ${QRC_FILES})
+if( ${QT_VERSION_MAJOR} STREQUAL "5" )
+  qt5_wrap_ui(UI_HEADERS ${UI_FILES})
+  qt5_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+  qt5_add_resources(RCC_SOURCES ${QRC_FILES})
+elseif( ${QT_VERSION_MAJOR} STREQUAL "6" )
+  qt6_wrap_ui(UI_HEADERS ${UI_FILES})
+  qt6_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+  qt6_add_resources(RCC_SOURCES ${QRC_FILES})
+else()
+  message(SEND_ERROR "Unsupported QT version")
+endif()
 
 # create binary
 add_executable(
@@ -238,7 +248,7 @@ target_link_libraries(RoomAcousticsQT TrueAudioNext)
 target_link_libraries(RoomAcousticsQT TrueAudioVR)
 target_link_libraries(RoomAcousticsQT GPUUtilities)
 target_link_libraries(RoomAcousticsQT ${OpenCL_LIBRARY})
-target_link_libraries(RoomAcousticsQT Qt5::Widgets)
+target_link_libraries(RoomAcousticsQT Qt${QT_VERSION_MAJOR}::Widgets)
 
 if(WIN32)
   target_link_libraries(RoomAcousticsQT "version.lib")
@@ -293,9 +303,9 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt${QT_VERSION_MAJOR}::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt${QT_VERSION_MAJOR}::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt${QT_VERSION_MAJOR}::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
     VERBATIM
     )
 
