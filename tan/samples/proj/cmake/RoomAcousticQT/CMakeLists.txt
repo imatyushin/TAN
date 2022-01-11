@@ -303,8 +303,42 @@ if(WIN32)
     add_custom_command(
       TARGET RoomAcousticsQT
       POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}" $<TARGET_FILE_DIR:RoomAcousticsQT>
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
       VERBATIM
       )
   endif()
+endif()
+
+#copy binaries to autotest unified directory
+set(auto_test_path bin/$<PLATFORM_ID>/$<CONFIGURATION>)
+if(WIN32)
+    add_custom_command(
+        TARGET RoomAcousticsQT
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
+        VERBATIM
+        )
+elseif(NOT WIN32)
+    add_custom_command(
+        TARGET RoomAcousticsQT
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin" "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> "${TAN_ROOT}/${auto_test_path}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
+        VERBATIM
+        )
 endif()
