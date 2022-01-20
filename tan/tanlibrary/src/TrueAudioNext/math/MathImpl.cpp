@@ -579,7 +579,7 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 			_mm256_zeroall();
 			///tmp = _mm256_set1_ps(hf);
 
-			float testa[16];
+			//float testa[16];
 			//float testb[16];
 			//int idxR[16];
 			//int idxI[16];

@@ -87,9 +87,9 @@ public:
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a ## b
 
-#define UNIQUE_NAME(base) CONCAT(base, __COUNTER__)
+#define TICK_COUNTER_UNIQUE_NAME(base) CONCAT(base, __COUNTER__)
 
-#define TICK_COUNTER(x) TickCounter UNIQUE_NAME(tickCounter)(x)
+#define TICK_COUNTER(x) TickCounter TICK_COUNTER_UNIQUE_NAME(tickCounter)(x)
 
 static size_t GetMessageNumber()
 {
