@@ -708,7 +708,7 @@ void RoomAcousticQTConfig::printConfiguration()
 //may be lspci?
 std::string RoomAcousticQTConfig::getDriverVersion()
 {
-#ifdef _WIN32
+#ifdef _WIN32___
 	WindowsRegister newreg(HKEY_LOCAL_MACHINE, "SYSTEM\\ControlSet001\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}");
 	WindowsRegister* subkeys = newreg.getSubKeys();
 	for (int i = 0; i < newreg.getNumOfSubKeys(); i++)
@@ -820,9 +820,11 @@ void RoomAcousticQTConfig::updateListnerGraphics()
 			);
 
 		// Setting up animation
+		static auto easingCurve = new QEasingCurve();
 		m_pHeadAnimationTimeline = new QTimeLine();
 		m_pHeadAnimationTimeline->setLoopCount(0);
-		m_pHeadAnimationTimeline->setCurveShape(QTimeLine::LinearCurve);
+		m_pHeadAnimationTimeline->setEasingCurve(*easingCurve);
+			//setCurveShape(QTimeLine::LinearCurve);
 		QObject::connect(m_pHeadAnimationTimeline, &QTimeLine::valueChanged, m_RoomAcousticGraphic->m_pListener, &RoomAcousticListenerGraphics::rotateListenerYaw);
 		QObject::connect(m_RoomAcousticGraphic->m_pListener, &RoomAcousticListenerGraphics::top_view_orientation_changed, this, &RoomAcousticQTConfig::update_listener_orientation_top_view);
 		setHeadSpinTimeInterval(5000);

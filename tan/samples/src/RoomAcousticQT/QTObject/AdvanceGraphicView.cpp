@@ -47,7 +47,7 @@ void AdvanceGraphicView::wheelEvent(QWheelEvent* event)
 
 void AdvanceGraphicView::mousePressEvent(QMouseEvent* event)
 {
-	if (m_eZoomMode == eZoomMode_MiddleButton_Drag && event->button() == Qt::MidButton)
+	if (m_eZoomMode == eZoomMode_MiddleButton_Drag && event->button() == Qt::MiddleButton)
 	{
 		m_bMiddleButtonPressed = true;
 	}
@@ -56,7 +56,7 @@ void AdvanceGraphicView::mousePressEvent(QMouseEvent* event)
 
 void AdvanceGraphicView::mouseReleaseEvent(QMouseEvent* event)
 {
-	if (m_eZoomMode == eZoomMode_MiddleButton_Drag && event->button() == Qt::MidButton)
+	if (m_eZoomMode == eZoomMode_MiddleButton_Drag && event->button() == Qt::MiddleButton)
 	{
 		m_bMiddleButtonPressed = false;
 	}
