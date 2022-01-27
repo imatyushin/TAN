@@ -124,6 +124,7 @@ set(
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
   ../../../src/common/GpuUtils.cpp
+  ${TAN_ROOT}/utils/common/ConsoleUtility.cpp
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/StringUtility.cpp
   ${TAN_ROOT}/utils/common/RegisterBrowser.cpp
@@ -165,6 +166,7 @@ set(
   ../../../src/common/IWavPlayer.h
   ../../../src/common/IAudio3D.h
 
+  ${TAN_ROOT}/utils/common/ConsoleUtility.h
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/StringUtility.h
   ${TAN_ROOT}/utils/common/RegisterBrowser.h
