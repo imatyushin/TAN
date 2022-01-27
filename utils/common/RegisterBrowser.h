@@ -12,16 +12,16 @@ class WindowsRegister
 {
 public:
 	WindowsRegister();
-	WindowsRegister(HKEY key, std::string subkey);
+	WindowsRegister(HKEY key, const std::string & subkey);
 	virtual ~WindowsRegister();
-	void loadKey(HKEY key, std::string subkey);
+	void loadKey(HKEY key, const std::string & subkey);
 	void printSubKeyInfo();
 	void printValueInfo();
 	DWORD getNumOfSubKeys() const { return m_iNumOfSubKeys; };
 	WindowsRegister* getSubKeys();
-	WindowsRegister* getSubKey(std::string subkey);
-	std::string getStringValue(std::string valuename);
-	bool hasSubKey(std::string subkey);
+	WindowsRegister* getSubKey(const std::string & subkey);
+	std::string getStringValue(const std::string & valuename);
+	bool hasSubKey(const std::string & subkey);
 	//WindowsRegister* getSubKeys();
 	//WindowsRegister* getSubkeys(char* subkeyname);
 private:

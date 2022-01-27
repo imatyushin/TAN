@@ -135,27 +135,32 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::Init()
             fftViaGPU = true;
         }
 
+        //todo: add selection from clFFT/FFTW/IPP_FFT
+
+        if(!fftTypeValue.length() || L"clFFT" == fftTypeValue)
+        {
+            fftViaGPU = true;
+        }
+		else if(!fftTypeValue.length() || L"METALFFT" == fftTypeValue)
+        {
 #ifdef USE_METALFFT
-		//todo: integrate metal fft
-        if(!fftTypeValue.length() || L"METALFFT" == fftTypeValue)
-        {
-            metalfftStatus err;
+			auto factory = g_AMFFactory.GetFactory();
+			AMF_RETURN_IF_FALSE(factory != nullptr, AMF_FAIL);
 
-            metalfftSetupData fftSetup;
-            err = metalfftInitSetupData(&fftSetup);
-            amf::AMFPrograms *programs(nullptr);//TODO: fill
-            err = metalfftSetup(&fftSetup, programs);
+    		amf::AMFPrograms *programs(nullptr);
+    		AMF_RETURN_IF_FALSE(amf::AMFResultIsOK(factory->GetPrograms(&programs)) && programs, AMF_FAIL);
+
+            metalfftSetupData fftSetup = {0};
+            AMF_RETURN_IF_FALSE(METALFFT_SUCCESS == metalfftInitSetupData(&fftSetup), AMF_FAIL);
+            AMF_RETURN_IF_FALSE(METALFFT_SUCCESS == metalfftSetup(&fftSetup, programs), AMF_FAIL);
 
             fftViaGPU = true;
-        }
-        else
 #else
-    	if(!fftTypeValue.length() || L"clFFT" == fftTypeValue)
-        {
-            fftViaGPU = true;
-        }
-		//todo: add selection from clFFT/FFTW/IPP_FFT
+            assert(false);
+
+            return AMF_NOT_IMPLEMENTED;
 #endif
+        }
 
         if(fftViaGPU)
         {
@@ -328,38 +333,16 @@ AMF_RESULT  AMF_STD_CALL TANFFTImpl::InitCpu()
 
 	//libfftw3f-3.dll
 #ifdef _WIN32
-    FFTWDll = //LoadSharedLibrary("", "libfftw3f-3", true);
-	  LoadSharedLibrary("", "fftw3f", true);
+    FFTWDll =
+		//LoadSharedLibrary("", "libfftw3f-3", true); //todo: what are the difference between libfftw3f-3 and libfftw3f
+	  	LoadSharedLibrary("", "fftw3f", true);
 #else
 	FFTWDll = LoadSharedLibrary("", "libfftw3f", true);
 #endif
 
-    if (NULL != FFTWDll)
+    if (FFTWDll)
     {
-		/*
-        fftwf_plan_dft_1d = (fftwf_plan_dft_1dType)LoadFunctionAddr(FFTWDll, "fftwf_plan_dft_1d");
-        fftwf_destroy_plan = (fftwf_destroy_planType)LoadFunctionAddr(FFTWDll, "fftwf_destroy_plan");
-		fftwf_execute_dft = (fftwf_execute_dftType)LoadFunctionAddr(FFTWDll, "fftwf_execute_dft");
-
-		fftwf_plan_dft_r2c_1d = (fftwf_plan_dft_r2c_1dType)LoadFunctionAddr(FFTWDll, "fftwf_plan_dft_r2c_1d");
-		fftwf_execute_dft_r2c = (fftwf_execute_dft_r2cType)LoadFunctionAddr(FFTWDll, "fftwf_execute_dft_r2c");
-
-		fftwf_plan_dft_c2r_1d = (fftwf_plan_dft_c2r_1dType)LoadFunctionAddr(FFTWDll, "fftwf_plan_dft_c2r_1d");
-		fftwf_execute_dft_c2r = (fftwf_execute_dft_c2rType)LoadFunctionAddr(FFTWDll, "fftwf_execute_dft_c2r");
-
-
-		// try plan_guru_split_dft_r2c
-		fftwf_plan_guru_split_dft_r2c = (fftwf_plan_guru_split_dft_r2cType)LoadFunctionAddr(FFTWDll, "fftwf_plan_guru_split_dft_r2c");
-		fftwf_execute_split_dft_r2c = (fftwf_execute_split_dft_r2cType)LoadFunctionAddr(FFTWDll, "fftwf_execute_split_dft_r2c");
-
-		fftwf_plan_guru_split_dft_c2r = (fftwf_plan_guru_split_dft_c2rType)LoadFunctionAddr(FFTWDll, "fftwf_plan_guru_split_dft_c2r");
-		fftwf_execute_split_dft_c2r = (fftwf_execute_split_dft_c2rType)LoadFunctionAddr(FFTWDll, "fftwf_execute_split_dft_c2r");
-
-		fftwf_export_wisdom_to_filename = (fftwf_export_wisdom_to_filenameType)LoadFunctionAddr(FFTWDll, "fftwf_export_wisdom_to_filename");
-		fftwf_import_wisdom_from_filename = (fftwf_import_wisdom_from_filenameType)LoadFunctionAddr(FFTWDll, "fftwf_import_wisdom_from_filename");
-		*/
-
-        assert(fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr);
+		//assert(fftwf_plan_dft_1d != nullptr && fftwf_destroy_plan != nullptr && fftwf_execute_dft != nullptr);
 		mFFTWavailable = true;
 
         auto cacheFileName(getTempFolderName());
@@ -515,8 +498,8 @@ void TANFFTImpl::CacheFFTWPlans(const std::string & path)
 
 	fftwf_export_wisdom_to_filename(path.c_str());
 
-	delete(ppBufferInput); // _aligned_free(ppBufferInput);
-	delete(ppBufferOutput); // _aligned_free(ppBufferOutput);
+	delete [] ppBufferInput; // _aligned_free(ppBufferInput);
+	delete [] ppBufferOutput; // _aligned_free(ppBufferOutput);
 }
 
 #endif
@@ -627,20 +610,15 @@ AMF_RESULT  AMF_STD_CALL    TANFFTImpl::Transform(
 //	}
 #else
 
-#ifdef USE_FFTW
     if (amf::TANFFTImpl::mUseIntrinsics)
 	{
-        //TICK_COUNTER("amf::TANFFTImpl::mUseIntrinsics");
-
         res = TransformImplCpuOMP(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
     else
-#endif
 	{
-        //TICK_COUNTER("TransformImplCpu");
-
         res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
     }
+
 #endif
 
     AMF_RETURN_IF_FAILED(res, L"Transform() failed");
@@ -737,9 +715,6 @@ size_t TANFFTImpl::GetFFTPlan(
 
         const size_t fftLength = (size_t)1 << log2len;
 
-        clfftStatus status = CLFFT_SUCCESS;
-        clfftPlanHandle plan = {0};
-
 		// Create new plan
         auto context = m_pContextTAN->GetConvContext();
 
@@ -754,6 +729,8 @@ size_t TANFFTImpl::GetFFTPlan(
         //}
 
 #ifndef TAN_NO_OPENCL
+		clfftStatus status = CLFFT_SUCCESS;
+        clfftPlanHandle plan = 0;
 
 		status = clfftCreateDefaultPlan(&plan, context, CLFFT_1D, &fftLength);
         assert(status == CLFFT_SUCCESS);
@@ -782,6 +759,10 @@ size_t TANFFTImpl::GetFFTPlan(
         clfftBakePlan(plan, 1, &cmdQueue, NULL, NULL);
 
 #else
+
+#ifndef USE_METALFFT
+		clfftStatus status = CLFFT_SUCCESS;
+        clfftPlanHandle plan = 0;
 
 		// Create new plan
         cl_context contextNative = cl_context(context->GetOpenCLContext());
@@ -829,6 +810,57 @@ size_t TANFFTImpl::GetFFTPlan(
 			nullptr,
 			nullptr
 			);
+
+#else
+		metalfftStatus status = METALFFT_SUCCESS;
+        metalfftPlanHandle plan = 0;
+
+		// Create new plan
+        status = metalfftCreateDefaultPlan(
+			&plan,
+			METALFFT_1D,
+			&fftLength
+			);
+		assert(status == METALFFT_SUCCESS);
+
+		if (transformType == FFT_TRANSFORM_R2C_FORWARD)
+		{
+			// To Do, try:
+			status = metalfftSetLayout(plan, METALFFT_REAL, METALFFT_HERMITIAN_INTERLEAVED);// CLFFT_COMPLEX_INTERLEAVED);
+			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
+		}
+		else if (transformType == FFT_TRANSFORM_C2R_BACKWARD)
+		{
+			// To Do, try:
+			status = metalfftSetLayout(plan, METALFFT_HERMITIAN_INTERLEAVED, METALFFT_REAL);// CLFFT_COMPLEX_INTERLEAVED);
+			//clfftSetPlanDistance(plan, fftLength + 2, fftLength + 2);
+		}
+		else if(transformType == FFT_TRANSFORM_COMPLEX)
+		{
+			status = metalfftSetLayout(plan, METALFFT_COMPLEX_INTERLEAVED, METALFFT_COMPLEX_INTERLEAVED);
+		}
+		assert(status == METALFFT_SUCCESS);
+
+        status = metalfftSetResultLocation(plan, METALFFT_OUTOFPLACE);
+		assert(status == METALFFT_SUCCESS);
+
+        //status = metalfftSetPlanBatchSize(plan, numOfChannels);
+		assert(status == METALFFT_SUCCESS);
+
+		if (interBlockDistance > 0)
+		{
+			//metalfftSetPlanDistance(plan, interBlockDistance, interBlockDistance);
+		}
+
+    	status = metalfftBakePlan(
+			plan,
+			1,
+			nullptr
+			);
+		assert(status == METALFFT_SUCCESS);
+
+#endif
+
 #endif
 
         m_pCLFFTHandleMap.insert(std::make_pair(key, plan));
@@ -1240,6 +1272,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTWReal(TAN_FFT_TRANSFORM_DIRE
 
 	return AMF_OK;
 }
+#endif
 
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
     TAN_FFT_TRANSFORM_DIRECTION direction,
@@ -1256,6 +1289,8 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 					|| direction == TAN_FFT_C2R_PLANAR_TRANSFORM_DIRECTION_BACKWARD);
 
     int idx(0);
+
+#ifdef USE_FFTW
     if (mFFTWavailable){
         fftwf_complex * in = (fftwf_complex *)ppBufferInput[0];
         fftwf_complex * out = (fftwf_complex *)ppBufferOutput[0];
@@ -1298,7 +1333,9 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 			}
 		}
     }
-    else {
+    else
+#endif
+	{
 #pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput)
 #pragma omp for private(idx)
 		for (idx = 0; idx < channels; idx++){
@@ -1311,7 +1348,6 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
 
     return AMF_OK;
 }
-#endif
 
 #ifdef USE_IPP
 AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplIPP(

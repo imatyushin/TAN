@@ -21,9 +21,7 @@
 //
 #pragma once
 
-#ifndef MGIFIFOBUFFER
-#define MGIFIFOBUFFER
-
+/*
 class FifoBuffer
 {
 public:
@@ -51,6 +49,7 @@ private:
     CCritSec m_Lock;
 #endif
 };
+*/
 
 #include <cstring>
 #include <vector>
@@ -59,7 +58,7 @@ private:
 #include <thread>
 #include <iostream>
 
-#define ATOMIC_FIFO
+#define ATOMIC_FIFO 1
 
 //two-threads frendly fifo
 //one thread - write
@@ -97,5 +96,3 @@ public:
     uint32_t        Write(const uint8_t *data, size_t size);
     uint32_t        Read(uint8_t *outputBuffer, size_t size2Fill);
 };
-
-#endif

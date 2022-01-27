@@ -26,6 +26,7 @@
 
 // #define BE_THREAD_SAFE
 
+/*
 unsigned int FifoBuffer::fifoLength()
 {
     if(m_Head >= m_Tail){
@@ -216,6 +217,7 @@ void FifoBuffer::flush(){
     m_Tail = 0;
     m_Head = 0;
 }
+*/
 
 #ifndef ATOMIC_FIFO
 std::mutex mLockMutex;

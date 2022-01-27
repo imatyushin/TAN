@@ -3,24 +3,27 @@
 #include "RegisterBrowser.h"
 #include <stdio.h>
 #include <tchar.h>
+#include <cstring>
 
 WindowsRegister::WindowsRegister()
 {
 }
 
-WindowsRegister::WindowsRegister(HKEY key, std::string subkey)
+WindowsRegister::WindowsRegister(HKEY key, const std::string & subkey)
 {
 	loadKey(key, subkey);
 }
 
-void WindowsRegister::loadKey(HKEY key, std::string subkey)
+void WindowsRegister::loadKey(HKEY key, const std::string & subkey)
 {
 	m_sSubKeyName = subkey;
-	RegOpenKeyEx(key,
+	::RegOpenKeyExA(
+		key,
 		subkey.c_str(),
 		0,
 		KEY_READ,
-		&m_RegisterKey);
+		&m_RegisterKey
+	    );
 
 
 	DWORD    cchClassName = MAX_PATH;  // size of class string 
@@ -30,7 +33,7 @@ void WindowsRegister::loadKey(HKEY key, std::string subkey)
 	DWORD    cbMaxValueData;       // longest value data 
 	DWORD    cbSecurityDescriptor; // size of security descriptor 
 								   // Get the class name and the value count. 
-	DWORD retcode = RegQueryInfoKey(
+	DWORD retcode = ::RegQueryInfoKeyA(
 		m_RegisterKey,           // key handle 
 		m_cpName,                // buffer for class name 
 		&cchClassName,           // size of class string 
@@ -78,14 +81,13 @@ WindowsRegister::~WindowsRegister()
 }
 
 bool WindowsRegister::getSubKeysNames()
-{
-	
-	FILETIME ftLastWriteTime;
+{	
+	FILETIME ftLastWriteTime = { 0 };
 	
 	for (int i = 0; i<m_iNumOfSubKeys; i++)
 	{
 		DWORD cbName = MAX_KEY_LENGTH;
-		DWORD retCode = RegEnumKeyEx(m_RegisterKey, i,
+		DWORD retCode = ::RegEnumKeyExA(m_RegisterKey, i,
 			m_cpSubKeyNames[i],
 			&cbName,
 			NULL,
@@ -105,7 +107,7 @@ bool WindowsRegister::getValueNames()
 	for (int i = 0, retCode = ERROR_SUCCESS; i<m_iNumOfValue; i++)
 	{
 		DWORD cchValue = MAX_VALUE_NAME;
-		retCode = RegEnumValue(m_RegisterKey, i,
+		retCode = ::RegEnumValueA(m_RegisterKey, i,
 			m_cpValueNames[i],
 			&cchValue,
 			NULL,
@@ -124,7 +126,7 @@ bool WindowsRegister::getValueNames()
 
 void WindowsRegister::printSubKeyInfo()
 {
-	TCHAR    achKey[MAX_KEY_LENGTH];   // buffer for subkey name
+	char    achKey[MAX_KEY_LENGTH] = { 0 };   // buffer for subkey name
 	DWORD    cbName;                   // size of name string 
 	FILETIME ftLastWriteTime;      // last write time 
 	printf("\nNumber of subkeys: %d\n", m_iNumOfSubKeys);
@@ -132,7 +134,7 @@ void WindowsRegister::printSubKeyInfo()
 	for (int i = 0; i<m_iNumOfSubKeys; i++)
 	{
 		cbName = MAX_KEY_LENGTH;
-		DWORD retCode = RegEnumKeyEx(m_RegisterKey, i,
+		DWORD retCode = ::RegEnumKeyExA(m_RegisterKey, i,
 			achKey,
 			&cbName,
 			NULL,
@@ -151,14 +153,14 @@ void WindowsRegister::printValueInfo()
 	printf("\nNumber of values: %d\n", m_iNumOfValue);
 
 
-	TCHAR  achValue[MAX_VALUE_NAME];
+	char  achValue[MAX_VALUE_NAME];
 	DWORD cchValue = MAX_VALUE_NAME;
 
 	for (int i = 0, retCode = ERROR_SUCCESS; i<m_iNumOfValue; i++)
 	{
 		cchValue = MAX_VALUE_NAME;
 		achValue[0] = '\0';
-		retCode = RegEnumValue(m_RegisterKey, i,
+		retCode = RegEnumValueA(m_RegisterKey, i,
 			achValue,
 			&cchValue,
 			NULL,
@@ -184,11 +186,11 @@ WindowsRegister* WindowsRegister::getSubKeys()
 	return return_registers;
 }
 
-WindowsRegister* WindowsRegister::getSubKey(std::string subkey)
+WindowsRegister* WindowsRegister::getSubKey(const std::string & subkey)
 {
 	for (int i = 0; i < m_iNumOfSubKeys; i++)
 	{
-		if (!strcmp(m_cpSubKeyNames[i], subkey.c_str()))
+		if (!std::strcmp(m_cpSubKeyNames[i], subkey.c_str()))
 		{
 			return new WindowsRegister(m_RegisterKey, subkey);
 		}
@@ -196,17 +198,17 @@ WindowsRegister* WindowsRegister::getSubKey(std::string subkey)
 	return nullptr;
 }
 
-std::string WindowsRegister::getStringValue(std::string valuename)
+std::string WindowsRegister::getStringValue(const std::string & valuename)
 {	
 	for(int i = 0; i < m_iNumOfValue; i++)
 	{
-		if(!strcmp(m_cpValueNames[i],valuename.c_str()))
+		if(!std::strcmp(m_cpValueNames[i],valuename.c_str()))
 		{
-			TCHAR  achValue[MAX_VALUE_NAME];
+			char  achValue[MAX_VALUE_NAME];
 			DWORD cchValue = MAX_VALUE_NAME;
 			DWORD size;
 			DWORD type;
-			RegEnumValue(m_RegisterKey, i,
+			RegEnumValueA(m_RegisterKey, i,
 				achValue,
 				&cchValue,
 				NULL,
@@ -216,10 +218,11 @@ std::string WindowsRegister::getStringValue(std::string valuename)
 
 			if(type == REG_SZ)
 			{
-				char* ret = new char[size];
-				RegGetValue(m_RegisterKey, NULL, valuename.c_str(), RRF_RT_REG_SZ, NULL, ret, &size);
+				std::string ret;
+				ret.reserve(size);
+				RegGetValueA(m_RegisterKey, NULL, valuename.c_str(), RRF_RT_REG_SZ, NULL, &ret.front(), &size);
 
-				return std::string(ret);
+				return ret;
 			}
 
 			break;
@@ -229,11 +232,11 @@ std::string WindowsRegister::getStringValue(std::string valuename)
 	return std::string();
 }
 
-bool WindowsRegister::hasSubKey(std::string subkey)
+bool WindowsRegister::hasSubKey(const std::string & subkey)
 {
 	for(int i = 0 ; i < m_iNumOfSubKeys; i++)
 	{
-		if(!strcmp(m_cpSubKeyNames[i],subkey.c_str()))
+		if(!std::strcmp(m_cpSubKeyNames[i],subkey.c_str()))
 		{
 			return true;
 		}

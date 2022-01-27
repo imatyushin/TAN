@@ -30,9 +30,11 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 #set(CMAKE_AUTOUIC ON)
 
 # Find the QtWidgets library
-find_package(Qt5Widgets CONFIG REQUIRED)
-if(NOT Qt5Widgets_FOUND)
-  message(SEND_ERROR "Failed to find Qt5Widgets")
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+if(NOT Qt${QT_VERSION_MAJOR}Widgets_FOUND)
+  message(SEND_ERROR "Failed to find Qt${QT_VERSION_MAJOR}Widgets")
   return()
 endif()
 
@@ -103,8 +105,8 @@ if(PortAudio_DIR)
   include_directories(${Path_To_PortAudio}/include)
 endif()
 
-include_directories(${Qt5Widgets_INCLUDE_DIRS})
-link_directories(${Qt5Widgets_LIBRARY})
+include_directories(${Qt${QT_VERSION_MAJOR}Widgets_INCLUDE_DIRS})
+link_directories(${Qt${QT_VERSION_MAJOR}Widgets_LIBRARY})
 
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
@@ -215,9 +217,17 @@ set(
   )
 
 # preprocess QT files
-qt5_wrap_ui(UI_HEADERS ${UI_FILES})
-qt5_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
-qt5_add_resources(RCC_SOURCES ${QRC_FILES})
+if( ${QT_VERSION_MAJOR} STREQUAL "5" )
+  qt5_wrap_ui(UI_HEADERS ${UI_FILES})
+  qt5_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+  qt5_add_resources(RCC_SOURCES ${QRC_FILES})
+elseif( ${QT_VERSION_MAJOR} STREQUAL "6" )
+  qt6_wrap_ui(UI_HEADERS ${UI_FILES})
+  qt6_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+  qt6_add_resources(RCC_SOURCES ${QRC_FILES})
+else()
+  message(SEND_ERROR "Unsupported QT version")
+endif()
 
 # create binary
 add_executable(
@@ -240,7 +250,7 @@ target_link_libraries(RoomAcousticsQT TrueAudioNext)
 target_link_libraries(RoomAcousticsQT TrueAudioVR)
 target_link_libraries(RoomAcousticsQT GPUUtilities)
 target_link_libraries(RoomAcousticsQT ${OpenCL_LIBRARY})
-target_link_libraries(RoomAcousticsQT Qt5::Widgets)
+target_link_libraries(RoomAcousticsQT Qt${QT_VERSION_MAJOR}::Widgets)
 
 if(WIN32)
   target_link_libraries(RoomAcousticsQT "version.lib")
@@ -275,6 +285,58 @@ if(NOT WIN32)
   endif()
 endif()
 
+#
+function(print_target_properties tgt)
+    if(NOT TARGET ${tgt})
+      message("There is no target named '${tgt}'")
+      return()
+    endif()
+
+    get_target_property(target_type ${tgt} TYPE)
+    if(target_type STREQUAL "INTERFACE_LIBRARY")
+        set(PROPERTIES ${CMAKE_WHITELISTED_PROPERTY_LIST})
+    else()
+        set(PROPERTIES ${CMAKE_PROPERTY_LIST})
+    endif()
+
+    foreach (prop ${PROPERTIES})
+        #message ("Checking ${prop}")
+        get_property(propval TARGET ${tgt} PROPERTY ${prop} SET)
+        if (propval)
+            get_target_property(propval ${tgt} ${prop})
+            message ("${tgt} ${prop} = ${propval}")
+        endif()
+    endforeach(prop)
+endfunction(print_target_properties)
+
+#
+print_target_properties(Qt6::qmake)
+
+get_target_property(_qmake_executable Qt6::qmake IMPORTED_LOCATION)
+get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
+
+function(windeployqt target)
+
+    # POST_BUILD step
+    # - after build, we have a bin/lib for analyzing qt dependencies
+    # - we run windeployqt on target and deploy Qt libs
+
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND "${_qt_bin_dir}/windeployqt.exe"         
+                --verbose 1
+                --release
+                --no-svg
+                --no-angle
+                --no-opengl
+                --no-opengl-sw
+                --no-compiler-runtime
+                --no-system-d3d-compiler
+                \"$<TARGET_FILE:${target}>\"
+        COMMENT "Deploying Qt libraries using windeployqt for compilation target '${target}' ..."
+    )
+
+endfunction()
+
 #copy runtime dll to the binary dir
 if(WIN32)
   if(NOT AMF_CORE_STATIC)
@@ -295,11 +357,20 @@ if(WIN32)
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
 
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt${QT_VERSION_MAJOR}::Core> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt${QT_VERSION_MAJOR}::Gui> $<TARGET_FILE_DIR:RoomAcousticsQT>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt${QT_VERSION_MAJOR}::Widgets> $<TARGET_FILE_DIR:RoomAcousticsQT>
+
+    COMMAND ${CMAKE_COMMAND} -E make_directory    $<TARGET_FILE_DIR:RoomAcousticsQT>/platforms/
+    #COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::QWindowsIntegrationPlugin> $<TARGET_FILE_DIR:RoomAcousticsQT>/platforms/
     VERBATIM
     )
+
+  windeployqt(RoomAcousticsQT)
+  #install(
+    #  FILES "$<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>"
+    #  DESTINATION $<TARGET_FILE_DIR:RoomAcousticsQT>/platforms/
+    #)
 
   if(FFTW_DIR)
     add_custom_command(

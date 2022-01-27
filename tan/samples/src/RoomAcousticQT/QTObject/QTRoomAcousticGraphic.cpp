@@ -66,9 +66,11 @@ void RoomAcousticListenerGraphics::wheelEvent(QGraphicsSceneWheelEvent* event)
 
 void RoomAcousticListenerGraphics::initAnimation()
 {
+	static QEasingCurve easingCurve;
 	m_pSpinTimeLine = new QTimeLine(5000,this);
 	m_pSpinTimeLine->setLoopCount(0);
-	m_pSpinTimeLine->setCurveShape(QTimeLine::LinearCurve);
+	//m_pSpinTimeLine->setCurveShape(QTimeLine::LinearCurve);
+	m_pSpinTimeLine->setEasingCurve(easingCurve);
 	QObject::connect(m_pSpinTimeLine, &QTimeLine::valueChanged, this, &RoomAcousticListenerGraphics::rotateListenerYaw);
 	float k = m_pSpinTimeLine->valueForTime(100);
 	m_pSpinTimeLine->start();

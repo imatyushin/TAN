@@ -25,7 +25,16 @@ message("Start OpenMP search...")
 
 find_package(OpenMP)
 
-if(OpenMP_FOUND AND OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
+if(
+  OpenMP_FOUND 
+  AND 
+  (
+    (OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
+    #on some Windows machines OMP_INCLUDE_DIR and OpenMP_CXX_LIBRARIES
+    #is empty after OpenMP, only OpenMP_FOUND and OpenMP_CXX_FLAGS is set
+    OR OpenMP_CXX_FLAGS
+  )
+ )
   set(OMP_ENABLED 1)
 else()
   find_path(OMP_INCLUDE_DIR NAMES omp.h)
@@ -58,11 +67,12 @@ if(OMP_ENABLED)
 else()
   message("NOTE: OpenMP will not be supported!")
 endif()
+
 ###########################################################################
-if((APPLE OR XCODE) AND METALFFT_DIR)
-  message("TAN: use MetalFFT from ${METALFFT_DIR} folder")
-else()
-  message("TAN: no MetalFFT")
+if(APPLE OR XCODE)
+  if(METALFFT_DIR)
+    message("TAN: use MetalFFT from ${METALFFT_DIR} folder")
+  endif()
 endif()
 ###########################################################################
 

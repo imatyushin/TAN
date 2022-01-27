@@ -91,7 +91,7 @@ namespace amf
 
         amf::AMFFactory * GetFactory() override {return mFactory;}
 
-        AMF_RESULT AMF_STD_CALL InitOpenMP(int nThreads) override { return AMF_NOT_IMPLEMENTED; }
+        AMF_RESULT AMF_STD_CALL InitOpenMP(int nThreads) override;
 
     protected:
         enum QueueType { eConvQueue, eGeneralQueue };

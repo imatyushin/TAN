@@ -135,125 +135,6 @@ namespace amf
         bool mFFTWavailable = false;
 
 #ifdef USE_FFTW
-
-#ifdef WIN32_
-        // FFTW declarations for dynamic load:
-        typedef fftwf_plan(__cdecl* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
-        fftwf_plan_dft_1dType fftwf_plan_dft_1d = nullptr;
-
-        typedef void(__cdecl * fftwf_destroy_planType)(fftwf_plan);
-        fftwf_destroy_planType fftwf_destroy_plan = nullptr;
-
-        typedef void(__cdecl* fftwf_execute_dftType) (fftwf_plan, fftwf_complex *, fftwf_complex *);
-        fftwf_execute_dftType fftwf_execute_dft = nullptr;
-
-		// real input fft real to complex
-		typedef fftwf_plan(__cdecl* fftwf_plan_dft_r2c_1dType)(int n0, float *in, fftwf_complex *out, unsigned flags);
-		fftwf_plan_dft_r2c_1dType fftwf_plan_dft_r2c_1d = nullptr;
-
-		typedef void(__cdecl* fftwf_execute_dft_r2cType) (fftwf_plan, float *, fftwf_complex *);
-		fftwf_execute_dft_r2cType fftwf_execute_dft_r2c = nullptr;
-
-		// inverse fft complex to real
-		typedef fftwf_plan(__cdecl* fftwf_plan_dft_c2r_1dType)(int n0, fftwf_complex *in, float *out, unsigned flags);
-		fftwf_plan_dft_c2r_1dType fftwf_plan_dft_c2r_1d = nullptr;
-
-		typedef void(__cdecl* fftwf_execute_dft_c2rType) (fftwf_plan, fftwf_complex *, float *);
-		fftwf_execute_dft_c2rType fftwf_execute_dft_c2r = nullptr;
-
-		// real input fft real to complex planar
-		/*fftw_plan fftw_plan_guru_split_dft_r2c(	int rank, const fftw_iodim *dims,
-													int howmany_rank, const fftw_iodim *howmany_dims,
-													double *in, double *ro, double *io,
-													unsigned flags);
-													*/
-
-		typedef fftwf_plan(__cdecl* fftwf_plan_guru_split_dft_r2cType)(int rank, const fftwf_iodim *dims, int howmany_rank,
-			const fftwf_iodim *howmany_dims, float *in, float *ro, float *io,unsigned flags);
-
-		fftwf_plan_guru_split_dft_r2cType fftwf_plan_guru_split_dft_r2c = nullptr;
-
-		typedef void(__cdecl* fftwf_execute_split_dft_r2cType )(	const fftwf_plan p, float *in, float *ro, float *io);
-		fftwf_execute_split_dft_r2cType fftwf_execute_split_dft_r2c = nullptr;
-
-
-		typedef fftwf_plan(__cdecl* fftwf_plan_guru_split_dft_c2rType)(int rank, const fftwf_iodim *dims, int howmany_rank,
-			const fftw_iodim *howmany_dims, float *rin, float *iin, float *out, unsigned flags);
-
-		fftwf_plan_guru_split_dft_c2rType fftwf_plan_guru_split_dft_c2r = nullptr;
-
-		typedef void(__cdecl* fftwf_execute_split_dft_c2rType )(	const fftwf_plan p, float *rin, float *iin, float *out );
-		fftwf_execute_split_dft_r2cType fftwf_execute_split_dft_c2r = nullptr;
-
-		//int fftwf_import_wisdom_from_filename(const char *filename);
-		//int fftwf_import_wisdom_from_filename(const char *filename);
-
-		typedef int(__cdecl* fftwf_export_wisdom_to_filenameType)(const char *filename);
-		fftwf_export_wisdom_to_filenameType fftwf_export_wisdom_to_filename = nullptr;
-
-		typedef int(__cdecl* fftwf_import_wisdom_from_filenameType)(const char *filename);
-		fftwf_import_wisdom_from_filenameType fftwf_import_wisdom_from_filename = nullptr;
-#else
-	/*
-        // FFTW declarations for dynamic load:
-        typedef fftwf_plan(* fftwf_plan_dft_1dType)(int n, fftwf_complex *in, fftwf_complex *out, int sign, unsigned flags);
-        fftwf_plan_dft_1dType fftwf_plan_dft_1d = nullptr;
-
-        typedef void( * fftwf_destroy_planType)(fftwf_plan);
-        fftwf_destroy_planType fftwf_destroy_plan = nullptr;
-
-        typedef void(* fftwf_execute_dftType) (fftwf_plan, fftwf_complex *, fftwf_complex *);
-        fftwf_execute_dftType fftwf_execute_dft = nullptr;
-
-		// real input fft real to complex
-		typedef fftwf_plan(* fftwf_plan_dft_r2c_1dType)(int n0, float *in, fftwf_complex *out, unsigned flags);
-		fftwf_plan_dft_r2c_1dType fftwf_plan_dft_r2c_1d = nullptr;
-
-		typedef void(* fftwf_execute_dft_r2cType) (fftwf_plan, float *, fftwf_complex *);
-		fftwf_execute_dft_r2cType fftwf_execute_dft_r2c = nullptr;
-
-		// inverse fft complex to real
-		typedef fftwf_plan(* fftwf_plan_dft_c2r_1dType)(int n0, fftwf_complex *in, float *out, unsigned flags);
-		fftwf_plan_dft_c2r_1dType fftwf_plan_dft_c2r_1d = nullptr;
-
-		typedef void(* fftwf_execute_dft_c2rType) (fftwf_plan, fftwf_complex *, float *);
-		fftwf_execute_dft_c2rType fftwf_execute_dft_c2r = nullptr;
-
-		// real input fft real to complex planar
-		/*fftw_plan fftw_plan_guru_split_dft_r2c(	int rank, const fftw_iodim *dims,
-													int howmany_rank, const fftw_iodim *howmany_dims,
-													double *in, double *ro, double *io,
-													unsigned flags);
-													* /
-
-		typedef fftwf_plan(* fftwf_plan_guru_split_dft_r2cType)(int rank, const fftwf_iodim *dims, int howmany_rank,
-			const fftwf_iodim *howmany_dims, float *in, float *ro, float *io,unsigned flags);
-
-		fftwf_plan_guru_split_dft_r2cType fftwf_plan_guru_split_dft_r2c = nullptr;
-
-		typedef void(* fftwf_execute_split_dft_r2cType )(	const fftwf_plan p, float *in, float *ro, float *io);
-		fftwf_execute_split_dft_r2cType fftwf_execute_split_dft_r2c = nullptr;
-
-
-		typedef fftwf_plan(* fftwf_plan_guru_split_dft_c2rType)(int rank, const fftwf_iodim *dims, int howmany_rank,
-			const fftw_iodim *howmany_dims, float *rin, float *iin, float *out, unsigned flags);
-
-		fftwf_plan_guru_split_dft_c2rType fftwf_plan_guru_split_dft_c2r = nullptr;
-
-		typedef void(* fftwf_execute_split_dft_c2rType )(	const fftwf_plan p, float *rin, float *iin, float *out );
-		fftwf_execute_split_dft_r2cType fftwf_execute_split_dft_c2r = nullptr;
-
-		//int fftwf_import_wisdom_from_filename(const char *filename);
-		//int fftwf_import_wisdom_from_filename(const char *filename);
-
-		typedef int(* fftwf_export_wisdom_to_filenameType)(const char *filename);
-		fftwf_export_wisdom_to_filenameType fftwf_export_wisdom_to_filename = nullptr;
-
-		typedef int(* fftwf_import_wisdom_from_filenameType)(const char *filename);
-		fftwf_import_wisdom_from_filenameType fftwf_import_wisdom_from_filename = nullptr;
-		*/
-#endif
-
         fftwf_plan fwdPlans[MAX_CACHE_POWER] = {nullptr};
         fftwf_plan bwdPlans[MAX_CACHE_POWER] = {nullptr};
 		fftwf_plan fwdRealPlans[MAX_CACHE_POWER] = {nullptr};
@@ -262,7 +143,6 @@ namespace amf
 		fftwf_plan bwdRealPlanarPlans[MAX_CACHE_POWER] = {nullptr};
 
 		void CacheFFTWPlans(const std::string & cacheFileNameWithPath);
-
 #endif
 
 		enum FFT_TRANSFORM_TYPE
@@ -288,13 +168,13 @@ namespace amf
                                                          amf_size channels,
                                                          float* ppBufferInput[],
                                                          float* ppBufferOutput[]);
-#ifdef USE_FFTW
+//#ifdef USE_FFTW
         AMF_RESULT virtual AMF_STD_CALL TransformImplCpuOMP(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                         amf_size log2len,
                                                         amf_size channels,
                                                         float* ppBufferInput[],
                                                         float* ppBufferOutput[]);
-#endif
+//#endif
 #ifdef USE_METALFFT
         AMF_RESULT virtual AMF_STD_CALL TransformImplMetalFFTOMP(TAN_FFT_TRANSFORM_DIRECTION direction,
                                                         amf_size log2len,

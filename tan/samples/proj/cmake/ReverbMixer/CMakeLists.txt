@@ -28,9 +28,12 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 #set(CMAKE_AUTOUIC ON)
 
 # Find the QtWidgets library
-find_package(Qt5Widgets CONFIG REQUIRED)
-if(NOT Qt5Widgets_FOUND)
-  message(SEND_ERROR "Failed to find Qt5Widgets")
+#find_package(Qt5Widgets CONFIG REQUIRED)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+if(NOT Qt${QT_VERSION_MAJOR}Widgets_FOUND)
+  message(SEND_ERROR "Failed to find Qt${QT_VERSION_MAJOR}Widgets")
   return()
 endif()
 
@@ -47,8 +50,8 @@ if(PortAudio_DIR)
   include_directories(${PortAudio_DIR}/include)
 endif()
 
-include_directories(${Qt5Widgets_INCLUDE_DIRS})
-link_directories(${Qt5Widgets_LIBRARY})
+include_directories(${Qt${QT_VERSION_MAJOR}Widgets_INCLUDE_DIRS})
+link_directories(${Qt${QT_VERSION_MAJOR}Widgets_LIBRARY})
 
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
@@ -131,8 +134,17 @@ set(
   )
 
 # preprocess QT files
-qt5_wrap_ui(UI_HEADERS ${UI_FILES})
-qt5_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+if( ${QT_VERSION_MAJOR} STREQUAL "5" )
+  qt5_wrap_ui(UI_HEADERS ${UI_FILES})
+  qt5_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+  qt5_add_resources(RCC_SOURCES ${QRC_FILES})
+elseif( ${QT_VERSION_MAJOR} STREQUAL "6" )
+  qt6_wrap_ui(UI_HEADERS ${UI_FILES})
+  qt6_wrap_cpp(MOC_HEADERS ${MOC_SOURCE_FILES})
+  qt6_add_resources(RCC_SOURCES ${QRC_FILES})
+else()
+  message(SEND_ERROR "Unsupported QT version")
+endif()
 
 # create binary
 add_executable(
@@ -156,7 +168,7 @@ endif()
 
 target_link_libraries(ReverbMixer TrueAudioNext)
 target_link_libraries(ReverbMixer GPUUtilities)
-target_link_libraries(ReverbMixer Qt5::Widgets)
+target_link_libraries(ReverbMixer Qt${QT_VERSION_MAJOR}::Widgets)
 
 if(WIN32)
   target_link_libraries(ReverbMixer "version.lib")
