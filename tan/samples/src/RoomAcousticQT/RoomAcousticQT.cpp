@@ -28,6 +28,8 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <chrono>
+#include <fstream>
 
 #ifdef _WIN32
 #include <io.h>
@@ -119,6 +121,8 @@ bool RoomAcousticQT::start()
 #endif
         );
 
+	auto startTime = std::chrono::high_resolution_clock::now();
+
 	bool started = AMF_OK == mAudioEngine->Init(
 		mTANDLLPath,
 		m_RoomDefinition,
@@ -153,10 +157,16 @@ bool RoomAcousticQT::start()
 
 		m_eConvolutionMethod,
 
+		mOutputFileName,
+
 		mPlayer.get(),
 
 		mFFTType
 		);
+
+	auto endTime = std::chrono::high_resolution_clock::now();
+	size_t elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+	saveInitTime(elapsedTime);
 
 	if(started)
 	{
@@ -673,4 +683,37 @@ AmdTrueAudioVR* RoomAcousticQT::getAMDTrueAudioVR()
 TANConverterPtr RoomAcousticQT::getTANConverter()
 {
 	return mAudioEngine->getTANConverter();
+}
+
+void RoomAcousticQT::saveInitTime(const size_t &elapsedTime)
+{
+	std::wstring outputStr(AMF_UNICODE("Restart counter: "));
+
+	outputStr.append(std::to_wstring(elapsedTime));
+	outputStr.append(AMF_UNICODE(" /n"));
+
+	if (!mMetricsFileName.empty())
+	{
+		auto res = g_AMFFactory.Init();
+		if (AMF_OK == res)
+		{
+			res = g_AMFFactory.GetTrace()->SetPath(mMetricsFileName.c_str());
+			if (AMF_OK == res)
+			{
+				g_AMFFactory.GetTrace()->EnableWriter(AMF_TRACE_WRITER_FILE, true);
+				g_AMFFactory.GetTrace()->Trace(AMF_UNICODE(__FILE__), __LINE__, AMF_TRACE_INFO,
+					AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
+				g_AMFFactory.GetTrace()->TraceFlush();
+			}
+			else
+			{
+				AMF_ASSERT_OK(res, L"AMF Factory Failed to set path!");
+			}
+			g_AMFFactory.Terminate();
+		}
+		else
+		{
+			AMF_ASSERT_OK(res, L"AMF Factory Failed to initialize!");
+		}
+	}
 }

@@ -66,11 +66,15 @@ private:
 
 	void enumDevices();													// Initialize TAN device (Convolution, FFT, etc.)
 
+	void saveInitTime(const size_t &elapsedTime);
+
 //todo: make accessors
 public:
 	std::string 							mTANDLLPath;
 	std::string 							mLogPath;
 	std::string 							mConfigFileName;
+	std::wstring							mMetricsFileName{L""};
+	std::string								mOutputFileName{""};
 
 	std::string 							mWavFileNames[MAX_SOURCES];
 	int 									m_iNumOfWavFile = 0;

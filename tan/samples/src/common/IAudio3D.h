@@ -33,11 +33,13 @@
 #include "wav.h"
 #include "Timer.h"
 #include "Allocators.h"
+#include <fstream>
 
 #include <memory>
 #include <string>
 #include <vector>
 #include <array>
+#include "public/common/TraceAdapter.h"         //AMF
 
 // rotation, translation matrix
 class TransRotMtx
@@ -150,6 +152,8 @@ public:
         amf::TAN_CONVOLUTION_METHOD
                                 convMethod,
 
+        const std::string       &outputFile,
+
         IWavPlayer *            player,
 
         const std::wstring &    fftType,
@@ -167,6 +171,8 @@ public:
         }
 
         mFFTType = fftType;
+
+        mOutputFile = outputFile;
 
         //mComputedOutputPipeline = useGPU_Conv && useGPU_IRGen;
         mComputedOutputPipeline = computeConvolution && computeRoom;
@@ -392,6 +398,67 @@ public:
     const std::string & GetLastError() const
     {
         return mLastError;
+    }
+
+    size_t getMaxSamplesDuration() const
+    {
+        auto maxDuration(0);
+        for (auto itr = mWavFiles.begin(); itr != mWavFiles.end(); itr++)
+        {
+            auto currentDuration(itr->GetDuration().count());
+            if(maxDuration < currentDuration)
+                maxDuration = currentDuration;
+        }
+        return maxDuration;
+    }
+
+    void setShouldOutputRecording(const bool& shouldRecord)
+    {
+        mShouldOutputRecording = shouldRecord;
+    }
+
+    void setRestartsNumber(const size_t &expectedRestartsNb)
+    {
+        mRestartsNumber = expectedRestartsNb;
+    }
+
+    void saveRestartCount(const size_t& actualRestartsNb)
+    {
+        std::wstring outputStr(AMF_UNICODE("Restart counter: "));
+
+        outputStr.append(std::to_wstring(actualRestartsNb));
+        outputStr.append(AMF_UNICODE(" / "));
+        outputStr.append(std::to_wstring(mRestartsNumber));
+        outputStr.append(AMF_UNICODE("/n"));
+
+        if (!mMetricsFileName.empty())
+        {
+            auto res = g_AMFFactory.Init();
+            if (AMF_OK == res)
+            {
+                    res = g_AMFFactory.GetTrace()->SetPath(mMetricsFileName.c_str());
+                    if (AMF_OK == res)
+                    {
+                        g_AMFFactory.GetTrace()->EnableWriter(AMF_TRACE_WRITER_FILE, true);
+                        g_AMFFactory.GetTrace()->Trace(AMF_UNICODE(__FILE__), __LINE__, AMF_TRACE_INFO,
+                            AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
+                    }
+                    else
+                    {
+                        AMF_ASSERT_OK(res, L"AMF Factory Failed to set path!");
+                    }
+                    g_AMFFactory.Terminate();
+            }
+            else
+            {
+                AMF_ASSERT_OK(res, L"AMF Factory Failed to initialize!");
+            }
+        }
+    }
+
+    void setMetricsFileName(const std::wstring &metricsFile)
+    {
+        mMetricsFileName = metricsFile;
     }
 
 public:
@@ -627,4 +694,9 @@ protected:
 	TransRotMtx m_mtxWorldToRoomCoords;
 	float m_headingOffset;
 	bool m_headingCCW;
+
+    size_t          mRestartsNumber{0};
+    std::wstring    mMetricsFileName{L""};
+    std::string     mOutputFile{""};
+    bool            mShouldOutputRecording{false};
 };

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <cstring>
 #include <assert.h>
+#include <chrono>
 
 RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
     QMainWindow(parent)
@@ -31,7 +32,6 @@ RoomAcousticQTConfig::RoomAcousticQTConfig(QWidget *parent):
 			if(m_bDemoStarted)
 			{
 				m_RoomAcousticInstance.UpdateSoundSourcesPositions();
-
 				for(int index(0); index < MAX_SOURCES; ++index)
 				{
 					//updateSoundSourceGraphics(m_iCurrentSelectedSource);
@@ -119,9 +119,17 @@ RoomAcousticQTConfig::~RoomAcousticQTConfig()
 	m_RoomAcousticInstance.saveConfiguration(m_RoomAcousticInstance.mConfigFileName);
 }
 
-void RoomAcousticQTConfig::Init()
+void RoomAcousticQTConfig::Init(const bool &consoleMode)
 {
 	m_RoomAcousticGraphic->clear();
+
+	if (consoleMode)
+	{
+		m_RoomAcousticInstance.mOutputFileName = consoleOptions.value("outputFile").toStdString();
+		m_RoomAcousticInstance.mConfigFileName = consoleOptions.value("configFile").toStdString();
+		m_RoomAcousticInstance.mMetricsFileName = consoleOptions.value("metricsFile").toStdWString();
+		m_RoomAcousticInstance.mAudioEngine->setMetricsFileName(m_RoomAcousticInstance.mMetricsFileName);
+	}
 
 	m_RoomAcousticInstance.loadConfiguration(m_RoomAcousticInstance.mConfigFileName);
 
@@ -134,7 +142,14 @@ void RoomAcousticQTConfig::Init()
 	updateAllSoundSourceGraphics();
 	updateListnerGraphics();
 
-	showMaximized();
+	if (consoleMode)
+	{
+		runInConsole();
+	}
+	else
+	{
+		showMaximized();
+	}
 
 	setWindowTitle(
 #ifndef TAN_NO_OPENCL
@@ -1642,5 +1657,41 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 	if(-1 != firstIndex)
 	{
 		table_selection_changed(firstIndex);
+	}
+}
+
+void RoomAcousticQTConfig::runInConsole()
+{
+	on_PB_RunDemo_clicked();
+	if (m_RoomAcousticInstance.mOutputFileName.empty())
+	{
+		m_RoomAcousticInstance.mAudioEngine->setShouldOutputRecording(false);
+	}
+	else
+	{
+		m_RoomAcousticInstance.mAudioEngine->setMetricsFileName(m_RoomAcousticInstance.mMetricsFileName);
+		m_RoomAcousticInstance.mAudioEngine->setShouldOutputRecording(true);
+	}
+
+	if (consoleOptions.isSet("restartCounter") && consoleOptions.value("restartCounter").toInt() > 0)
+	{
+		m_RoomAcousticInstance.mAudioEngine->setRestartsNumber(consoleOptions.value("restartCounter").toInt());
+	}
+	else
+	{
+		size_t playDuration(consoleOptions.value("playDuration").toInt() * 1000);
+		size_t maxSampleDuration(m_RoomAcousticInstance.mAudioEngine->getMaxSamplesDuration());
+
+		if (playDuration >= maxSampleDuration)
+		{
+			playDuration = maxSampleDuration;
+		}
+		QTimer::singleShot(playDuration, this,
+			[this]()
+			{
+				on_PB_RunDemo_clicked();
+				close();
+			}
+		);
 	}
 }
