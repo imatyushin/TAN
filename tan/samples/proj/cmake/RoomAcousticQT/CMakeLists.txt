@@ -124,7 +124,6 @@ set(
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
   ../../../src/common/GpuUtils.cpp
-  ${TAN_ROOT}/utils/common/ConsoleUtility.cpp
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/StringUtility.cpp
   ${TAN_ROOT}/utils/common/RegisterBrowser.cpp
@@ -166,7 +165,6 @@ set(
   ../../../src/common/IWavPlayer.h
   ../../../src/common/IAudio3D.h
 
-  ${TAN_ROOT}/utils/common/ConsoleUtility.h
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/StringUtility.h
   ${TAN_ROOT}/utils/common/RegisterBrowser.h
@@ -276,66 +274,14 @@ if(NOT WIN32)
   target_compile_options(RoomAcousticsQT PUBLIC -mfma)
   target_compile_options(RoomAcousticsQT PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
-    target_compile_options(RoomAcousticsQT PUBLIC -g)
-  endif()
+  #if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+  #endif()
+  target_compile_options(RoomAcousticsQT PUBLIC $<$<CONFIG:Debug>,-g>)
 
   if(NOT APPLE)
     target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
   endif()
 endif()
-
-#
-function(print_target_properties tgt)
-    if(NOT TARGET ${tgt})
-      message("There is no target named '${tgt}'")
-      return()
-    endif()
-
-    get_target_property(target_type ${tgt} TYPE)
-    if(target_type STREQUAL "INTERFACE_LIBRARY")
-        set(PROPERTIES ${CMAKE_WHITELISTED_PROPERTY_LIST})
-    else()
-        set(PROPERTIES ${CMAKE_PROPERTY_LIST})
-    endif()
-
-    foreach (prop ${PROPERTIES})
-        #message ("Checking ${prop}")
-        get_property(propval TARGET ${tgt} PROPERTY ${prop} SET)
-        if (propval)
-            get_target_property(propval ${tgt} ${prop})
-            message ("${tgt} ${prop} = ${propval}")
-        endif()
-    endforeach(prop)
-endfunction(print_target_properties)
-
-#
-print_target_properties(Qt6::qmake)
-
-get_target_property(_qmake_executable Qt6::qmake IMPORTED_LOCATION)
-get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
-
-function(windeployqt target)
-
-    # POST_BUILD step
-    # - after build, we have a bin/lib for analyzing qt dependencies
-    # - we run windeployqt on target and deploy Qt libs
-
-    add_custom_command(TARGET ${target} POST_BUILD
-        COMMAND "${_qt_bin_dir}/windeployqt.exe"         
-                --verbose 1
-                --release
-                --no-svg
-                --no-angle
-                --no-opengl
-                --no-opengl-sw
-                --no-compiler-runtime
-                --no-system-d3d-compiler
-                \"$<TARGET_FILE:${target}>\"
-        COMMENT "Deploying Qt libraries using windeployqt for compilation target '${target}' ..."
-    )
-
-endfunction()
 
 #copy runtime dll to the binary dir
 if(WIN32)
@@ -366,7 +312,27 @@ if(WIN32)
     VERBATIM
     )
 
-  windeployqt(RoomAcousticsQT)
+  get_target_property(QMAKE_BINARY Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+  get_filename_component(QMAKE_BINARY_FOLDER "${QMAKE_BINARY}" DIRECTORY)
+
+  add_custom_command(
+    TARGET RoomAcousticsQT
+    POST_BUILD
+        COMMAND "${QMAKE_BINARY_FOLDER}/windeployqt.exe"
+        #--verbose 1
+        #$<$<CONFIG:Debug>:--debug>
+        #$<$<CONFIG:Release>:--release>
+        $<IF:$<CONFIG:Debug>,--debug,--release>
+        --no-svg
+        --no-opengl
+        --no-opengl-sw
+        --no-compiler-runtime
+        --no-system-d3d-compiler
+        #--no-angle
+        \"$<TARGET_FILE:RoomAcousticsQT>\"
+    )
+
+  #todo: investigate why QWindowsIntegrationPlugin is not set in Qt6, only in Qt5
   #install(
     #  FILES "$<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>"
     #  DESTINATION $<TARGET_FILE_DIR:RoomAcousticsQT>/platforms/
@@ -376,42 +342,11 @@ if(WIN32)
     add_custom_command(
       TARGET RoomAcousticsQT
       POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:RoomAcousticsQT>
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+      #"${fftw_BINARY_DIR}/${CMAKE_BUILD_TYPE}"
+      "${fftw_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>"
+      $<TARGET_FILE_DIR:RoomAcousticsQT>
       VERBATIM
       )
   endif()
-endif()
-
-#copy binaries to autotest unified directory
-set(auto_test_path bin/$<PLATFORM_ID>/$<CONFIGURATION>)
-if(WIN32)
-    add_custom_command(
-        TARGET RoomAcousticsQT
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/$<CONFIGURATION>" "${TAN_ROOT}/${auto_test_path}"
-        VERBATIM
-        )
-elseif(NOT WIN32)
-    add_custom_command(
-        TARGET RoomAcousticsQT
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${${AMF_NAME}_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}/cmake-portaudio-bin" "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Core> "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Gui> "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt5::Widgets> "${TAN_ROOT}/${auto_test_path}"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${RoomAcousticsQT_BINARY_DIR}" "${TAN_ROOT}/${auto_test_path}"
-        VERBATIM
-        )
 endif()

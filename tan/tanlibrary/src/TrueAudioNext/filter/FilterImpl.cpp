@@ -50,10 +50,6 @@ TAN_SDK_LINK AMF_RESULT AMF_CDECL_CALL TANCreateFilter(
 TANFilterImpl::TANFilterImpl(TANContext *pContextTAN) :
     m_pContextTAN(pContextTAN)
 {
-
-    TANCreateFFT(pContextTAN, &m_pFft);
-    m_pFft->Init();
-    m_eqFilter = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -69,10 +65,8 @@ AMF_RESULT  AMF_STD_CALL TANFilterImpl::Terminate()
 
     m_pContextTAN.Release();
 
-    if (m_eqFilter != nullptr){
-        delete []m_eqFilter;
-        m_eqFilter = nullptr;
-    }
+    m_eqFilter.resize(0);
+
     return AMF_OK;
 }
 
@@ -85,7 +79,7 @@ AMF_RESULT  AMF_STD_CALL TANFilterImpl::Init()
     AMF_RETURN_IF_FAILED(TANCreateFFT(m_pContextTAN, &m_pFft));
     AMF_RETURN_IF_FAILED(m_pFft->Init());
 
-    m_eqFilter = new float[1 << (EQ_FILTER_LOG2LEN + 1)]; // array of complex numbers
+    m_eqFilter.resize(1 << (EQ_FILTER_LOG2LEN + 1)); // array of complex numbers
 
 	return AMF_OK;
 }
@@ -116,7 +110,7 @@ AMF_RESULT  AMF_STD_CALL TANFilterImpl::generate10BandEQ(amf_uint32 log2len,
 
     int fftLen = 1 << (EQ_FILTER_LOG2LEN);
 
-    float *impulse = m_eqFilter;
+    float *impulse = &m_eqFilter.front();
     memset(impulse, 0, sizeof(float)* fftLen*2);
     impulse[0] = 1.0;
 

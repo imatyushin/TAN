@@ -3302,7 +3302,7 @@ AMF_RESULT TANConvolutionImpl::ovlNUPProcessCPU(
 		}
 
 		if (advanceOverlap && m_2ndBufCurrentSubBuf == (m_2ndBufSizeMultiple - 1)) {
-			float *fpD, *fpA, *fpB;
+			float *fpD(nullptr), *fpA(nullptr)/*, *fpB*/;
 			fpD = &overlap[iChan][0];
 			fpA = &outSamples[iChan][m_2ndBufSizeMultiple*nSamples];
 			for (int i = 0; i < 2 * m_2ndBufSizeMultiple* nSamples; i++) {

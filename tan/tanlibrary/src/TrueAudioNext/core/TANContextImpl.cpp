@@ -215,6 +215,11 @@ AMF_RESULT amf::TANContextImpl::InitClfft()
     return AMF_OK;
 }
 
+AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenMP(int nThreads)
+{
+    return AMF_NOT_IMPLEMENTED;
+}
+
 #ifndef TAN_NO_OPENCL
 
   #ifndef _WIN32
@@ -319,11 +324,6 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenCL(
     AMF_RETURN_IF_FAILED(InitClfft(), L"Cannot initialize CLFFT");
 
     return AMF_OK;
-}
-
-AMF_RESULT AMF_STD_CALL TANContextImpl::InitOpenMP(int nThreads)
-{
-    return AMF_NOT_IMPLEMENTED;
 }
 
 //-------------------------------------------------------------------------------------------------
