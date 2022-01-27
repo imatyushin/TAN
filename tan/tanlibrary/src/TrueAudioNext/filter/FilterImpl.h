@@ -29,6 +29,8 @@
 #include "public/include/components/Component.h"//AMF
 #include "public/common/PropertyStorageExImpl.h"
 
+#include <vector>
+
 #define MAX_CACHE_POWER 64
 
 #define EQ_FILTER_LOG2LEN 13
@@ -72,8 +74,8 @@ namespace amf
         TANContextPtr               m_pContextTAN;
         AMFCriticalSection          m_sect;
 
-        TANFFTPtr m_pFft;
+        TANFFTPtr                   m_pFft;
 
-        float *m_eqFilter;
+        std::vector<float>          m_eqFilter;
     };
 } //amf

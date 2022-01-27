@@ -26,8 +26,8 @@ message("Start OpenMP search...")
 find_package(OpenMP)
 
 if(
-  OpenMP_FOUND 
-  AND 
+  OpenMP_FOUND
+  AND
   (
     (OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
     #on some Windows machines OMP_INCLUDE_DIR and OpenMP_CXX_LIBRARIES
@@ -336,9 +336,10 @@ if(NOT WIN32)
   target_compile_options(TrueAudioNext PUBLIC -mfma)
   target_compile_options(TrueAudioNext PUBLIC -msse4.2)
 
-  if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
-    target_compile_options(TrueAudioNext PUBLIC -g)
-  endif()
+  #if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+  #  target_compile_options(TrueAudioNext PUBLIC -g)
+  #endif()
+  target_compile_options(TrueAudioNext PUBLIC $<$<CONFIG:Debug>,-g>)
 
   if(NOT APPLE)
     target_compile_options(TrueAudioNext PUBLIC -Wpsabi)

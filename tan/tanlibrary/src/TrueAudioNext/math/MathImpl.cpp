@@ -574,8 +574,8 @@ AMF_RESULT TANMathImpl::ComplexMultiplyAccumulate(
 	{
 		if (useAVX256) {
 			// use AVX and FMA intrinsics to process 8 samples per pass
-			register __m256 arReg, aiReg, brReg, biReg, crReg, ciReg, zero;
-			register __m128 t1Reg, t2Reg;
+			register __m256 arReg, aiReg, brReg, biReg, crReg, ciReg/*, zero*/;
+			//register __m128 t1Reg, t2Reg;
 			_mm256_zeroall();
 			///tmp = _mm256_set1_ps(hf);
 
