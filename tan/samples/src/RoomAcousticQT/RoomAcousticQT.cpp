@@ -687,10 +687,10 @@ TANConverterPtr RoomAcousticQT::getTANConverter()
 
 void RoomAcousticQT::saveInitTime(const size_t &elapsedTime)
 {
-	std::wstring outputStr(AMF_UNICODE("Restart counter: "));
+	std::wstring outputStr(AMF_UNICODE("Init time: "));
 
 	outputStr.append(std::to_wstring(elapsedTime));
-	outputStr.append(AMF_UNICODE(" /n"));
+	outputStr.append(std::to_wstring('\n'));
 
 	if (!mMetricsFileName.empty())
 	{
