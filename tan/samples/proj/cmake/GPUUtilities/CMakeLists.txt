@@ -84,7 +84,7 @@ if(NOT WIN32)
 
   #if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
   #endif()
-  target_compile_options(GPUUtilities PUBLIC $<$<CONFIG:Debug>,-g>)
+  target_compile_options(GPUUtilities PUBLIC "$<$<CONFIG:Debug>:-g>")
 
   if(NOT APPLE)
     target_compile_options(GPUUtilities PUBLIC -Wpsabi)
