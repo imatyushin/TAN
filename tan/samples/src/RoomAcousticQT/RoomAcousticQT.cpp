@@ -690,7 +690,7 @@ void RoomAcousticQT::saveInitTime(const size_t &elapsedTime)
 	std::wstring outputStr(AMF_UNICODE("Init time: "));
 
 	outputStr.append(std::to_wstring(elapsedTime));
-	outputStr.append(std::to_wstring('\n'));
+	outputStr += (AMF_UNICODE('\n'));
 
 	if (!mMetricsFileName.empty())
 	{

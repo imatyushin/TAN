@@ -352,3 +352,12 @@ if(WIN32)
       )
   endif()
 endif()
+
+#copy binaries to autotest unified directory
+set(auto_test_path ${TAN_ROOT}/bin/$<PLATFORM_ID>/$<CONFIGURATION>)
+add_custom_command(
+    TARGET RoomAcousticsQT
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:RoomAcousticsQT> "${auto_test_path}"
+    VERBATIM
+    )

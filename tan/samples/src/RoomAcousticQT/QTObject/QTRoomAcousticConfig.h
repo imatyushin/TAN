@@ -74,7 +74,7 @@ private slots:
 public:
 	RoomAcousticQTConfig(QWidget *parent = 0);
 	~RoomAcousticQTConfig();
-	void RoomAcousticQTConfig::Init(const bool &consoleMode = false);
+	void Init(const bool &consoleMode = false);
 
 	QCommandLineParser consoleOptions;
 
