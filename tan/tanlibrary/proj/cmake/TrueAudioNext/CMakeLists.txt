@@ -339,7 +339,7 @@ if(NOT WIN32)
   #if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
   #  target_compile_options(TrueAudioNext PUBLIC -g)
   #endif()
-  target_compile_options(TrueAudioNext PUBLIC $<$<CONFIG:Debug>,-g>)
+  target_compile_options(TrueAudioNext PUBLIC "$<$<CONFIG:Debug>:-g>")
 
   if(NOT APPLE)
     target_compile_options(TrueAudioNext PUBLIC -Wpsabi)
