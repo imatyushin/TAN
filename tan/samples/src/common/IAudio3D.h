@@ -37,6 +37,7 @@
 
 #include <memory>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <array>
 #include "public/common/TraceAdapter.h"         //AMF
