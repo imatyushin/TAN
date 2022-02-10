@@ -47,13 +47,13 @@
 #endif
 
 #if defined(DEFINE_AMD_OPENCL_EXTENSION)
-
-typedef union
-{
-    struct { cl_uint type; cl_uint data[5]; } raw;
-    struct { cl_uint type; cl_uchar unused[17]; cl_uchar bus; cl_uchar device; cl_uchar function; } pcie;
-} cl_device_topology_amd;
-
+    #ifndef cl_device_topology_amd
+        typedef union
+        {
+            struct { cl_uint type; cl_uint data[5]; } raw;
+            struct { cl_uint type; cl_uchar unused[17]; cl_uchar bus; cl_uchar device; cl_uchar function; } pcie;
+        } cl_device_topology_amd;
+    #endif 
 #endif
 
 /* To Do: Check for GPU device not used by display....
