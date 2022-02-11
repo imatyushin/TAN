@@ -333,7 +333,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
                     &status
                     );
 
-                PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue1, 64);
+                //PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue1, 64);
             }
 
             //HACK out for test
