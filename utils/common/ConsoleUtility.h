@@ -4,4 +4,4 @@
 #include <QtWidgets/QApplication>
 #include "QTRoomAcousticConfig.h"
 
-void initFromCommandLine(QApplication& application, QCommandLineParser& configWindow);
+bool initFromCommandLine(QApplication& application, QCommandLineParser& configWindow);

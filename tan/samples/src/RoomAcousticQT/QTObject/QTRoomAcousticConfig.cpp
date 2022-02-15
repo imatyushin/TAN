@@ -1683,10 +1683,10 @@ void RoomAcousticQTConfig::runInConsole()
 	}
 	else
 	{
-		size_t playDuration(consoleOptions.value("playDuration").toInt() * 1000);
+		size_t playDuration(consoleOptions.value("playDuration").toInt());
 		size_t maxSampleDuration(m_RoomAcousticInstance.mAudioEngine->getMaxSamplesDuration());
 
-		if (playDuration >= maxSampleDuration)
+		if (playDuration > maxSampleDuration)
 		{
 			playDuration = maxSampleDuration;
 		}

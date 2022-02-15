@@ -31,9 +31,8 @@ int main(int argc, char *argv[])
 
 	RoomAcousticQTConfig configWindow;
 
-	if (application.arguments().count() >= 2)
+	if (application.arguments().count() >= 2 && initFromCommandLine(application, configWindow.consoleOptions))
 	{
-		initFromCommandLine(application, configWindow.consoleOptions);
 		configWindow.Init(true);
 	}
 	else
