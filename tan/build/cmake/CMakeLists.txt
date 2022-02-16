@@ -137,3 +137,4 @@ endif()
 #add_subdirectory(../../tests/proj/cmake/TanDeviceResourcesTest cmake-TanDeviceResourcesTest-bin)
 
 add_subdirectory(../../tests/proj/cmake/TanCPUTest cmake-TanCPUTest-bin)
+add_subdirectory(${TAN_ROOT}/utils/proj/cmake/TANWavCompare cmake-TANWavCompare-bin)
