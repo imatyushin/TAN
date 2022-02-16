@@ -64,18 +64,6 @@
 
 bool Audio3DOpenCL::mUseIntrinsics = true;//InstructionSet::AVX() && InstructionSet::FMA();
 
-#ifndef ERROR_MESSAGE
-
-#ifdef _WIN32
-#define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
-#else
-#define ERROR_MESSAGE(message) __asm__("int3"); std::cerr << "Error: " << message << std::endl
-#endif
-
-#endif
-
-#define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
-
 unsigned Audio3DOpenCL::processThreadProc(void * ptr)
 {
     Audio3DOpenCL *pAudio3D = static_cast<Audio3DOpenCL*>(ptr);
