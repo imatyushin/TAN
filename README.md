@@ -79,7 +79,7 @@ AMD TrueAudio Next is a software development kit for GPU accelerated and multi-c
   - [generate-mac-amf-metal.sh] - generates Makefile, uses AMF type of configuration, uses Metal runtime, FFTW library will be used for FFT calclulation via CPU
   - [generate-mac-amf-metal-nofftw.sh] - generates Makefile, uses AMF type of configuration, uses Metal runtime, no FFTW library will be used)
 
-  Please not that .sh files could not have an executable property after cloning git on Unixes. In that case yould run command [chmod +x ./*.sh]
+  Please note that .sh files could not have an executable property after cloning git on Unixes. In that case yould run command [chmod +x ./*.sh]
 
 9. After CMake will generates neccessary projects or Makefiles you could open generated project file in the related IDE (Visual Studio/XCode/...) or run build process for Makefile. To run demanded build process for Makefiles the are several already prepared runners existing in tan/build/cmake directory:
 
