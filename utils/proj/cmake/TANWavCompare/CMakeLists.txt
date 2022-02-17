@@ -54,13 +54,11 @@ else()
   target_link_libraries(TANWavCompare ${AMF_LOADER_NAME})
 endif()
 
-#if(WIN32)
-#  add_custom_command(
-#    TARGET TANWavCompare
-#    POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory
-#    "${TANWAVCOMPARE_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>"
-#    $<TARGET_FILE_DIR:TANWavCompare>
-#    VERBATIM
-#    )
-#endif()
+#copy binaries to autotest unified directory
+set(auto_test_path ${TAN_ROOT}/bin/$<PLATFORM_ID>/$<CONFIGURATION>)
+add_custom_command(
+    TARGET TANWavCompare
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:TANWavCompare> "${auto_test_path}"
+    VERBATIM
+    )
