@@ -21,57 +21,47 @@
 //
 #include "TANWavCompare.h"
 
-double calculateCorrelation(const std::vector<uint8_t> &firstData, const std::vector<uint8_t>& secondData)
+double calculateCorrelation(const std::vector<uint8_t>& firstData, const std::vector<uint8_t>& secondData)
 {
-
     double correlation(0);
-    size_t data_size = firstData.size();
+    size_t data_size(firstData.size());
 
-    if ((data_size > 1) && (data_size == secondData.size()))
+    if (data_size > 1 && data_size == secondData.size())
     {
-        // Spearman correlation coefficient. x - one element in firstData, y in secondData
-        std::vector<uint8_t> multXY;
-        std::vector<uint8_t> squareX;
-        std::vector<uint8_t> squareY;
+        double sumX = 0;
+        double sumY = 0;
+        double sumXmultY = 0;
+        double sumSquareX = 0;
+        double sumSquareY = 0;
 
-        double sumMultXY(0);
-        double sumSquareX(0);
-        double sumSquareY(0);
-        double sumX = std::accumulate(firstData.begin(), firstData.end(), 0);
-        double sumY = std::accumulate(secondData.begin(), secondData.end(), 0);
+        for (int idx = 0; idx < data_size; idx++)
+        {
+            uint8_t elementInFirstData = firstData.at(idx);
+            uint8_t elementInSecondData = secondData.at(idx);
 
+            sumX += elementInFirstData;
+            sumY += elementInSecondData;
+            sumXmultY += elementInFirstData * elementInSecondData;
+            sumSquareX += elementInFirstData * elementInFirstData;
+            sumSquareY += elementInSecondData * elementInSecondData;
+        }
 
-        std::transform(firstData.begin(), firstData.end(),
-            secondData.begin(),
-            std::back_inserter(multXY),
-            [](int i, int j) {return i * j; });
-
-        std::transform(firstData.begin(), firstData.end(),
-            std::back_inserter(squareX),
-            [](int i) {return pow(i, 2); });
-
-        std::transform(secondData.begin(), secondData.end(),
-            std::back_inserter(squareY),
-            [](int i) {return pow(i, 2); });
-
-        sumMultXY = std::accumulate(multXY.begin(), multXY.end(), 0);
-
-        sumSquareX = std::accumulate(squareX.begin(), squareX.end(), 0);
-
-        sumSquareY = std::accumulate(squareY.begin(), squareY.end(), 0);
-
-        correlation = (data_size * sumMultXY - sumX * sumY)
-            / (std::abs(std::pow(data_size * sumSquareX - std::pow(sumX, 2) * (data_size * sumSquareY - std::pow(sumY, 2)), 0.5)));
+        correlation = abs((data_size * sumXmultY - sumX * sumY)
+            / std::sqrt((data_size * sumSquareX - sumX * sumX) * (data_size * sumSquareY - sumY * sumY)));
     }
-    
-   return correlation;
+    else
+    {
+        std::cerr << "TANWavCompare error: incorrect array size!" << std::endl;
+    }
+    return correlation * 100;
 }
 
-int readWavFile(WavContent *content, const std::string &fileName)
+bool readWavFile(WavContent *content, const std::string &fileName)
 {
     // todo find out mBufferSizeInBytes
     uint32_t mBufferSizeInSamples = 0;
     uint32_t mBufferSizeInBytes = 0;
+    bool result(true);
 
     if (content->ReadWaveFile(fileName))
     {
@@ -81,7 +71,7 @@ int readWavFile(WavContent *content, const std::string &fileName)
                 << "TANWavCompare error: file " << fileName << " has an unsupported frequency! Currently only "
                 << std::to_string(48000) << " frequency is supported!" << std::endl;
 
-            return -1;// AMF_FAIL;
+            result = false;
         }
 
         bool converted = content->Convert2Stereo16Bit();
@@ -92,7 +82,7 @@ int readWavFile(WavContent *content, const std::string &fileName)
                 << "TANWavCompare error: file " << fileName << " has an unsupported bits per sample count. Currently only "
                 << std::to_string(16) << " bits is supported!" << std::endl;
 
-            return -1;// AMF_FAIL;
+            result = false;
         }
         else if (!converted && content->ChannelsCount != STEREO_CHANNELS_COUNT)
         {
@@ -100,7 +90,7 @@ int readWavFile(WavContent *content, const std::string &fileName)
                 << "TANWavCompare error: file " << fileName
                 << " is not a stereo file. Currently only stereo files are supported!" << std::endl;
 
-            return -1;// AMF_FAIL;
+            result = false;
         }
 
         if (content->SamplesCount < mBufferSizeInSamples)
@@ -109,7 +99,7 @@ int readWavFile(WavContent *content, const std::string &fileName)
                 << "TANWavCompare error: file "
                 << fileName << " are too short (SamplesCount < single buffer size)." << std::endl;
 
-            return -1;// AMF_FAIL;
+            result = false;
         }
 
         //make mono
@@ -119,68 +109,70 @@ int readWavFile(WavContent *content, const std::string &fileName)
     {
         std::cerr << "TANWavCompare error: could not load WAV data from file " << fileName << std::endl;
 
-        return -1;// AMF_FAIL;
+        result = false;
     }
+
+    return result;
 }
-
-
 
 int main(int argc, char* argv[])
 {
+    int result = ArgumentsError;
+
     if (argc > 4)
     {
         std::cerr << "TANWavCompare error: too many parameters" << std::endl;
-        return EXIT_FAILURE;
+        result = ArgumentsError;
     }
-
-    if (argc < 4)
+    else if (argc < 4)
     {
         std::cerr << "TANWavCompare error: not enough parameters" << std::endl;
-        return EXIT_FAILURE;
+        result = ArgumentsError;
     }
+    else
+    {
+        std::string firstWavFilePath(argv[1]);
+        std::string secondWavFilePath(argv[2]);
+        uint32_t correlationPassRate(0);
 
-    //param 1 - First wav filename
-    std::string firstWavFilePath(argv[1]);
-    //param 2 - Second wav filename
-    std::string secondWavFilePath(argv[2]);
-    //param 3 - max correlation percent
-    uint32_t passRate(0);
+        try
+        {
+            correlationPassRate = std::stoul(argv[3]);
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "TANWavCompare error: invalid parameter - passRate, " << e.what() << std::endl;
+            result = ArgumentsError;
+        }
 
-    try
-    {
-        passRate = std::stoul(argv[3]);
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "TANWavCompare error: invalid parameter - passRate!" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    WavContent firstFile;
-    WavContent secondFile;
-    if (!readWavFile(&firstFile, firstWavFilePath))
-    {
-        std::cerr << "TANWavCompare error: invalid parameter - firstFile!" << std::endl;
-        return EXIT_FAILURE;
-    }
-    if (!readWavFile(&secondFile, secondWavFilePath))
-    {
-        std::cerr << "TANWavCompare error: invalid parameter - secondFile!" << std::endl;
-        return EXIT_FAILURE;
-    }
+        WavContent firstFile;
+        WavContent secondFile;
+        if (!readWavFile(&firstFile, firstWavFilePath))
+        {
+            std::cerr << "TANWavCompare error: invalid parameter - firstFile!" << std::endl;
+            result = FirstFileError;
+        }
+        if (!readWavFile(&secondFile, secondWavFilePath))
+        {
+            std::cerr << "TANWavCompare error: invalid parameter - secondFile!" << std::endl;
+            result = SecondFileError;
+        }
     
-    if (!firstFile.IsSameFormat(secondFile))
-    {
-        std::cerr
-            << "Error: file " << secondWavFilePath.c_str()
-            << " has a different format with firstFile." << std::endl;
+        if (firstFile.IsSameFormat(secondFile))
+        {
+            double correlation(calculateCorrelation(firstFile.Data, secondFile.Data));
 
+            std::cout << "TANWavCompare result: correlation = " << correlation << "%" << std::endl;
+            (correlation < correlationPassRate) ? result = CorrelationLow : result = CorrelationPass;
+        }
+        else
+        {
+            std::cerr
+                << "Error: file " << secondWavFilePath.c_str()
+                << " has a different format with firstFile." << std::endl;
+        }
     }
 
-
-    std::cout
-        << "TANWavCompare result: correlation = "
-        << calculateCorrelation(firstFile.Data, secondFile.Data) << std::endl;
-
-    return EXIT_SUCCESS;
+    std::cout << "TANWavCompare result = " << result << std::endl;
+    return result;
 }

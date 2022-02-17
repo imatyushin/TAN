@@ -22,13 +22,24 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 #include <numeric>
+#include <cstdint>
 
 #include "FileUtility.h"
 #include "wav.h"
 
+enum returnCode
+{
+	CorrelationPass,
+	FirstFileError,
+	SecondFileError,
+	IncorrectFilesFormat,
+	CorrelationLow,
+	ArgumentsError
+};
+
 double calculateCorrelation(const std::vector<uint8_t>& firstData, const std::vector<uint8_t>& secondData);
-int readWavFile(WavContent* content, const std::string& fileName);
+bool readWavFile(WavContent* content, const std::string& fileName);
 
