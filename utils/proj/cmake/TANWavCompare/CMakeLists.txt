@@ -55,7 +55,7 @@ else()
 endif()
 
 #copy binaries to autotest unified directory
-set(auto_test_path ${TAN_ROOT}/bin/$<PLATFORM_ID>/$<CONFIGURATION>)
+set(auto_test_path ${TAN_ROOT}/bin/$<PLATFORM_ID>/$<CONFIGURATION>/TANWavCompare)
 add_custom_command(
     TARGET TANWavCompare
     POST_BUILD
