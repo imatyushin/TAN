@@ -428,19 +428,6 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    /*PrintAMFArrayReduced(
-        "::UpdateResponseTD-input[0]",
-        ppBuffer[0],
-        m_pContextTAN->GetAMFConvQueue(),
-        numOfSamplesToProcess * sizeof(float)
-        );
-    PrintAMFArrayReduced(
-        "::UpdateResponseTD-input[1]",
-        ppBuffer[1],
-        m_pContextTAN->GetAMFConvQueue(),
-        numOfSamplesToProcess * sizeof(float)
-        );*/
-
     // process
     TANSampleBuffer sampleBuffer;
     sampleBuffer.ReferAMFChannels(ppBuffer);
@@ -594,8 +581,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             L"Failed reading the IR AMF buffers"
                             );
 #endif
-
-                        //PrintArray(ES + "m_ovlAddLocalInBuffs[" + std::to_string(n) + "]", m_ovlAddLocalInBuffs[n].data(), numOfSamplesToProcess * sizeof(float), 64);
                     }
 
                     //pBuffer.Release();
