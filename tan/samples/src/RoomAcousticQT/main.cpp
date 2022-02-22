@@ -1,5 +1,6 @@
 #include "QTRoomAcousticConfig.h"
 #include <QtWidgets/QApplication>
+#include "ConsoleUtility.h"
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +30,16 @@ int main(int argc, char *argv[])
 	application.setWindowIcon(QIcon(":/images/Resources/RoomAcousticsNew.png"));
 
 	RoomAcousticQTConfig configWindow;
-	configWindow.Init();
+
+	if (application.arguments().count() >= 2 && initFromCommandLine(application, configWindow.consoleOptions))
+	{
+		configWindow.Init(true);
+	}
+	else
+	{
+		configWindow.Init();
+	}
+
 
 	int returnCode(-1);
 
