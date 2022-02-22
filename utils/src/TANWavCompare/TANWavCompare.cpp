@@ -162,7 +162,8 @@ int main(int argc, char* argv[])
         {
             double correlation(calculateCorrelation(firstFile.Data, secondFile.Data));
 
-            std::cout << "TANWavCompare result: correlation = " << correlation << "%" << std::endl;
+
+            std::cout << "TANWavCompare result: correlation = " << std::setprecision(10) << correlation << "%" << std::endl;
             (correlation < correlationPassRate) ? result = CorrelationLow : result = CorrelationPass;
         }
         else
