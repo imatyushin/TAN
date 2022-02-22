@@ -11,8 +11,8 @@ void cacheFFTWplans(uint32_t maxCachePower, const std::string & path)
 	int minL2N = 4;
 	int maxL2N = maxCachePower;
 
-	float * ppBufferInput = new float[(1 << maxL2N)]; // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
-	float * ppBufferOutput = new float[(1 << maxL2N)];  // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
+	std::vector<float> ppBufferInput(1 << maxL2N); // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
+	std::vector<float> ppBufferOutput(1 << maxL2N);  // _aligned_malloc(sizeof(float) * (1 << maxL2N), 32);
 
 	std::vector<fftwf_plan> fwdPlans(maxCachePower, nullptr);
 	std::vector<fftwf_plan> bwdPlans(maxCachePower, nullptr);
@@ -23,14 +23,14 @@ void cacheFFTWplans(uint32_t maxCachePower, const std::string & path)
 
 	for (int log2len = minL2N; log2len < maxL2N; log2len++)
 	{
-		std::cout << "FFTWCache: generate for power " << log2len << "..." << std::endl;
+		std::cout << "FFTWCache: generates for power " << log2len << "..." << std::endl;
 
 		uint32_t fftLength = 1 << log2len;
 
-		fftwf_complex * in = (fftwf_complex *)ppBufferInput;
-		fftwf_complex * out = (fftwf_complex *)ppBufferOutput;
+		fftwf_complex * in = (fftwf_complex *)&ppBufferInput.front();
+		fftwf_complex * out = (fftwf_complex *)&ppBufferOutput.front();
 
-		fftw_iodim iod;
+		fftw_iodim iod = {0};
 		iod.n = fftLength;
 		iod.is = 1;
 		iod.os = 1;
@@ -43,10 +43,8 @@ void cacheFFTWplans(uint32_t maxCachePower, const std::string & path)
 		fwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, in, out, FFTW_FORWARD, FFTW_MEASURE);
 		bwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, in, out, FFTW_BACKWARD, FFTW_MEASURE);
 	}
-	fftwf_export_wisdom_to_filename(path.c_str());
 
-	delete(ppBufferInput); // _aligned_free(ppBufferInput);
-	delete(ppBufferOutput); // _aligned_free(ppBufferOutput);
+	fftwf_export_wisdom_to_filename(path.c_str());
 }
 
 int main(int argc, char* argv[])

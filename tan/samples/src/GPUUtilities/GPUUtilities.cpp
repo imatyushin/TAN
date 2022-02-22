@@ -38,8 +38,8 @@
 #include <CL/cl_ext.h>
 
 #ifndef _WIN32
-  #define sscanf_s sscanf
-  #define sprintf_s sprintf
+    #define sscanf_s sscanf
+    #define sprintf_s sprintf
 #endif
 
 #ifndef CL_DEVICE_TOPOLOGY_AMD
@@ -53,7 +53,7 @@
             struct { cl_uint type; cl_uint data[5]; } raw;
             struct { cl_uint type; cl_uchar unused[17]; cl_uchar bus; cl_uchar device; cl_uchar function; } pcie;
         } cl_device_topology_amd;
-    #endif 
+    #endif
 #endif
 
 /* To Do: Check for GPU device not used by display....
