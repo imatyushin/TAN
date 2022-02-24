@@ -732,7 +732,6 @@ int Audio3DAMF::ProcessProc()
     std::vector<uint8_t> extractBuffer(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t));
     std::vector<int16_t> outputBuffer(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE);
 
-    //FifoBuffer recFifo(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * sizeof(int16_t));
     Fifo recordFifo;
     recordFifo.Reset(STEREO_CHANNELS_COUNT * FILTER_SAMPLE_RATE * mWavFiles[0].GetSampleSizeInBytes());
 
@@ -747,13 +746,6 @@ int Audio3DAMF::ProcessProc()
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
 
-    /*std::cout << std::endl << "a1 wav:" << std::endl;
-    for(int i(0); i < 1024; ++i)
-    {
-        std::cout << mWavFiles[0].Data[i] << " ";
-    }
-    std::cout << std::endl;*/
-
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
         int16_t *data16Bit((int16_t *)&(mWavFiles[file].Data[0]));
@@ -766,13 +758,6 @@ int Audio3DAMF::ProcessProc()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
-
-    /*std::cout << std::endl << "a1 prepared:" << std::endl;
-    for(int i(0); i < mBufferSizeInBytes; ++i)
-    {
-        std::cout << short(pWaves[0][i]) << " ";
-    }
-    std::cout << std::endl;*/
 
     auto *processed = &mStereoProcessedBuffer.front();
 
@@ -867,15 +852,6 @@ int Audio3DAMF::ProcessProc()
                 //((timerValue - previousTimerValue) * 1000 > 0.7 * deltaTimeInMs)
             )
             {
-                /*
-                std::cout << std::endl << "a1 out:" << std::endl;
-                for(int i(0); i < mBufferSizeInBytes; ++i)
-                {
-                    std::cout << short(outputBufferData[i]) << " ";
-                }
-                std::cout << std::endl;
-                */
-
                 auto bytesPlayed = mPlayer->Play(outputBufferData, bytes2Play, false);
                 bytesTotalPlayed += bytesPlayed;
 
