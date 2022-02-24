@@ -4,6 +4,6 @@
 [submodule "amfOpen"]
 	path = amfOpen
 	url = https://github.com/amfdev/AMF
-[submodule "thirdparty/MetalFFT"]
-	path = thirdparty/MetalFFT
-	url = https://github.com/amfdev/MetalFFT.git
+#[submodule "thirdparty/MetalFFT"]
+#	path = thirdparty/MetalFFT
+#	url = https://github.com/amfdev/MetalFFT.git

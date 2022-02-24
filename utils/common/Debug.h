@@ -16,7 +16,7 @@
 #include <atomic>
 #include <mutex>
 
-#define SILENT
+//#define SILENT
 
 #ifndef CLQUEUE_REFCOUNT
 #define CLQUEUE_REFCOUNT( clqueue ) \
@@ -106,41 +106,18 @@ static size_t GetTime()
     return size_t((timer.Sample() - start) * 100);
 }
 
-struct AmfMutex
-{
-    amf_handle Handle = nullptr;
-
-    AmfMutex(amf_handle handle):
-        Handle(handle)
-    {
-        int i = 0;
-        ++i;
-    }
-
-    inline void lock()
-    {
-        amf_wait_for_mutex(Handle, AMF_INFINITE);
-    }
-
-    inline void unlock()
-    {
-        amf_release_mutex(Handle);
-    }
-};
-
-//static std::mutex & GetLockMutex()
-static AmfMutex & GetLockMutex()
+static amf::AMFMutex & GetLockMutex()
 {
     //static std::mutex lockMutex;
-    static AmfMutex lockMutex = amf_create_mutex(
+    static amf::AMFMutex lockMutex(
         false,
 #ifndef TAN_NO_OPENCL
-        L"/TAN-CL"
+        L"/TAN-CL2"
 #else
   #ifdef ENABLE_METAL
 		L"/TAN-AMF-METAL"
   #else
-		L"/TAN-AMF-CL"
+		L"/TAN-AMF-CL2"
   #endif
 #endif
         );
@@ -166,7 +143,7 @@ static void PrintDebug(const std::string & hint)
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+    const amf::AMFLock lock(&GetLockMutex());
 
     PrintThreadInfo() << hint << std::endl;
 }
@@ -177,7 +154,7 @@ static void PrintArray(const std::string & hint, const void * array, size_t coun
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+    const amf::AMFLock lock(&GetLockMutex());
 
     if(!skipFormat)
     {
@@ -251,7 +228,7 @@ static void PrintArrayReduced(const std::string & hint, const void * array, size
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+    const amf::AMFLock lock(&GetLockMutex());
 
     PrintArrayReducedImplementation(hint, array, sizeInBytes);
 }
@@ -299,7 +276,7 @@ static void PrintCLArrayReduced(const std::string & hint, cl_mem array, cl_comma
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+    const amf::AMFLock lock(&GetLockMutex());
 
     std::vector<cl_uchar> out(sizeInBytes);
 
@@ -333,7 +310,7 @@ static void PrintCLArrayWithOffset(const char * hint, cl_mem array, cl_command_q
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+    const amf::AMFLock lock(&GetLockMutex());
 
     PrintThreadInfo() << hint << ": " << count << std::endl;
 
@@ -409,7 +386,7 @@ static void PrintAMFArrayReduced(const std::string & hint, const amf::AMFBuffer 
     return;
 #endif
 
-    const std::lock_guard<AmfMutex> lock(GetLockMutex());
+    const amf::AMFLock lock(&GetLockMutex());
 
     std::vector<uint8_t> out(sizeInBytes);
 

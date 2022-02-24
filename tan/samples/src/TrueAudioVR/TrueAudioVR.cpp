@@ -1520,14 +1520,16 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     status |= clSetKernelArg(m_kernelFill, 1, sizeof(cl_mem), &floatResponse);
     status |= clEnqueueNDRangeKernel(m_cmdQueue, m_kernelFill, 1, NULL, &m_globaSizeFill, &localSize, 0, NULL, NULL);
 
-    //PrintCLArrayReduced("m_pResponse 2krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
-    //PrintCLArrayReduced("floatResponse 2krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
+    PrintCLArrayReduced("m_pResponse 2krn", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
+    PrintCLArrayReduced("floatResponse 2krn", floatResponse, m_cmdQueue, responseLength * sizeof(float));
 
     AMF_RETURN_IF_CL_FAILED(status, L"Error: generateRoomResponseGPU failed!");
 
     return AMF_OK;
 }
+
 #else
+
 AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
     const MonoSource & sound,
     const RoomDefinition & room,
@@ -1645,8 +1647,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
         mKernelFill->Enqueue(1, nullptr, &m_globaSizeFill, &localSize)
         );
 
-    //PrintAMFArrayReduced("mResponse krn2", mResponse, mCompute, responseLength * sizeof(float));
-    //PrintAMFArrayReduced("floatResponse krn2", floatResponse, mCompute, responseLength * sizeof(float));
+    PrintAMFArrayReduced("mResponse krn2", mResponse, mCompute, responseLength * sizeof(float));
+    PrintAMFArrayReduced("floatResponse krn2", floatResponse, mCompute, responseLength * sizeof(float));
 
     return AMF_OK;
 }
@@ -1726,6 +1728,8 @@ AMF_RESULT TrueAudioVRimpl::generateRoomResponseGPU(
 
     mCompute->FinishQueue();
 #endif
+
+    PrintArrayReduced("response", response, responseLength * sizeof(float));
 
 	return AMF_OK;
 }

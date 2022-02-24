@@ -45,6 +45,7 @@
 #endif
 
 #include <tuple>
+#include <cstring>
 
 #define AMF_FACILITY L"TANConvolutionImpl"
 
@@ -428,19 +429,6 @@ AMF_RESULT AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
     AMF_RETURN_IF_FALSE(m_initialized, AMF_NOT_INITIALIZED);
     AMF_RETURN_IF_FALSE(ppBuffer != NULL, AMF_INVALID_ARG, L"pBuffer == NULL");
 
-    /*PrintAMFArrayReduced(
-        "::UpdateResponseTD-input[0]",
-        ppBuffer[0],
-        m_pContextTAN->GetAMFConvQueue(),
-        numOfSamplesToProcess * sizeof(float)
-        );
-    PrintAMFArrayReduced(
-        "::UpdateResponseTD-input[1]",
-        ppBuffer[1],
-        m_pContextTAN->GetAMFConvQueue(),
-        numOfSamplesToProcess * sizeof(float)
-        );*/
-
     // process
     TANSampleBuffer sampleBuffer;
     sampleBuffer.ReferAMFChannels(ppBuffer);
@@ -594,8 +582,6 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             L"Failed reading the IR AMF buffers"
                             );
 #endif
-
-                        //PrintArray(ES + "m_ovlAddLocalInBuffs[" + std::to_string(n) + "]", m_ovlAddLocalInBuffs[n].data(), numOfSamplesToProcess * sizeof(float), 64);
                     }
 
                     //pBuffer.Release();
@@ -637,7 +623,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                      }
                 }
 
-                for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+                /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
                 {
                     for(int channel = 0; channel < m_iChannels; ++channel)
                     {
@@ -648,7 +634,7 @@ AMF_RESULT  AMF_STD_CALL TANConvolutionImpl::UpdateResponseTD(
                             channel
                             );
                     }
-                }
+                }*/
             }
         break;
 
@@ -2041,7 +2027,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
             }
         }
 
-        for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+        /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
         {
             for(int channel = 0; channel < m_iChannels; ++channel)
             {
@@ -2052,7 +2038,7 @@ AMF_RESULT TANConvolutionImpl::allocateBuffers()
                     channel
                     );
             }
-        }
+        }*/
 
         break;
 
@@ -2623,8 +2609,8 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
             continue;
         }
 
-        TickCounter all("UpdateThreadProc");
-        all.Restart();
+        //TickCounter all("UpdateThreadProc");
+        //all.Restart();
 
         // Restart accumulation.
         {
@@ -2663,7 +2649,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
 
                 //TICK_COUNTER("FFTO");
 
-                for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+                /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
                 {
                     for(int channel = 0; channel < m_iChannels; ++channel)
                     {
@@ -2674,7 +2660,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                             channel
                             );
                     }
-                }
+                }*/
 
                 float **filter = m_FilterState[m_idxUpdateFilter].m_Filter;
                 float **overlap = m_FilterState[m_idxUpdateFilter].m_Overlap;
@@ -2688,7 +2674,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                     )
                     );
 
-                for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+                /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
                 {
                     for(int channel = 0; channel < m_iChannels; ++channel)
                     {
@@ -2699,7 +2685,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                             channel
                             );
                     }
-                }
+                }*/
 
                 //// Copy data to the new slot, as this channel can be still processed (user doesn't
                 //// pass Stop flag to Process() method) and we may start doing cross-fading.
@@ -2714,7 +2700,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                     memcpy(overlap[channelId], ppOldOverlap[channelId], m_length * sizeof(float));
                 }
 
-                for(int filter = 0; filter < N_FILTER_STATES; ++filter)
+                /*for(int filter = 0; filter < N_FILTER_STATES; ++filter)
                 {
                     for(int channel = 0; channel < m_iChannels; ++channel)
                     {
@@ -2725,7 +2711,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                             channel
                             );
                     }
-                }
+                };*/
             }
             break;
 
@@ -2866,7 +2852,7 @@ void TANConvolutionImpl::UpdateThreadProc(AMFThread *pThread)
                 RETURN_IF_FALSE(false, ret, AMF_NOT_IMPLEMENTED);
         }
 
-        all.Print();
+        //all.Print();
 
         m_updateFinishedProcessing.SetEvent();
 

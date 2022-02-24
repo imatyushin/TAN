@@ -159,6 +159,7 @@ AMF_RESULT AMF_STD_CALL TANContextImpl::Terminate()
     m_clfftInitialized = false;
 
     // Terminate AMF contexts.
+    printf("todo: fix me: why queues is equal?");
     mGeneralComputeAMF = nullptr;
     mConvolutionComputeAMF = nullptr;
 

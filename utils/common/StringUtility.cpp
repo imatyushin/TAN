@@ -51,7 +51,7 @@ std::string toUpper(const std::string & inputString)
 {
 	auto copy(inputString);
 
-	std::transform(copy.begin(), copy.end(), copy.begin(), std::toupper);
+	std::transform(copy.begin(), copy.end(), copy.begin(),  static_cast<int(*)(int)>(std::toupper));
 
 	return copy;
 }

@@ -74,7 +74,9 @@ private slots:
 public:
 	RoomAcousticQTConfig(QWidget *parent = 0);
 	~RoomAcousticQTConfig();
-	void Init();
+	void Init(const bool &consoleMode = false);
+
+	QCommandLineParser consoleOptions;
 
 private:
 	void initSoundSourceGraphic();								// Initialize the soundsource graphcis(icon)
@@ -126,6 +128,8 @@ private:
 	void stopHeadSpinAnimation();
 
 	void OnTimer();
+
+	void runInConsole();										// Room acoustic console launch
 
 	Ui::RoomAcousticConfig ConfigUi;							// The main configuration ConfigUi
 	RoomAcousticQT m_RoomAcousticInstance;						// The main room acoustic instance

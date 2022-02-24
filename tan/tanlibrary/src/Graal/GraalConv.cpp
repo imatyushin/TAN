@@ -1574,7 +1574,6 @@ AMF_RESULT CGraalConv::processHead1(
     //PrintCLArray("buf", buf, m_pContextTAN->GetGeneralQueue(), inp_buf.GetSizeInBytes(), inp_buf.GetSizeInBytes());
 
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, arg_index, arg_size, buf));
-    //AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), inp_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), kern_store_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), accum_buf.GetBuffer()));
     AMF_RETURN_IF_CL_FAILED(clSetKernelArg(mConvHead1, n_arg++, sizeof(cl_mem), data_store_buf.GetBuffer()));

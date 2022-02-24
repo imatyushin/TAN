@@ -64,18 +64,6 @@
 
 bool Audio3DOpenCL::mUseIntrinsics = true;//InstructionSet::AVX() && InstructionSet::FMA();
 
-#ifndef ERROR_MESSAGE
-
-#ifdef _WIN32
-#define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
-#else
-#define ERROR_MESSAGE(message) __asm__("int3"); std::cerr << "Error: " << message << std::endl
-#endif
-
-#endif
-
-#define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
-
 unsigned Audio3DOpenCL::processThreadProc(void * ptr)
 {
     Audio3DOpenCL *pAudio3D = static_cast<Audio3DOpenCL*>(ptr);
@@ -333,7 +321,7 @@ AMF_RESULT Audio3DOpenCL::InitObjects()
                     &status
                     );
 
-                PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue1, 64);
+                //PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue1, 64);
             }
 
             //HACK out for test
@@ -539,7 +527,8 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 {
     uint32_t sampleCount = sampleCountBytes / (sizeof(int16_t) * STEREO_CHANNELS_COUNT);
 
-    //PrintShortArray("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t), STEREO_CHANNELS_COUNT * sampleCount);
+    PrintArrayReduced("::Process input[0]", pChan[0], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t));
+    PrintArrayReduced("::Process input[1]", pChan[1], STEREO_CHANNELS_COUNT * sampleCount * sizeof(int16_t));
 
     // Read from the files
     for (int idx = 0; idx < mWavFiles.size(); idx++) {
@@ -568,8 +557,8 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
 
         AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
 
-        //PrintCLArray("::Convolution->Process[0]", mOutputCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
-        //PrintCLArray("::Convolution->Process[1]", mOutputCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("::Convolution->Process[0]", mOutputCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("::Convolution->Process[1]", mOutputCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
         cl_mem outputCLBufLeft[MAX_SOURCES];
         cl_mem outputCLBufRight[MAX_SOURCES];
@@ -580,14 +569,14 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
             outputCLBufRight[src] = mOutputCLBufs[src * 2 + 1];// Odd indexed channels for right ear input
         }
 
-        //PrintCLArray("::outputBufLeft", outputCLBufLeft[0], mCmdQueue1, sampleCount * sizeof(float));
-        //PrintCLArray("::outputBufRight", outputCLBufRight[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("::outputBufLeft", outputCLBufLeft[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("::outputBufRight", outputCLBufRight[0], mCmdQueue1, sampleCount * sizeof(float));
 
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]));
 
-        //PrintCLArray("::Mixer->Mix[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
-        //PrintCLArray("::Mixer->Mix[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("::Mixer->Mix[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("::Mixer->Mix[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
 
         auto ret = mConverter->Convert(
             mOutputMixCLBufs[0],
@@ -600,7 +589,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
             1.f
             );
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        //PrintCLArray("::Converter->Convert[0]", mOutputShortBuf, mCmdQueue1, 64);
+        PrintCLArrayReduced("::Converter->Convert[0]", mOutputShortBuf, mCmdQueue1, 64);
 
         ret = mConverter->Convert(
             mOutputMixCLBufs[1],
@@ -613,8 +602,7 @@ AMF_RESULT Audio3DOpenCL::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], ui
             1.f
             );
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        //PrintCLArrayWithOffset("::Converter->Convert[1]", mOutputShortBuf, mCmdQueue1, 64, sampleCount * sizeof(short));
-
+        PrintArrayReduced("::Converter->Convert[1]", mOutputShortBuf, sampleCount * sizeof(short));
 
         AMF_RETURN_IF_CL_FAILED(
             clEnqueueReadBuffer(
@@ -752,6 +740,7 @@ int Audio3DOpenCL::ProcessProc()
     uint32_t buffersPlayed(0);
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
+    size_t actualRestartsNumber = 0;
 
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
@@ -856,7 +845,7 @@ int Audio3DOpenCL::ProcessProc()
         //continue;
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
-        //memcpy(processed, &outputBuffer.front(), bytes2Play);
+        std::copy_n(outputBuffer.data(), bytes2Play, processed);
 
         uint32_t bytesTotalPlayed(0);
         uint8_t *outputBufferData = (uint8_t *)&outputBuffer.front();
@@ -926,8 +915,18 @@ int Audio3DOpenCL::ProcessProc()
                 //play wav again
                 pWaves[fileIndex] = pWaveStarts[fileIndex];
                 waveBytesPlayed[fileIndex] = 0;
+
+                actualRestartsNumber++;
             }
         }
+
+        if (!mOutputFile.empty())
+        {
+            WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
+                16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
+            //break;
+        }
+
 
         //new
         /*
@@ -940,9 +939,21 @@ int Audio3DOpenCL::ProcessProc()
             processed += (mBufferSizeInBytes / sizeof(int16_t));
         }*/
 
+        if (actualRestartsNumber == 0 && mShouldOutputRecording && !mOutputFile.empty())
+        {
+            WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
+                16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
+        }
+
         if(bytes2Play)
         {
-            if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+            if (mRestartsNumber > 0 && actualRestartsNumber == mRestartsNumber)
+            {
+                saveRestartCount(actualRestartsNumber);
+                Stop();
+                break;
+            }
+            else if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
             {
                 processed = &mStereoProcessedBuffer.front();
             }
@@ -963,24 +974,6 @@ int Audio3DOpenCL::ProcessProc()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    /*
-    if(!WriteWaveFileS(
-        "RoomAcousticsRun.wav",
-        FILTER_SAMPLE_RATE,
-        2,
-        16,
-        //mWavFiles[0].SamplesCount, //why not a max?
-        mMaxSamplesCount,
-        &mStereoProcessedBuffer.front()
-        ))
-    {
-        puts("unable to write RoomAcousticsRun.wav");
-    }
-    else
-    {
-        puts("wrote output to RoomAcousticsRun.wav");
-    }*/
 
     mRunning = false;
     mTimer.Stop();

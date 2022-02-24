@@ -57,6 +57,10 @@ std::string             getModuleFileName();
 
 std::string             getTempFolderName();
 
+bool					isElementValid(const std::string& element);
+std::vector<std::string> splitByElements(const std::string& str);
+std::string				getRelativePath(const std::string& absolutePath, const std::string& base);
+
 #ifndef _WIN32
   errno_t fopen_s(FILE **f, const char *name, const char *mode);
 #endif

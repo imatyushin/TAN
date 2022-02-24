@@ -22,7 +22,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <iostream>
 #include <assert.h>
 
 std::vector<std::string> getDirectorySeparatorVariants()
@@ -506,6 +506,84 @@ std::string             getTempFolderName()
 
 	assert(false);
 	return "";
+}
+
+bool isElementValid(const std::string& element)
+{
+	bool result(true);
+
+	if (element.compare("") == 0 || element.compare(".") == 0)
+	{
+		result = false;
+	}
+
+	return result;
+}
+
+// Return vector with string elements, using delimiter.
+std::vector<std::string> splitByElements(const std::string& str)
+{
+	std::vector<std::string> result;
+	std::string oneElement;
+	size_t lastElementIdx(0);
+	size_t nextElementIdx(0);
+	char delimiter('/');
+
+	if (str.find(delimiter) == std::string::npos)
+	{
+		delimiter = '\\';
+	}
+
+	while ((nextElementIdx = str.find(delimiter, lastElementIdx)) != std::string::npos)
+	{
+		oneElement = str.substr(lastElementIdx, nextElementIdx - lastElementIdx);
+		if (isElementValid(oneElement))
+		{
+			result.push_back(oneElement);
+		}
+		lastElementIdx = nextElementIdx + 1;
+	}
+	oneElement = str.substr(lastElementIdx);
+	if (isElementValid(oneElement))
+	{
+		result.push_back(oneElement);
+	}
+
+	return result;
+}
+
+std::string getRelativePath(const std::string& absolutePath, const std::string& base)
+{
+	std::string relativePath("");
+	std::vector<std::string> absoluteElements(splitByElements(absolutePath));
+	std::vector<std::string> baseElements(splitByElements(base));
+	size_t needle = 0;
+
+	// find same element in base and absolutePath
+	for (; needle < baseElements.size() && needle < absoluteElements.size() &&
+		baseElements.at(needle).compare(absoluteElements.at(needle)) == 0; ++needle)
+	{
+	}
+
+	for (size_t depth = 0; depth < baseElements.size() - needle; ++depth)
+	{
+		relativePath += "../";
+	}
+
+	for (size_t depth = needle; depth < absoluteElements.size(); ++depth)
+	{
+		relativePath += absoluteElements.at(depth);
+		if (depth < absoluteElements.size() - 1)
+		{
+			relativePath += '/';
+		}
+	}
+
+	if (relativePath.empty())
+	{
+		relativePath = ".";
+	}
+	return relativePath;
 }
 
 #ifndef _WIN32

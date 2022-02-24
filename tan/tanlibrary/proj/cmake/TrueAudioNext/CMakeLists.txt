@@ -25,6 +25,18 @@ message("Start OpenMP search...")
 
 find_package(OpenMP)
 
+#if(OpenMP_FOUND AND NOT OMP_INCLUDE_DIR)
+#  find_file(OMP_HEADER_PATH "omp.h" "${OMP_INCLUDE_DIR}")
+#
+#  if(OMP_HEADER_PATH)
+#    get_filename_component(OMP_INCLUDE_DIR ${OMP_HEADER_PATH} DIRECTORY)
+#  endif()
+#
+#  message("")
+#  message("Attention: OMP headers was found via CMake search, find_package provides empty headers path!")
+#  message("")
+#endif()
+
 if(
   OpenMP_FOUND
   AND
@@ -32,22 +44,31 @@ if(
     (OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
     #on some Windows machines OMP_INCLUDE_DIR and OpenMP_CXX_LIBRARIES
     #is empty after OpenMP, only OpenMP_FOUND and OpenMP_CXX_FLAGS is set
-    OR OpenMP_CXX_FLAGS
+    #OR OpenMP_CXX_FLAGS
   )
  )
   set(OMP_ENABLED 1)
-else()
-  find_path(OMP_INCLUDE_DIR NAMES omp.h)
+elseif(OpenMP_FOUND)
+  #find_path(OMP_INCLUDE_DIR NAMES omp.h)
+  find_file(OMP_HEADER_PATH "omp.h" "${OMP_INCLUDE_DIR}")
+  if(OMP_HEADER_PATH)
+    get_filename_component(OMP_INCLUDE_DIR ${OMP_HEADER_PATH} DIRECTORY)
+  endif()
+
   find_library(OpenMP_CXX_LIBRARIES NAMES omp)
 
-  string(FIND "${OMP_INCLUDE_DIR}" "-NOTFOUND" notFoundPosition)
+  #string(FIND "${OMP_INCLUDE_DIR}" "-NOTFOUND" notFoundPosition)
 
-  if(NOT(notFoundPosition EQUAL -1))
-    set(OMP_INCLUDE_DIR "")
-  endif()
+  #if(NOT(notFoundPosition EQUAL -1))
+  #  set(OMP_INCLUDE_DIR "")
+  #endif()
 
   if(OMP_INCLUDE_DIR AND OpenMP_CXX_LIBRARIES)
     set(OMP_ENABLED 1)
+
+    message("")
+    message("Attention: OMP headers was found via CMake search, find_package provides empty headers path!")
+    message("")
   endif()
 endif()
 
@@ -339,7 +360,7 @@ if(NOT WIN32)
   #if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
   #  target_compile_options(TrueAudioNext PUBLIC -g)
   #endif()
-  target_compile_options(TrueAudioNext PUBLIC $<$<CONFIG:Debug>,-g>)
+  target_compile_options(TrueAudioNext PUBLIC "$<$<CONFIG:Debug>:-g>")
 
   if(NOT APPLE)
     target_compile_options(TrueAudioNext PUBLIC -Wpsabi)

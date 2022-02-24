@@ -124,6 +124,7 @@ set(
   ../../../src/RoomAcousticQT/Resources/Resource.rc
 
   ../../../src/common/GpuUtils.cpp
+  ${TAN_ROOT}/utils/common/ConsoleUtility.cpp
   ${TAN_ROOT}/utils/common/FileUtility.cpp
   ${TAN_ROOT}/utils/common/StringUtility.cpp
   ${TAN_ROOT}/utils/common/RegisterBrowser.cpp
@@ -165,6 +166,7 @@ set(
   ../../../src/common/IWavPlayer.h
   ../../../src/common/IAudio3D.h
 
+  ${TAN_ROOT}/utils/common/ConsoleUtility.h
   ${TAN_ROOT}/utils/common/FileUtility.h
   ${TAN_ROOT}/utils/common/StringUtility.h
   ${TAN_ROOT}/utils/common/RegisterBrowser.h
@@ -258,6 +260,7 @@ else()
   target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
 
   target_link_libraries(RoomAcousticsQT "dl")
+  target_link_libraries(RoomAcousticsQT rt)
 
   if(NOT APPLE)
     target_link_libraries(RoomAcousticsQT "asound")
@@ -276,7 +279,7 @@ if(NOT WIN32)
 
   #if(CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
   #endif()
-  target_compile_options(RoomAcousticsQT PUBLIC $<$<CONFIG:Debug>,-g>)
+  target_compile_options(RoomAcousticsQT PUBLIC "$<$<CONFIG:Debug>:-g>")
 
   if(NOT APPLE)
     target_compile_options(RoomAcousticsQT PUBLIC -Wpsabi)
@@ -350,3 +353,12 @@ if(WIN32)
       )
   endif()
 endif()
+
+#copy binaries to autotest unified directory
+set(auto_test_path ${TAN_ROOT}/bin/$<PLATFORM_ID>/$<CONFIGURATION>)
+add_custom_command(
+    TARGET RoomAcousticsQT
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:RoomAcousticsQT> "${auto_test_path}"
+    VERBATIM
+    )
