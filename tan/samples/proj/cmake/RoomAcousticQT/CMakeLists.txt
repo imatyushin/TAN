@@ -138,13 +138,9 @@ set(
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticConfig.cpp
   ../../../src/RoomAcousticQT/QTObject/QTRoomAcousticGraphic.cpp
   ../../../src/RoomAcousticQT/RoomAcousticQT.cpp
-  )
 
-if(TAN_NO_OPENCL)
-  list(APPEND SOURCE_EXE ../../../src/common/Audio3DAMF.cpp)
-else()
-  list(APPEND SOURCE_EXE ../../../src/common/Audio3DOpenCL.cpp)
-endif()
+  ../../../src/common/Audio3DAMF.cpp
+  )
 
 if(WIN32)
   list(APPEND SOURCE_EXE ../../../src/common/WASAPIPlayer.cpp)
@@ -176,13 +172,9 @@ set(
   ../../../src/RoomAcousticQT/QTObject/AdvanceGraphicView.h
   ../../../src/RoomAcousticQT/Resources/resource.h
   ../../../src/RoomAcousticQT/RoomAcousticQT.h
-)
 
-if(TAN_NO_OPENCL)
-  list(APPEND HEADER_EXE ../../../src/common/Audio3DAMF.h)
-else()
-  list(APPEND HEADER_EXE ../../../src/common/Audio3DOpenCL.h)
-endif()
+  ../../../src/common/Audio3DAMF.h
+)
 
 if(WIN32)
   list(APPEND HEADER_EXE ../../../src/common/WASAPIPlayer.h)

@@ -19,10 +19,10 @@ int main(int argc, char *argv[])
 
 	QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
 
-	foreach(const QString & path, QCoreApplication::libraryPaths())
-	{
-		std::cout << "[" << path.toStdString() << "]" << std::endl;
-	}
+	//foreach(const QString & path, QCoreApplication::libraryPaths())
+	//{
+	//	std::cout << "[" << path.toStdString() << "]" << std::endl;
+	//}
 
 	QApplication application(argc, argv);
 	Q_INIT_RESOURCE(roomaccousticnew);

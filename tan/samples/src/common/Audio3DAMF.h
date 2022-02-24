@@ -29,15 +29,28 @@ class Audio3DAMF:
     public IAudio3D
 {
 protected:
-    AMFContextPtr               mContext12;
+#ifndef TAN_NO_OPENCL
+    cl_context                  mContext12 = nullptr; //convolution
+    cl_command_queue            mCmdQueue1 = nullptr;
+    cl_command_queue            mCmdQueue2 = nullptr;
+
+    cl_context                  mContext3 = nullptr; //room
+    cl_command_queue            mCmdQueue3 = nullptr;
+
+    cl_mem                      mOCLResponses[MAX_SOURCES * 2] = {nullptr};
+
+	cl_mem                      mOutputMainCLbuf = nullptr;
+    cl_mem                      mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
+	cl_mem                      mOutputMixCLBufs[2] = {nullptr};
+	cl_mem                      mOutputShortCLBuf = nullptr;
+
+#else
+    AMFContextPtr               mContext12; //convolution
     AMFComputePtr               mCompute1;
     AMFComputePtr               mCompute2;
 
-    AMFContextPtr               mContext3;
+    AMFContextPtr               mContext3; //room
     AMFComputePtr               mCompute3;
-
-    AMFContextPtr               mContextTAVR;
-    AMFComputePtr               mComputeTAVR;
 
     AMFBufferPtr                mAMFResponses[MAX_SOURCES * 2];
     AMFBuffer *                 mAMFResponsesInterfaces[MAX_SOURCES * 2] = {nullptr};
@@ -50,6 +63,7 @@ protected:
     AMFBuffer *                 mOutputMixAMFBuffersInterfaces[2] = {nullptr};
 
 	AMFBufferPtr                mOutputShortAMFBuffer = nullptr;
+#endif
 
     AMF_RESULT Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint32_t sampleCountBytes) override;
     int ProcessProc() override;

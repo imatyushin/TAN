@@ -1110,6 +1110,7 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplFFTW1Chan(
     fftwf_complex * in = (fftwf_complex *)pBufferInput[channel];
     fftwf_complex * out = (fftwf_complex *)pBufferOutput[channel];
 
+	TICK_COUNTER("execute... start");
     if (direction == TAN_FFT_TRANSFORM_DIRECTION_FORWARD) {
         fftwf_execute_dft(fwdPlans[log2len], in, out);
     }
@@ -1282,6 +1283,16 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
     float* ppBufferOutput[]
     )
 {
+    const amf_size fftFrameSize = (amf_size)pow(2.0, (double)log2len);
+
+	PrintArrayReduced("TransformImplCpuOMP in", ppBufferInput[0], 2 * fftFrameSize * sizeof(float));
+    if(channels>1)
+    PrintArrayReduced("TransformImplCpuOMP in", ppBufferInput[1], 2 * fftFrameSize * sizeof(float));
+    if(channels>2)
+    PrintArrayReduced("TransformImplCpuOMP in", ppBufferInput[2], 2 * fftFrameSize * sizeof(float));
+    if(channels>3)
+    PrintArrayReduced("TransformImplCpuOMP in", ppBufferInput[3], 2 * fftFrameSize * sizeof(float));
+
     amf_uint fftLength = 1 << log2len;
 	bool useRealFFT = (direction == TAN_FFT_R2C_TRANSFORM_DIRECTION_FORWARD
 					|| direction == TAN_FFT_C2R_TRANSFORM_DIRECTION_BACKWARD
@@ -1296,57 +1307,114 @@ AMF_RESULT AMF_STD_CALL TANFFTImpl::TransformImplCpuOMP(
         fftwf_complex * out = (fftwf_complex *)ppBufferOutput[0];
 
 		if (useRealFFT) {
-			fftw_iodim iod;
+			fftw_iodim iod = {0};
 			iod.n = fftLength;
 			iod.is = 1;
 			iod.os = 1;
 
-			if (fwdRealPlans[log2len] == NULL || bwdRealPlans[log2len] == NULL) {
-
-                //TICK_COUNTER("fftwf_plan_dft_r2c_1d..");
+			if (fwdRealPlans[log2len] == NULL || bwdRealPlans[log2len] == NULL)
+			{
+                TICK_COUNTER("fftwf_plan_dft_r2c_1d...");
                 fwdRealPlans[log2len] = fftwf_plan_dft_r2c_1d(fftLength, (float *)in, (fftwf_complex *)out, FFTW_MEASURE);//correct flag ??
 				bwdRealPlans[log2len] = fftwf_plan_dft_c2r_1d(fftLength, (fftwf_complex *)in, (float *)out, FFTW_MEASURE);
 				fwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_r2c(1, &iod, 0, NULL, (float *)in, (float *)(out), (float *)(out) + (8 + fftLength / 2), FFTW_MEASURE);//correct flag ??
 				bwdRealPlanarPlans[log2len] = fftwf_plan_guru_split_dft_c2r(1, &iod, 0, NULL, (float *)in, (float *)(in) + (8 + fftLength/2), (float *)out, FFTW_MEASURE);
 			}
 
-// OpenMP doesn't work well for realtime code on Windows :(
-#pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput)
-#pragma omp for private(idx) schedule(static) // schedule(guided) nowait //schedule(static)
-//__pragma(loop(hint_parallel(8))) // requires VS compiler flag /QPar       {see Enable Parallel Code Generation }
-			for (int idx = 0; idx < (int)channels; idx++) {
-                //TICK_COUNTER("TransformImplFFTWReal");
-                TransformImplFFTWReal(direction, log2len, ppBufferInput[idx], ppBufferOutput[idx]);
-			}
+			{
+                TICK_COUNTER("TransformImplFFTWReal...");
 
+            	amf_long passed(0);
+				// OpenMP doesn't work well for realtime code on Windows :(
+				#pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput,passed)
+				#pragma omp for private(idx) schedule(static) // schedule(guided) nowait //schedule(static)
+				//__pragma(loop(hint_parallel(8))) // requires VS compiler flag /QPar       {see Enable Parallel Code Generation }
+				for (int idx = 0; idx < (int)channels; idx++) {
+					auto result = TransformImplFFTWReal(direction, log2len, ppBufferInput[idx], ppBufferOutput[idx]);
+					if(amf::AMFResultIsOK(result))
+					{
+						amf_atomic_inc(&passed);
+					}
+				}
+
+				AMF_RETURN_IF_FALSE(passed == channels, AMF_FAIL);
+			}
 		}
-		else {
-			if (fwdPlans[log2len] == NULL || bwdPlans[log2len] == NULL){
+		else
+		{
+			if (fwdPlans[log2len] == NULL || bwdPlans[log2len] == NULL)
+			{
+                TICK_COUNTER("fftwf_plan_dft_r2c_1d...x2");
+
+    			PrintArrayReduced("[in:", in, 2 * fftFrameSize * sizeof(float));
 				fwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, (fftwf_complex *)in, (fftwf_complex *)out, FFTW_FORWARD, FFTW_MEASURE);
 				bwdPlans[log2len] = fftwf_plan_dft_1d(fftLength, (fftwf_complex *)in, (fftwf_complex *)out, FFTW_BACKWARD, FFTW_MEASURE);
+    			PrintArrayReduced("[out:", out, 2 * fftFrameSize * sizeof(float));
 			}
-#pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput)
-#pragma omp for
-			for (idx = 0; idx < channels; idx++) {
-                //TICK_COUNTER("TransformImplFFTW1Chan");
-                TransformImplFFTW1Chan(direction, log2len, idx, ppBufferInput, ppBufferOutput);
+
+			for(int channel(0); channel<channels; ++channel)
+			{
+				PrintArrayReduced("in2:1:", ppBufferInput[channel], 2 * fftFrameSize * sizeof(float));
+				PrintArrayReduced("out2:1:", ppBufferOutput[channel], 2 * fftFrameSize * sizeof(float));
 			}
+
+			{
+				//TICK_COUNTER("TransformImplFFTW1Chan...x2");
+
+            	amf_long passed(0);
+
+				#pragma omp parallel default(none) private(idx) shared(direction,log2len,channels,ppBufferInput,ppBufferOutput,passed)
+				#pragma omp for
+				for (idx = 0; idx < channels; idx++)
+				{
+					auto result = TransformImplFFTW1Chan(direction, log2len, idx, ppBufferInput, ppBufferOutput);
+					if(amf::AMFResultIsOK(result))
+					{
+						amf_atomic_inc(&passed);
+					}
+				}
+
+            	AMF_RETURN_IF_FALSE(passed == channels, AMF_FAIL);
+			}
+
+            for(int channel(0); channel<channels; ++channel)
+			{
+				PrintArrayReduced("out2:", ppBufferOutput[channel], 2 * fftFrameSize * sizeof(float));
+			}
+
+			printf("");
 		}
     }
     else
 #endif
 	{
-#pragma omp parallel default(none) private(idx) shared(direction, log2len,channels,ppBufferInput,ppBufferOutput)
-#pragma omp for private(idx)
-		for (idx = 0; idx < channels; idx++){
-            //TICK_COUNTER("TransformImplCpu1Chan");
-            TransformImplCpu1Chan(direction, log2len, ppBufferInput[idx], ppBufferOutput[idx]);
-        }
-//  todo try this:      res = TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput);
+		TICK_COUNTER("TransformImplCpu1Chan...x3");
 
+		assert(false);
+        amf_long passed(0);
+
+        #pragma omp parallel default(none) private(idx) shared(direction,log2len,channels,ppBufferInput,ppBufferOutput,passed)
+        #pragma omp for private(idx)
+		for (idx = 0; idx < channels; idx++){
+            auto result = TransformImplCpu1Chan(direction, log2len, ppBufferInput[idx], ppBufferOutput[idx]);
+            if(amf::AMFResultIsOK(result))
+            {
+                amf_atomic_inc(&passed);
+            }
+        }
+        //  todo try this:      AMF_RETURN_IF_FAILED(TransformImplCpu(direction, log2len, channels, ppBufferInput, ppBufferOutput));
+        AMF_RETURN_IF_FALSE(passed == channels, AMF_FAIL);
     }
 
-    return AMF_OK;
+	PrintArrayReduced("TransformImplCpuOMP out", ppBufferInput[0], 2 * fftFrameSize * sizeof(float));
+    if(channels>1)
+    PrintArrayReduced("TransformImplCpuOMP out", ppBufferInput[1], 2 * fftFrameSize * sizeof(float));
+    if(channels>2)
+    PrintArrayReduced("TransformImplCpuOMP out", ppBufferInput[2], 2 * fftFrameSize * sizeof(float));
+    if(channels>3)
+    PrintArrayReduced("TransformImplCpuOMP out", ppBufferInput[3], 2 * fftFrameSize * sizeof(float));
+
+	return AMF_OK;
 }
 
 #ifdef USE_IPP

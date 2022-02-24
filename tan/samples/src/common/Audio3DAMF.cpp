@@ -32,8 +32,12 @@
 #include "public/common/TraceAdapter.h"
 #include "public/common/AMFFactory.h"
 
-#include <time.h>
-#include <stdio.h>
+#ifndef TAN_NO_OPENCL
+  #include "OCLHelper.h" //for FixedEnqueueFillBuffer
+#endif
+
+//#include <time.h>
+//#include <stdio.h>
 
 #if defined(_WIN32)
     #include "../common/WASAPIPlayer.h"
@@ -47,17 +51,17 @@
 	#include "../common/PortPlayer.h"
 #endif
 
-#include <immintrin.h>
-#include <cmath>
-#include <cstring>
-#include <chrono>
-#include <algorithm>
+//#include <immintrin.h>
+//#include <cmath>
+//#include <cstring>
+//#include <chrono>
+//#include <algorithm>
 
 //to format debug outputs
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <iomanip>
+//#include <fstream>
+//#include <sstream>
+//#include <iostream>
+//#include <iomanip>
 
 Audio3DAMF::Audio3DAMF()
 {
@@ -129,13 +133,21 @@ AMF_RESULT Audio3DAMF::InitObjects()
             }
     #endif // RTQ_ENABLED
 
+#ifndef TAN_NO_OPENCL
+            AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mConvolutionComputeDeviceIndex, flagsQ1, &mCmdQueue1, flagsQ2, &mCmdQueue2));
+#else
             AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mConvolutionComputeDeviceIndex, flagsQ1, &mCompute1, flagsQ2, &mCompute2, &mContext12));
+#endif
 
             //CL room on GPU
             if(mRoomViaCompute && mRoomComputeOnGPU && (mConvolutionComputeDeviceIndex == mRoomComputeDeviceIndex))
             {
+#ifndef TAN_NO_OPENCL
+                mCmdQueue3 = mCmdQueue2;
+#else
                 mContext3 = mContext12;
                 mCompute3 = mCompute2;
+#endif
             }
         }
 
@@ -143,23 +155,36 @@ AMF_RESULT Audio3DAMF::InitObjects()
         else if(mConvolutionViaCompute && !mConvolutionComputeOnGPU)
         {
 #ifdef RTQ_ENABLED
-            THROW_NOT_IMPLEMENTED;
-
             // For " core "reservation" on CPU" -ToDo test and enable
             if (mCuRes_Conv > 0 && mCuRes_Room > 0)
             {
+#ifndef TAN_NO_OPENCL
+                AMF_RETURN_IF_FAILED(
+                    CreateCommandQueuesWithCUcount(mConvolutionComputeDeviceIndex, &mCmdQueue1, &mCmdQueue2, mCuRes_Conv, mCuRes_Room),
+                    L"CreateCommandQueuesWithCUcount failed"
+                    );
+#else
                 AMF_RETURN_IF_FAILED(
                     CreateCommandQueuesWithCUcount(mConvolutionComputeDeviceIndex, &mCompute1, &mCompute2, mCuRes_Conv, mCuRes_Room),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
+#endif
             }
             else
             {
 #endif
+
+#ifndef TAN_NO_OPENCL
+                AMF_RETURN_IF_FAILED(
+                    CreateCpuCommandQueues(mConvolutionComputeDeviceIndex, 0, &mCmdQueue1, 0, &mCmdQueue2),
+                    L"CreateCommandQueuesWithCUcount failed"
+                    );
+#else
                 AMF_RETURN_IF_FAILED(
                     CreateCpuCommandQueues(mConvolutionComputeDeviceIndex, 0, &mCompute1, 0, &mCompute2, &mContext12),
                     L"CreateCommandQueuesWithCUcount failed"
                     );
+#endif
 
 #ifdef RTQ_ENABLED
             }
@@ -168,30 +193,64 @@ AMF_RESULT Audio3DAMF::InitObjects()
             //CL room on CPU
             if(mRoomViaCompute && !mRoomComputeOnGPU && (mConvolutionComputeDeviceIndex == mRoomComputeDeviceIndex))
             {
+#ifndef TAN_NO_OPENCL
+                mCmdQueue3 = mCmdQueue2;
+#else
                 mContext3 = mContext12;
                 mCompute3 = mCompute2;
+#endif
             }
         }
 
         //room queue not yet created
-        if(!mCompute3 && mRoomViaCompute)
+        if(
+            mRoomViaCompute &&
+#ifndef TAN_NO_OPENCL
+            !mCmdQueue3
+#else
+            !mCompute3
+#endif
+        )
         {
             //CL over GPU
             if(mRoomComputeOnGPU)
             {
+#ifndef TAN_NO_OPENCL
+                AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCmdQueue3, 0, nullptr));
+#else
                 AMF_RETURN_IF_FAILED(CreateGpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCompute3, 0, nullptr, &mContext3));
+#endif
             }
             //CL over CPU
             else
             {
+#ifndef TAN_NO_OPENCL
+                AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCmdQueue3, 0, nullptr));
+#else
                 AMF_RETURN_IF_FAILED(CreateCpuCommandQueues(mRoomComputeDeviceIndex, 0, &mCompute3, 0, nullptr, &mContext3));
+#endif
             }
         }
     }
 
+#ifndef TAN_NO_OPENCL
+    if(mCmdQueue1)
+    {
+        clGetCommandQueueInfo(mCmdQueue1, CL_QUEUE_CONTEXT, sizeof(cl_context), &mContext12, nullptr);
+    }
+
+    if(mCmdQueue3)
+    {
+        clGetCommandQueueInfo(mCmdQueue3, CL_QUEUE_CONTEXT, sizeof(cl_context), &mContext3, nullptr);
+    }
+#endif
+
     //convolution via compute
     if(mConvolutionViaCompute)
     {
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_FAILED(mTANConvolutionContext->InitOpenCL(mCmdQueue1, mCmdQueue2));
+#else
         AMF_RETURN_IF_FAILED(
             mTANConvolutionContext->InitAMF(
                 mContext12,
@@ -201,11 +260,15 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 ),
             L"mTANConvolutionContext->InitAMF failed"
             );
+#endif
     }
 
     //room processing via compute
     if(mRoomViaCompute)
     {
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_FAILED(mTANRoomContext->InitOpenCL(mCmdQueue3, mCmdQueue3));
+#else
         AMF_RETURN_IF_FAILED(
             mTANRoomContext->InitAMF(
                 mContext3,
@@ -215,6 +278,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 ),
             L"mTANRoomContext->InitAMF failed"
             );
+#endif
     }
 
     AMF_RETURN_IF_FAILED(TANCreateConvolution(mTANConvolutionContext, &mConvolution), L"TANCreateConvolution failed");
@@ -257,16 +321,33 @@ AMF_RESULT Audio3DAMF::InitObjects()
     {
         if(mContext12 == mContext3)
         {
+#ifndef TAN_NO_OPENCL
+            std::vector<cl_uchar> clear(mFFTLength * sizeof(float), 0);
+#endif
+
             for(int i = 0; i < mWavFiles.size() * 2; i++)
             {
+#ifndef TAN_NO_OPENCL
+                cl_int status = 0;
+                mOCLResponses[i] = clCreateBuffer(
+                    mContext3,
+                    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                    mFFTLength * sizeof(float),
+                    clear.data(),
+                    &status
+                    );
+                AMF_RETURN_IF_CL_FAILED(status);
+
+#else
                 AMF_RETURN_IF_FAILED(
-                    mContext12->AllocBuffer(
-                        mCompute1->GetMemoryType(),
+                    mContext3->AllocBuffer(
+                        mCompute3->GetMemoryType(),
                         mFFTLength * sizeof(float),
                         &mAMFResponses[i]
                         )
                     );
 
+                //amf implementation needs custom cleaning!
                 float zero = 0.0;
                 AMF_RETURN_IF_FAILED(
                     mCompute1->FillBuffer(
@@ -278,8 +359,10 @@ AMF_RESULT Audio3DAMF::InitObjects()
                         )
                     );
 
+                //to later use them like AMFBuffer **
                 mAMFResponsesInterfaces[i] = mAMFResponses[i];
-
+#endif
+                //PrintCLArray("mOCLResponses", mOCLResponses[i], mCmdQueue1, 64);
                 //PrintAMFArrayReduced("mOCLResponses", mAMFResponses[i], mCompute1, mAMFResponses[i]->GetSize());
             }
 
@@ -287,9 +370,22 @@ AMF_RESULT Audio3DAMF::InitObjects()
             mUseComputeBuffers = true;
         }
 
-        // Initialize CL output buffers
+        // Initialize compute output buffers
 
-        // First create a big cl_mem buffer then create small sub-buffers from it
+        // First create a big compute buffer then create small sub-buffers from it
+#ifndef TAN_NO_OPENCL
+        cl_int clErr(0);
+
+        mOutputMainCLbuf = clCreateBuffer(
+            mTANConvolutionContext->GetOpenCLContext(),
+            CL_MEM_READ_WRITE,
+            mBufferSizeInBytes * mWavFiles.size() * STEREO_CHANNELS_COUNT,
+            nullptr,
+            &clErr
+            );
+        AMF_RETURN_IF_CL_FAILED(clErr, L"Could not create OpenCL buffer");
+
+#else
         AMFBufferPtr buffer;
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
@@ -301,10 +397,29 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 );
         mOutputMainAMFBuffer = AMFBufferExPtr(buffer);
         AMF_RETURN_IF_FALSE(mOutputMainAMFBuffer != nullptr, AMF_NOT_SUPPORTED);
+#endif
 
-        /**/
         for(amf_uint32 i = 0; i < mWavFiles.size() * 2; i++)
         {
+#ifndef TAN_NO_OPENCL
+            cl_buffer_region region = {0};
+            region.origin = i * mBufferSizeInBytes;
+            region.size = mBufferSizeInBytes;
+
+            mOutputCLBufs[i] = clCreateSubBuffer(
+                mOutputMainCLbuf,
+                CL_MEM_READ_WRITE,
+                CL_BUFFER_CREATE_TYPE_REGION,
+                &region,
+                &clErr
+                );
+
+            AMF_RETURN_IF_CL_FAILED(clErr, L"Could not create OpenCL subBuffer");
+
+            float zero = 0.0;
+            clErr = FixedEnqueueFillBuffer(mContext12, mCmdQueue1, mOutputCLBufs[i], &zero, sizeof(zero), 0, region.size);
+            AMF_RETURN_IF_CL_FAILED(clErr, L"Could not fill OpenCL subBuffer");
+#else
             AMF_RETURN_IF_FAILED(
                 mOutputMainAMFBuffer->CreateSubBuffer(
                     &mOutputAMFBuffers[i],
@@ -327,11 +442,25 @@ AMF_RESULT Audio3DAMF::InitObjects()
                     sizeof(zero)
                     )
                 );
+#endif
         }
-        /**/
+
+#ifndef TAN_NO_OPENCL
+        std::vector<cl_uchar> clear(mBufferSizeInBytes, 0);
+#endif
 
         for (int idx = 0; idx < 2; idx++)
         {
+#ifndef TAN_NO_OPENCL
+            mOutputMixCLBufs[idx] = clCreateBuffer(
+                mTANConvolutionContext->GetOpenCLContext(),
+                CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                mBufferSizeInBytes,
+                clear.data(),
+                &clErr
+                );
+            AMF_RETURN_IF_CL_FAILED(clErr, L"Could not create OpenCL buffer");
+#else
             AMF_RETURN_IF_FAILED(
                 mContext12->AllocBuffer(
                     mCompute1->GetMemoryType(),
@@ -343,6 +472,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
 
             mOutputMixAMFBuffersInterfaces[idx] = mOutputMixAMFBuffers[idx];
 
+            //amf buffer needs to be filled manually
             unsigned char zero = 0.0;
             AMF_RETURN_IF_FAILED(
                 mCompute1->FillBuffer(
@@ -353,10 +483,20 @@ AMF_RESULT Audio3DAMF::InitObjects()
                     sizeof(zero)
                     )
                 );
+#endif
         }
 
         // The output short buffer stores the final (after mixing) left and right channels interleaved as short samples
         // The short buffer size is equal to sizeof(short)*2*m_bufSize/sizeof(float) which is equal to m_bufSize
+#ifndef TAN_NO_OPENCL
+        mOutputShortCLBuf = clCreateBuffer(
+            mTANConvolutionContext->GetOpenCLContext(),
+            CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+            mBufferSizeInBytes,
+            clear.data(),
+            &clErr
+            );
+#else
         AMF_RETURN_IF_FAILED(
             mContext12->AllocBuffer(
                 mCompute1->GetMemoryType(),
@@ -376,11 +516,11 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 sizeof(zero)
                 )
             );
+#endif
     }
 
 #ifdef _WIN32
-    HMODULE TanVrDll;
-    TanVrDll = LoadLibraryA("TrueAudioVR.dll");
+    HMODULE TanVrDll = LoadLibraryA("TrueAudioVR.dll");
 
 #ifndef TAN_NO_OPENCL
     typedef int (WINAPI *       CREATEVR)(
@@ -414,10 +554,16 @@ AMF_RESULT Audio3DAMF::InitObjects()
         &trueAudioVR,
         mTANRoomContext,
         mFft,
+#ifndef TAN_NO_OPENCL
+        mCmdQueue3,
+#else
         mCompute3,
+#endif
         FILTER_SAMPLE_RATE, //todo: other frequencies?
-        mFFTLength,
-		factory
+        mFFTLength
+#ifdef TAN_NO_OPENCL
+		, factory
+#endif
         );
     mTrueAudioVR.reset(trueAudioVR);
 
@@ -425,7 +571,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
     AMF_RETURN_IF_FALSE(nullptr != mTrueAudioVR.get(), AMF_FAIL, L"CreateAmdTrueAudioVR failed");
 
     //todo: must check mRoomViaCompute nor mRoomComputeOnGPU?
-    std::cout << std::endl << "Check this!" << std::endl;
+    std::cout << std::endl << "ToDo: check this!" << std::endl;
     if(mRoomComputeOnGPU)
     {
         mTrueAudioVR->SetExecutionMode(AmdTrueAudioVR::GPU);
@@ -453,6 +599,11 @@ AMF_RESULT Audio3DAMF::InitObjects()
     {
         if(mUseComputeBuffers)
         {
+#ifndef TAN_NO_OPENCL
+            AMF_RETURN_IF_FAILED(
+                mTrueAudioVR->generateRoomResponse(mRoom, mSources[idx], mEars, FILTER_SAMPLE_RATE, mFFTLength, mOCLResponses[idx * 2], mOCLResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50)
+                );
+#else
             AMF_RETURN_IF_FAILED(
                 mTrueAudioVR->generateRoomResponse(
                     mRoom,
@@ -466,9 +617,15 @@ AMF_RESULT Audio3DAMF::InitObjects()
                     50
                     )
                 );
+#endif
         }
         else
         {
+#ifndef TAN_NO_OPENCL
+            AMF_RETURN_IF_FAILED(
+                mTrueAudioVR->generateRoomResponse(mRoom, mSources[idx], mEars, FILTER_SAMPLE_RATE, mFFTLength, mResponses[idx * 2], mResponses[idx * 2 + 1], GENROOM_LIMIT_BOUNCES, 50)
+                );
+#else
             AMF_RETURN_IF_FAILED(
                 mTrueAudioVR->generateRoomResponse(
                     mRoom,
@@ -482,11 +639,15 @@ AMF_RESULT Audio3DAMF::InitObjects()
                     50
                     )
                 );
+#endif
         }
     }
 
     if(mUseComputeBuffers)
     {
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY));
+#else
         AMF_RETURN_IF_FAILED(
             mConvolution->UpdateResponseTD(
                 mAMFResponsesInterfaces,
@@ -495,9 +656,13 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
                 )
             );
+#endif
     }
     else
     {
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_FAILED(mConvolution->UpdateResponseTD(mResponses, mFFTLength, nullptr, TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY));
+#else
         AMF_RETURN_IF_FAILED(
             mConvolution->UpdateResponseTD(
                 mResponses,
@@ -506,6 +671,7 @@ AMF_RESULT Audio3DAMF::InitObjects()
                 TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
                 )
             );
+#endif
     }
 
     std::cout << "Playback started" << std::endl;
@@ -570,7 +736,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                     )
                 );
 
-            //PrintFloatArray("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
+            PrintArrayReduced("::Process, after Convert", mInputFloatBufs[idx * 2 + chan], sampleCount * sizeof(float));
         }
     }
 
@@ -578,7 +744,12 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
     {
         // OCL device memory objects are passed to the TANConvolution->Process method.
         // Mixing and short conversion is done on GPU.
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_FAILED(mConvolution->Process(mInputFloatBufs, mOutputCLBufs, sampleCount, nullptr, nullptr));
 
+        PrintCLArrayReduced("aft Prc[0]", mOutputCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("aft Prc[1]", mOutputCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
+#else
         AMF_RETURN_IF_FAILED(
             mConvolution->Process(
                 mInputFloatBufs,
@@ -588,10 +759,20 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 nullptr
                 )
             );
+        PrintAMFArrayReduced("aft Prc[0]", mOutputAMFBuffersInterfaces[0], mCompute1, mOutputAMFBuffersInterfaces[0]->GetSize());
+        PrintAMFArrayReduced("aft Prc[1]", mOutputAMFBuffersInterfaces[1], mCompute1, mOutputAMFBuffersInterfaces[1]->GetSize());
+#endif
 
-        //PrintAMFArrayReduced("aft Prc[0]", mOutputAMFBuffersInterfaces[0], mCompute1, mOutputAMFBuffersInterfaces[0]->GetSize());
-        //PrintAMFArrayReduced("aft Prc[1]", mOutputAMFBuffersInterfaces[1], mCompute1, mOutputAMFBuffersInterfaces[1]->GetSize());
+#ifndef TAN_NO_OPENCL
+        cl_mem outputCLBufLeft[MAX_SOURCES];
+        cl_mem outputCLBufRight[MAX_SOURCES];
 
+        for (int src = 0; src < MAX_SOURCES; src++)
+        {
+            outputCLBufLeft[src] = mOutputCLBufs[src * 2];// Even indexed channels for left ear input
+            outputCLBufRight[src] = mOutputCLBufs[src * 2 + 1];// Odd indexed channels for right ear input
+        }
+#else
         AMFBuffer *outputAMFBufferLeft[MAX_SOURCES] = {nullptr};
         AMFBuffer *outputAMFBufferRight[MAX_SOURCES] = {nullptr};
 
@@ -600,6 +781,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             outputAMFBufferLeft[src] = mOutputAMFBuffers[src * 2];// Even indexed channels for left ear input
             outputAMFBufferRight[src] = mOutputAMFBuffers[src * 2 + 1];// Odd indexed channels for right ear input
         }
+#endif
 
         //PrintAMFArray("::outputBufLeft", outputAMFBufferLeft[0], mCompute1, sampleCount * sizeof(float));
         //PrintAMFArray("::outputBufRight", outputAMFBufferRight[0], mCompute1, sampleCount * sizeof(float));
@@ -607,12 +789,49 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         //PrintAMFArray("::Mixer->MixB[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
         //PrintAMFArray("::Mixer->MixB[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
 
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufLeft, mOutputMixCLBufs[0]));
+        AMF_RETURN_IF_FAILED(mMixer->Mix(outputCLBufRight, mOutputMixCLBufs[1]));
+
+        PrintCLArrayReduced("aft Mix[0]", mOutputMixCLBufs[0], mCmdQueue1, sampleCount * sizeof(float));
+        PrintCLArrayReduced("aft Mix[1]", mOutputMixCLBufs[1], mCmdQueue1, sampleCount * sizeof(float));
+
+#else
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferLeft, mOutputMixAMFBuffersInterfaces[0]));
         AMF_RETURN_IF_FAILED(mMixer->Mix((AMFBuffer **)outputAMFBufferRight, mOutputMixAMFBuffersInterfaces[1]));
 
-        //PrintAMFArray("::Mixer->Mix[0]", mOutputMixAMFBuffers[0], mCompute1, sampleCount * sizeof(float));
-        //PrintAMFArray("::Mixer->Mix[1]", mOutputMixAMFBuffers[1], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArrayReduced("aft Mix[0]", mOutputMixAMFBuffersInterfaces[0], mCompute1, sampleCount * sizeof(float));
+        PrintAMFArrayReduced("aft Mix[1]", mOutputMixAMFBuffersInterfaces[1], mCompute1, sampleCount * sizeof(float));
+#endif
 
+#ifndef TAN_NO_OPENCL
+        auto ret = mConverter->Convert(
+            mOutputMixCLBufs[0],
+            1, 0,
+            TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortCLBuf,
+            2, 0,
+            TAN_SAMPLE_TYPE_SHORT,
+            sampleCount,
+            1.f
+            );
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
+        PrintCLArrayReduced("aft Convert[0]", mOutputShortCLBuf, mCmdQueue1, sampleCount * sizeof(short));
+
+        ret = mConverter->Convert(
+            mOutputMixCLBufs[1],
+            1, 0,
+            TAN_SAMPLE_TYPE_FLOAT,
+            mOutputShortCLBuf,
+            2, 1,
+            TAN_SAMPLE_TYPE_SHORT,
+            sampleCount,
+            1.f
+            );
+        AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
+        PrintCLArrayReduced("aft Convert[1]", mOutputShortCLBuf, mCmdQueue1, sampleCount * sizeof(short));
+
+#else
         auto amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[0],
             1, 0,
@@ -624,7 +843,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        //PrintAMFArray("::Converter->Convert[0]", mOutputShortAMFBuffer, mCompute1, 64);
+        PrintAMFArrayReduced("aft Convert[0]", mOutputShortAMFBuffer, mCompute1, sampleCount * sizeof(short));
 
         amfResult = mConverter->Convert(
             mOutputMixAMFBuffers[1],
@@ -637,8 +856,24 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
             1.f
             );
         AMF_RETURN_IF_FALSE(amfResult == AMF_OK || amfResult == AMF_TAN_CLIPPING_WAS_REQUIRED, AMF_FAIL);
-        //PrintAMFArrayWithOffset("::Converter->Convert[1]", mOutputShortAMFBuffer, mCompute1, 64, sampleCount * sizeof(short));
+        PrintAMFArrayReduced("aft Convert[1]", mOutputShortAMFBuffer, mCompute1, sampleCount * sizeof(short));
+#endif
 
+#ifndef TAN_NO_OPENCL
+        AMF_RETURN_IF_CL_FAILED(
+            clEnqueueReadBuffer(
+                mTANConvolutionContext->GetConvQueue(),
+                mOutputShortCLBuf,
+                CL_TRUE,
+                0,
+                sampleCountBytes,
+                pOut,
+                NULL,
+                NULL,
+                NULL
+                )
+            );
+#else
         AMF_RETURN_IF_FAILED(
             mTANConvolutionContext->GetConvQueue()->CopyBufferToHost(
                 mOutputShortAMFBuffer,
@@ -648,6 +883,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
                 true
                 )
             );
+#endif
     }
 
     else
@@ -691,6 +927,50 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
         AMF_RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED, ret);
     }
 
+#if 0// Old code: Crossfade, Mixing and Conversion on CPU
+
+    for (int idx = 0; idx < mWavFiles.size(); idx++) {
+        for (int chan = 0; chan < 2; chan++){
+            RETURN_IF_FAILED(mConverter->Convert(pChan[idx] + chan, 2, sampleCount,
+                inputFloatBufs[idx*2 + chan], 1, 1.f));
+        }
+    }
+
+    RETURN_IF_FAILED(mConvolution->Process(inputFloatBufs, outputFloatBufs, sampleCount,
+                                             nullptr, nullptr));
+
+    // ToDo:  use limiter...
+
+    for (int idx = 2; idx < 2 * mWavFiles.size(); idx += 2) {
+        int k = 0;
+        int n = sampleCount;
+        while (n >= 8 && mUseIntrinsics){
+            register __m256 *outL, *outR, *inL, *inR;
+            outL = (__m256 *)&outputFloatBufs[0][k];
+            outR = (__m256 *)&outputFloatBufs[1][k];
+            inL = (__m256 *)&outputFloatBufs[idx][k];
+            inR = (__m256 *)&outputFloatBufs[idx + 1][k];
+
+            *outL = _mm256_add_ps(*outL, *inL);
+            *outR = _mm256_add_ps(*outR, *inR);
+            k += 8;
+            n -= 8;
+        }
+        while(n > 0) {
+            outputFloatBufs[0][k] += outputFloatBufs[idx][k];
+            outputFloatBufs[1][k] += outputFloatBufs[idx + 1][k];
+            k++;
+            n--;
+        }
+    }
+
+    AMF_RESULT ret = mConverter->Convert(outputFloatBufs[0], 1, sampleCount, pOut, 2, 1.f);
+    RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+
+    ret = mConverter->Convert(outputFloatBufs[1], 1, sampleCount, pOut + 1, 2, 1.f);
+    RETURN_IF_FALSE(ret == AMF_OK || ret == AMF_TAN_CLIPPING_WAS_REQUIRED);
+#endif
+
     PrintArrayReduced("::Process, out[0]", pOut, sampleCount * sizeof(float));
     PrintArrayReduced("::Process, out[1]", pOut + 1, sampleCount * sizeof(float));
 
@@ -710,7 +990,7 @@ AMF_RESULT Audio3DAMF::Process(int16_t *pOut, int16_t *pChan[MAX_SOURCES], uint3
     {
         int i = 0;
         ++i;
-        //assert(false);
+        assert(false);
     }
 
     return AMF_OK;
@@ -842,6 +1122,8 @@ int Audio3DAMF::ProcessProc()
             Process(&outputBuffer.front(), pWaves, mBufferSizeInBytes);
         }
 
+        std::memcpy(processed, &outputBuffer.front(), bytes2Play);
+
         //continue;
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
@@ -883,6 +1165,8 @@ int Audio3DAMF::ProcessProc()
                 outputBufferData += bytesPlayed;
                 bytes2Play -= bytesPlayed;
 
+                //processed
+
                 //previousTimerValue = timerValue;
                 firstFrame = false;
             }
@@ -902,10 +1186,6 @@ int Audio3DAMF::ProcessProc()
             if(waveBytesPlayed[fileIndex] + mBufferSizeInBytes < waveSizesInBytes[fileIndex])
             {
                 pWaves[fileIndex] += (mBufferSizeInBytes / sizeof(int16_t));
-                /*std::cout
-                  << "pl " << bytesTotalPlayed
-                  << " fr " << mWavFiles[fileIndex].Data.size()
-                  << std::endl;*/
             }
             else
             {
@@ -982,6 +1262,21 @@ int Audio3DAMF::UpdateProc()
 
             if(mUseComputeBuffers)
             {
+#ifndef TAN_NO_OPENCL
+                AMF_RETURN_IF_FAILED(
+                    mTrueAudioVR->generateRoomResponse(
+                        mRoom,
+                        mSources[idx],
+                        mEars,
+                        FILTER_SAMPLE_RATE,
+                        mFFTLength,
+                        mOCLResponses[idx * 2],
+                        mOCLResponses[idx * 2 + 1],
+                        GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM,
+                        50
+                        )
+                    );
+#else
                 AMF_RETURN_IF_FAILED(
                     mTrueAudioVR->generateRoomResponse(
                         mRoom,
@@ -995,6 +1290,7 @@ int Audio3DAMF::UpdateProc()
                         50
                         )
                     );
+#endif
             }
             else
             {
@@ -1023,12 +1319,16 @@ int Audio3DAMF::UpdateProc()
         {
             if(mUseComputeBuffers)
             {
+#ifndef TAN_NO_OPENCL
+                ret = mConvolution->UpdateResponseTD(mOCLResponses, mFFTLength, nullptr, TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY);
+#else
                 ret = mConvolution->UpdateResponseTD(
                     mAMFResponsesInterfaces,
                     mFFTLength,
                     nullptr,
                     TAN_CONVOLUTION_OPERATION_FLAG::TAN_CONVOLUTION_OPERATION_FLAG_BLOCK_UNTIL_READY
                     );
+#endif
             }
             else
             {

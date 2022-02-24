@@ -677,7 +677,7 @@ protected:
 	//cl_mem mOutputCLBufs[MAX_SOURCES * 2] = {nullptr};
 	//cl_mem mOutputMainCLbuf = nullptr;
 	//cl_mem mOutputMixCLBufs[2] = {nullptr};
-	//cl_mem mOutputShortBuf = nullptr;
+	//cl_mem mOutputShortCLBuf = nullptr;
 
 	// current position in each stream:
 	//int64_t m_samplePos[MAX_SOURCES];

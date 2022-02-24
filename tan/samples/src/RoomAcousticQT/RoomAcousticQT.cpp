@@ -15,11 +15,7 @@
 	#include "../common/PortPlayer.h"
 #endif
 
-#ifndef TAN_NO_OPENCL
-  #include "Audio3DOpenCL.h"
-#else
-  #include "Audio3DAMF.h"
-#endif
+#include "Audio3DAMF.h"
 
 #include <time.h>
 #include <ctime>
@@ -243,11 +239,7 @@ void RoomAcousticQT::initializeAudioEngine()
 {
 	mAudioEngine.reset(
 		(IAudio3D *)
-#ifndef TAN_NO_OPENCL
-		new Audio3DOpenCL()
-#else
 		new Audio3DAMF()
-#endif
 	    );
 }
 

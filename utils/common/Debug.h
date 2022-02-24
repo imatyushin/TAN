@@ -112,12 +112,12 @@ static amf::AMFMutex & GetLockMutex()
     static amf::AMFMutex lockMutex(
         false,
 #ifndef TAN_NO_OPENCL
-        L"/TAN-CL2"
+        L"/TAN-CL"
 #else
   #ifdef ENABLE_METAL
 		L"/TAN-AMF-METAL"
   #else
-		L"/TAN-AMF-CL2"
+		L"/TAN-AMF-CL"
   #endif
 #endif
         );
