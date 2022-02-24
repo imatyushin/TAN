@@ -64,18 +64,6 @@
 
 bool Audio3DOpenCL::mUseIntrinsics = true;//InstructionSet::AVX() && InstructionSet::FMA();
 
-#ifndef ERROR_MESSAGE
-
-#ifdef _WIN32
-#define ERROR_MESSAGE(message) ::MessageBoxA(0, #message, "Error", MB_OK)
-#else
-#define ERROR_MESSAGE(message) __asm__("int3"); std::cerr << "Error: " << message << std::endl
-#endif
-
-#endif
-
-#define SAFE_DELETE_ARR(x) if (x) { delete[] x; x = nullptr; }
-
 unsigned Audio3DOpenCL::processThreadProc(void * ptr)
 {
     Audio3DOpenCL *pAudio3D = static_cast<Audio3DOpenCL*>(ptr);
@@ -752,6 +740,7 @@ int Audio3DOpenCL::ProcessProc()
     uint32_t buffersPlayed(0);
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
+    size_t actualRestartsNumber = 0;
 
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
@@ -856,7 +845,7 @@ int Audio3DOpenCL::ProcessProc()
         //continue;
         std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
-        //memcpy(processed, &outputBuffer.front(), bytes2Play);
+        std::copy_n(outputBuffer.data(), bytes2Play, processed);
 
         uint32_t bytesTotalPlayed(0);
         uint8_t *outputBufferData = (uint8_t *)&outputBuffer.front();
@@ -926,8 +915,18 @@ int Audio3DOpenCL::ProcessProc()
                 //play wav again
                 pWaves[fileIndex] = pWaveStarts[fileIndex];
                 waveBytesPlayed[fileIndex] = 0;
+
+                actualRestartsNumber++;
             }
         }
+
+        if (!mOutputFile.empty())
+        {
+            WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
+                16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
+            //break;
+        }
+
 
         //new
         /*
@@ -940,9 +939,21 @@ int Audio3DOpenCL::ProcessProc()
             processed += (mBufferSizeInBytes / sizeof(int16_t));
         }*/
 
+        if (actualRestartsNumber == 0 && mShouldOutputRecording && !mOutputFile.empty())
+        {
+            WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
+                16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
+        }
+
         if(bytes2Play)
         {
-            if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+            if (mRestartsNumber > 0 && actualRestartsNumber == mRestartsNumber)
+            {
+                saveRestartCount(actualRestartsNumber);
+                Stop();
+                break;
+            }
+            else if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
             {
                 processed = &mStereoProcessedBuffer.front();
             }
@@ -963,24 +974,6 @@ int Audio3DOpenCL::ProcessProc()
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    /*
-    if(!WriteWaveFileS(
-        "RoomAcousticsRun.wav",
-        FILTER_SAMPLE_RATE,
-        2,
-        16,
-        //mWavFiles[0].SamplesCount, //why not a max?
-        mMaxSamplesCount,
-        &mStereoProcessedBuffer.front()
-        ))
-    {
-        puts("unable to write RoomAcousticsRun.wav");
-    }
-    else
-    {
-        puts("wrote output to RoomAcousticsRun.wav");
-    }*/
 
     mRunning = false;
     mTimer.Stop();

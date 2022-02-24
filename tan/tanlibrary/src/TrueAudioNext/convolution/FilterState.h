@@ -29,6 +29,8 @@
 
 #include "Debug.h"
 #include <map>
+#include <cstring>
+
 
 struct ovlAddFilterState
 {

@@ -1,0 +1,9 @@
+CLS
+SETLOCAL
+
+RMDIR /S /Q vs2022-cl
+MKDIR vs2022-cl
+CD vs2022-cl
+
+SET CMAKE_PREFIX_PATH=C:\Qt\Qt5.6.3\5.6.3\msvc2015_64
+cmake .. -G "Visual Studio 17 2022" -A x64 -DOpenCL_INCLUDE_DIR="../../../thirdparty/OpenCL-Headers" -DOpenCL_LIBRARY="C:\Program Files (x86)\OCL_SDK_Light\lib\x86_64\OpenCL.lib" -DPortAudio_DIR="../../../thirdparty/portaudio" -DFFTW_DIR_="../../../thirdparty/fftw" -DAMF_OPEN_DIR="../../../amfOpen" -DDEFINE_AMD_OPENCL_EXTENSION=1 -DRTQ_ENABLED=1

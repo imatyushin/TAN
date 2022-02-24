@@ -29,6 +29,7 @@
 
 #include "Debug.h"
 #include "Utilities.h"
+#include <cstring>
 
 #define N_FILTER_STATES 3
 

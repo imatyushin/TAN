@@ -45,6 +45,7 @@
 #endif
 
 #include <tuple>
+#include <cstring>
 
 #define AMF_FACILITY L"TANConvolutionImpl"
 

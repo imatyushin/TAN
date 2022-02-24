@@ -28,6 +28,7 @@
 #pragma once
 #include "public/include/core/Buffer.h"
 #include "Debug.h"
+#include <cstring>
 
 namespace amf
 {

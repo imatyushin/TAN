@@ -30,8 +30,10 @@
 #include "public/include/core/Context.h"        //AMF
 #include "public/include/core/Buffer.h"         //AMF
 
+#include <cstring>
 #include "Debug.h"
 #include "Utilities.h"
+
 
 typedef struct _tdFilterState
 {
