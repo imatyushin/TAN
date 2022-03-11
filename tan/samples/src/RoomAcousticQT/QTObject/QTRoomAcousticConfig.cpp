@@ -367,13 +367,18 @@ void RoomAcousticQTConfig::updateRoomFields()
 		);
 
 	ConfigUi.CULabelRoom->setEnabled(ConfigUi.SB_RoomCU->isEnabled());
-	ConfigUi.RoomQueueGroup->setEnabled(
+
+	bool enableRTQGroup =
 #ifdef RTQ_ENABLED
 		m_RoomAcousticInstance.mRoomViaCompute && m_RoomAcousticInstance.mRoomComputeOnGPU
 #else
 		false
 #endif
-		);
+		;
+	ConfigUi.RB_DEF4Room->setEnabled(enableRTQGroup);
+	ConfigUi.RB_MPr4Room->setEnabled(enableRTQGroup);
+	ConfigUi.RB_RTQ4Room->setEnabled(enableRTQGroup);
+	ConfigUi.RoomQueueGroup->setEnabled(enableRTQGroup);
 
 	mLockUpdate = false;
 }
@@ -429,13 +434,18 @@ void RoomAcousticQTConfig::updateConvolutionFields()
 		);
 
 	ConfigUi.CULabelConvolution->setEnabled(ConfigUi.SB_ConvCU->isEnabled());
-	ConfigUi.ConvQueueGroup->setEnabled(
+
+	bool enableRTQGroup =
 #ifdef RTQ_ENABLED
-		m_RoomAcousticInstance.mConvolutionViaCompute && m_RoomAcousticInstance.mConvolutionComputeOnGPU
+		m_RoomAcousticInstance.mConvolutionViaCompute&& m_RoomAcousticInstance.mConvolutionComputeOnGPU
 #else
 		false
 #endif
-		);
+		;
+	ConfigUi.RB_DEF4Conv->setEnabled(enableRTQGroup);
+	ConfigUi.RB_MPr4Conv->setEnabled(enableRTQGroup);
+	ConfigUi.RB_RTQ4Conv->setEnabled(enableRTQGroup);
+	ConfigUi.ConvQueueGroup->setEnabled(enableRTQGroup);
 
 	mLockUpdate = false;
 }
