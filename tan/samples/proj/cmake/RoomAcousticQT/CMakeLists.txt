@@ -252,9 +252,9 @@ else()
   target_link_libraries(RoomAcousticsQT ${CMAKE_THREAD_LIBS_INIT})
 
   target_link_libraries(RoomAcousticsQT "dl")
-  target_link_libraries(RoomAcousticsQT rt)
 
   if(NOT APPLE)
+    target_link_libraries(RoomAcousticsQT rt)
     target_link_libraries(RoomAcousticsQT "asound")
   endif()
 endif()
