@@ -66,8 +66,6 @@ private:
 
 	void enumDevices();													// Initialize TAN device (Convolution, FFT, etc.)
 
-	void saveInitTime(const size_t &elapsedTime);
-
 //todo: make accessors
 public:
 	std::string 							mTANDLLPath;

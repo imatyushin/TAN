@@ -401,6 +401,11 @@ public:
         return mLastError;
     }
 
+    size_t setElapsedInitTime(const size_t &time)
+    {
+        return elapsedInitTime = time;
+    }
+
     size_t getMaxSamplesDuration() const
     {
         auto maxDuration(0);
@@ -430,25 +435,15 @@ public:
         outputStr.append(std::to_wstring(actualRestartsNb));
         outputStr.append(AMF_UNICODE(" / "));
         outputStr.append(std::to_wstring(mRestartsNumber));
-        outputStr.append(AMF_UNICODE("/n"));
 
         if (!mMetricsFileName.empty())
         {
             auto res = g_AMFFactory.Init();
             if (AMF_OK == res)
             {
-                    res = g_AMFFactory.GetTrace()->SetPath(mMetricsFileName.c_str());
-                    if (AMF_OK == res)
-                    {
-                        g_AMFFactory.GetTrace()->EnableWriter(AMF_TRACE_WRITER_FILE, true);
-                        g_AMFFactory.GetTrace()->Trace(AMF_UNICODE(__FILE__), __LINE__, AMF_TRACE_INFO,
-                            AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
-                    }
-                    else
-                    {
-                        AMF_ASSERT_OK(res, L"AMF Factory Failed to set path!");
-                    }
-                    g_AMFFactory.Terminate();
+                g_AMFFactory.GetTrace()->Trace(AMF_UNICODE("\n"), 0, AMF_TRACE_INFO,
+                    AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
+                g_AMFFactory.Terminate();
             }
             else
             {
@@ -700,4 +695,5 @@ protected:
     std::wstring    mMetricsFileName{L""};
     std::string     mOutputFile{""};
     bool            mShouldOutputRecording{false};
+    size_t          elapsedInitTime{0};
 };

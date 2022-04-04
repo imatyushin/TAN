@@ -747,6 +747,8 @@ int Audio3DAMF::ProcessProc()
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
     size_t actualRestartsNumber = 0;
+    auto startTime = std::chrono::high_resolution_clock::now();
+    bool isPeriodBeforeOtput(true);
 
     /*std::cout << std::endl << "a1 wav:" << std::endl;
     for(int i(0); i < 1024; ++i)
@@ -919,6 +921,14 @@ int Audio3DAMF::ProcessProc()
 
         if (actualRestartsNumber == 0 && mShouldOutputRecording && !mOutputFile.empty())
         {
+            if (isPeriodBeforeOtput)
+            {
+                auto endTime = std::chrono::high_resolution_clock::now();
+                size_t elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+                savePlaybackPeriod(elapsedTime);
+                isPeriodBeforeOtput = false;
+            }
+
             WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
                 16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
         }
@@ -1055,4 +1065,35 @@ int Audio3DAMF::UpdateProc()
     }
 
     return 0;
+}
+
+void Audio3DAMF::savePlaybackPeriod(const size_t& elapsedTime)
+{
+    std::wstring outputStr(AMF_UNICODE("Initialization time: "));
+
+    outputStr.append(std::to_wstring(elapsedInitTime + elapsedTime));
+    outputStr += (AMF_UNICODE("\n"));
+
+    if (!mMetricsFileName.empty())
+    {
+        auto res = g_AMFFactory.Init();
+        if (AMF_OK == res)
+        {
+            res = g_AMFFactory.GetTrace()->SetPath(mMetricsFileName.c_str());
+            if (AMF_OK == res)
+            {
+                g_AMFFactory.GetTrace()->Trace(AMF_UNICODE("\n"), 0, AMF_TRACE_INFO,
+                    AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
+            }
+            else
+            {
+                AMF_ASSERT_OK(res, L"AMF Factory Failed to set path!");
+            }
+            g_AMFFactory.Terminate();
+        }
+        else
+        {
+            AMF_ASSERT_OK(res, L"AMF Factory Failed to initialize!");
+        }
+    }
 }
