@@ -12,7 +12,6 @@ bool initFromCommandLine(QApplication &application, QCommandLineParser &consoleO
 	QCommandLineOption outputFile("outputFile", "Required option. Save RoomAcousticsQT output into <File>", "File");
 	QCommandLineOption playDuration("playDuration", "Sets duration of simulation to <Time> in miliseconds", "Time");
 	QCommandLineOption restartCounter("restartCounter", "Sets restart counter <RestartCount> - 1,2,...", "RestartCount");
-	playDuration.setDefaultValue(QString::number(10000));
 	
 	consoleOptions.addOption(configFile);
 	consoleOptions.addOption(metricsFile);
