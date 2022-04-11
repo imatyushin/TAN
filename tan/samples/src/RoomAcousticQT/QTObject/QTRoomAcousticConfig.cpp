@@ -1666,6 +1666,8 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 
 void RoomAcousticQTConfig::runInConsole()
 {
+	int restartCounter(consoleOptions.value("restartCounter").toInt());
+
 	on_PB_RunDemo_clicked();
 	if (m_RoomAcousticInstance.mOutputFileName.empty())
 	{
@@ -1677,16 +1679,17 @@ void RoomAcousticQTConfig::runInConsole()
 		m_RoomAcousticInstance.mAudioEngine->setShouldOutputRecording(true);
 	}
 
-	if (consoleOptions.isSet("restartCounter") && consoleOptions.value("restartCounter").toInt() > 0)
+	if (consoleOptions.isSet("restartCounter") && restartCounter > 0 && restartCounter < 10)
 	{
-		m_RoomAcousticInstance.mAudioEngine->setRestartsNumber(consoleOptions.value("restartCounter").toInt());
+		m_RoomAcousticInstance.mAudioEngine->setRestartsNumber(restartCounter);
 	}
 	else
 	{
 		size_t playDuration(consoleOptions.value("playDuration").toInt());
-		size_t maxSampleDuration(m_RoomAcousticInstance.mAudioEngine->getMaxSamplesDuration());
+		// additional 2 seconds
+		size_t maxSampleDuration(m_RoomAcousticInstance.mAudioEngine->getMaxSamplesDuration() + 2000);
 
-		if (playDuration > maxSampleDuration)
+		if (playDuration > maxSampleDuration || playDuration == 0)
 		{
 			playDuration = maxSampleDuration;
 		}

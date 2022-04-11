@@ -740,7 +740,13 @@ int Audio3DOpenCL::ProcessProc()
     uint32_t buffersPlayed(0);
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
-    size_t actualRestartsNumber = 0;
+
+    size_t  actualRestartsNumber(0);
+    size_t  elapsedTime(0);
+    auto    startTime(std::chrono::high_resolution_clock::now());
+    bool    isPeriodBeforeOtput(true);
+
+
 
     for(int file = 0; file < mWavFiles.size(); ++file)
     {
@@ -920,14 +926,6 @@ int Audio3DOpenCL::ProcessProc()
             }
         }
 
-        if (!mOutputFile.empty())
-        {
-            WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
-                16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
-            //break;
-        }
-
-
         //new
         /*
         if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
@@ -941,6 +939,13 @@ int Audio3DOpenCL::ProcessProc()
 
         if (actualRestartsNumber == 0 && mShouldOutputRecording && !mOutputFile.empty())
         {
+            if (isPeriodBeforeOtput)
+            {
+                auto endTime = std::chrono::high_resolution_clock::now();
+                elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+                isPeriodBeforeOtput = false;
+            }
+
             WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
                 16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
         }
@@ -949,7 +954,7 @@ int Audio3DOpenCL::ProcessProc()
         {
             if (mRestartsNumber > 0 && actualRestartsNumber == mRestartsNumber)
             {
-                saveRestartCount(actualRestartsNumber);
+                saveMetrics(actualRestartsNumber, elapsedTime);
                 Stop();
                 break;
             }

@@ -58,8 +58,6 @@ protected:
     static unsigned processThreadProc(void *ptr);
     static unsigned updateThreadProc(void *ptr);
 
-    void savePlaybackPeriod(const size_t& elapsedTime);
-
 public:
     Audio3DAMF();
     Audio3DAMF(Audio3DAMF const &) = delete;

@@ -428,22 +428,32 @@ public:
         mRestartsNumber = expectedRestartsNb;
     }
 
-    void saveRestartCount(const size_t& actualRestartsNb)
+    void saveMetrics(const size_t& actualRestartsNb, const size_t& elapsedTime)
     {
-        std::wstring outputStr(AMF_UNICODE("Restart counter: "));
+        std::wstring outputStr(AMF_UNICODE("\nRestart counter: "));
 
         outputStr.append(std::to_wstring(actualRestartsNb));
         outputStr.append(AMF_UNICODE(" / "));
         outputStr.append(std::to_wstring(mRestartsNumber));
+        outputStr.append(AMF_UNICODE("\nInit time: "));
+        outputStr.append(std::to_wstring(elapsedInitTime + elapsedTime));
 
         if (!mMetricsFileName.empty())
         {
             auto res = g_AMFFactory.Init();
-            if (AMF_OK == res)
+            if (res == AMF_OK)
             {
-                g_AMFFactory.GetTrace()->Trace(AMF_UNICODE("\n"), 0, AMF_TRACE_INFO,
-                    AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
-                g_AMFFactory.Terminate();
+                res = g_AMFFactory.GetTrace()->SetPath(mMetricsFileName.c_str());
+                if (res == AMF_OK)
+                {
+                    g_AMFFactory.GetTrace()->Trace(AMF_UNICODE(""), 0, AMF_TRACE_INFO,
+                        AMF_UNICODE("RoomAcoustic"), outputStr.c_str(), 0);
+                    g_AMFFactory.Terminate();
+                }
+                else
+                {
+                    AMF_ASSERT_OK(res, L"AMF Factory Failed to set path!");
+                }
             }
             else
             {
@@ -691,7 +701,7 @@ protected:
 	float m_headingOffset;
 	bool m_headingCCW;
 
-    size_t          mRestartsNumber{0};
+    size_t          mRestartsNumber{1};
     std::wstring    mMetricsFileName{L""};
     std::string     mOutputFile{""};
     bool            mShouldOutputRecording{false};
