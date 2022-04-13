@@ -934,10 +934,8 @@ int Audio3DAMF::ProcessProc()
             isElapsedTimeSaved = false;
         }
 
-        if (mRestartsNumber > 0 && actualRestartsNumber == mRestartsNumber && !mMetricsFileName.empty())
+        if (actualRestartsNumber == mRestartsNumber)
         {
-            saveMetrics(actualRestartsNumber, elapsedTime);
-            Stop();
             break;
         }
         else if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
@@ -962,6 +960,11 @@ int Audio3DAMF::ProcessProc()
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     mRunning = false;
+
+    if (!mMetricsFileName.empty())
+    {
+        saveMetrics(actualRestartsNumber, elapsedTime);
+    }
 
     return 0;
 }
