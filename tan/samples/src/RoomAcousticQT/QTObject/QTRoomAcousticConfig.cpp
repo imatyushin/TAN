@@ -1666,7 +1666,9 @@ void RoomAcousticQTConfig::on_AddSoundSourceButton_clicked()
 
 void RoomAcousticQTConfig::runInConsole()
 {
-	int restartCounter(consoleOptions.value("restartCounter").toInt());
+	int		restartCounter(consoleOptions.value("restartCounter").toInt());
+	size_t	playDuration(consoleOptions.value("playDuration").toInt());
+	size_t	maxSampleDuration(0);
 
 	on_PB_RunDemo_clicked();
 	if (m_RoomAcousticInstance.mOutputFileName.empty())
@@ -1685,20 +1687,21 @@ void RoomAcousticQTConfig::runInConsole()
 	}
 	else
 	{
-		size_t playDuration(consoleOptions.value("playDuration").toInt());
-		// additional 2 seconds
-		size_t maxSampleDuration(m_RoomAcousticInstance.mAudioEngine->getMaxSamplesDuration() + 2000);
-
-		if (playDuration > maxSampleDuration || playDuration == 0)
-		{
-			playDuration = maxSampleDuration;
-		}
-		QTimer::singleShot(playDuration, this,
-			[this]()
-			{
-				on_PB_RunDemo_clicked();
-				close();
-			}
-		);
+		restartCounter = 1;
 	}
+
+	maxSampleDuration = m_RoomAcousticInstance.mAudioEngine->getMaxSamplesDuration() * restartCounter;
+
+	if (playDuration > maxSampleDuration || playDuration == 0)
+	{
+		playDuration = maxSampleDuration;
+	}
+	QTimer::singleShot(playDuration, this,
+		[this]()
+		{
+			m_RoomAcousticInstance.mAudioEngine->saveMetrics();
+			on_PB_RunDemo_clicked();
+			close();
+		}
+	);
 }

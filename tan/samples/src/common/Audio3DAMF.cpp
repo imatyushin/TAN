@@ -747,8 +747,6 @@ int Audio3DAMF::ProcessProc()
     uint32_t buffersPerSecond = FILTER_SAMPLE_RATE / mBufferSizeInSamples;
     uint32_t deltaTimeInMs = 1000 / buffersPerSecond;
 
-    size_t  actualRestartsNumber(0);
-    size_t  elapsedTime(0);
     auto    startTime(std::chrono::high_resolution_clock::now());
     bool    isElapsedTimeSaved(true);
 
@@ -916,30 +914,24 @@ int Audio3DAMF::ProcessProc()
                 //play wav again
                 pWaves[fileIndex] = pWaveStarts[fileIndex];
                 waveBytesPlayed[fileIndex] = 0;
-
-                actualRestartsNumber++;
             }
         }
 
-        if (actualRestartsNumber == 0 && mShouldOutputRecording && !mOutputFile.empty())
+        if (mActualRestartsNumber == 0 && mShouldOutputRecording)
         {
             WriteWaveFileS(mOutputFile.c_str(), FILTER_SAMPLE_RATE, STEREO_CHANNELS_COUNT,
                 16, mMaxSamplesCount, &mStereoProcessedBuffer.front());
         }
+        if (processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
+        {
+            if (isElapsedTimeSaved == false)
+            {
+                auto endTime = std::chrono::high_resolution_clock::now();
+                mElapsedTime += std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+                isElapsedTimeSaved = true;
+            }
 
-        if (actualRestartsNumber == 0 && isElapsedTimeSaved && !mMetricsFileName.empty())
-        {
-            auto endTime = std::chrono::high_resolution_clock::now();
-            elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-            isElapsedTimeSaved = false;
-        }
-
-        if (actualRestartsNumber == mRestartsNumber)
-        {
-            break;
-        }
-        else if(processed - &mStereoProcessedBuffer.front() + (mBufferSizeInBytes / sizeof(int16_t)) > mMaxSamplesCount)
-        {
+            mActualRestartsNumber++;
             processed = &mStereoProcessedBuffer.front();
         }
         else
@@ -960,11 +952,6 @@ int Audio3DAMF::ProcessProc()
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     mRunning = false;
-
-    if (!mMetricsFileName.empty())
-    {
-        saveMetrics(actualRestartsNumber, elapsedTime);
-    }
 
     return 0;
 }

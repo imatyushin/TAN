@@ -401,9 +401,9 @@ public:
         return mLastError;
     }
 
-    size_t setElapsedInitTime(const size_t &time)
+    size_t setElapsedTime(const size_t &time)
     {
-        return elapsedInitTime = time;
+        return mElapsedTime = time;
     }
 
     size_t getMaxSamplesDuration() const
@@ -428,18 +428,18 @@ public:
         mRestartsNumber = expectedRestartsNb;
     }
 
-    void saveMetrics(const size_t& actualRestartsNb, const size_t& elapsedTime)
+    void saveMetrics()
     {
-        std::wstring outputStr(AMF_UNICODE("\nRestart counter: "));
-
-        outputStr.append(std::to_wstring(actualRestartsNb));
-        outputStr.append(AMF_UNICODE(" / "));
-        outputStr.append(std::to_wstring(mRestartsNumber));
-        outputStr.append(AMF_UNICODE("\nInit time: "));
-        outputStr.append(std::to_wstring(elapsedInitTime + elapsedTime));
-
         if (!mMetricsFileName.empty())
         {
+            std::wstring outputStr(AMF_UNICODE("\nRestart counter: "));
+
+            outputStr.append(std::to_wstring(mActualRestartsNumber));
+            outputStr.append(AMF_UNICODE(" / "));
+            outputStr.append(std::to_wstring(mRestartsNumber));
+            outputStr.append(AMF_UNICODE("\nInit time: "));
+            outputStr.append(std::to_wstring(mElapsedTime));
+
             auto res = g_AMFFactory.Init();
             if (res == AMF_OK)
             {
@@ -459,6 +459,7 @@ public:
             {
                 AMF_ASSERT_OK(res, L"AMF Factory Failed to initialize!");
             }
+            mMetricsFileName.erase();
         }
     }
 
@@ -701,9 +702,10 @@ protected:
 	float m_headingOffset;
 	bool m_headingCCW;
 
-    size_t          mRestartsNumber{1};
-    std::wstring    mMetricsFileName{L""};
-    std::string     mOutputFile{""};
-    bool            mShouldOutputRecording{false};
-    size_t          elapsedInitTime{0};
+    size_t          mRestartsNumber{ 0 };
+    size_t          mActualRestartsNumber{ 0 };
+    std::wstring    mMetricsFileName{ L"" };
+    std::string     mOutputFile{ "" };
+    bool            mShouldOutputRecording{ false };
+    size_t          mElapsedTime{ 0 };
 };

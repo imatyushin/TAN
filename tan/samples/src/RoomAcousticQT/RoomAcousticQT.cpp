@@ -166,7 +166,7 @@ bool RoomAcousticQT::start()
 
 	auto endTime = std::chrono::high_resolution_clock::now();
 	size_t elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-	mAudioEngine->setElapsedInitTime(elapsedTime);
+	mAudioEngine->setElapsedTime(elapsedTime);
 
 	if(started)
 	{
