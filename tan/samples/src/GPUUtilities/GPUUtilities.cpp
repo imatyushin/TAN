@@ -25,8 +25,6 @@
 #include "public/include/core/Context.h"
 #include "public/common/AMFFactory.h"
 
-#include "../ADL/ADLQuery.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <iostream>

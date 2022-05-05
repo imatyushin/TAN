@@ -43,7 +43,6 @@ endif()
 set(
   SOURCE_LIB
 
-  ../../../src/ADL/ADLquery.cpp
   ../../../src/GPUUtilities/GPUUtilities.cpp
   )
 
@@ -54,7 +53,6 @@ endif()
 set(
   HEADER_LIB
 
-  ../../../src/ADL/ADLQuery.h
   ../../../src/GPUUtilities/GpuUtilities.h
   ../../../src/GPUUtilities/stdafx.h
   ../../../src/GPUUtilities/targetver.h

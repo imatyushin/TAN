@@ -25,8 +25,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <CL/cl.h>
 #include "GpuUtilities.h"
+#include "../ADL/ADLQuery.h"
 //#include "public/include/core/Context.h"
 //#include "public/common/AMFFactory.h"
 

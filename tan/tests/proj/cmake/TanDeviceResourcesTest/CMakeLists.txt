@@ -37,11 +37,16 @@ include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 # sources
 set(
   SOURCE_EXE
+
+  ${TAN_ROOT}/tan/samples/src/ADL/ADLquery.cpp
   ../../../src/TanDeviceResources/TanDeviceResources.cpp
+
   )
 
 set(
   HEADER_EXE
+
+  ${TAN_ROOT}/tan/samples/src/ADL/ADLquery.h
   #stdafx.h
   )
 
@@ -54,3 +59,11 @@ add_executable(
 
 #target_link_libraries(TanDeviceResourcesTest TrueAudioNext)
 target_link_libraries(TanDeviceResourcesTest GPUUtilities)
+
+
+add_custom_command(
+    TARGET TanDeviceResourcesTest
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TanDeviceResourcesTest>
+    VERBATIM
+    )

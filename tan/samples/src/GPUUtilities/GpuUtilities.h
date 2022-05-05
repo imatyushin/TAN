@@ -78,4 +78,8 @@ extern "C"
     GPUUTILITIES_EXPORT int GPUUTILITIES_CDECL_CALL getDeviceAndContext(int devIdx, cl_context *pContext, cl_device_id *pDevice, cl_device_type clDeviceType = CL_DEVICE_TYPE_GPU);
 
     GPUUTILITIES_EXPORT cl_command_queue GPUUTILITIES_CDECL_CALL createQueue(cl_context context, cl_device_id device, int flag = 0, int cu_ = 0);
+
+    // TAN tests functions.
+    GPUUTILITIES_EXPORT bool GPUUTILITIES_CDECL_CALL checkOpenCL2_XCompatibility(cl_device_id device_id);
+    GPUUTILITIES_EXPORT bool GPUUTILITIES_CDECL_CALL getAMFdeviceProperties(cl_command_queue queue, int* maxReservedComputeUnits);
 }
