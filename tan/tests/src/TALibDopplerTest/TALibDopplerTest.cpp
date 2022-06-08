@@ -490,6 +490,11 @@ int main(int argc, char* argv[])
     }
 
 	LoadParameters(xmlFileName);
+    if (convolutionLength < 1)
+    {
+        std::cerr << "ERROR: convolution length is zero! Check input(roomDef xml file).\n";
+        return 0;
+    }
 
     RoomDefinition room;
     memset(&room, 0, sizeof(room));
@@ -529,10 +534,12 @@ int main(int argc, char* argv[])
 
 	TANContextPtr pContext;
 	TANFFTPtr pFft, pFft2;
+    auto factory = g_AMFFactory.GetFactory();
 
-	RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext));
+	RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext, factory));
     cl_command_queue cmdQueue = NULL;
 
+#ifndef TAN_NO_OPENCL
     if (gpu)
 	{
 		cl_context cl_context1;
@@ -543,7 +550,7 @@ int main(int argc, char* argv[])
         RETURN_IF_FALSE(!!cmdQueue);
         RETURN_IF_FAILED(pContext->InitOpenCL(cmdQueue, cmdQueue));
 	}
-
+#endif
 
 	RETURN_IF_FAILED(TANCreateFFT(pContext, &pFft));
 
@@ -578,7 +585,13 @@ int main(int argc, char* argv[])
 
 #ifdef _WIN32
 	HMODULE TanVrDll;
-	TanVrDll = LoadLibraryA("TrueAudioVR.dll");
+    TanVrDll = LoadLibraryA("TrueAudioVR.dll");
+    if (TanVrDll == NULL)
+    {
+        std::cerr << "ERROR: Unable to open TrueAudioVR.dll\n";
+        RETURN_IF_FAILED(AMF_FAIL);
+    }
+
 	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
 	CREATEVR CreateAmdTrueAudioVR = nullptr;
 	CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
@@ -588,7 +601,7 @@ int main(int argc, char* argv[])
 
 	taVR->SetExecutionMode(gpu ? AmdTrueAudioVR::GPU : AmdTrueAudioVR::CPU);
 
-	taVR->generateSimpleHeadRelatedTransform(&ears.hrtf, ears.earSpacing);
+	taVR->generateSimpleHeadRelatedTransform(ears.hrtf, ears.earSpacing);
 	//taVR->generateRoomResponse(room, src, ears, SamplesPerSec, convolutionLength, pfResponseL, pfResponseR);
 
 	//if (gpu)
@@ -610,8 +623,10 @@ int main(int argc, char* argv[])
     TANCreateConvolution(pContext, &convCPU);
     TANCreateConvolution(pContext, &convGPU);
 
+
     convCPU->Init(TAN_CONVOLUTION_METHOD_TIME_DOMAIN, convolutionLength, n_samples, NChannels);
 
+    //todo change nzFL when convolutionLength==0
     int nzFL[4] = { 0, convolutionLength, 0, convolutionLength };
 
     //hack
@@ -647,7 +662,8 @@ int main(int argc, char* argv[])
         memset(pfResponseR + firstNonZero, 0, (lastNonZero - firstNonZero)*sizeof(float));
         firstNonZero = convolutionLength;
         lastNonZero = 0;
-        if (maxbounces > 0){
+        if (maxbounces > 0 && convolutionLength > 0)
+        {
             taVR->generateRoomResponse(room, src, ears, SamplesPerSec, convolutionLength, pfResponseL, pfResponseR, GENROOM_LIMIT_BOUNCES, maxbounces);
             //find first and last non zero response values
             for (int k = 0; k < convolutionLength; k++){

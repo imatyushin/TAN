@@ -58,3 +58,26 @@ add_executable(
 
 target_link_libraries(TAlibTestDynamicChannelConvolution TrueAudioNext)
 target_link_libraries(TAlibTestDynamicChannelConvolution GPUUtilities)
+
+
+add_custom_command(
+  TARGET TAlibTestDynamicChannelConvolution
+  POST_BUILD
+
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TAlibTestDynamicChannelConvolution>
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TAlibTestDynamicChannelConvolution>
+
+  VERBATIM
+  )
+
+if(FFTW_DIR)
+add_custom_command(
+    TARGET TAlibTestDynamicChannelConvolution
+    POST_BUILD
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>"
+	$<TARGET_FILE_DIR:TAlibTestDynamicChannelConvolution>
+
+    VERBATIM
+    )
+endif()

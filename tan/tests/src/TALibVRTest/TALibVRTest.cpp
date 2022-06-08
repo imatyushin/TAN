@@ -1,18 +1,22 @@
 // TALibVRTest.cpp : Defines the entry point for the console application.
 //
 #include "stdafx.h"
-
 #include "TrueAudioNext.h"
 #include "TrueAudioVR.h"
 #include "GpuUtilities.h"
-
+#include "GpuUtils.h"
+#include "Exceptions.h"
+#include "public/common/TraceAdapter.h"
+#include "public/include/core/Context.h"
+#include "public/common/AMFFactory.h"
 #include "FileUtility.h"
 #include "wav.h"
 
 #include <vector>
 #include <iostream>
 #include <cstring>
-
+#include <stdio.h>
+#include <string.h>
 #include <memory.h>
 #include <math.h>
 #include <assert.h>
@@ -25,6 +29,10 @@
   #include <AclAPI.h>
   #include <process.h>
 #endif
+
+#include <CL/cl_ext.h>
+#include <CL/cl.h>
+
 
 struct attribute {
     char *name;
@@ -175,6 +183,8 @@ cl_command_queue createQueue(int cu_ = 0, bool rtQueue = false) //2 //4
 
 
     // Create a real time queue
+    // todo fix error identifier "cl_queue_properties" is undefined	TALibVRTest
+
 #ifdef RTQ_ENABLED
     if (rtQueue)
     {
@@ -504,15 +514,13 @@ int main(int argc, char* argv[])
 	// Created for when 'test' is called
 	float *pfResponsesT[2];
 	float *pfResponsesDiff[2];
-	if (argc < 3){
-		puts("syntax:\n");
-		puts("TALibVRTest <gpu | cpu | test> xmlfile outWavFile \n");
+	if (argc != 4){
+		puts("TALibVRTest usage:\n\nTALibVRTest <gpu | cpu | test> xmlfile outWavFile \n");
 		return(0);
 	}
 	if ((strcmp(argv[1], "gpu") != 0) && (strcmp(argv[1], "cpu") != 0) && (strcmp(argv[1], "test") != 0))
 	{
-		puts("syntax:\n");
-		puts("TALibVRTest <gpu | cpu | test> \n");
+		puts("TALibVRTest usage:\n\nTALibVRTest <gpu | cpu | test> \n");
 		return(0);
 	}
 
@@ -535,26 +543,44 @@ int main(int argc, char* argv[])
 
 	LoadParameters(xmlFileName);
 	long NSamples = convolutionLength;
-
+    if (NSamples <= 0)
+    {
+        std::cerr << "ERROR: convolutionLength is zero!" << std::endl;
+        return -1;
+    }
 
 	TANContextPtr pContext;
 	TANFFTPtr pFft, pFft2;
+    auto factory = g_AMFFactory.GetFactory();
 
-	RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext));
+	RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext, factory));
 	cl_command_queue cmdQueue = NULL;
-	if (gpu)
+    AMFComputePtr compute1;
+    AMFComputePtr compute2;
+    AMFContextPtr mContext12;
+
+    RETURN_IF_FAILED(TANCreateFFT(pContext, &pFft));
+    RETURN_IF_FAILED(pFft->Init());
+
+    if (gpu)
 	{
+#ifndef TAN_NO_OPENCL
 		cl_context cl_context1;
 		cl_device_id cl_device_id1;
 		cl_uint status = getDeviceAndContext(0, &cl_context1, &cl_device_id1);
 		cl_command_queue command_queue1 = createQueue(cl_context1, cl_device_id1);
 
 		RETURN_IF_FALSE(!!command_queue1);
-		RETURN_IF_FAILED(pContext->InitOpenCL(command_queue1, command_queue1));
+        RETURN_IF_FAILED(pContext->InitOpenCL(command_queue1, command_queue1));
+#else
+        int32_t flagsQ1 = 0;
+        int32_t flagsQ2 = 0;
+        int computeDeviceIndex = 0;
+
+        RETURN_IF_FAILED(CreateGpuCommandQueues(computeDeviceIndex, flagsQ1, &compute1, flagsQ2, &compute2, &mContext12));
+        pContext->InitAMF(mContext12, compute2, mContext12, compute2);
+#endif
 	}
-
-
-	RETURN_IF_FAILED(TANCreateFFT(pContext, &pFft));
 
 	cl_int status;
 	float* zerobuffer = new float[convolutionLength];
@@ -564,12 +590,32 @@ int main(int argc, char* argv[])
 	float *pfResponseR = nullptr;
 	float *pfResponseLT = nullptr;
 	float *pfResponseRT = nullptr;
-	if (gpu)
+
+    AmdTrueAudioVR* taVR(nullptr);
+    AmdTrueAudioVR* taTVR(nullptr);
+    auto AMFContextObj = pContext->GetConvContext();
+    AMFBufferPtr bufferResponseL(nullptr);
+    AMFBufferPtr bufferResponseR(nullptr);
+
+    if (gpu)
 	{
-		pfResponseL = (float *)clCreateBuffer(pContext->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
+#ifndef TAN_NO_OPENCL
+        pfResponseL = (float *)clCreateBuffer(pContext->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
 		pfResponseR = (float *)clCreateBuffer(pContext->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
-		pfResponses[0] = new float[convolutionLength];
-		pfResponses[1] = new float[convolutionLength];
+        pfResponses[0] = new float[convolutionLength];
+        pfResponses[1] = new float[convolutionLength];
+#else
+        mContext12->AllocBuffer(compute2->GetMemoryType(), convolutionLength * sizeof(float), &bufferResponseL);
+        mContext12->AllocBuffer(compute2->GetMemoryType(), convolutionLength * sizeof(float), &bufferResponseR);
+
+        float fillNumber = 0.0;
+        compute2->FillBuffer(bufferResponseL, 0, convolutionLength * sizeof(float), &fillNumber, sizeof(float));
+        compute2->FillBuffer(bufferResponseR, 0, convolutionLength * sizeof(float), &fillNumber, sizeof(float));
+        pfResponseL = new float[convolutionLength];
+        pfResponseR = new float[convolutionLength];
+        memset(pfResponseL, 0, sizeof(float) * convolutionLength);
+        memset(pfResponseR, 0, sizeof(float) * convolutionLength);
+#endif
 	}
 	else
 	{
@@ -592,30 +638,99 @@ int main(int argc, char* argv[])
 	char outNameGPU[255];
 	char outNameCPU[255];
 
-	RETURN_IF_FAILED(pFft->Init());
-	// Open TrueAudioVR DLL:
-	AmdTrueAudioVR *taVR = NULL;
-	AmdTrueAudioVR *taTVR = NULL;
-
 #ifdef _WIN32
-	HMODULE TanVrDll;
-	TanVrDll = LoadLibraryA("TrueAudioVR.dll");
-	typedef int  (WINAPI *CREATEVR)(AmdTrueAudioVR **taVR, TANContextPtr pContext, TANFFTPtr pFft, cl_command_queue cmdQueue, float samplesPerSecond, int convolutionLength);
-	CREATEVR CreateAmdTrueAudioVR = nullptr;
-	CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
+    HMODULE TanVrDll;
+    TanVrDll = LoadLibraryA("TrueAudioVR.dll");
+    if (TanVrDll == nullptr)
+    {
+        std::cerr << "TrueAudioVR.dll not found.\n";
+    }
+
+#ifndef TAN_NO_OPENCL
+    typedef int (WINAPI* CREATEVR)(
+        AmdTrueAudioVR** taVR,
+        const TANContextPtr& pContext,
+        const TANFFTPtr& pFft,
+        cl_command_queue        cmdQueue,
+        float                   samplesPerSecond,
+        int                     convolutionLength
+        );
+#else
+    typedef int (WINAPI* CREATEVR)(
+        AmdTrueAudioVR** taVR,
+        const TANContextPtr& pContext,
+        const TANFFTPtr& pFft,
+        AMFCompute* compute,
+        float                   samplesPerSecond,
+        int                     convolutionLength,
+        amf::AMFFactory* factory
+        );
+#endif
+    CREATEVR CreateAmdTrueAudioVR = nullptr;
+    CreateAmdTrueAudioVR = (CREATEVR)GetProcAddress(TanVrDll, "CreateAmdTrueAudioVR");
 #endif
 
-	//taVR = new AmdTrueAudioVR(pContext, pFft, cmdQueue, static_cast<float>(SamplesPerSec), convolutionLength);
-	CreateAmdTrueAudioVR(&taVR, pContext, pFft, cmdQueue, static_cast<float>(SamplesPerSec), convolutionLength);
 
-	taVR->SetExecutionMode(gpu ? AmdTrueAudioVR::GPU : AmdTrueAudioVR::CPU);
+#ifndef TAN_NO_OPENCL
+    auto result = CreateAmdTrueAudioVR(
+        &taVR,
+        pContext,
+        pFft,
+        cmdQueue,
+        static_cast<float>(SamplesPerSec),
+        convolutionLength
+    );
+#else
+    auto result = CreateAmdTrueAudioVR(
+        &taVR,
+        pContext,
+        pFft,
+        compute2,
+        FILTER_SAMPLE_RATE, //todo: other frequencies?
+        convolutionLength,
+        factory
+    );
+#endif
+    AMF_RETURN_IF_FAILED(result);
+    if (taVR == nullptr)
+    {
+        std::cerr << "CreateAmdTrueAudioVR failed";
+    }
 
-	taVR->generateSimpleHeadRelatedTransform(&listener.hrtf, listener.earSpacing);
-	taVR->generateRoomResponse(room, source, listener, SamplesPerSec, convolutionLength, pfResponseL, pfResponseR);
+    if (gpu)
+    {
+        taVR->SetExecutionMode(AmdTrueAudioVR::GPU);
+    }
+    else
+    {
+        taVR->SetExecutionMode(AmdTrueAudioVR::CPU);
+    }
+
+	taVR->generateSimpleHeadRelatedTransform(listener.hrtf, listener.earSpacing);
+
+    if (gpu)
+    {
+#ifndef TAN_NO_OPENCL
+        taVR->generateRoomResponse(room, source, listener, SamplesPerSec, convolutionLength, pfResponseL, pfResponseR);
+#else
+        taVR->generateRoomResponse(room, source, listener, SamplesPerSec, convolutionLength, bufferResponseL, bufferResponseR, GENROOM_LIMIT_BOUNCES | GENROOM_USE_GPU_MEM, 50);
+#endif
+    }
+    else
+    {
+        taVR->generateRoomResponse(room, source, listener, SamplesPerSec, convolutionLength, pfResponseL, pfResponseR);
+    }
+
+
 	if (gpu)
 	{
-		clEnqueueReadBuffer(cmdQueue, (cl_mem)pfResponseL, CL_TRUE, 0, convolutionLength * sizeof(float), pfResponses[0], 0, NULL, NULL);
-		clEnqueueReadBuffer(cmdQueue, (cl_mem)pfResponseR, CL_TRUE, 0, convolutionLength * sizeof(float), pfResponses[1], 0, NULL, NULL);
+#ifndef TAN_NO_OPENCL
+        clEnqueueReadBuffer(cmdQueue, (cl_mem)pfResponseL, CL_TRUE, 0, convolutionLength * sizeof(float), pfResponses[0], 0, NULL, NULL);
+        clEnqueueReadBuffer(cmdQueue, (cl_mem)pfResponseR, CL_TRUE, 0, convolutionLength * sizeof(float), pfResponses[1], 0, NULL, NULL);
+#else
+        pfResponses[0] = pfResponseL;
+        pfResponses[1] = pfResponseR;
+#endif
 	}
 	else
 	{
@@ -642,13 +757,14 @@ int main(int argc, char* argv[])
 		cl_command_queue command_queue2 = createQueue(cl_context2, cl_device_id2);
 
 		RETURN_IF_FALSE(!!command_queue2);
-		RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext2));
-		RETURN_IF_FAILED(pContext2->InitOpenCL(command_queue2, command_queue2));
-
+		RETURN_IF_FAILED(TANCreateContext(TAN_FULL_VERSION, &pContext2, factory));
+#ifndef TAN_NO_OPENCL
+        RETURN_IF_FAILED(pContext2->InitOpenCL(command_queue2, command_queue2));
+#endif
 		RETURN_IF_FAILED(TANCreateFFT(pContext2, &pFft2));
 		RETURN_IF_FAILED(pFft2->Init());
 
-
+#ifndef TAN_NO_OPENCL
 		pfResponseLT = (float *)clCreateBuffer(pContext2->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
 		pfResponseRT = (float *)clCreateBuffer(pContext2->GetOpenCLContext(), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, convolutionLength * sizeof(float), zerobuffer, &status);
 
@@ -659,11 +775,11 @@ int main(int argc, char* argv[])
 
 			//taTVR = new AmdTrueAudioVR(pContext, pFft, cmdQueue, static_cast<float>(SamplesPerSec),convolutionLength);
         CreateAmdTrueAudioVR(&taTVR, pContext2, pFft2, cmdQueue, static_cast<float>(SamplesPerSec), convolutionLength);
-
+#endif
 
         taTVR->SetExecutionMode(AmdTrueAudioVR::GPU);
 
-        taTVR->generateSimpleHeadRelatedTransform(&listener.hrtf, listener.earSpacing);
+        taTVR->generateSimpleHeadRelatedTransform(listener.hrtf, listener.earSpacing);
         taTVR->generateRoomResponse(room, source, listener, SamplesPerSec, convolutionLength,
                                     pfResponseLT, pfResponseRT);
 

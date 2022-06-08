@@ -11,6 +11,7 @@
 
 #include <memory.h>
 #include <math.h>
+#include <iostream>
 
 #ifdef OMP_ENABLED
   #include <omp.h>
@@ -49,10 +50,10 @@ int main(int argc, char* argv[])
 	std::vector<std::string> outFileNm(2);
 	int n_samples = 128;
 
-	uint32_t SamplesPerSec, resSamplesPerSec;
-	uint16_t BitsPerSample, resBitsPerSample;
-	uint16_t NChannels, NResChannels;
-	uint32_t NSamples, NResSamples;
+	uint32_t SamplesPerSec(0), resSamplesPerSec(0);
+	uint16_t BitsPerSample(0), resBitsPerSample(0);
+	uint16_t NChannels(0), NResChannels(0);
+	uint32_t NSamples(0), NResSamples(0);
 	unsigned char *pSamples;
 	unsigned char *pResponse;
 	float **pfSamples = NULL;
@@ -98,8 +99,13 @@ int main(int argc, char* argv[])
 	responseFileName = argv[4];
 	responseFileName2 = argv[5];
 
-	ReadWaveFile(responseFileName, resSamplesPerSec, resBitsPerSample, NResChannels, NResSamples, &pResponse, &pfResponse);
-	ReadWaveFile(inFileName, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSamples, &pfSamples);
+	if (!ReadWaveFile(responseFileName, resSamplesPerSec, resBitsPerSample, NResChannels, NResSamples, &pResponse, &pfResponse) ||
+		!ReadWaveFile(inFileName, SamplesPerSec, BitsPerSample, NChannels, NSamples, &pSamples, &pfSamples))
+	{
+		std::cerr << "ERROR: Wav file open error!\n";
+		return 0;
+	}
+
 
 	if(responseFileName2)
 	{
@@ -140,37 +146,40 @@ int main(int argc, char* argv[])
 
 	TANContextPtr taGPU;
 	TANContextPtr taCPU = NULL;
+	auto factory = g_AMFFactory.GetFactory();
 
 	if (gpu == 0 || gpu == 2)
 	{
-		TANCreateContext(TAN_FULL_VERSION, &taCPU);
+		TANCreateContext(TAN_FULL_VERSION, &taCPU, factory);
 	}
+#ifndef TAN_NO_OPENCL
 	if (gpu == 1 || gpu == 2)
 	{
-		TANCreateContext(TAN_FULL_VERSION, &taGPU);
+		TANCreateContext(TAN_FULL_VERSION, &taGPU, factory);
 		cl_context gpu_context;
 		cl_device_id device_id;
 		getDeviceAndContext(0, &gpu_context, &device_id);
 		taGPU->InitOpenCL(createQueue(gpu_context, device_id), createQueue(gpu_context, device_id));
 	}
-
+#endif
 	amf_uint32 flags[] = { 0, 0 };
 	TANConvolutionPtr convCPU = NULL;
 	TANConvolutionPtr convGPU = NULL;
-	if (gpu == 0 || gpu == 2)
+
+	if (NResSamples > 0)
 	{
-		TANCreateConvolution(taCPU, &convCPU);
-		convCPU->Init(TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, NResSamples, n_samples, NChannels);
+		if (gpu == 0 || gpu == 2)
+		{
+			TANCreateConvolution(taCPU, &convCPU);
+			convCPU->Init(TAN_CONVOLUTION_METHOD_FFT_OVERLAP_ADD, NResSamples, n_samples, NChannels);
 
+		}
+		if (gpu == 1 || gpu == 2)
+		{
+			TANCreateConvolution(taGPU, &convGPU);
+			convGPU->Init(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED, NResSamples, n_samples, NChannels);
+		}
 	}
-	if (gpu == 1 || gpu == 2)
-	{
-		TANCreateConvolution(taGPU, &convGPU);
-		convGPU->Init(TAN_CONVOLUTION_METHOD_FHT_UNIFORM_PARTITIONED, NResSamples, n_samples, NChannels);
-	}
-
-
-
 
 	int n_IR_updates = 10;
 	int update_interv = n_blocks / n_IR_updates;

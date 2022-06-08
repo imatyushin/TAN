@@ -1253,12 +1253,16 @@ AMF_RESULT TrueAudioVRimpl::InitializeCL(
     AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 
     m_pFloatResponse =  clCreateBuffer(m_context, CL_MEM_READ_WRITE, responseLength * sizeof(float), NULL, &status);
+    // TODO: log errors
+    AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 
     // zero buffers
     float fill = 0.0;
     status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
-    status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
+    // TODO: log errors
+    AMF_RETURN_IF_FALSE(status == CL_SUCCESS, AMF_FAIL);
 
+    status = FixedEnqueueFillBuffer(m_context, m_cmdQueue, m_pFloatResponse, &fill, sizeof(float), 0, responseLength * sizeof(float));
     //PrintCLArrayReduced("m_pResponse init", m_pResponse, m_cmdQueue, responseLength * sizeof(float));
     //PrintCLArrayReduced("m_pFloatResponse init", m_pFloatResponse, m_cmdQueue, responseLength * sizeof(float));
 

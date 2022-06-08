@@ -63,3 +63,24 @@ add_executable(
 
 target_link_libraries(TALibTestConvolution TrueAudioNext)
 target_link_libraries(TALibTestConvolution GPUUtilities)
+
+add_custom_command(
+  TARGET TALibTestConvolution
+  POST_BUILD
+
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TALibTestConvolution>
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TALibTestConvolution>
+
+  VERBATIM
+  )
+
+if(FFTW_DIR)
+add_custom_command(
+    TARGET TALibTestConvolution
+    POST_BUILD
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>" $<TARGET_FILE_DIR:TALibTestConvolution>
+
+    VERBATIM
+    )
+endif()

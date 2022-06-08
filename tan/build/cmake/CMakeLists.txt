@@ -130,11 +130,13 @@ if(WIN32)
 endif()
 
 #tests
-#add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
-#add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
-#add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
-#add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
+add_subdirectory(../../tests/proj/cmake/TALibDopplerTest cmake-TALibDopplerTest-bin)
+add_subdirectory(../../tests/proj/cmake/TALibTestConvolution cmake-TALibTestConvolution-bin)
+add_subdirectory(../../tests/proj/cmake/TALibTestDynamicChannelConvolution cmake-TALibTestDynamicChannelConvolution-bin)
+add_subdirectory(../../tests/proj/cmake/TALibVRTest cmake-TALibVRTest-bin)
 add_subdirectory(../../tests/proj/cmake/TanDeviceResourcesTest cmake-TanDeviceResourcesTest-bin)
+
+
 
 add_subdirectory(../../tests/proj/cmake/TanCPUTest cmake-TanCPUTest-bin)
 add_subdirectory(${TAN_ROOT}/utils/proj/cmake/TANWavCompare cmake-TANWavCompare-bin)

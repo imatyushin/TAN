@@ -22,12 +22,14 @@ include(${TAN_ROOT}/utils/cmake/test_OpenCL.cmake)
 # name
 project(TALibVRTest DESCRIPTION "TALibVRTest")
 
+
 include_directories(${AMF_HOME}/amf)
 include_directories(${TAN_HEADERS})
 
 include_directories(${TAN_ROOT}/utils/common)
 include_directories(${TAN_ROOT}/tan/samples/src/GPUUtilities)
 include_directories(${TAN_ROOT}/tan/samples/src/TrueAudioVR)
+include_directories(${TAN_ROOT}/tan/samples/src/common)
 
 ADD_DEFINITIONS(-D_CONSOLE)
 ADD_DEFINITIONS(-D_LIB)
@@ -40,14 +42,19 @@ set(
   ${TAN_ROOT}/utils/common/wav.cpp
   ${TAN_ROOT}/utils/common/FileUtility.cpp
 
+  ${TAN_ROOT}/tan/samples/src/common/GpuUtils.cpp
+
   ../../../src/TALibVRTest/stdafx.cpp
   ../../../src/TALibVRTest/TALibVRTest.cpp
+
   )
 
 set(
   HEADER_EXE
   ${TAN_ROOT}/utils/common/wav.h
   ${TAN_ROOT}/utils/common/FileUtility.h
+
+  ${TAN_ROOT}/tan/samples/src/common/GpuUtils.h
 
   ../../../src/TALibVRTest/stdafx.h
   ../../../src/TALibVRTest/targetver.h
@@ -63,3 +70,26 @@ add_executable(
 target_link_libraries(TALibVRTest TrueAudioNext)
 target_link_libraries(TALibVRTest GPUUtilities)
 target_link_libraries(TALibVRTest TrueAudioVR)
+target_link_libraries(TALibVRTest ${OpenCL_LIBRARY})
+
+add_custom_command(
+  TARGET TALibVRTest
+  POST_BUILD
+
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioNext_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TALibVRTest>
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${TrueAudioVR_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TALibVRTest>
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${GPUUtilities_BINARY_DIR}/$<CONFIGURATION>" $<TARGET_FILE_DIR:TALibVRTest>
+
+  VERBATIM
+  )
+
+if(FFTW_DIR)
+    add_custom_command(
+        TARGET TALibVRTest
+        POST_BUILD
+
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${fftw_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>" $<TARGET_FILE_DIR:TALibVRTest>
+
+        VERBATIM
+        )
+endif()

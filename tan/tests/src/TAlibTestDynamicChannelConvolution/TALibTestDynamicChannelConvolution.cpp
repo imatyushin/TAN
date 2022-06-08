@@ -33,6 +33,8 @@ using namespace amf;
 
 #include "FileUtility.h"
 #include "wav.h"
+#include "public/common/TraceAdapter.h"
+#include "public/common/AMFFactory.h"
 
 const uint32_t c_modesCnt = 2;
 
@@ -63,26 +65,23 @@ int main(int argc, char* argv[])
 
 	bool gpu = 0;
 
-    if (argc < 5 || !(!strcmp(argv[1], "gpu") || !strcmp(argv[1], "cpu")))
+    if (argc < 6 || !(!strcmp(argv[1], "gpu") || !strcmp(argv[1], "cpu")))
 	{
 		puts("syntax:\n");
-        puts("TALibTestConvolution <gpu | cpu> infile.wav response.wav output.wav [updflagsched.txt]\n");
+        puts("TALibTestConvolution <gpu | cpu> infile.wav response.wav output.wav updflagsched.txt\n");
 		return(0);
 	}
 
     infilename = argv[2];
     respName = argv[3];
     outName = argv[4];
-
-    if (argc >= 6){
-        configName = argv[5];
-        fpConfig = fopen(configName, "r");
-        if (!fpConfig)
-        {
-            puts("Error cannot open this config file, try providing absolute path:\n");
-            puts(configName);
-            return 0;
-        }
+    configName = argv[5];
+    fpConfig = fopen(configName, "r");
+    if (fpConfig == NULL)
+    {
+        puts("Error cannot open this config file, try providing absolute path:\n");
+        puts(configName);
+        return 0;
     }
 
 	gpu = !strcmp(argv[1], "gpu");
@@ -132,19 +131,22 @@ int main(int argc, char* argv[])
 
 	TANContextPtr taGPU;
 	TANContextPtr taCPU = NULL;
+    auto factory = g_AMFFactory.GetFactory();
 
 	if (!gpu)
 	{
-		TANCreateContext(TAN_FULL_VERSION, &taCPU);
+		TANCreateContext(TAN_FULL_VERSION, &taCPU, factory);
 	}
+#ifndef TAN_NO_OPENCL
 	if (gpu)
 	{
-		TANCreateContext(TAN_FULL_VERSION, &taGPU);
+		TANCreateContext(TAN_FULL_VERSION, &taGPU, factory);
 		cl_context gpu_context;
 		cl_device_id device_id;
 		getDeviceAndContext(0, &gpu_context, &device_id);
 		taGPU->InitOpenCL(createQueue(gpu_context, device_id), createQueue(gpu_context, device_id));
 	}
+#endif
 
 	amf_uint32 flags[] = { 0, 0 };
 	TANConvolutionPtr convCPU = NULL;
@@ -199,7 +201,12 @@ int main(int argc, char* argv[])
 
 		if (gpu)
 		{
-            convGPU->Process(tmpIn, tmpOut, blockLength, updFlags, NULL);
+            auto res = convGPU->Process(tmpIn, tmpOut, blockLength, updFlags, NULL);
+            AMF_RETURN_IF_FAILED(res);
+            if (res != AMF_OK)
+            {
+                return res;
+            }
 		} else
         {
             convCPU->Process(tmpIn, tmpOut, blockLength, updFlags, NULL);
